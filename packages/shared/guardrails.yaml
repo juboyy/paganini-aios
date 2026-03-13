@@ -1,0 +1,75 @@
+# Guardrail Definitions — PAGANINI AIOS
+# Pipeline order matters: gates execute in sequence, first BLOCK stops the operation
+
+pipeline:
+  - gate: eligibility
+    type: hard-stop
+    description: Asset must meet fund eligibility criteria
+    checks:
+      - asset type matches fund policy
+      - cedente is approved (DD complete, active status)
+      - sacado is not on sanctions list
+      - asset is not already ceded (uniqueness check via SRA)
+      - asset maturity within fund policy limits
+      - asset value within min/max thresholds
+
+  - gate: concentration
+    type: hard-stop
+    description: Portfolio concentration limits
+    checks:
+      - per-cedente concentration < limit (typically 10-20%)
+      - per-sacado concentration < limit
+      - per-sector concentration < limit
+      - per-maturity-bucket concentration < limit
+      - per-geographic concentration < limit (if applicable)
+
+  - gate: covenant
+    type: hard-stop
+    description: Fund covenant compliance
+    checks:
+      - overcollateralization ratio >= minimum
+      - subordination ratio maintained
+      - PDD ratio < maximum
+      - liquidity buffer >= minimum
+      - performance triggers not breached
+      - any fund-specific covenants from regulamento
+
+  - gate: pld-aml
+    type: hard-stop
+    description: Anti-money laundering and terrorist financing
+    checks:
+      - cedente not on CEIS/CNEP/CEPIM
+      - cedente not on OFAC/ONU sanctions
+      - cedente PEP status checked
+      - transaction pattern not suspicious
+      - ROS generated if risk score > threshold
+
+  - gate: compliance
+    type: hard-stop
+    description: General regulatory compliance
+    checks:
+      - operation complies with CVM 175
+      - operation complies with fund regulamento
+      - LGPD data processing requirements met
+      - proper documentation attached
+      - approval workflow completed
+
+  - gate: risk-assessment
+    type: soft-warn
+    description: Risk evaluation (advisory, not blocking)
+    checks:
+      - credit risk score of sacado
+      - sector risk assessment
+      - historical default rate for similar assets
+      - stress test results
+      - pricing within fair value range
+
+overrides:
+  description: |
+    Hard-stop gates can ONLY be overridden by:
+    1. Human administrator with appropriate role
+    2. Override is logged with full justification
+    3. Override generates compliance alert
+    4. Override is reviewed in next audit cycle
+  require_human: true
+  log_level: CRITICAL
