@@ -351,7 +351,7 @@ Phase 4 (Wk 7-8): Slack IR → QMD Reports → Onboarding → Dashboard
 
 ## Contact
 
-- Web: [aios.finance](https://www.aios.finance)
+- Web: [paganini-aios-v2.lovable.app](https://paganini-aios-v2.lovable.app/)
 - Email: rod.marques@aios.finance
 
 ---
