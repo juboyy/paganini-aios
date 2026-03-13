@@ -1,0 +1,149 @@
+# PAGANINI AIOS — Configuration
+# This file is the single source of configuration for the system.
+# Sensitive values (API keys) come from environment variables or .env file.
+
+system:
+  name: "PAGANINI AIOS"
+  version: "0.1.0"
+  language: "pt-BR"
+  timezone: "America/Sao_Paulo"
+
+# BYOK — Provider configuration
+# Client provides their own API keys via environment variables
+providers:
+  default: "openai"  # fallback provider
+  mapping:
+    openai:
+      env_key: "OPENAI_API_KEY"
+      models:
+        default: "gpt-4o"
+        fast: "gpt-4o-mini"
+        reasoning: "o1"
+    anthropic:
+      env_key: "ANTHROPIC_API_KEY"
+      models:
+        default: "claude-sonnet-4-20250514"
+        reasoning: "claude-opus-4-20250514"
+    google:
+      env_key: "GOOGLE_API_KEY"
+      models:
+        default: "gemini-2.5-flash"
+        reasoning: "gemini-2.5-pro"
+    local:
+      base_url: "http://localhost:11434/v1"
+      models:
+        default: "llama3.1:70b"
+
+# Memory configuration
+memory:
+  episodic:
+    backend: "filesystem"  # filesystem | postgres
+    path: "runtime/state/{fund_id}/history/"
+    retention_days: 365
+
+  semantic:
+    backend: "pgvector"  # pgvector | chromadb | qdrant
+    embedding_model: "text-embedding-3-large"
+    embedding_dims: 3072
+    chunk_size: 512
+    chunk_overlap: 64
+    sparse_index: "tsvector"  # tsvector | bm25
+
+  procedural:
+    backend: "filesystem"
+    path: "runtime/state/{fund_id}/"
+    formats: ["md", "yaml", "json"]
+
+  relational:
+    backend: "pgvector"  # pgvector tables (kg_nodes, kg_edges)
+    entity_types:
+      - regulacao
+      - fundo
+      - cota
+      - ativo
+      - participante
+      - processo
+      - risco
+      - relatorio
+      - covenant
+      - contabilidade
+
+# Agent configuration
+agents:
+  administrador:
+    soul: "packages/agents/souls/administrador.md"
+    enabled: true
+  custodiante:
+    soul: "packages/agents/souls/custodiante.md"
+    enabled: true
+  gestor:
+    soul: "packages/agents/souls/gestor.md"
+    enabled: true
+  compliance:
+    soul: "packages/agents/souls/compliance.md"
+    enabled: true
+  reporting:
+    soul: "packages/agents/souls/reporting.md"
+    enabled: true
+  due_diligence:
+    soul: "packages/agents/souls/due_diligence.md"
+    enabled: true
+  regulatory_watch:
+    soul: "packages/agents/souls/regulatory_watch.md"
+    enabled: true
+  investor_relations:
+    soul: "packages/agents/souls/investor_relations.md"
+    enabled: true
+    interface: "slack"
+  pricing:
+    soul: "packages/agents/souls/pricing.md"
+    enabled: true
+
+# Guardrails
+guardrails:
+  config: "packages/shared/guardrails.yaml"
+  override_requires_human: true
+  log_blocked_operations: true
+
+# Daemons
+daemons:
+  config: "infra/daemons.yaml"
+  log_path: "runtime/logs/daemons/"
+
+# Telemetry
+telemetry:
+  enabled: true
+  trace_path: "runtime/traces/"
+  format: "jsonl"
+  sync_to_db: true
+  include_costs: true
+
+# RAG Pipeline
+rag:
+  corpus_path: "data/corpus/"
+  index_path: "data/indexes/"
+  embedding_path: "data/embeddings/"
+  retrieval:
+    mode: "hybrid"  # dense | sparse | hybrid | graph
+    rrf_k: 60
+    top_k: 10
+    rerank: true
+
+# Eval
+eval:
+  questions_path: "packages/rag/eval_questions.jsonl"
+  results_path: "packages/rag/results.tsv"
+  metrics: ["precision@5", "recall", "faithfulness", "latency_ms"]
+
+# Slack (Investor Relations)
+slack:
+  bot_token_env: "SLACK_BOT_TOKEN"
+  channels:
+    template: "fidc-{fund_name}-{channel_type}"
+    types: ["geral", "operacoes", "compliance"]
+
+# Deploy
+deploy:
+  method: "ssh"  # ssh | docker | local
+  remote_path: "/opt/paganini-aios"
+  corpus_sync: "rsync"
