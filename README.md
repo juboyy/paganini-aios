@@ -40,36 +40,57 @@ PAGANINI deploys an autonomous agent swarm that mirrors the entire fund
 operation — each participant gets an AI counterpart that operates 24/7,
 follows regulations by design, and improves with every interaction.
 
-```
-┌─────────────────────────────────────────────────┐
-│                    YOU                           │
-│            paganini query "..."                  │
-└──────────────────────┬──────────────────────────┘
-                       │
-          ┌────────────▼────────────┐
-          │    🧠 COGNITIVE ROUTER  │
-          │  classify → route →     │
-          │  estimate confidence    │
-          └────────────┬────────────┘
-                       │
-     ┌─────────┬───────┼───────┬──────────┐
-     ▼         ▼       ▼       ▼          ▼
-  ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐
-  │Admin │ │Custód│ │Gestor│ │Compli│ │  +5  │
-  │      │ │      │ │      │ │ance  │ │more  │
-  │ CVM  │ │Recon │ │ Risk │ │PLD/  │ │      │
-  │ 175  │ │cilia │ │ PDD  │ │ AML  │ │      │
-  └──┬───┘ └──┬───┘ └──┬───┘ └──┬───┘ └──┬───┘
-     │        │        │        │         │
-     └────────┴────────┴────────┴─────────┘
-                       │
-          ┌────────────▼────────────┐
-          │   🛡️ GUARDRAIL PIPELINE │
-          │  6 hard-stop gates      │
-          │  Block > Warn > Log     │
-          └────────────┬────────────┘
-                       │
-                    Answer
+```mermaid
+flowchart TD
+    subgraph INPUT["📥 Input"]
+        CLI["CLI"] & Slack["Slack"] & API["API"] & Dash["Dashboard"]
+    end
+
+    INPUT --> Router
+
+    Router["🧠 Cognitive Router\nClassify · Route · Estimate confidence"]
+
+    Router --> Agents
+
+    subgraph Agents["🤖 Agent Swarm"]
+        A1["📋 Admin\nCVM 175"] & A2["🔐 Custódia\nReconciliação"] & A3["📊 Gestor\nRisco · PDD"]
+        A4["⚖️ Compliance\nPLD/AML"] & A5["📄 Reporting\nCADOC"] & A6["🔍 Due Diligence\nKYC"]
+        A7["📡 Reg Watch\nCVM/ANBIMA"] & A8["💬 IR\nSlack Bot"] & A9["💰 Pricing\nMtM"]
+    end
+
+    Agents --> RAG
+
+    RAG["🔍 Hybrid RAG\nDense + Sparse + Graph → RRF Fusion"]
+
+    RAG --> MetaClaw
+
+    MetaClaw["🧬 MetaClaw Proxy\nSearches skill library → Injects top 6 → Forwards enriched prompt"]
+
+    MetaClaw --> LLM
+
+    LLM["☁️ LLM Provider · BYOK\nOpenAI · Anthropic · Google · Ollama"]
+
+    LLM --> Guards
+
+    Guards["🛡️ Guardrail Pipeline\nEligibility → Concentration → Covenant → PLD/AML → Compliance → Risk"]
+
+    Guards --> Sense
+
+    Sense["✅ Quality Gate · Sense\nAccuracy ≥ 0.9 · Compliance ≥ 0.95"]
+
+    Sense --> Response["📤 Response\nWith confidence score · Full audit trail"]
+
+    Response -.->|"logs interaction"| MetaClaw
+    Response -.->|"monitors eval drift"| RAG
+    Response -.->|"extracts patterns"| Memory["🧠 Memory Reflection"]
+
+    style Router fill:#1e3a5f,stroke:#d4a73a,color:#e8e6f0
+    style MetaClaw fill:#1e3a5f,stroke:#d97706,color:#e8e6f0
+    style Guards fill:#1e3a5f,stroke:#be123c,color:#e8e6f0
+    style RAG fill:#1e3a5f,stroke:#0891b2,color:#e8e6f0
+    style Sense fill:#1e3a5f,stroke:#059669,color:#e8e6f0
+    style Response fill:#1e3a5f,stroke:#d4a73a,color:#e8e6f0
+    style Memory fill:#1e3a5f,stroke:#059669,color:#e8e6f0
 ```
 
 ---
@@ -236,16 +257,23 @@ Day's operations → Reflection daemon:
 
 #### How They Work Together
 
-```
-Query → RAG Pipeline (AutoResearch optimized retrieval)
-      → MetaClaw (injects learned behavioral skills)
-      → LLM generates response
-      → Quality Gate (Sense)
-      → Response delivered
-      │
-      ├─ MetaClaw logs interaction → generates skills
-      ├─ AutoResearch monitors eval drift → re-optimizes
-      └─ Memory Reflection → updates knowledge graph
+```mermaid
+flowchart LR
+    Q["Query"] --> RAG
+    RAG["🔍 RAG\n(AutoResearch\noptimized)"] --> MC
+    MC["🧬 MetaClaw\n(injects learned\nskills)"] --> LLM
+    LLM["☁️ LLM"] --> QG
+    QG["✅ Quality\nGate"] --> R["Response"]
+
+    R -.->|"generates\nnew skills"| MC
+    R -.->|"monitors\neval drift"| RAG
+    R -.->|"extracts\npatterns"| MEM["🧠 Memory\nReflection"]
+    MEM -.->|"deepens\nknowledge"| RAG
+
+    style RAG fill:#0d3b66,stroke:#0891b2,color:#e8e6f0
+    style MC fill:#0d3b66,stroke:#d97706,color:#e8e6f0
+    style MEM fill:#0d3b66,stroke:#059669,color:#e8e6f0
+    style QG fill:#0d3b66,stroke:#d4a73a,color:#e8e6f0
 ```
 
 **No conflicts.** AutoResearch optimizes *how information is found*.
