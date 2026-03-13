@@ -1,7 +1,7 @@
-# PAGANINI Genome — Production-Proven Patterns
+# PAGANINI Genome — Skills, Patterns & Integration Blueprints
 
-> The genetic code of PAGANINI AIOS. Every pattern listed here has been
-> battle-tested in a production AIOS running 24/7 since February 2026.
+> The genetic code of PAGANINI AIOS. Every skill, pattern, and blueprint listed
+> here has been battle-tested in a production AIOS running 24/7 since February 2026.
 > No theory. No prototypes. Proven systems, extracted as reusable modules.
 
 ---
@@ -259,3 +259,145 @@ The client configures:
 - Guardrail rules for their fund type
 
 The patterns handle the rest.
+
+---
+
+## Transferable Skills (OpenClaw Ecosystem)
+
+These are concrete, executable skill modules from the OpenClaw ecosystem.
+Not abstractions — actual SKILL.md-driven modules that agents load and use.
+
+### Core Infrastructure Skills
+
+| Skill | What It Does | PAGANINI Use |
+|-------|-------------|--------------|
+| **skill-creator** | Create and package new agent skills with SKILL.md, scripts, references | Clients and integrators create domain-specific skills for their fund type |
+| **skill-detector** | Auto-detect patterns in agent behavior and draft new skills | PAGANINI auto-generates skills from recurring financial operations |
+| **coding-agent** | Delegate coding tasks to background agents (Codex, Claude Code) | Build custom integrations, reports, connectors on demand |
+| **tmux** | Remote-control persistent terminal sessions for interactive CLIs | Daemon management, persistent process control, background operations |
+| **session-logs** | Search and analyze session history with jq | Audit trail analysis, compliance review, decision reconstruction |
+
+### Communication & Channel Skills
+
+| Skill | What It Does | PAGANINI Use |
+|-------|-------------|--------------|
+| **slack** | Full Slack control (messages, reactions, pins, channels) | IR bot: per-fund channels, cotista DMs, operations alerts, daily digests |
+| **discord** | Discord ops via message tool | Alternative comms channel for tech-forward clients |
+| **himalaya** | CLI email management via IMAP/SMTP | Regulatory filing notifications, cotista email reports, alert escalation |
+| **voice-call** | Voice calls via OpenClaw plugin | Emergency escalation, verbal approvals for high-risk operations |
+
+### Content & Document Skills
+
+| Skill | What It Does | PAGANINI Use |
+|-------|-------------|--------------|
+| **nano-pdf** | Edit PDFs with natural language instructions | Regulatory filing amendments, report corrections, document assembly |
+| **summarize** | Extract text/transcripts from URLs, podcasts, files | Summarize long regulatory documents, earnings calls, market reports |
+| **humanizer** | Remove AI writing patterns from text | Client-facing reports sound human, not AI-generated |
+| **frontend-design** | Production-grade frontend interfaces | Dashboard components, fund visualizations, cotista portal |
+| **visual-explainer** | Self-contained HTML visual explanations | Architecture diagrams, fund structure visualizations, risk heatmaps |
+| **ui-ux-design** | Modern UI/UX patterns, Tailwind, Shadcn, accessibility | Dashboard design, cotista portal UX, mobile-responsive layouts |
+
+### Automation & Intelligence Skills
+
+| Skill | What It Does | PAGANINI Use |
+|-------|-------------|--------------|
+| **pinchtab** | Headless Chrome automation (800 tokens/page) | Regulatory scraping (CVM/ANBIMA/BACEN), DD judicial search, market data |
+| **github** | GitHub operations via gh CLI (issues, PRs, CI) | CI/CD pipeline, automated testing, version control of configs |
+| **gemini** | Gemini CLI for one-shot Q&A, generation | Fast query engine for simple fund queries, classification tasks |
+| **openai-whisper-api** | Audio transcription via Whisper | Transcribe cotista calls, committee meetings, verbal approvals |
+| **openai-image-gen** | Image generation via OpenAI API | Report charts, fund marketing materials, visual summaries |
+
+### Monitoring & Ops Skills
+
+| Skill | What It Does | PAGANINI Use |
+|-------|-------------|--------------|
+| **healthcheck** | Security hardening, risk-tolerance config | System security audit, infrastructure health, deployment validation |
+| **weather** | Current weather and forecasts | (indirect) Agricultural FIDC: weather impacts on crop-backed receivables |
+| **blogwatcher** | Monitor RSS/Atom feeds for updates | Monitor regulatory blogs, financial news feeds, CVM publications |
+| **demo-recorder** | Record browser sessions as video demos | Record compliance demos, audit walkthroughs, client onboarding |
+
+### Data & Research Skills
+
+| Skill | What It Does | PAGANINI Use |
+|-------|-------------|--------------|
+| **canvas** | Display HTML on connected devices/nodes | Real-time fund dashboards on office monitors, cotista kiosks |
+| **video-frames** | Extract frames from videos via ffmpeg | Extract data from video-based market reports, conference recordings |
+| **goplaces** | Google Places API queries | DD: verify cedente physical addresses, branch locations |
+| **xurl** | Authenticated X (Twitter) API access | Monitor fintwit for market sentiment, fund manager commentary |
+
+### Meta Skills (The Skill System Itself)
+
+| Skill | What It Does | PAGANINI Use |
+|-------|-------------|--------------|
+| **mcporter** | List, configure, auth, and call MCP servers/tools | Connect PAGANINI to any MCP-compatible tool (Linear, Supabase, custom) |
+| **oracle** | Prompt bundling, engine management, sessions | Advanced prompt engineering for complex financial analyses |
+| **clawhub** | Search, install, update, publish skills from marketplace | PAGANINI skill marketplace: domain packs installable via CLI |
+
+---
+
+### New Domain Skills (Built for PAGANINI)
+
+These don't exist yet. They're built specifically for the FIDC domain:
+
+| Skill | What It Does | Agent Owner |
+|-------|-------------|-------------|
+| **cvm-query** | Query CVM 175 articles, interpret regulations | Compliance, Administrador |
+| **pdd-calc** | PDD calculation per IFRS9 models | Pricing, Gestor |
+| **covenant-check** | Evaluate covenant compliance, predict breaches | Administrador |
+| **cadoc-gen** | Generate CADOC 3040 regulatory filings | Reporting |
+| **cedente-dd** | Full due diligence pipeline for originators | Due Diligence |
+| **cota-pricing** | Mark-to-market valuation, deságio calculation | Pricing |
+| **reconciliation** | Payment matching, duplicate detection | Custodiante |
+| **pld-aml** | Anti-money laundering screening, COAF reporting | Compliance |
+| **regulatory-scan** | CVM/ANBIMA/BACEN publication monitoring | Regulatory Watch |
+| **fund-report** | QMD-based regulatory report generation | Reporting |
+| **risk-score** | Cedente/sacado risk scoring composite | Gestor, Due Diligence |
+| **market-data** | CDI, Selic, IPCA, yield curve ingestion | Pricing |
+
+---
+
+## Skill Architecture
+
+Skills in PAGANINI follow the OpenClaw skill format:
+
+```
+skills/
+├── cvm-query/
+│   ├── SKILL.md          # Description, triggers, constraints
+│   ├── query.py          # Implementation
+│   ├── cvm175.json       # Reference data (57 articles)
+│   └── tests/
+│       └── test_query.py
+├── pdd-calc/
+│   ├── SKILL.md
+│   ├── calculator.py
+│   ├── ifrs9_models.py
+│   └── tests/
+└── ...
+```
+
+Each skill is:
+- **Self-contained** — SKILL.md + implementation + reference data + tests
+- **Discoverable** — registered in capabilities graph with semantic embedding
+- **Installable** — `paganini install skill cvm-query` or `clawhub install paganini/cvm-query`
+- **Testable** — each skill has its own test suite
+- **Versionable** — semantic versioning, changelog
+
+### Skill Marketplace
+
+```bash
+# Install from PAGANINI marketplace (aios.finance)
+paganini install fidc-starter     # 3 core skills (cvm-query, pdd-calc, covenant-check)
+paganini install fidc-professional # 9 skills (full regulatory + DD + reporting)
+paganini install fidc-enterprise   # All 12 + custom skill development
+
+# Install individual skills
+paganini install skill cvm-query
+paganini install skill cedente-dd
+
+# Create custom skill
+paganini skill create meu-skill-customizado
+
+# Publish to marketplace (for integrators)
+paganini skill publish meu-skill --marketplace aios.finance
+```
