@@ -7,6 +7,29 @@ O sistema que fica mais inteligente a cada interação — sem fine-tuning, sem 
 
 ---
 
+## Built on Production Infrastructure
+
+PAGANINI isn't built from scratch. It inherits 60% of its operational stack from a
+production AIOS that has been running 24/7 since February 2026 — 500+ hours of
+continuous operation, 100+ tasks processed through BMAD-CE pipeline, 12 self-audit
+violations caught and corrected.
+
+| Reused | Built New |
+|--------|-----------|
+| 9 scripts (gate, sense, memory, monitoring) | RAG pipeline (FIDC corpus) |
+| pgvector + Supabase (27 tables adapted) | Knowledge graph (FIDC ontology) |
+| OTel pipeline (regulatory-grade audit) | Guardrail logic (CVM 175 rules) |
+| Composio integrations (Slack, GitHub) | QMD report templates |
+| tmux + systemd (process persistence) | Pricing & reconciliation engines |
+| BMAD-CE pipeline (18 stages) | AutoResearch + MetaClaw |
+| SOUL pattern (agent identity) | Onboarding wizard |
+
+**Time saved: ~60% of development effort.** 2 weeks of adaptation vs 11 weeks of new build.
+
+Full mapping: [`docs/architecture/reuse-map.md`](docs/architecture/reuse-map.md)
+
+---
+
 ## Architecture
 
 ```
@@ -295,6 +318,28 @@ cd infra && docker compose up -d
 
 # Moltis runtime
 curl -fsSL https://www.moltis.org/install.sh | sh
+```
+
+---
+
+## BMAD-CE Pipeline
+
+Every task follows the pipeline. No raw execution.
+
+```
+Micro  (config, query)    → Context Scout → Fix → Log
+Quick  (bug, simple)      → 1 → 10 → 11 → 13 → 17
+Feature (agent, module)   → 1 → 2 → 4 → 8 → 10 → 11 → 12 → 13 → 14 → 17
+Epic   (cross-system)     → All 18 stages
+```
+
+Current roadmap: [`docs/pipeline/bmad-ce.md`](docs/pipeline/bmad-ce.md)
+
+```
+Phase 1 (Wk 1-2): RAG Pipeline → Memory API → Knowledge Graph → Eval Suite
+Phase 2 (Wk 3-4): Cognitive Router → Agent Framework → Guardrails → AutoResearch
+Phase 3 (Wk 5-6): Moltis Config → MetaClaw → PinchTab → Daemons
+Phase 4 (Wk 7-8): Slack IR → QMD Reports → Onboarding → Dashboard
 ```
 
 ---
