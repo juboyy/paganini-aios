@@ -78,13 +78,179 @@ follows regulations by design, and improves with every interaction.
 
 ### 🔄 Three Self-Improvement Loops
 
-The system doesn't just answer — it **evolves**.
+The system doesn't just answer — it **evolves**. Three engines optimize
+different layers simultaneously. No fine-tuning required for the default mode.
 
-| Loop | What It Optimizes | How |
-|------|-------------------|-----|
-| 🔍 **AutoResearch** | Retrieval quality | Autonomous experiments on chunking, embedding, ranking. LLM optimizes the pipeline, not itself. |
-| 🧬 **MetaClaw** | Agent behavior | Learning proxy intercepts interactions, generates skills automatically. No fine-tuning needed. |
-| 🧠 **Memory Reflection** | Knowledge depth | Daily daemon reviews operations, extracts patterns, builds knowledge graph. Day 100 > Day 1. |
+---
+
+#### 🧬 MetaClaw — Behavioral Evolution
+
+An OpenAI-compatible proxy between the runtime and the LLM provider.
+Intercepts every interaction. Injects learned skills. Generates new ones automatically.
+
+```
+EVERY INTERACTION:
+  Query arrives → MetaClaw searches skill library
+  → Finds top 6 relevant skills (embedding similarity)
+  → Injects into system prompt → Forwards to LLM
+  → Response is measurably better because of injected context
+
+AFTER EACH SESSION:
+  MetaClaw feeds entire conversation to the LLM
+  → LLM analyzes: what worked? what patterns emerged?
+  → Generates NEW skill files (markdown)
+  → Next session benefits immediately
+```
+
+**Concrete example:**
+
+```
+Session 1:  "How to calculate PDD for energy receivables?"
+            → No energy-specific skills exist
+            → Generic answer from model knowledge
+
+            Post-session: MetaClaw auto-generates:
+            energy-sector-pdd.md: "When calculating PDD for
+            energy sector, consider seasonal payment patterns —
+            Q4 higher defaults due to dry season impact on
+            hydroelectric revenue"
+
+Session 2:  Same category question
+            → MetaClaw finds energy-sector-pdd.md (score: 0.87)
+            → Injects into prompt
+            → Response is domain-expert quality
+
+Session 50: 8 energy-specific skills accumulated
+            → Responses rival human specialist
+            → Zero fine-tuning. Zero GPU. Accumulated intelligence.
+```
+
+**Three operating modes:**
+
+| Mode | What Happens | Requirements |
+|------|-------------|-------------|
+| **skills_only** (default) | Skill injection + auto-generation from sessions | Network only. No GPU. |
+| **rl** (optional) | + Live LoRA fine-tuning via Tinker Cloud. PRM judge scores responses. Weights hot-swapped without downtime. | Tinker API key |
+| **opd** (advanced) | + Teacher-student distillation. Frontier model teaches smaller model. Same quality, 1/10th cost over time. | Teacher model endpoint |
+
+**PAGANINI guardrails on MetaClaw:**
+
+Every auto-generated skill passes through validation before activation:
+```
+New skill → Corpus contradiction? → Ontology consistent?
+         → CVM 175 compliant? → Conflicts with existing skills?
+         → Specific enough? (no generic platitudes)
+
+ALL PASS → activated
+ANY FAIL → quarantined for human review
+```
+
+Skills isolated per fund (Chinese walls). Max 500 active. Weekly pruning of low-impact skills.
+Drift detection alerts if eval scores degrade after new skills.
+
+[Deep dive →](docs/architecture/self-improvement-engines.md)
+
+---
+
+#### 🔍 AutoResearch — Retrieval Optimization
+
+A self-modifying RAG pipeline. Instead of a human tuning parameters —
+an LLM runs autonomous experiments. Evolutionary search, not RL.
+
+Inspired by [Karpathy's autoresearch](https://github.com/karpathy/autoresearch):
+*"You're not programming the program. You're programming the program.md."*
+
+**Three files:**
+
+```
+program.md   → Instructions (LLM reads to know what to optimize)
+pipeline.py  → Modifiable code (LLM changes this to improve retrieval)
+eval.py      → Fixed evaluation (NEVER touched — measures ground truth)
+```
+
+**The loop:**
+
+```
+  ┌─ LLM reads program.md ─────────────────────┐
+  │  "Optimize RAG for FIDC domain queries"     │
+  └──────────────┬──────────────────────────────┘
+                 ▼
+  ┌─ Reads pipeline.py ────────────────────────┐
+  │  Current: chunk_size=384, hybrid retrieval  │
+  │  dense=0.4, sparse=0.3, graph=0.3         │
+  └──────────────┬──────────────────────────────┘
+                 ▼
+  ┌─ Reads experiments.jsonl ──────────────────┐
+  │  "Exp 46 tried semantic chunking → +0.03"  │
+  │  "Exp 47 tried larger chunks → -0.02"      │
+  └──────────────┬──────────────────────────────┘
+                 ▼
+  ┌─ Hypothesizes ─────────────────────────────┐
+  │  "Cross-encoder reranking should improve    │
+  │   precision for regulatory questions"       │
+  └──────────────┬──────────────────────────────┘
+                 ▼
+  ┌─ Modifies pipeline.py ─────────────────────┐
+  │  + reranker = "cross_encoder"               │
+  │  + rerank_top_n = 20                        │
+  └──────────────┬──────────────────────────────┘
+                 ▼
+  ┌─ Runs eval.py (50-100 gold Q&A pairs) ─────┐
+  │  precision@5: 0.78 (+0.04)  ✓ improved     │
+  └──────────────┬──────────────────────────────┘
+                 ▼
+         IMPROVED → commit change, log experiment
+         DEGRADED → revert, log failure, try next hypothesis
+                 │
+                 └──── REPEAT ────┘
+```
+
+**16 parameters the LLM experiments with:**
+
+| Category | Parameters |
+|----------|-----------|
+| Chunking | `chunk_size` (128-1024) · `overlap` (0-256) · `strategy` (fixed / sentence / semantic / hierarchical) · `respect_headers` |
+| Embedding | `model` (gemini / openai / local) · `dimensions` (256-3072) |
+| Retrieval | `dense_weight` · `sparse_weight` · `graph_weight` · `fusion` (RRF / linear) · `rrf_k` |
+| Reranking | `method` (none / cross-encoder / LLM-rerank) · `top_n` |
+| Context | `max_tokens` · `include_metadata` · `include_parent_chunk` · `query_expansion` |
+
+[Deep dive →](docs/architecture/self-improvement-engines.md)
+
+---
+
+#### 🧠 Memory Reflection — Knowledge Deepening
+
+Daily daemon. Reviews all fund operations. Extracts patterns.
+Builds knowledge graph. Promotes episodic → semantic memory.
+
+```
+Day's operations → Reflection daemon:
+  "Every time IPCA rises >0.5%, Fund Alpha's PDD increases 12%"
+  → Extracted as permanent knowledge
+  → Added to knowledge graph
+  → Available to all agents tomorrow
+```
+
+---
+
+#### How They Work Together
+
+```
+Query → RAG Pipeline (AutoResearch optimized retrieval)
+      → MetaClaw (injects learned behavioral skills)
+      → LLM generates response
+      → Quality Gate (Sense)
+      → Response delivered
+      │
+      ├─ MetaClaw logs interaction → generates skills
+      ├─ AutoResearch monitors eval drift → re-optimizes
+      └─ Memory Reflection → updates knowledge graph
+```
+
+**No conflicts.** AutoResearch optimizes *how information is found*.
+MetaClaw optimizes *how information is used*. Memory Reflection deepens
+*what information exists*. Three dimensions. Compounding daily.
 
 ### 🏗️ Built on 15 Battle-Tested Patterns
 
