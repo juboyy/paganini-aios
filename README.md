@@ -7,26 +7,22 @@ O sistema que fica mais inteligente a cada interação — sem fine-tuning, sem 
 
 ---
 
-## Built on Production Infrastructure
+## Built on Production-Proven Patterns
 
-PAGANINI isn't built from scratch. It inherits 60% of its operational stack from a
-production AIOS that has been running 24/7 since February 2026 — 500+ hours of
-continuous operation, 100+ tasks processed through BMAD-CE pipeline, 12 self-audit
-violations caught and corrected.
+PAGANINI isn't built from scratch. Its core is a **genome of 15 battle-tested patterns**
+extracted from a production AIOS running 24/7 since February 2026 — 500+ hours,
+100+ tasks, 12 self-audit violations caught autonomously.
 
-| Reused | Built New |
-|--------|-----------|
-| 9 scripts (gate, sense, memory, monitoring) | RAG pipeline (FIDC corpus) |
-| pgvector + Supabase (27 tables adapted) | Knowledge graph (FIDC ontology) |
-| OTel pipeline (regulatory-grade audit) | Guardrail logic (CVM 175 rules) |
-| Composio integrations (Slack, GitHub) | QMD report templates |
-| tmux + systemd (process persistence) | Pricing & reconciliation engines |
-| BMAD-CE pipeline (18 stages) | AutoResearch + MetaClaw |
-| SOUL pattern (agent identity) | Onboarding wizard |
+No data, no context, no configs are copied. Only the **patterns, skills, and
+integration blueprints** — generalized and packaged as configurable modules.
 
-**Time saved: ~60% of development effort.** 2 weeks of adaptation vs 11 weeks of new build.
+| Pattern Type | What Transfers | Examples |
+|-------------|---------------|----------|
+| **Skills** (5) | Executable behavioral modules | Pre-Execution Gate, Quality Gate, Memory Reflection, Self-Audit, Proactive Heartbeat |
+| **Patterns** (5) | Architectural building blocks | SOUL (agent identity), BMAD-CE Pipeline, Cognitive Router, Capabilities Graph, Violations Tracking |
+| **Integrations** (5) | Proven connection blueprints | Composio SDK, PinchTab, GitNexus, OTel Pipeline, QMD Reporting |
 
-Full mapping: [`docs/architecture/reuse-map.md`](docs/architecture/reuse-map.md)
+Full catalog: [`docs/architecture/genome.md`](docs/architecture/genome.md)
 
 ---
 
