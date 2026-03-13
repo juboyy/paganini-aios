@@ -335,18 +335,25 @@ paganini/
 
 ---
 
-## Stack
+## Stack + Security
 
-| Layer | Technology |
-|-------|-----------|
-| Runtime | **Moltis** — Rust, single binary, sandboxed |
-| Learning | **MetaClaw** — skill auto-generation from interactions |
-| Reasoning | **RLM** — recursive context management, sub-LLM delegation |
-| Optimization | **AutoResearch** — autonomous RAG parameter tuning |
-| Memory | **pgvector** + SQLite + filesystem — dense + sparse + graph |
-| Observability | **OpenTelemetry** — regulatory-grade audit trail |
-| Channels | Slack · Telegram · API · CLI · Dashboard |
-| LLM | **BYOK** — any provider, client owns keys |
+Every layer has security built in. Not bolted on.
+
+| Layer | Technology | Security Posture |
+|-------|-----------|-----------------|
+| **Runtime** | Moltis — Rust, single binary | Agents in isolated containers. `cap-drop ALL`. Read-only FS. Distroless images. Signed + scanned. |
+| **Agents** | 9 SOULs with identity + tools + scope | `network: none` by default. Unix socket only. Seccomp blocks network syscalls. PID limit 50. |
+| **Learning** | MetaClaw — auto-skill generation | Per-instance isolation (Chinese walls). Skills validated vs corpus. Contradictions rejected. |
+| **Reasoning** | RLM — recursive context, sub-LLMs | Scoped context. No state between queries. Gate token proves due diligence. |
+| **Retrieval** | Hybrid RAG — dense + sparse + graph | Corpus encrypted at rest (AES-256). In-memory only. Embeddings partitioned by fund_id. |
+| **Memory** | pgvector + SQLite + filesystem | RLS per fund_id. 4 layers isolated. Episodic encrypted. Procedural auditable. |
+| **Guardrails** | 6-gate hard-stop pipeline | Block > Warn > Log. Override = human + justification + immutable audit entry. |
+| **Observability** | OpenTelemetry — traces + metrics | Every action traced with fund_id + gate_token. Immutable. 7-year retention (CVM). |
+| **Network** | Egress proxy — allowlist only | Only CVM/ANBIMA/BACEN/LLM/Slack pass. All else blocked. Every request logged. |
+| **Secrets** | Encrypted vault — AES-256-GCM | No plaintext anywhere. Pre-commit hooks + CI scan (trufflehog, gitleaks, semgrep). |
+| **Data** | PII scrubbing + immutable records | CPF/CNPJ masked in logs. Reports append-only. Corrections = new records. |
+| **Channels** | Slack · API · CLI · Dashboard | Per-fund channels. mTLS optional. Role-based dashboard. Vault-authenticated CLI. |
+| **LLM** | BYOK — any provider | Keys passed through, never stored. No training on client data. Client controls residency. |
 
 ---
 
