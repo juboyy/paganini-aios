@@ -1,0 +1,55 @@
+# PAGANINI AIOS — Example Configuration
+# Copy this file to config.yaml and fill in your API key
+# Docs: https://github.com/juboyy/paganini-aios
+
+version: "0.1.0"
+
+# Runtime engine — how PAGANINI talks to LLMs
+#   moltis: via Moltis gateway (recommended, install.sh sets it up)
+#   python: direct litellm calls (no Moltis needed, good for dev)
+#   docker: containerized stack
+runtime:
+  engine: moltis
+  moltis_config: moltis.yaml
+  gateway_url: http://127.0.0.1:30000
+
+# LLM Provider — BYOK (Bring Your Own Key)
+# Your keys go directly to the provider. We never store or see them.
+provider:
+  type: openai          # openai | anthropic | google | ollama | custom
+  model: gpt-4o-mini    # any model your provider supports
+  api_key: ${OPENAI_API_KEY}  # reads from environment variable
+  base_url: ""          # custom endpoint (leave empty for default)
+
+# RAG Pipeline — all params tunable by AutoResearch
+rag:
+  chunk_size: 384       # tokens per chunk (128-1024)
+  chunk_overlap: 64     # overlap between chunks (0-256)
+  respect_headers: true # split by markdown headers first
+  top_k: 5              # chunks to retrieve per query
+  max_context_tokens: 8000
+
+# MetaClaw — skill evolution proxy
+# Learns from successful interactions and generates reusable skills
+metaclaw:
+  enabled: false        # enable after initial testing
+  skills_dir: skills/
+  auto_evolve: true     # automatically create skills from good interactions
+  max_skills: 500
+  mode: skills_only     # skills_only | rl | opd
+
+# Guardrails — hard-stop checks (violations are BLOCKED, not warned)
+guardrails:
+  eligibility: true     # direitos creditórios eligibility check
+  concentration: true   # concentration limits
+  covenant: true        # covenant compliance
+  pld_aml: true         # anti-money laundering
+  compliance: true      # regulatory compliance
+  risk_assessment: true # risk scoring
+
+# Domain pack
+pack: fidc
+
+# Data directories
+data_dir: runtime/data
+corpus_dir: data/corpus/fidc/
