@@ -1,0 +1,42 @@
+# Moltis runtime configuration for PAGANINI AIOS
+# This file configures the Moltis AI gateway (Rust binary)
+# Docs: https://docs.moltis.org
+
+gateway:
+  port: 30000
+  host: 127.0.0.1
+
+# LLM Providers — BYOK
+# Uncomment your provider and set your API key via environment variable
+providers:
+  # openai:
+  #   api_key: ${OPENAI_API_KEY}
+  #   models: [gpt-4o-mini, gpt-4o, gpt-4.1]
+  # anthropic:
+  #   api_key: ${ANTHROPIC_API_KEY}
+  #   models: [claude-sonnet-4-20250514, claude-haiku-4-20250414]
+  # google:
+  #   api_key: ${GEMINI_API_KEY}
+  #   models: [gemini-2.5-flash, gemini-2.5-pro]
+  # ollama:
+  #   base_url: http://localhost:11434
+  #   models: [llama3.1, qwen2.5]
+
+# Agent sandboxing
+sandbox:
+  enabled: true
+  network: none           # agents can't access network by default
+  allowed_egress: []      # whitelist specific endpoints if needed
+
+# Telemetry (optional)
+telemetry:
+  enabled: true
+  format: otlp            # otlp | prometheus | json
+  endpoint: ""            # OTLP endpoint (leave empty for stdout)
+
+# Channels (optional — for agent communication)
+# channels:
+#   slack:
+#     token: ${SLACK_BOT_TOKEN}
+#   telegram:
+#     token: ${TELEGRAM_BOT_TOKEN}
