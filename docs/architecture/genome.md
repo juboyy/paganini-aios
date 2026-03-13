@@ -329,6 +329,7 @@ Not abstractions — actual SKILL.md-driven modules that agents load and use.
 
 | Skill | What It Does | PAGANINI Use |
 |-------|-------------|--------------|
+| **cli-anything** | Auto-generates production CLIs from any software — makes it agent-native | Any financial system (registradora, CETIP, B3) becomes agent-controllable via CLI. No API wrappers needed. |
 | **mcporter** | List, configure, auth, and call MCP servers/tools | Connect PAGANINI to any MCP-compatible tool (Linear, Supabase, custom) |
 | **oracle** | Prompt bundling, engine management, sessions | Advanced prompt engineering for complex financial analyses |
 | **clawhub** | Search, install, update, publish skills from marketplace | PAGANINI skill marketplace: domain packs installable via CLI |
