@@ -1,0 +1,93 @@
+# Daemon Definitions — PAGANINI AIOS
+# Each daemon runs as a persistent process (tmux/systemd/cron)
+
+daemons:
+  covenant-monitor:
+    interval: 15m
+    description: Predictive covenant monitoring
+    actions:
+      - load fund.carteira for all active funds
+      - calculate covenant metrics (overcollateralization, concentration, PDD ratio)
+      - project forward 7/14/30 days based on trends
+      - if projected breach < 30d: WARN to Slack
+      - if projected breach < 7d: ALERT to Slack + email
+      - log all metrics to traces/
+
+  pdd-calculator:
+    interval: 24h
+    trigger: 06:00 UTC
+    description: Daily PDD recalculation per IFRS9
+    actions:
+      - load carteira for all active funds
+      - calculate PCE (Perda de Crédito Esperada) per asset
+      - apply staging rules (stage 1/2/3)
+      - update fund state with new PDD values
+      - generate PDD report
+      - alert if PDD change > threshold
+
+  reconciliation:
+    interval: 1h
+    description: Payment reconciliation
+    actions:
+      - fetch bank statements (API/file)
+      - match payments to assets in carteira
+      - auto-baixa for exact matches
+      - flag partial payments for review
+      - flag unmatched payments
+      - report match rate (target: 99.99%)
+
+  market-data-sync:
+    interval: 30m
+    description: Market data update
+    actions:
+      - fetch CDI, Selic, IPCA from BACEN API
+      - fetch yield curves
+      - update market data store
+      - trigger repricing if significant change (> 10bps)
+
+  risk-scanner:
+    interval: 6h
+    description: External risk event monitoring
+    actions:
+      - check active cedentes/sacados for:
+        - RJ/falência filings (TJSP, TRFs)
+        - Sanctions list updates (CEIS, OFAC)
+        - Credit score changes (Serasa)
+        - Negative media mentions
+      - alert if risk event detected
+      - update knowledge graph with new risk data
+
+  regulatory-watch:
+    interval: 24h
+    trigger: 08:00 UTC
+    description: Daily regulatory scan
+    actions:
+      - scrape CVM, ANBIMA, BACEN for new publications
+      - parse and analyze each publication
+      - cross-reference with fund regulamentos
+      - generate impact assessments
+      - alert if high-impact change detected
+      - update regulatory changelog
+
+  memory-reflection:
+    interval: 24h
+    trigger: 02:00 UTC
+    description: Knowledge consolidation
+    actions:
+      - review last 24h of traces
+      - identify new patterns (sectors, cedentes, risks)
+      - update knowledge graph with learned relationships
+      - promote episodic learnings to semantic memory
+      - prune stale or contradicted knowledge
+      - log reflection results
+
+  self-audit:
+    interval: 12h
+    description: System integrity verification
+    actions:
+      - verify all daemons are running
+      - check memory consistency (filesystem vs database)
+      - verify guardrail integrity
+      - check for missed regulatory deadlines
+      - verify trace completeness (no gaps)
+      - report anomalies
