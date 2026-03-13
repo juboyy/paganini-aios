@@ -1,52 +1,22 @@
-# PAGANINI AIOS — Docker Compose
-# Production stack: PAGANINI + Moltis + pgvector + daemons
+version: "3.8"
 
 services:
-  # Core application
   paganini:
     build:
       context: ..
       dockerfile: infra/Dockerfile
-    container_name: paganini-core
+    container_name: paganini-aios
     restart: unless-stopped
     env_file: ../.env
     volumes:
-      - ../data:/opt/paganini/data:ro
-      - runtime:/opt/paganini/runtime
-      - skills:/opt/paganini/skills
+      - ../data:/opt/paganini-aios/data
+      - ../runtime:/opt/paganini-aios/runtime
+      - ../.env:/opt/paganini-aios/.env:ro
     ports:
       - "8000:8000"
-    depends_on:
-      pgvector:
-        condition: service_healthy
     networks:
       - paganini
-    deploy:
-      resources:
-        limits:
-          pids: 50
-    security_opt:
-      - no-new-privileges:true
-    read_only: true
-    tmpfs:
-      - /tmp
 
-  # Moltis AI Gateway
-  moltis:
-    image: ghcr.io/moltis-org/moltis:0.10.18
-    container_name: paganini-moltis
-    restart: unless-stopped
-    volumes:
-      - ../moltis.yaml:/etc/moltis/config.yaml:ro
-    ports:
-      - "30000:30000"
-    networks:
-      - paganini
-    security_opt:
-      - no-new-privileges:true
-    read_only: true
-
-  # pgvector for knowledge graph + memory
   pgvector:
     image: pgvector/pgvector:pg16
     container_name: paganini-pgvector
@@ -61,98 +31,9 @@ services:
       - "5432:5432"
     networks:
       - paganini
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U paganini"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # Daemon scheduler (runs all 8 daemons on cron)
-  daemons:
-    build:
-      context: ..
-      dockerfile: infra/Dockerfile
-    container_name: paganini-daemons
-    restart: unless-stopped
-    env_file: ../.env
-    volumes:
-      - ../data:/opt/paganini/data:ro
-      - runtime:/opt/paganini/runtime
-      - skills:/opt/paganini/skills
-    depends_on:
-      pgvector:
-        condition: service_healthy
-    networks:
-      - paganini
-    entrypoint: ["python3", "-m", "packages.kernel.daemons"]
-    security_opt:
-      - no-new-privileges:true
-    read_only: true
-    tmpfs:
-      - /tmp
-
-  # Agent containers (isolated, network: none by default)
-  agent-administrador:
-    build:
-      context: ..
-      dockerfile: infra/Dockerfile
-    container_name: paganini-agent-admin
-    restart: unless-stopped
-    env_file: ../.env
-    volumes:
-      - runtime:/opt/paganini/runtime
-    network_mode: "none"
-    entrypoint: ["paganini", "status"]
-    security_opt:
-      - no-new-privileges:true
-    read_only: true
-    deploy:
-      resources:
-        limits:
-          pids: 50
-
-  agent-custodiante:
-    build:
-      context: ..
-      dockerfile: infra/Dockerfile
-    container_name: paganini-agent-custodia
-    restart: unless-stopped
-    env_file: ../.env
-    volumes:
-      - runtime:/opt/paganini/runtime
-    network_mode: "none"
-    entrypoint: ["paganini", "status"]
-    security_opt:
-      - no-new-privileges:true
-    read_only: true
-    deploy:
-      resources:
-        limits:
-          pids: 50
-
-  agent-gestor:
-    build:
-      context: ..
-      dockerfile: infra/Dockerfile
-    container_name: paganini-agent-gestor
-    restart: unless-stopped
-    env_file: ../.env
-    volumes:
-      - runtime:/opt/paganini/runtime
-    network_mode: "none"
-    entrypoint: ["paganini", "status"]
-    security_opt:
-      - no-new-privileges:true
-    read_only: true
-    deploy:
-      resources:
-        limits:
-          pids: 50
 
 volumes:
   pgdata:
-  runtime:
-  skills:
 
 networks:
   paganini:
