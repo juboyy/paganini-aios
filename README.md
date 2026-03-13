@@ -1,359 +1,372 @@
-# PAGANINI AIOS
+<div align="center">
 
-**AI Operating System for Financial Markets.**
+# 🎻 PAGANINI AIOS
 
-Framework open source. Domínio financeiro como produto.
-O sistema que fica mais inteligente a cada interação — sem fine-tuning, sem GPU, sem retreinamento.
+### The AI Operating System for Financial Markets
+
+**One command. Any terminal. Any OS.**
+**An autonomous financial reasoning system that gets smarter with every interaction.**
+
+[![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
+[![PRs Welcome](https://img.shields.io/badge/PRs-welcome-brightgreen.svg)](CONTRIBUTING.md)
+[![Open Core](https://img.shields.io/badge/model-open--core-orange.svg)](#business-model)
+
+[Website](https://paganini-aios-v2.lovable.app/) · [Docs](docs/) · [Get Started](#quick-start) · [Architecture](#how-it-works)
+
+</div>
 
 ---
 
-## Built on Production-Proven Patterns
+```bash
+curl -fsSL https://paganini.sh | sh && paganini init --pack fidc && paganini up
+```
 
-PAGANINI isn't built from scratch. Its core is a **genome of 15 battle-tested patterns**
-extracted from a production AIOS running 24/7 since February 2026 — 500+ hours,
-100+ tasks, 12 self-audit violations caught autonomously.
+> *"We don't sell a model. We sell a financial reasoning system that works with any model."*
 
-No data, no context, no configs are copied. Only the **patterns, skills, and
-integration blueprints** — generalized and packaged as configurable modules.
+---
 
-| Pattern Type | What Transfers | Examples |
-|-------------|---------------|----------|
-| **Skills** (5) | Executable behavioral modules | Pre-Execution Gate, Quality Gate, Memory Reflection, Self-Audit, Proactive Heartbeat |
-| **Patterns** (5) | Architectural building blocks | SOUL (agent identity), BMAD-CE Pipeline, Cognitive Router, Capabilities Graph, Violations Tracking |
-| **Integrations** (5) | Proven connection blueprints | Composio SDK, PinchTab, GitNexus, OTel Pipeline, QMD Reporting |
+## The Problem
 
-Full catalog: [`docs/architecture/genome.md`](docs/architecture/genome.md)
+Brazilian FIDC (Credit Receivables Funds) operations run on spreadsheets,
+manual compliance checks, and fragmented communication. A single fund
+requires 4-7 participants (administrator, custodian, manager, auditor...)
+coordinating across email, WhatsApp, and legacy systems.
+
+**Result:** Slow decisions. Missed covenants. Regulatory risk. Human error at scale.
+
+## The Solution
+
+PAGANINI deploys an autonomous agent swarm that mirrors the entire fund
+operation — each participant gets an AI counterpart that operates 24/7,
+follows regulations by design, and improves with every interaction.
+
+```
+┌─────────────────────────────────────────────────┐
+│                    YOU                           │
+│            paganini query "..."                  │
+└──────────────────────┬──────────────────────────┘
+                       │
+          ┌────────────▼────────────┐
+          │    🧠 COGNITIVE ROUTER  │
+          │  classify → route →     │
+          │  estimate confidence    │
+          └────────────┬────────────┘
+                       │
+     ┌─────────┬───────┼───────┬──────────┐
+     ▼         ▼       ▼       ▼          ▼
+  ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐
+  │Admin │ │Custód│ │Gestor│ │Compli│ │  +5  │
+  │      │ │      │ │      │ │ance  │ │more  │
+  │ CVM  │ │Recon │ │ Risk │ │PLD/  │ │      │
+  │ 175  │ │cilia │ │ PDD  │ │ AML  │ │      │
+  └──┬───┘ └──┬───┘ └──┬───┘ └──┬───┘ └──┬───┘
+     │        │        │        │         │
+     └────────┴────────┴────────┴─────────┘
+                       │
+          ┌────────────▼────────────┐
+          │   🛡️ GUARDRAIL PIPELINE │
+          │  6 hard-stop gates      │
+          │  Block > Warn > Log     │
+          └────────────┬────────────┘
+                       │
+                    Answer
+```
+
+---
+
+## How It Works
+
+### 🔄 Three Self-Improvement Loops
+
+The system doesn't just answer — it **evolves**.
+
+| Loop | What It Optimizes | How |
+|------|-------------------|-----|
+| 🔍 **AutoResearch** | Retrieval quality | Autonomous experiments on chunking, embedding, ranking. LLM optimizes the pipeline, not itself. |
+| 🧬 **MetaClaw** | Agent behavior | Learning proxy intercepts interactions, generates skills automatically. No fine-tuning needed. |
+| 🧠 **Memory Reflection** | Knowledge depth | Daily daemon reviews operations, extracts patterns, builds knowledge graph. Day 100 > Day 1. |
+
+### 🏗️ Built on 15 Battle-Tested Patterns
+
+Not invented for a slide deck. Extracted from a production AIOS running
+24/7 since February 2026 — 500+ hours, 100+ tasks, 12 self-audit violations
+caught autonomously.
+
+<details>
+<summary><strong>5 Executable Skills</strong></summary>
+
+| Skill | What It Does |
+|-------|-------------|
+| **Pre-Execution Gate** | Every operation validates context first. Gate token proves due diligence in audit trail. |
+| **Quality Gate (Sense)** | Every output evaluated against quality profile before delivery. Subpar = regenerate. |
+| **Memory Reflection** | Daily curation: operations → patterns → permanent knowledge. Not append-only. |
+| **Self-Audit** | System checks its own rule compliance. Logs violations. Self-corrects. |
+| **Proactive Heartbeat** | Doesn't wait to be asked. Monitors covenants, regulations, risks on schedule. |
+
+</details>
+
+<details>
+<summary><strong>5 Architectural Patterns</strong></summary>
+
+| Pattern | What It Does |
+|---------|-------------|
+| **SOUL** | Agent identity as first-class concept — personality, constraints, tools, memory scope. |
+| **BMAD-CE Pipeline** | 18-stage methodology. Every task classified, tracked, produces artifacts. |
+| **Cognitive Router** | Meta-cognition: classify complexity, choose model, dispatch agent(s), estimate confidence. |
+| **Capabilities Graph** | Agents discover tools by semantic search, not hardcoded lists. |
+| **Violations Tracking** | Every rule violation logged, attributed, corrected. Immutable audit trail. |
+
+</details>
+
+<details>
+<summary><strong>5 Integration Blueprints</strong></summary>
+
+| Blueprint | What It Does |
+|-----------|-------------|
+| **PinchTab** | Browser automation via accessibility tree (~800 tokens/page). Regulatory scraping. |
+| **CLI-Anything** | Auto-generate CLIs for any software. Make legacy systems agent-native. |
+| **OTel Pipeline** | OpenTelemetry traces on every decision. CVM auditor reconstructs any operation. |
+| **QMD Reporting** | Quarto templates → PDF/HTML reports. Informe mensal, CADOC, ICVM 489. |
+| **Composio SDK** | Pre-built OAuth2 connections: Slack, GitHub, email, 14+ services. |
+
+</details>
+
+Plus **30+ transferable skills** from the OpenClaw ecosystem and **12 domain-specific
+skills** built for FIDC. [Full catalog →](docs/architecture/genome.md)
+
+---
+
+## 9 Specialized Agents
+
+Each agent has its own SOUL — identity, constraints, tools, and memory scope.
+
+| | Agent | Superpower |
+|---|-------|-----------|
+| 📋 | **Administrador** | CVM 175 compliance, governance, regulatory filings |
+| 🔐 | **Custodiante** | Reconciliation, overcollateralization, registration |
+| 📊 | **Gestor** | Risk analysis, PDD modeling, portfolio optimization |
+| ⚖️ | **Compliance** | PLD/AML, COAF reporting, sanctions screening, LGPD |
+| 📄 | **Reporting** | CADOC 3040, ICVM 489, COFIs, informe mensal |
+| 🔍 | **Due Diligence** | KYC, credit scoring, judicial search, media monitoring |
+| 📡 | **Regulatory Watch** | CVM/ANBIMA/BACEN daily scan, impact assessment |
+| 💬 | **Investor Relations** | 24/7 Slack bot, performance reports, cotista Q&A |
+| 💰 | **Pricing** | Mark-to-market, deságio, stress testing, yield curves |
+
+---
+
+## Security
+
+<table>
+<tr>
+<td width="50%">
+
+### 🔒 Container Isolation
+Every agent runs in its own container.
+Zero network by default. Communication
+only via Unix sockets. Seccomp profiles
+block network syscalls. Distroless images
+with no shell.
+
+</td>
+<td width="50%">
+
+### 🧱 Chinese Walls
+Fund A data **never** reaches Fund B.
+Enforced at DB (RLS), memory, MetaClaw
+skills, traces, and reports. Per-fund
+partitioning at every layer.
+
+</td>
+</tr>
+<tr>
+<td>
+
+### 🔑 Secrets Vault
+No plaintext secrets. Ever. Encrypted
+vault (AES-256-GCM), env vars, or Cloud
+KMS. Pre-commit hooks scan for leaked
+keys, PII, and corpus fingerprints.
+
+</td>
+<td>
+
+### 🛡️ Guardrail Pipeline
+6 hard-stop gates execute in sequence.
+First BLOCK kills the operation. No
+override without human + justification
++ full audit trail.
+
+</td>
+</tr>
+</table>
+
+[Container Security →](docs/security/container-security.md) ·
+[Open Source Security →](docs/security/open-source-security.md)
+
+---
+
+## Quick Start
+
+### Single Binary (Recommended)
+
+```bash
+# Install
+curl -fsSL https://paganini.sh | sh
+
+# Configure (interactive wizard)
+paganini init --pack fidc
+
+# Run
+paganini up
+
+# Query
+paganini query "Qual o limite de concentração por cedente segundo a CVM 175?"
+```
+
+### Docker
+
+```bash
+paganini init --mode docker
+paganini up
+# 13 containers. Full isolation. Production-ready.
+```
+
+### Kubernetes
+
+```bash
+helm install paganini paganini/paganini-aios \
+  --set license.key=$LICENSE_KEY \
+  --set provider.apiKey=$OPENAI_API_KEY
+```
+
+**Supported:** Linux x86/arm64 · macOS Intel/Apple Silicon · Windows/WSL2 ·
+Raspberry Pi · brew · apt · dnf · pip · npm · winget
+
+[Full install guide →](docs/architecture/distribution.md)
+
+---
+
+## BYOK — Bring Your Own Key
+
+Zero vendor lock-in. You choose the model. You control the costs.
+
+```yaml
+# config.yaml
+providers:
+  default: openai              # or anthropic, google, ollama, custom
+  openai:
+    api_key: ${OPENAI_API_KEY}
+  # Switch providers anytime. System adapts automatically.
+```
+
+Works with: OpenAI · Anthropic · Google · Ollama · any OpenAI-compatible API
+
+---
+
+## Domain Packs
+
+The framework is free. Domain intelligence is the product.
+
+```bash
+paganini pack install fidc-starter        # R$2K/mo — 3 agents, core skills
+paganini pack install fidc-professional   # R$8K/mo — 9 agents, full regulatory
+paganini pack install fidc-enterprise     # R$25K/mo — everything + SLA + custom
+```
+
+| | Starter | Professional | Enterprise |
+|---|:---:|:---:|:---:|
+| Corpus (164 FIDC docs) | ✅ | ✅ | ✅ |
+| Core agents (Admin, Custódia, Gestão) | 3 | 9 | 9 + custom |
+| Skills | 3 | 12 | 12 + custom |
+| Guardrail rules | Basic | Full | Full + custom |
+| QMD report templates | — | 5 | 8 + custom |
+| Regulatory watch | — | ✅ | ✅ |
+| Investor Relations bot | — | ✅ | ✅ |
+| SLA | — | — | 99.9% |
+| Dedicated support | — | — | ✅ |
+
+[Pricing details →](docs/business/pricing.md)
 
 ---
 
 ## Architecture
 
 ```
-┌─ Interface ─────────────────────────────────────┐
-│  Slack (IR) │ CLI │ REST API │ Dashboard        │
-└──────────────────────┬──────────────────────────┘
-                       │
-┌──────────────────────▼──────────────────────────┐
-│              MOLTIS (Runtime)                    │
-│  Rust-native │ Sandboxed │ Single binary         │
-│  Tools, channels, memory, cron, OTel, voice     │
-│                                                  │
-│  ┌────────────────────────────────────────────┐  │
-│  │         KERNEL (RLM Engine)                │  │
-│  │  Cognitive Router → Agent Dispatch         │  │
-│  │  Python REPL → Sub-LLM Orchestration      │  │
-│  │  4-Layer Memory API → Context Assembly     │  │
-│  └────────────────────────────────────────────┘  │
-│                                                  │
-│  ┌────────────────────────────────────────────┐  │
-│  │         AGENT SWARM                        │  │
-│  │  Administrador │ Custodiante │ Gestor      │  │
-│  │  Compliance │ Reporting │ Due Diligence    │  │
-│  │  Regulatory Watch │ Investor Relations     │  │
-│  │  Pricing Engine                            │  │
-│  └────────────────────────────────────────────┘  │
-│                                                  │
-│  ┌────────────────────────────────────────────┐  │
-│  │         GUARDRAILS (Hard-Stop)             │  │
-│  │  Eligibility → Concentration → Covenant    │  │
-│  │  → PLD/AML → Compliance → Risk             │  │
-│  └────────────────────────────────────────────┘  │
-└──────────────────────┬──────────────────────────┘
-                       │ LLM calls
-┌──────────────────────▼──────────────────────────┐
-│           METACLAW (Learning Proxy)              │
-│  Intercepts → Injects learned skills → Forwards │
-│  Per-instance isolation │ Skill validation gate  │
-└──────────────────────┬──────────────────────────┘
-                       │
-┌──────────────────────▼──────────────────────────┐
-│           LLM PROVIDER (BYOK)                    │
-│  OpenAI │ Anthropic │ Google │ Local (Ollama)    │
-│  Client brings own keys. We never touch them.    │
-└─────────────────────────────────────────────────┘
+paganini/
+├── packages/
+│   ├── kernel/          # RLM engine, cognitive router, CLI
+│   ├── rag/             # Hybrid RAG + AutoResearch loop
+│   ├── agents/          # 9 SOULs + agent framework
+│   │   └── souls/       # One .md per agent identity
+│   ├── ontology/        # FIDC knowledge graph
+│   ├── dashboard/       # Operations UI
+│   ├── modules/         # Pre-configured verticals
+│   └── shared/          # Types, utils, guardrails
+├── vendor/metaclaw/     # Learning proxy (controlled fork)
+├── infra/               # Docker, Helm, daemons, systemd
+├── docs/                # Architecture, security, tools, pipeline
+│   ├── architecture/    # ADRs, system design, genome, distribution
+│   ├── security/        # Container & open-source isolation
+│   ├── pipeline/        # BMAD-CE execution methodology
+│   └── tools/           # PinchTab, QMD integration guides
+└── config.yaml          # Single source of configuration
 ```
 
----
+<details>
+<summary><strong>Full documentation index</strong></summary>
 
-## Core Concepts
+| Document | Content |
+|----------|---------|
+| [System Design](docs/architecture/system-design.md) | Full architecture diagram + data flows |
+| [ADRs](docs/architecture/ADRs.md) | 9 architecture decision records |
+| [Genome](docs/architecture/genome.md) | 30+ skills + patterns + integration blueprints |
+| [Evolution Layer](docs/architecture/evolution-layer.md) | MetaClaw + 3 improvement loops |
+| [Memory Schema](docs/architecture/memory-schema.md) | 4-layer memory architecture |
+| [Orchestration](docs/architecture/orchestration.md) | Moltis runtime mapping |
+| [Distribution](docs/architecture/distribution.md) | Install experience + packaging |
+| [BMAD-CE Pipeline](docs/pipeline/bmad-ce.md) | 18-stage execution methodology |
+| [Container Security](docs/security/container-security.md) | Zero-trust container isolation |
+| [Open Source Security](docs/security/open-source-security.md) | 5-layer data protection |
+| [Pricing](docs/business/pricing.md) | Open-core business model |
+| [PinchTab](docs/tools/pinchtab.md) | Browser automation |
+| [QMD](docs/tools/qmd.md) | Report generation engine |
 
-### Recursive Language Model (RLM)
-
-The agent never receives raw corpus in its context. It uses a persistent Python REPL
-to programmatically search, filter, and synthesize knowledge. Sub-LLMs handle heavy
-lifting. Context stays lean. Answers are built iteratively.
-
-Based on [Prime Intellect's RLM research](https://www.primeintellect.ai/blog/rlm).
-
-### Three Improvement Loops
-
-| Loop | Optimizes | Frequency | Metric |
-|------|-----------|-----------|--------|
-| **AutoResearch** | Retrieval (chunking, embedding, ranking) | Continuous | eval_score |
-| **MetaClaw** | Behavior (skill generation, context injection) | Every interaction | response quality |
-| **Memory Reflection** | Knowledge (graph evolution, ontology) | Daily | coverage + contradictions |
-
-Inspired by [Karpathy's autoresearch](https://github.com/karpathy/autoresearch) —
-autonomous experimentation loop applied to RAG optimization.
-
-### Four Memory Layers
-
-| Layer | Purpose | Storage |
-|-------|---------|---------|
-| **Episodic** | Operations, decisions, timeline | Filesystem JSONL |
-| **Semantic** | Embedded corpus (dense + sparse) | pgvector + tsvector |
-| **Procedural** | Fund regulations, policies, covenants | Filesystem (auditable) |
-| **Relational** | Knowledge graph (entities + typed relations) | pgvector kg_nodes + kg_edges |
-
-### BYOK (Bring Your Own Key)
-
-Zero vendor lock-in. The system works with any frontier LLM. Client controls costs,
-data residency, and provider choice. We sell the system, not the compute.
-
----
-
-## Architectural Principles
-
-### From Our Production AIOS
-
-| # | Principle | Description |
-|---|-----------|-------------|
-| 1 | **BMAD-CE Pipeline** | Every operation follows stages, produces artifacts, has ownership. No raw execution. |
-| 2 | **Sense / Quality Gate** | Every response evaluated for quality before delivery. Not just compliance — excellence. |
-| 3 | **Pre-Execution Gate** | No operation starts without context verification. Gate token proves due diligence. |
-| 4 | **Cognitive Router** | Meta-cognition: classify complexity, estimate cost, choose model, dispatch to agent(s). |
-| 5 | **SOUL Pattern** | Agent identity as first-class concept — personality, constraints, tone, authorized tools. |
-| 6 | **Self-Audit** | System detects violations of its own rules. Logs. Corrects. Self-policing. |
-| 7 | **Memory Promotion** | Daily interactions curated into permanent knowledge via reflection. Not append-only — curated. |
-| 8 | **Proactive Heartbeat** | System doesn't wait to be asked. Checks covenants, regulations, risks on schedule. |
-
-### Software Engineering
-
-| # | Principle | Description |
-|---|-----------|-------------|
-| 9 | **Event Sourcing** | All state derived from events. Fully reconstructible. Perfect for audit. |
-| 10 | **CQRS** | Separate paths for reads (queries) and writes (operations). Different cost profiles. |
-| 11 | **Domain-Driven Design** | Bounded contexts (Custody ≠ Management ≠ Compliance). Agents map 1:1. |
-| 12 | **Hexagonal Architecture** | Core logic independent of infra. Swap runtime, database, channels — core untouched. |
-| 13 | **Circuit Breakers** | External service down? Degrade gracefully, retry when available. Never block. |
-| 14 | **Saga Pattern** | Multi-step financial operations with compensation on failure. Not transactions — sagas. |
-
-### Financial Domain
-
-| # | Principle | Description |
-|---|-----------|-------------|
-| 15 | **Segregation of Duties** | No agent can approve AND execute. Gestor recommends, Administrador approves. |
-| 16 | **Four-Eyes Principle** | Operations above threshold need dual approval. Agent + human, or two humans. |
-| 17 | **Chinese Walls** | Fund A data NEVER flows to Fund B. Memory, skills, traces — isolated by fund_id. |
-| 18 | **Double-Entry** | Every financial operation has two sides. Both must exist or operation fails. |
-| 19 | **Record Immutability** | Traces, decisions, submitted reports — NEVER edited. Corrections are new records. |
-| 20 | **Materiality** | Not everything needs the same rigor. R$10M cession → full pipeline. Glossary query → fast path. |
-
-### AI Production
-
-| # | Principle | Description |
-|---|-----------|-------------|
-| 21 | **Eval-Driven Development** | Eval set first, implementation second. Like TDD but for AI. |
-| 22 | **Constitutional Self-Check** | Agent verifies its own response against principles before delivery. |
-| 23 | **Red Teaming** | Periodic adversarial testing. Try to break guardrails. Fix immediately. |
-| 24 | **Debate Pattern** | High-risk decisions: two agents argue opposite positions. Decision-maker sees both. |
-| 25 | **Confidence Scoring** | Every response carries a confidence score. Client knows when to trust vs verify. |
-
----
-
-## Agent Swarm
-
-9 specialized agents, each with its own SOUL, tools, and memory scope.
-
-| Agent | Role | Key Capability |
-|-------|------|----------------|
-| **Administrador** | Compliance, governance | CVM 175 enforcement, regulatory reports |
-| **Custodiante** | Asset custody, registration | Reconciliation, duplicate detection, overcollateralization |
-| **Gestor** | Risk, acquisition | Credit analysis, PDD modeling, portfolio optimization |
-| **Compliance** | PLD/AML, sanctions | COAF reporting, sanctions screening, LGPD |
-| **Reporting** | Regulatory reporting | CADOC 3040, ICVM 489, COFIs, informe mensal |
-| **Due Diligence** | Cedente onboarding | KYC, credit scoring, judicial search, media monitoring |
-| **Regulatory Watch** | Regulatory monitoring | CVM/ANBIMA/BACEN daily scan, impact assessment |
-| **Investor Relations** | Cotista communication | 24/7 Slack bot, performance reports, fund Q&A |
-| **Pricing** | Asset valuation | Mark-to-market, deságio calculation, stress testing |
-
----
-
-## Guardrail Pipeline
-
-Hard-stop gates execute in sequence. First BLOCK stops the operation.
-
-```
-Operation → Eligibility → Concentration → Covenant → PLD/AML → Compliance → Risk
-                 │              │             │          │           │         │
-              BLOCK?         BLOCK?        BLOCK?     BLOCK?      BLOCK?    WARN?
-```
-
-Overrides require human administrator + full justification + audit trail.
-
----
-
-## Background Daemons
-
-| Daemon | Interval | Function |
-|--------|----------|----------|
-| covenant-monitor | 15min | **Predictive** covenant monitoring (not reactive) |
-| pdd-calculator | 24h | Daily PDD recalculation per IFRS9 |
-| reconciliation | 1h | Payment matching (target: 99.99%) |
-| market-data-sync | 30min | CDI, Selic, IPCA, yield curves |
-| risk-scanner | 6h | Cedente/sacado risk events (RJ, sanctions, media) |
-| regulatory-watch | 24h | CVM/ANBIMA/BACEN publication scan |
-| memory-reflection | 24h | Knowledge consolidation + graph evolution |
-| self-audit | 12h | System integrity + trace completeness |
-
-All daemons run in tmux session `paganini` with systemd timer for auto-restart.
+</details>
 
 ---
 
 ## Stack
 
-| Layer | Technology | Why |
-|-------|-----------|-----|
-| **Runtime** | Moltis (Rust) | Single binary, sandboxed, built-in everything |
-| **Learning** | MetaClaw (fork) | Skill auto-generation from interactions |
-| **Reasoning** | RLM pattern | Recursive context management, sub-LLM delegation |
-| **Optimization** | AutoResearch loop | Autonomous RAG parameter tuning |
-| **Memory** | pgvector + SQLite + filesystem | Hybrid: dense + sparse + graph + filesystem |
-| **Persistence** | tmux + systemd | Processes survive disconnects, auto-restart |
-| **Observability** | OTel + Prometheus | Built into Moltis, regulatory-grade audit trail |
-| **Channels** | Slack, Telegram, API, CLI | Multi-channel, Slack primary for IR |
-| **LLM** | BYOK (any provider) | LiteLLM abstraction, client owns keys |
+| Layer | Technology |
+|-------|-----------|
+| Runtime | **Moltis** — Rust, single binary, sandboxed |
+| Learning | **MetaClaw** — skill auto-generation from interactions |
+| Reasoning | **RLM** — recursive context management, sub-LLM delegation |
+| Optimization | **AutoResearch** — autonomous RAG parameter tuning |
+| Memory | **pgvector** + SQLite + filesystem — dense + sparse + graph |
+| Observability | **OpenTelemetry** — regulatory-grade audit trail |
+| Channels | Slack · Telegram · API · CLI · Dashboard |
+| LLM | **BYOK** — any provider, client owns keys |
 
 ---
 
-## Monorepo Structure
+<div align="center">
 
-```
-paganini/
-├── packages/
-│   ├── kernel/          # RLM engine, cognitive router, CLI
-│   ├── rag/             # Hybrid RAG pipeline + AutoResearch
-│   ├── agents/          # 9 agent SOULs + framework
-│   ├── ontology/        # FIDC domain knowledge graph
-│   ├── dashboard/       # Operations + analytics UI
-│   ├── modules/         # Pre-configured verticals
-│   └── shared/          # Types, utils, guardrails
-├── data/
-│   └── corpus/
-│       └── fidc/        # 164 markdown files, 5.6MB (gitignored)
-├── vendor/
-│   └── metaclaw/        # Controlled fork
-├── infra/               # Docker, daemons, systemd, tmux
-├── docs/
-│   ├── architecture/    # ADRs, system design, schemas, orchestration
-│   └── business/        # Pricing, go-to-market
-└── config.yaml          # Single source of configuration
-```
+## Team
 
-## Corpus
+| | | | |
+|:---:|:---:|:---:|:---:|
+| **Rod Marques** | **João Raf** | **Louiz Ferrer** | **Mark Binder** |
+| CEO | CTO | CIO | CFO |
 
-The `data/corpus/fidc/` vault contains 164 expert-curated documents:
+<br>
 
-| Domain | Files | Content |
-|--------|-------|---------|
-| CVM 175 | 57 | Every article decomposed individually |
-| Market Pain Points | 4 | 300 mapped problems (Admin, Custody, Management) |
-| Accounting | 6 | IFRS9, PDD, COFIs, PCE calculations |
-| Cotas | 6 | Subordination structures, risk-return analysis |
-| FIDC Types | 20+ | Infra, ESG, Crypto, Supply Chain, Precatórios... |
-| Platform V1 | 6 | API specs (management, security, integration) |
-| System | 2 | 80 competitive differentials + full module specs |
+**[paganini-aios-v2.lovable.app](https://paganini-aios-v2.lovable.app/)** · rod.marques@aios.finance
+
+<br>
 
 ---
 
-## Business Model (Open-Core)
+<sub>Built with obsession. Shipped with discipline.</sub>
 
-**Free (Open Source):** Engine, CLI, agent framework, RAG pipeline, guardrail framework.
-
-**Paid (Domain Packs via aios.finance):**
-
-| Tier | Price | Includes |
-|------|-------|----------|
-| FIDC Starter | R$2.000/mês | Corpus + 3 agents + basic guardrails |
-| FIDC Professional | R$8.000/mês | 9 agents + regulatory watch + DD + reporting |
-| FIDC Enterprise | R$25.000/mês | Everything + customization + SLA + dedicated support |
-| Cloud Managed | R$5-25K/mês per fund | We host. Client brings BYOK keys. |
-
----
-
-## Quick Start
-
-```bash
-# Install
-pip install paganini-aios
-
-# Status
-paganini status
-
-# Ingest corpus
-paganini ingest data/corpus/fidc/
-
-# Query
-paganini query "O que é subordinação de cotas?"
-
-# Start agents
-paganini agents start --fund alpha
-
-# Run eval
-paganini eval
-```
-
-## Deploy
-
-```bash
-# SSH deploy
-./deploy.sh user@host main
-
-# Docker
-cd infra && docker compose up -d
-
-# Moltis runtime
-curl -fsSL https://www.moltis.org/install.sh | sh
-```
-
----
-
-## BMAD-CE Pipeline
-
-Every task follows the pipeline. No raw execution.
-
-```
-Micro  (config, query)    → Context Scout → Fix → Log
-Quick  (bug, simple)      → 1 → 10 → 11 → 13 → 17
-Feature (agent, module)   → 1 → 2 → 4 → 8 → 10 → 11 → 12 → 13 → 14 → 17
-Epic   (cross-system)     → All 18 stages
-```
-
-Current roadmap: [`docs/pipeline/bmad-ce.md`](docs/pipeline/bmad-ce.md)
-
-```
-Phase 1 (Wk 1-2): RAG Pipeline → Memory API → Knowledge Graph → Eval Suite
-Phase 2 (Wk 3-4): Cognitive Router → Agent Framework → Guardrails → AutoResearch
-Phase 3 (Wk 5-6): Moltis Config → MetaClaw → PinchTab → Daemons
-Phase 4 (Wk 7-8): Slack IR → QMD Reports → Onboarding → Dashboard
-```
-
----
-
-## Founders
-
-| | Name | Role |
-|---|------|------|
-| 🎯 | **Rod Marques** | CEO |
-| ⚙️ | **João Raf** | CTO — Infrastructure & Tech Vision |
-| 📊 | **Louiz Ferrer** | CIO |
-| 💰 | **Mark Binder** | CFO |
-
-## Contact
-
-- Web: [paganini-aios-v2.lovable.app](https://paganini-aios-v2.lovable.app/)
-- Email: rod.marques@aios.finance
-
----
-
-*"We don't sell a model. We sell a financial reasoning system that works with any model."*
+</div>
