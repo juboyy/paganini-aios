@@ -114,18 +114,255 @@ def _ts() -> str:
     return datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
 
+def _resolve_base(config: dict) -> Path:
+    """Return the resolved base_path from config, defaulting to cwd."""
+    return Path(config.get("base_path", ".")).resolve()
+
+
+def _append_daemon_result(base: Path, record: dict) -> None:
+    """Append a result record to runtime/data/daemon_results.jsonl."""
+    out_dir = base / "runtime" / "data"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    out_path = out_dir / "daemon_results.jsonl"
+    with out_path.open("a") as fh:
+        fh.write(json.dumps(record) + "\n")
+
+
+def _load_fund_data(base: Path) -> list[dict]:
+    """Try to load fund data from runtime/data/funds.json or similar.
+
+    Returns an empty list (no crash) when no data is found.
+    """
+    candidates = [
+        base / "runtime" / "data" / "funds.json",
+        base / "runtime" / "state" / "funds.json",
+        base / "data" / "funds.json",
+    ]
+    for path in candidates:
+        if path.exists():
+            try:
+                with path.open() as fh:
+                    data = json.load(fh)
+                    if isinstance(data, list):
+                        return data
+                    if isinstance(data, dict):
+                        return list(data.values())
+            except Exception as exc:
+                logger.warning("Failed to parse fund data at %s: %s", path, exc)
+    return []
+
+
+# ---------------------------------------------------------------------------
+# Real handler implementations
+# ---------------------------------------------------------------------------
+
+
 def covenant_monitor(config: dict) -> dict:
-    msg = "Checking covenants for all active funds"
-    logger.info("[%s] covenant_monitor: %s", _ts(), msg)
-    print(f"[{_ts()}] covenant_monitor: {msg}")
-    return {"status": "ok", "details": msg}
+    """Check covenant compliance across all active funds.
+
+    Reads fund data from filesystem memory, evaluates known covenant thresholds,
+    and returns a structured result with any violations or warnings.
+    """
+    base = _resolve_base(config)
+    funds = _load_fund_data(base)
+    started = _ts()
+
+    if not funds:
+        result = {
+            "status": "no_data",
+            "timestamp": started,
+            "violations": [],
+            "warnings": [],
+            "details": "No fund data found in runtime/data/funds.json",
+        }
+        _append_daemon_result(base, {"daemon": "covenant-monitor", **result})
+        logger.info("[%s] covenant_monitor: no_data", started)
+        return result
+
+    # Default covenant thresholds (override via config["covenants"] dict)
+    thresholds: dict = config.get("covenants", {
+        "max_inadimplencia_rate": 0.05,       # 5%
+        "min_subordinacao": 0.20,              # 20%
+        "max_concentracao_cedente": 0.15,      # 15% per cedente
+        "min_liquidity_ratio": 0.10,           # 10%
+    })
+
+    violations: list[dict] = []
+    warnings:   list[dict] = []
+
+    for fund in funds:
+        name = fund.get("name", fund.get("fund_name", "unknown"))
+        cnpj = fund.get("cnpj", "—")
+
+        # --- Inadimplência check ---
+        inad = fund.get("inadimplencia_rate", fund.get("default_rate"))
+        if inad is not None:
+            limit = thresholds["max_inadimplencia_rate"]
+            if inad > limit:
+                violations.append({
+                    "fund": name, "cnpj": cnpj,
+                    "covenant": "inadimplencia_rate",
+                    "limit": limit, "actual": inad,
+                    "severity": "breach",
+                })
+            elif inad > limit * 0.80:  # 80% of limit → warning
+                warnings.append({
+                    "fund": name, "cnpj": cnpj,
+                    "covenant": "inadimplencia_rate",
+                    "limit": limit, "actual": inad,
+                    "severity": "warn",
+                })
+
+        # --- Subordinação check ---
+        sub = fund.get("subordinacao_ratio", fund.get("subordination_ratio"))
+        if sub is not None:
+            limit = thresholds["min_subordinacao"]
+            if sub < limit:
+                violations.append({
+                    "fund": name, "cnpj": cnpj,
+                    "covenant": "subordinacao_ratio",
+                    "limit": limit, "actual": sub,
+                    "severity": "breach",
+                })
+            elif sub < limit * 1.10:  # within 10% headroom → warning
+                warnings.append({
+                    "fund": name, "cnpj": cnpj,
+                    "covenant": "subordinacao_ratio",
+                    "limit": limit, "actual": sub,
+                    "severity": "warn",
+                })
+
+        # --- Concentração por cedente check ---
+        top_cedente_pct = fund.get("top_cedente_pct", fund.get("max_cedente_concentration"))
+        if top_cedente_pct is not None:
+            limit = thresholds["max_concentracao_cedente"]
+            if top_cedente_pct > limit:
+                violations.append({
+                    "fund": name, "cnpj": cnpj,
+                    "covenant": "concentracao_cedente",
+                    "limit": limit, "actual": top_cedente_pct,
+                    "severity": "breach",
+                })
+
+    overall = "ok" if not violations else "breach"
+    if warnings and not violations:
+        overall = "warn"
+
+    result = {
+        "status": overall,
+        "timestamp": started,
+        "funds_checked": len(funds),
+        "violations": violations,
+        "warnings": warnings,
+        "details": (
+            f"Checked {len(funds)} fund(s): "
+            f"{len(violations)} breach(es), {len(warnings)} warning(s)"
+        ),
+    }
+
+    _append_daemon_result(base, {"daemon": "covenant-monitor", **result})
+    logger.info("[%s] covenant_monitor: %s", started, result["details"])
+    print(f"[{started}] covenant_monitor: {result['details']}")
+    return result
 
 
 def pdd_calculator(config: dict) -> dict:
-    msg = "Recalculating PDD per IFRS9"
-    logger.info("[%s] pdd_calculator: %s", _ts(), msg)
-    print(f"[{_ts()}] pdd_calculator: {msg}")
-    return {"status": "ok", "details": msg}
+    """Calculate PDD (Provisão para Devedores Duvidosos) using IFRS9 staging logic.
+
+    Stage 1 — performing (0–30d overdue):       0.5% provision
+    Stage 2 — underperforming (31–90d overdue): 5.0% provision
+    Stage 3 — non-performing (>90d overdue):    20.0% provision
+
+    Reads receivables/aging data from runtime; handles missing data gracefully.
+    """
+    base = _resolve_base(config)
+    started = _ts()
+
+    # Try to load aging/receivables data
+    aging_candidates = [
+        base / "runtime" / "data" / "aging.json",
+        base / "runtime" / "state" / "aging.json",
+        base / "data" / "aging.json",
+    ]
+    aging_data: dict | None = None
+    for path in aging_candidates:
+        if path.exists():
+            try:
+                with path.open() as fh:
+                    aging_data = json.load(fh)
+                break
+            except Exception as exc:
+                logger.warning("Failed to parse aging data at %s: %s", path, exc)
+
+    if aging_data is None:
+        # Fall back to fund-level totals if aging isn't available
+        funds = _load_fund_data(base)
+        if not funds:
+            result = {
+                "status": "no_data",
+                "timestamp": started,
+                "pdd_total": 0.0,
+                "by_stage": {"stage1": 0.0, "stage2": 0.0, "stage3": 0.0},
+                "details": "No aging or fund data found",
+            }
+            _append_daemon_result(base, {"daemon": "pdd-calculator", **result})
+            logger.info("[%s] pdd_calculator: no_data", started)
+            return result
+
+        # Approximate from fund-level inadimplencia
+        pdd_stage1 = pdd_stage2 = pdd_stage3 = 0.0
+        for fund in funds:
+            carteira = fund.get("carteira_total", fund.get("pl", 0.0))
+            inad = fund.get("inadimplencia_rate", 0.0)
+            # Rough split: (1-inad) performing, half inad underperforming, half non-performing
+            stage1_base = carteira * (1.0 - inad)
+            stage2_base = carteira * inad * 0.50
+            stage3_base = carteira * inad * 0.50
+            pdd_stage1 += stage1_base * 0.005
+            pdd_stage2 += stage2_base * 0.05
+            pdd_stage3 += stage3_base * 0.20
+    else:
+        # Compute from structured aging buckets
+        # Expected shape: {"stage1": <amount>, "stage2": <amount>, "stage3": <amount>}
+        # OR {"buckets": [{"days_overdue": int, "balance": float}, ...]}
+        if "stage1" in aging_data:
+            pdd_stage1 = float(aging_data["stage1"]) * 0.005
+            pdd_stage2 = float(aging_data.get("stage2", 0)) * 0.05
+            pdd_stage3 = float(aging_data.get("stage3", 0)) * 0.20
+        elif "buckets" in aging_data:
+            pdd_stage1 = pdd_stage2 = pdd_stage3 = 0.0
+            for bucket in aging_data["buckets"]:
+                balance = float(bucket.get("balance", 0))
+                days    = int(bucket.get("days_overdue", 0))
+                if days <= 30:
+                    pdd_stage1 += balance * 0.005
+                elif days <= 90:
+                    pdd_stage2 += balance * 0.05
+                else:
+                    pdd_stage3 += balance * 0.20
+        else:
+            pdd_stage1 = pdd_stage2 = pdd_stage3 = 0.0
+
+    pdd_total = pdd_stage1 + pdd_stage2 + pdd_stage3
+    result = {
+        "status": "ok",
+        "timestamp": started,
+        "pdd_total": round(pdd_total, 2),
+        "by_stage": {
+            "stage1": round(pdd_stage1, 2),
+            "stage2": round(pdd_stage2, 2),
+            "stage3": round(pdd_stage3, 2),
+        },
+        "details": (
+            f"PDD total: R$ {pdd_total:,.2f} "
+            f"(S1={pdd_stage1:,.2f} S2={pdd_stage2:,.2f} S3={pdd_stage3:,.2f})"
+        ),
+    }
+
+    _append_daemon_result(base, {"daemon": "pdd-calculator", **result})
+    logger.info("[%s] pdd_calculator: %s", started, result["details"])
+    print(f"[{started}] pdd_calculator: {result['details']}")
+    return result
 
 
 def reconciliation(config: dict) -> dict:
@@ -143,10 +380,114 @@ def market_data_sync(config: dict) -> dict:
 
 
 def risk_scanner(config: dict) -> dict:
-    msg = "Scanning external risk events"
-    logger.info("[%s] risk_scanner: %s", _ts(), msg)
-    print(f"[{_ts()}] risk_scanner: {msg}")
-    return {"status": "ok", "details": msg}
+    """Scan portfolio for risk indicators: concentration, diversification, and alerts.
+
+    Reads fund data from filesystem; returns structured alerts and concentration metrics.
+    """
+    base = _resolve_base(config)
+    started = _ts()
+    funds = _load_fund_data(base)
+
+    if not funds:
+        result = {
+            "status": "no_data",
+            "timestamp": started,
+            "alerts": [],
+            "concentration": {},
+            "details": "No fund data available for risk scan",
+        }
+        _append_daemon_result(base, {"daemon": "risk-scanner", **result})
+        logger.info("[%s] risk_scanner: no_data", started)
+        return result
+
+    thresholds: dict = config.get("risk_limits", {
+        "max_concentration_index": 0.15,   # HHI / top-cedente % PL
+        "min_diversification_count": 5,    # minimum distinct cedentes
+        "max_var_99_pct_pl": 0.10,         # VaR 99% must not exceed 10% PL
+        "min_liquidity_ratio": 0.10,
+    })
+
+    alerts: list[dict] = []
+    concentration_summary: dict = {}
+    total_pl = 0.0
+
+    for fund in funds:
+        name = fund.get("name", fund.get("fund_name", "unknown"))
+        pl   = float(fund.get("pl", fund.get("patrimonio_liquido", 0.0)))
+        total_pl += pl
+
+        # Concentration check
+        top_cedente_pct = float(fund.get("top_cedente_pct", fund.get("max_cedente_concentration", 0.0)))
+        n_cedentes      = int(fund.get("n_cedentes", fund.get("cedente_count", 0)))
+        liq_ratio       = float(fund.get("liquidity_ratio", fund.get("indice_liquidez", 1.0)))
+        var_99          = float(fund.get("var_99", 0.0))
+
+        concentration_summary[name] = {
+            "pl": pl,
+            "top_cedente_pct": top_cedente_pct,
+            "n_cedentes": n_cedentes,
+            "liquidity_ratio": liq_ratio,
+        }
+
+        if top_cedente_pct > thresholds["max_concentration_index"]:
+            alerts.append({
+                "fund": name, "type": "concentration",
+                "message": (
+                    f"Top cedente represents {top_cedente_pct:.1%} of PL, "
+                    f"exceeding limit of {thresholds['max_concentration_index']:.1%}"
+                ),
+                "severity": "high",
+            })
+
+        if n_cedentes > 0 and n_cedentes < thresholds["min_diversification_count"]:
+            alerts.append({
+                "fund": name, "type": "diversification",
+                "message": (
+                    f"Only {n_cedentes} cedente(s) — minimum is "
+                    f"{thresholds['min_diversification_count']}"
+                ),
+                "severity": "medium",
+            })
+
+        if liq_ratio < thresholds["min_liquidity_ratio"]:
+            alerts.append({
+                "fund": name, "type": "liquidity",
+                "message": (
+                    f"Liquidity ratio {liq_ratio:.1%} below minimum "
+                    f"{thresholds['min_liquidity_ratio']:.1%}"
+                ),
+                "severity": "high",
+            })
+
+        if pl > 0 and var_99 > 0 and (var_99 / pl) > thresholds["max_var_99_pct_pl"]:
+            alerts.append({
+                "fund": name, "type": "var",
+                "message": (
+                    f"VaR 99% is {var_99/pl:.1%} of PL, "
+                    f"exceeding limit of {thresholds['max_var_99_pct_pl']:.1%}"
+                ),
+                "severity": "high",
+            })
+
+    high_count = sum(1 for a in alerts if a.get("severity") == "high")
+    overall = "ok" if not alerts else ("critical" if high_count > 0 else "warn")
+
+    result = {
+        "status": overall,
+        "timestamp": started,
+        "alerts": alerts,
+        "concentration": concentration_summary,
+        "total_pl": round(total_pl, 2),
+        "details": (
+            f"Scanned {len(funds)} fund(s): "
+            f"{len(alerts)} alert(s) ({high_count} high-severity)"
+        ),
+    }
+
+    _append_daemon_result(base, {"daemon": "risk-scanner", **result})
+    logger.info("[%s] risk_scanner: %s", started, result["details"])
+    print(f"[{started}] risk_scanner: {result['details']}")
+    return result
 
 
 def regulatory_watch(config: dict) -> dict:
@@ -289,7 +630,8 @@ class DaemonRunner:
 
         handler = self._handlers.get(name)
         if handler is None:
-            raise RuntimeError(f"No handler registered for daemon '{name}'")
+            logger.info("Daemon '%s' has no handler registered — skipping execution", name)
+            return {"status": "no_handler", "daemon": name}
 
         task.mark_running()
         started_at = time.time()
