@@ -1,0 +1,152 @@
+---
+title: "Relatório de Covenants — Status de Conformidade"
+date: "`r Sys.Date()`"
+format:
+  pdf:
+    documentclass: article
+    geometry: margin=2.5cm
+    fontsize: 11pt
+    header-includes:
+      - \usepackage{fancyhdr}
+      - \usepackage{booktabs}
+      - \usepackage{xcolor}
+      - \usepackage{colortbl}
+      - \pagestyle{fancy}
+      - \fancyhead[L]{\textbf{Covenant Report — Conformidade}}
+      - \fancyhead[R]{\thepage}
+      - \fancyfoot[C]{\small Monitoramento conforme Regulamento e Escritura de Emissão}
+      - \renewcommand{\headrulewidth}{0.4pt}
+      - \renewcommand{\footrulewidth}{0.4pt}
+params:
+  fund_name: "FIDC Exemplo"
+  reference_date: "2026-03-31"
+  covenants_list: []
+engine: knitr
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+library(knitr)
+library(kableExtra)
+
+fmt_pct <- function(x) paste0(formatC(as.numeric(x) * 100, format = "f", digits = 2), "%")
+
+status_icon <- function(s) {
+  switch(toupper(as.character(s)),
+    "OK"      = "✓ OK",
+    "WARN"    = "⚠ ALERTA",
+    "BREACH"  = "✗ BREACH",
+    as.character(s)
+  )
+}
+```
+
+# 1. Status Geral
+
+**Fundo:** `r params$fund_name` | **Data de Referência:** `r params$reference_date`
+
+```{r status-summary}
+if (length(params$covenants_list) > 0) {
+  statuses <- sapply(params$covenants_list, function(c) toupper(as.character(c$status)))
+  n_ok     <- sum(statuses == "OK")
+  n_warn   <- sum(statuses == "WARN")
+  n_breach <- sum(statuses == "BREACH")
+  cat(sprintf("- **Covenants em conformidade:** %d\n", n_ok))
+  cat(sprintf("- **Covenants em alerta:** %d\n", n_warn))
+  cat(sprintf("- **Covenants em breach:** %d\n", n_breach))
+  cat(sprintf("- **Total monitorado:** %d\n", length(params$covenants_list)))
+} else {
+  cat("Nenhum covenant carregado para o período de referência.")
+  cat("\n\n**Status Global: SEM DADOS**")
+}
+```
+
+---
+
+# 2. Detalhamento por Covenant
+
+```{r covenants-table}
+if (length(params$covenants_list) > 0) {
+  df <- data.frame(
+    Covenant = sapply(params$covenants_list, function(c) as.character(c$name)),
+    Tipo     = sapply(params$covenants_list, function(c) as.character(c$type %||% "—")),
+    Limite   = sapply(params$covenants_list, function(c) as.character(c$limit)),
+    Atual    = sapply(params$covenants_list, function(c) as.character(c$actual)),
+    Status   = sapply(params$covenants_list, function(c) status_icon(c$status)),
+    stringsAsFactors = FALSE
+  )
+  kable(df, booktabs = TRUE, caption = "Monitoramento de Covenants",
+        col.names = c("Covenant", "Tipo", "Limite", "Valor Atual", "Status"),
+        escape = FALSE) |>
+    kable_styling(latex_options = c("striped", "hold_position", "scale_down")) |>
+    row_spec(which(df$Status == "✗ BREACH"), bold = TRUE, color = "red") |>
+    row_spec(which(df$Status == "⚠ ALERTA"), bold = TRUE, color = "orange")
+} else {
+  # Tabela template com exemplos
+  df_ex <- data.frame(
+    Covenant = c("Subordinação Mínima", "Inadimplência 90d Máx.", "Concentração Cedente",
+                 "Índice de Liquidez", "Razão de Garantia"),
+    Tipo     = c("Estrutural","Crédito","Concentração","Liquidez","Garantia"),
+    Limite   = c(">= 20%","<= 5%","<= 15% PL",">= 10%",">= 110%"),
+    Atual    = c("—","—","—","—","—"),
+    Status   = c("—","—","—","—","—"),
+    stringsAsFactors = FALSE
+  )
+  kable(df_ex, booktabs = TRUE, caption = "Template — Preencher com dados do período",
+        col.names = c("Covenant", "Tipo", "Limite", "Valor Atual", "Status")) |>
+    kable_styling(latex_options = c("striped", "hold_position"))
+}
+```
+
+---
+
+# 3. Alertas
+
+```{r alertas}
+if (length(params$covenants_list) > 0) {
+  breaches <- Filter(function(c) toupper(c$status) == "BREACH", params$covenants_list)
+  warns    <- Filter(function(c) toupper(c$status) == "WARN",   params$covenants_list)
+
+  if (length(breaches) > 0) {
+    cat("### ⛔ Breaches Identificados\n\n")
+    for (b in breaches) {
+      cat(sprintf("- **%s**: atual %s vs. limite %s — **AÇÃO IMEDIATA REQUERIDA**\n",
+                  b$name, b$actual, b$limit))
+    }
+    cat("\n")
+  }
+  if (length(warns) > 0) {
+    cat("### ⚠️ Alertas (Zona Amarela)\n\n")
+    for (w in warns) {
+      cat(sprintf("- **%s**: atual %s vs. limite %s — monitorar diariamente\n",
+                  w$name, w$actual, w$limit))
+    }
+    cat("\n")
+  }
+  if (length(breaches) == 0 && length(warns) == 0) {
+    cat("✅ Todos os covenants estão dentro dos limites estabelecidos.\n")
+    cat("Nenhuma ação corretiva necessária neste período.\n")
+  }
+} else {
+  cat("*Dados de covenants não disponíveis. Preencher parâmetro `covenants_list`.*\n")
+}
+```
+
+---
+
+# 4. Histórico
+
+O histórico de compliance dos últimos 6 meses será apresentado no próximo ciclo
+de monitoramento, conforme disponibilidade dos dados históricos no sistema.
+
+| Mês       | Covenants OK | Alertas | Breaches |
+|-----------|--------------|---------|----------|
+| Jan/2026  | —            | —       | —        |
+| Fev/2026  | —            | —       | —        |
+| Mar/2026  | —            | —       | —        |
+
+---
+
+*Monitoramento realizado conforme Regulamento do Fundo, Escritura de Emissão de Cotas
+e Acordo Operacional com o Custodiante. Em caso de breach, notificar imediatamente o
+Representante dos Cotistas e o Administrador Fiduciário.*
