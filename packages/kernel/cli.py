@@ -121,11 +121,13 @@ def ingest(corpus_dir):
 def query(question, no_llm, top_k, verbose):
     """Query the PAGANINI knowledge base.
     
-    Flow: RAG retrieve → MetaClaw enrich → Moltis/LLM → Guardrails → Response
+    Flow: Agent dispatch → RAG retrieve → MetaClaw enrich → Moltis/LLM → Guardrails → Response
     """
     from packages.rag.pipeline import RAGPipeline
     from packages.kernel.moltis import get_llm_fn
     from packages.kernel.metaclaw import MetaClawProxy
+    from packages.agents.framework import AgentRegistry, AgentDispatcher
+    from packages.shared.guardrails import GuardrailPipeline
 
     config = _load_config()
     config["rag"]["top_k"] = top_k
@@ -138,6 +140,11 @@ def query(question, no_llm, top_k, verbose):
 
     # 2. MetaClaw
     metaclaw = MetaClawProxy(config)
+
+    # 2.5 Agent dispatch
+    registry = AgentRegistry()
+    dispatcher = AgentDispatcher(registry)
+    agent, agent_confidence = dispatcher.route(question)
 
     # 3. LLM (via Moltis or direct)
     llm_fn = None if no_llm else get_llm_fn(config)
@@ -164,8 +171,12 @@ def query(question, no_llm, top_k, verbose):
 
         # LLM call
         if llm_fn:
-            system_prompt = """Você é um especialista em FIDC (Fundos de Investimento em Direitos Creditórios) e regulamentação CVM.
+            agent_context = ""
+            if agent:
+                agent_context = f"\nVocê está atuando como o agente {agent.name}. {agent.role[:200]}\n"
 
+            system_prompt = f"""Você é um especialista em FIDC (Fundos de Investimento em Direitos Creditórios) e regulamentação CVM.
+{agent_context}
 Regras:
 1. Responda APENAS com base no contexto fornecido
 2. Cite as fontes usando [Fonte N]
@@ -185,14 +196,31 @@ Regras:
         if metaclaw.enabled and llm_fn and confidence > 0.7:
             metaclaw.learn_from_interaction(question, response_text, chunks, confidence)
 
+        # Guardrails check
+        guardrails = GuardrailPipeline(config)
+        guard_result = guardrails.check(question, response_text, chunks, confidence)
+
     # ── Output ──────────────────────────────────────
     if verbose:
+        agent_name = agent.name if agent else "none"
         console.print(f"\n[dim]🧠 Runtime: {runtime_engine} | Model: {config['provider']['model']}[/]")
+        console.print(f"[dim]🤖 Agent: {agent_name} (confiança: {agent_confidence:.2f})[/]")
         console.print(f"[dim]🔍 RAG: {len(chunks)} chunks | MetaClaw: {'on' if metaclaw.enabled else 'off'}[/]")
         if chunks:
             for c in chunks:
                 console.print(f"[dim]   • {c.source} | {c.section} | {c.score:.2f}[/]")
+        console.print(f"[dim]🛡️  Guardrails: {guard_result.summary}[/]")
         console.print(f"[dim]⏱️  {elapsed:.0f}ms | 📊 Confiança: {confidence:.2f}[/]\n")
+
+    # Check if blocked
+    if not guard_result.passed:
+        console.print(Panel(
+            f"[bold red]⛔ BLOQUEADO pelo guardrail: {guard_result.blocked_by}[/]\n\n"
+            + "\n".join(f"  {g.gate}: {'✓' if g.passed else '✗'} {g.reason}" for g in guard_result.gates if not g.passed),
+            title="🛡️ Guardrail Block",
+            border_style="red", padding=(1, 2)
+        ))
+        return
 
     border = "green" if confidence > 0.7 else "yellow" if confidence > 0.4 else "red"
     console.print(Panel(
@@ -265,6 +293,30 @@ def status():
         console.print(f"  Corpus:    [yellow]not configured[/]")
 
     console.print()
+
+
+@cli.command("eval")
+@click.option("--eval-set", default="eval_questions.jsonl", help="Path to eval questions")
+@click.option("--with-llm", is_flag=True, help="Run with LLM (slower, measures answer quality)")
+def eval_cmd(eval_set, with_llm):
+    """Run RAG evaluation suite."""
+    from packages.rag.pipeline import RAGPipeline
+    from packages.rag.eval import run_eval, print_report
+    from packages.kernel.moltis import get_llm_fn
+
+    config = _load_config()
+    pipeline = RAGPipeline(config)
+
+    if pipeline.collection.count() == 0:
+        console.print("[red]✗ No documents indexed. Run: paganini ingest <corpus_dir>[/]")
+        return
+
+    llm_fn = get_llm_fn(config) if with_llm else None
+
+    with console.status("[bold cyan]Running evaluation..."):
+        metrics = run_eval(pipeline, eval_set, llm_fn=llm_fn)
+
+    print_report(metrics)
 
 
 @cli.command()
