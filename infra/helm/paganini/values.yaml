@@ -1,0 +1,55 @@
+replicaCount: 1
+
+image:
+  repository: ghcr.io/juboyy/paganini-aios
+  tag: "0.1.0"
+  pullPolicy: IfNotPresent
+
+provider:
+  name: google
+  model: gemini/gemini-2.5-flash
+  apiKey: ""  # Set via --set or secrets
+
+moltis:
+  enabled: true
+  port: 30000
+
+corpus:
+  path: /data/corpus/fidc
+  persistentVolume:
+    enabled: true
+    size: 10Gi
+    storageClass: ""
+
+resources:
+  limits:
+    cpu: 2000m
+    memory: 4Gi
+  requests:
+    cpu: 500m
+    memory: 1Gi
+
+service:
+  type: ClusterIP
+  port: 8000
+
+ingress:
+  enabled: false
+  className: nginx
+  host: paganini.local
+  tls: []
+
+securityContext:
+  runAsNonRoot: true
+  runAsUser: 1000
+  readOnlyRootFilesystem: true
+
+daemons:
+  enabled: true
+  schedule: "*/15 * * * *"  # every 15 min for covenant-monitor
+
+autoscaling:
+  enabled: false
+  minReplicas: 1
+  maxReplicas: 3
+  targetCPUUtilization: 80
