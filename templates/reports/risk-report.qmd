@@ -1,0 +1,141 @@
+---
+title: "Relatório de Risco — Avaliação Abrangente de Risco"
+date: "`r Sys.Date()`"
+format:
+  pdf:
+    documentclass: article
+    geometry: margin=2.5cm
+    fontsize: 11pt
+    header-includes:
+      - \usepackage{fancyhdr}
+      - \usepackage{booktabs}
+      - \usepackage{xcolor}
+      - \usepackage{colortbl}
+      - \pagestyle{fancy}
+      - \fancyhead[L]{\textbf{Risk Report — Gestão de Risco}}
+      - \fancyhead[R]{\thepage}
+      - \fancyfoot[C]{\small Confidencial — Uso Restrito ao Gestor e Cotistas}
+      - \renewcommand{\headrulewidth}{0.4pt}
+      - \renewcommand{\footrulewidth}{0.4pt}
+params:
+  fund_name: "FIDC Exemplo"
+  reference_date: "2026-03-31"
+  var_95: 0.0
+  var_99: 0.0
+  stress_scenarios: []
+  concentration_index: 0.0
+  liquidity_ratio: 0.0
+engine: knitr
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+library(knitr)
+library(kableExtra)
+
+fmt_brl <- function(x) formatC(x, format = "f", digits = 2, big.mark = ".", decimal.mark = ",")
+fmt_pct <- function(x) paste0(formatC(x * 100, format = "f", digits = 2), "%")
+
+risk_level <- function(val, threshold_warn, threshold_crit) {
+  if (val >= threshold_crit) return("\\textcolor{red}{CRÍTICO}")
+  if (val >= threshold_warn) return("\\textcolor{orange}{ALERTA}")
+  return("\\textcolor{green}{OK}")
+}
+```
+
+# 1. Resumo de Risco
+
+**Fundo:** `r params$fund_name` | **Data:** `r params$reference_date`
+
+| Indicador               | Valor                                        | Status |
+|-------------------------|----------------------------------------------|--------|
+| VaR 95% (1 dia)         | R$ `r fmt_brl(params$var_95)`               | —      |
+| VaR 99% (1 dia)         | R$ `r fmt_brl(params$var_99)`               | —      |
+| Índice de Concentração  | `r fmt_pct(params$concentration_index)`     | —      |
+| Índice de Liquidez      | `r fmt_pct(params$liquidity_ratio)`         | —      |
+
+---
+
+# 2. Value at Risk (VaR)
+
+O VaR é calculado pelo método histórico com janela de 252 dias úteis,
+assumindo distribuição não-paramétrica dos retornos da carteira.
+
+```{r var-chart, fig.height=3, fig.width=6}
+# Simulação de distribuição de retornos (placeholder)
+set.seed(42)
+retornos <- rnorm(1000, mean = 0.0002, sd = 0.005)
+hist(retornos, breaks = 50, col = "#aed6f1", border = "white",
+     main = "Distribuição Simulada de Retornos (Histórico)",
+     xlab = "Retorno Diário", ylab = "Frequência")
+abline(v = quantile(retornos, 0.05), col = "orange", lwd = 2, lty = 2)
+abline(v = quantile(retornos, 0.01), col = "red", lwd = 2, lty = 2)
+legend("topright", legend = c("VaR 95%","VaR 99%"),
+       col = c("orange","red"), lty = 2, lwd = 2, bty = "n", cex = 0.8)
+```
+
+| Métrica         | Valor                              | Interpretação                    |
+|-----------------|------------------------------------|----------------------------------|
+| VaR 95% (1d)    | R$ `r fmt_brl(params$var_95)`     | Perda máxima esperada com 95% c. |
+| VaR 99% (1d)    | R$ `r fmt_brl(params$var_99)`     | Perda máxima esperada com 99% c. |
+| VaR 99% (10d)   | R$ `r fmt_brl(params$var_99 * sqrt(10))` | Escalonamento raiz de 10        |
+
+---
+
+# 3. Stress Testing
+
+```{r stress-table}
+if (length(params$stress_scenarios) > 0) {
+  df <- as.data.frame(do.call(rbind, params$stress_scenarios))
+  kable(df, booktabs = TRUE, caption = "Cenários de Stress",
+        col.names = c("Cenário", "Premissa", "Impacto (R$)", "Impacto (% PL)")) |>
+    kable_styling(latex_options = c("striped", "hold_position"))
+} else {
+  cat("| Cenário                     | Premissa                   | Impacto (R$) | % PL  |\n")
+  cat("|-----------------------------|----------------------------|--------------|-------|\n")
+  cat("| Inadimplência +5pp          | Taxa inad. sobe para 10%   | —            | —     |\n")
+  cat("| Spread de Crédito +200bps   | Taxas mercado sobem 2%     | —            | —     |\n")
+  cat("| Concentração Cedente default| Top cedente inadimplente   | —            | —     |\n")
+  cat("| Crise de Liquidez           | Resgates de 20% em 5 dias  | —            | —     |\n")
+}
+```
+
+---
+
+# 4. Concentração
+
+O índice de concentração mede o grau de exposição a um único cedente ou devedor
+como percentual do patrimônio líquido total.
+
+| Limite Regulatório        | Valor Atual                                | Headroom                                         |
+|---------------------------|--------------------------------------------|--------------------------------------------------|
+| Máx. por cedente: 15% PL  | `r fmt_pct(params$concentration_index)`   | `r fmt_pct(max(0, 0.15 - params$concentration_index))` |
+| Diversificação mínima: 10 cedentes | — | —                                               |
+
+---
+
+# 5. Liquidez
+
+O índice de liquidez representa os ativos conversíveis em caixa em até 5 dias úteis
+como proporção do PL.
+
+| Indicador                  | Valor                                  | Limite Mínimo |
+|----------------------------|----------------------------------------|---------------|
+| Índice de Liquidez 5 dias  | `r fmt_pct(params$liquidity_ratio)`   | 10%           |
+| Status                     | `r if(params$liquidity_ratio >= 0.10) "✓ Adequado" else "⚠ Abaixo do Limite"` | — |
+
+---
+
+# 6. Recomendações
+
+Com base nos indicadores apurados, o comitê de risco recomenda:
+
+1. Monitorar continuamente os devedores com exposição acima de 10% do PL
+2. Manter índice de liquidez acima de 12% como margem de segurança operacional
+3. Revisar covenants de concentração se o índice HHI ultrapassar 0,18
+4. Atualizar modelos de stress testing trimestralmente ou após eventos de mercado relevantes
+
+---
+
+*Relatório de uso restrito. Elaborado pela equipe de Gestão de Risco conforme
+ICAAP interno e diretrizes ANBIMA para FIDCs.*
