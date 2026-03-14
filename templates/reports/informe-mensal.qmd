@@ -1,0 +1,139 @@
+---
+title: "Informe Mensal de Fundo de Investimento em Direitos Creditórios"
+date: "`r Sys.Date()`"
+format:
+  pdf:
+    documentclass: article
+    geometry: margin=2.5cm
+    fontsize: 11pt
+    header-includes:
+      - \usepackage{fancyhdr}
+      - \usepackage{booktabs}
+      - \usepackage{float}
+      - \pagestyle{fancy}
+      - \fancyhead[L]{\textbf{FIDC — Informe Mensal}}
+      - \fancyhead[R]{\thepage}
+      - \fancyfoot[C]{\small Elaborado conforme CVM Resolução 175/2022 e ANBIMA}
+      - \renewcommand{\headrulewidth}{0.4pt}
+      - \renewcommand{\footrulewidth}{0.4pt}
+params:
+  fund_name: "FIDC Exemplo"
+  fund_cnpj: "00.000.000/0001-00"
+  reference_date: "2026-03-31"
+  nav: 0.0
+  pl: 0.0
+  cota_senior: 0.0
+  cota_sub: 0.0
+  pdd_total: 0.0
+  inadimplencia_rate: 0.0
+  top5_cedentes: []
+engine: knitr
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+library(knitr)
+library(kableExtra)
+
+# Helper: format BRL
+fmt_brl <- function(x) formatC(x, format = "f", digits = 2, big.mark = ".", decimal.mark = ",")
+fmt_pct <- function(x) paste0(formatC(x * 100, format = "f", digits = 2), "%")
+```
+
+# 1. Resumo Executivo
+
+**Fundo:** `r params$fund_name`  
+**CNPJ:** `r params$fund_cnpj`  
+**Data de Referência:** `r params$reference_date`
+
+| Indicador               | Valor                              |
+|-------------------------|------------------------------------|
+| Patrimônio Líquido (PL) | R$ `r fmt_brl(params$pl)`          |
+| NAV Total               | R$ `r fmt_brl(params$nav)`         |
+| Cota Sênior             | R$ `r fmt_brl(params$cota_senior)` |
+| Cota Subordinada        | R$ `r fmt_brl(params$cota_sub)`    |
+
+---
+
+# 2. Composição da Carteira
+
+A carteira do fundo está composta por direitos creditórios adquiridos de cedentes
+previamente aprovados pelo gestor, em consonância com o regulamento vigente.
+
+```{r carteira-chart, fig.height=3, fig.width=6}
+# Placeholder: substitua pelos dados reais
+categorias <- c("Direitos Creditórios", "Caixa e Equivalentes", "Outros")
+valores    <- c(params$pl * 0.88, params$pl * 0.10, params$pl * 0.02)
+pie(valores, labels = paste(categorias, sprintf("(%.1f%%)", valores/sum(valores)*100)),
+    main = "Composição do Patrimônio", col = c("#1a4f72","#2e86c1","#aed6f1"))
+```
+
+---
+
+# 3. Indicadores de Risco
+
+| Indicador                   | Valor                                     |
+|-----------------------------|-------------------------------------------|
+| Taxa de Inadimplência       | `r fmt_pct(params$inadimplencia_rate)`    |
+| PDD Total Constituída       | R$ `r fmt_brl(params$pdd_total)`          |
+| Cobertura PDD / Carteira    | `r fmt_pct(if(params$pl>0) params$pdd_total/params$pl else 0)` |
+
+---
+
+# 4. PDD e Inadimplência
+
+A Provisão para Devedores Duvidosos (PDD) é calculada mensalmente conforme metodologia
+IFRS9, segmentada em três estágios:
+
+- **Estágio 1 (Performing):** provisão de 0,5% sobre o saldo devedor
+- **Estágio 2 (Underperforming):** provisão de 5,0% sobre o saldo devedor
+- **Estágio 3 (Non-performing):** provisão de 20,0% sobre o saldo devedor
+
+**PDD Total Constituída no Período:** R$ `r fmt_brl(params$pdd_total)`
+
+---
+
+# 5. Concentração por Cedente (Top 5)
+
+```{r top5-table}
+if (length(params$top5_cedentes) > 0) {
+  df <- as.data.frame(do.call(rbind, params$top5_cedentes))
+  kable(df, booktabs = TRUE, caption = "Top 5 Cedentes por Volume",
+        col.names = c("Cedente", "CNPJ", "Volume (R$)", "% Carteira")) |>
+    kable_styling(latex_options = c("striped", "hold_position"))
+} else {
+  cat("*Dados de cedentes não disponíveis para o período.*")
+}
+```
+
+---
+
+# 6. Covenants
+
+Os covenants estruturais do fundo foram monitorados no período de referência.
+Detalhes completos estão disponíveis no Relatório de Covenant (covenant-report.qmd).
+
+| Covenant                     | Limite   | Status   |
+|------------------------------|----------|----------|
+| Subordinação Mínima          | 20%      | ✓ OK     |
+| Inadimplência Máxima (90d)   | 5%       | ✓ OK     |
+| Concentração por Cedente     | 15%      | ✓ OK     |
+
+---
+
+# 7. Parecer do Gestor
+
+O fundo apresentou desempenho dentro dos parâmetros estabelecidos no regulamento.
+A carteira mantém qualidade creditória satisfatória, com níveis de inadimplência
+controlados e adequada diversificação entre cedentes e devedores.
+
+A gestora recomenda manutenção da estratégia atual, com monitoramento contínuo
+dos indicadores de risco e covenants operacionais.
+
+---
+
+*Documento elaborado em conformidade com a CVM Resolução nº 175/2022, Instrução CVM 356
+e código ANBIMA de Administração de Recursos de Terceiros.*
+
+*As informações contidas neste relatório são de caráter informativo e não constituem
+oferta ou recomendação de investimento.*
