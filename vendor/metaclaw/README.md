@@ -1,13 +1,11 @@
-# MetaClaw (Controlled Fork)
+# MetaClaw Vendor
 
-Upstream: https://github.com/aiming-lab/MetaClaw
+MetaClaw skill proxy is implemented at `packages/kernel/metaclaw.py`.
 
-This is a controlled fork for PAGANINI AIOS integration.
-Financial-specific modifications maintained here.
-Upstream contributions pushed when appropriate.
+This directory is reserved for the MetaClaw standalone binary/service
+when running in `rl` or `opd` mode (requires Tinker API).
 
-## Modifications
-- Skill validation gate (financial guardrails)
-- Per-instance data isolation
-- Audit logging for regulatory compliance
-- Integration with Moltis provider config
+For `skills_only` mode (default), no vendor binary is needed —
+the Python implementation handles everything.
+
+See: https://thinkingmachines.ai/tinker/
