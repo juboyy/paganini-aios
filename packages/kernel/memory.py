@@ -73,7 +73,7 @@ class EpisodicMemory:
             "id": str(uuid.uuid4()),
             "query": query,
             "response": response,
-            "chunks": chunks or [],
+            "chunks": [str(c) if not isinstance(c, (str, dict)) else c for c in (chunks or [])],
             "confidence": confidence,
             "agent": agent,
             "timestamp": timestamp if timestamp is not None else time.time(),
