@@ -49,7 +49,7 @@ class MetaClawProxy:
 
     def __init__(self, config: dict):
         mc_config = config.get("metaclaw", {})
-        self.enabled = mc_config.get("enabled", False)
+        self.enabled = mc_config.get("enabled", True)
         self.skills_dir = Path(mc_config.get("skills_dir", "skills/"))
         self.auto_evolve = mc_config.get("auto_evolve", True)
         self.max_skills = mc_config.get("max_skills", 500)
