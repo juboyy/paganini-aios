@@ -29,27 +29,43 @@ curl -fsSL https://paganini.sh | sh && paganini init --pack fidc && paganini up
 
 ## See It Work
 
+**Real output from a production EC2 instance** (Ubuntu 24.04, sa-east-1):
+
 ```
-$ paganini query "Qual o limite de concentração por cedente segundo a CVM 175?"
+$ paganini query -v "Qual o limite de concentração por cedente em um FIDC
+  e quais são as exceções previstas pela CVM?"
 
-🧠 Router: regulatory query → Agent: Administrador → Model: gpt-4o → Confidence: high
-🔍 RAG: 4 chunks retrieved (Art. 23, Art. 38, Art. 40, Elegibilidade §3)
-🧬 MetaClaw: 3 skills injected (cvm175-concentration, fund-limits, regulatory-citation)
-🛡️ Guards: 6/6 passed
+🧠 Runtime: moltis | Model: gemini/gemini-2.5-flash
+🔍 RAG: 5 chunks | MetaClaw: off
+   • Critérios de Elegibilidade | Gestão de Risco de Crédito Concentrado | 0.75
+   • Artigo 51 - CVM175.md | A Regra dos 50% e a Independência do FIDC  | 0.74
+   • Artigo 45 - CVM175.md | A Diversificação como Mantra Sagrado       | 0.72
+   • Artigo 2 - CVM175.md  | Análise Detalhada                         | 0.70
+   • FIDCs Setoriais (Agro e Imobiliário) | O Processo de Securitização  | 0.70
+⏱️  7198ms | 📊 Confiança: 0.87
 
-📋 Resposta (confiança: 0.94):
+╭──────────────────── 📋 Resposta (87% confiança) ────────────────────╮
+│                                                                      │
+│  O limite de concentração por cedente em um FIDC é de 10% [Fonte 1]. │
+│                                                                      │
+│  A CVM prevê exceções para FIDCs mono-cedente, onde 100% dos         │
+│  créditos podem ser de um único cedente/originador, desde que:       │
+│                                                                      │
+│  1. Fundo destinado a investidores qualificados [Fonte 2]            │
+│  2. Regulamento autorize expressamente [Fonte 2]                     │
+│  3. Nome contenha "Crédito Estruturado" ou nome do cedente           │
+│     [Fonte 2, Fonte 3]                                               │
+│  4. Investidores cientes do risco de concentração [Fonte 3]          │
+│                                                                      │
+╰──────────────────────────────────────────────────────────────────────╯
 
-  Segundo o Art. 23, inciso VII da Resolução CVM 175, o regulamento do fundo
-  deve estabelecer limites de concentração por cedente/sacado. O limite padrão
-  é 20% do PL do fundo para um único cedente, podendo ser alterado pelo
-  regulamento desde que aprovado em assembleia de cotistas (Art. 40, §2º).
-
-  Para FIDCs padronizados (Anexo Normativo I), o limite é fixo em 10%.
-
-  📎 Fontes: cvm175/art23.md (linhas 45-62), cvm175/art38.md (linhas 12-18)
-  🧬 Skills ativas: cvm175-concentration, fund-limits, regulatory-citation
-  ⏱️ Latência: 2.3s | 💰 Custo: $0.004 | 📊 Trace: #op-2026031314230047
+📎 Fontes:
+  [1] Critérios de Elegibilidade (score: 0.75)
+  [2] CVM 175, Art. 51 (score: 0.74)
+  [3] CVM 175, Art. 45 (score: 0.72)
 ```
+
+> 164 documents ingested. 6,993 chunks indexed. Zero hallucination.
 
 ---
 
@@ -447,17 +463,28 @@ override without human + justification
 ### Single Binary (Recommended)
 
 ```bash
-# Install
+# Install (downloads Moltis runtime + PAGANINI CLI)
 curl -fsSL https://paganini.sh | sh
 
-# Configure (interactive wizard)
-paganini init --pack fidc
+# Or manually:
+git clone https://github.com/juboyy/paganini-aios
+cd paganini-aios
+pip install -e .
 
-# Run
-paganini up
+# Configure
+cp config.example.yaml config.yaml
+# Edit config.yaml → set your API key
+
+# Ingest your corpus
+paganini ingest data/corpus/fidc/
+# ✓ 164 files → 6,993 chunks → 2min40s on 8-vCPU EC2
 
 # Query
-paganini query "Qual o limite de concentração por cedente segundo a CVM 175?"
+paganini query "Qual o limite de concentração por cedente?"
+
+# Diagnose
+paganini doctor
+paganini status
 ```
 
 ### Docker
@@ -531,22 +558,26 @@ paganini pack install fidc-enterprise     # R$25K/mo — everything + SLA + cust
 ```
 paganini/
 ├── packages/
-│   ├── kernel/          # RLM engine, cognitive router, CLI
-│   ├── rag/             # Hybrid RAG + AutoResearch loop
-│   ├── agents/          # 9 SOULs + agent framework
-│   │   └── souls/       # One .md per agent identity
-│   ├── ontology/        # FIDC knowledge graph
-│   ├── dashboard/       # Operations UI
-│   ├── modules/         # Pre-configured verticals
-│   └── shared/          # Types, utils, guardrails
-├── vendor/metaclaw/     # Learning proxy (controlled fork)
-├── infra/               # Docker, Helm, daemons, systemd
-├── docs/                # Architecture, security, tools, pipeline
-│   ├── architecture/    # ADRs, system design, genome, distribution
-│   ├── security/        # Container & open-source isolation
-│   ├── pipeline/        # BMAD-CE execution methodology
-│   └── tools/           # PinchTab, QMD integration guides
-└── config.yaml          # Single source of configuration
+│   ├── kernel/
+│   │   ├── cli.py           # CLI entry point (click)
+│   │   ├── engine.py        # Config loader, env var resolution
+│   │   ├── moltis.py        # Moltis gateway adapter (fallback: litellm)
+│   │   └── metaclaw.py      # MetaClaw skill proxy + auto-evolution
+│   ├── rag/
+│   │   └── pipeline.py      # Hybrid RAG — ChromaDB, header-aware chunking
+│   ├── agents/
+│   │   └── souls/           # One .md per agent identity (9 agents)
+│   ├── ontology/            # FIDC knowledge graph schema
+│   ├── dashboard/           # Operations UI
+│   ├── modules/             # Pre-configured verticals
+│   └── shared/              # Types, utils, guardrails.yaml
+├── vendor/metaclaw/         # Learning proxy (controlled fork)
+├── infra/                   # Docker, Helm, daemons, systemd
+├── docs/                    # Architecture, security, business, pipeline
+├── install.sh               # One-command installer (Moltis + PAGANINI)
+├── config.example.yaml      # All options documented
+├── moltis.example.yaml      # Moltis runtime config
+└── pyproject.toml           # pip install -e . → `paganini` CLI
 ```
 
 <details>
@@ -633,9 +664,10 @@ gantt
 3. Check the [FAQ](docs/FAQ.md)
 
 **Want to try it?**
-1. `curl -fsSL https://paganini.sh | sh`
-2. `paganini init` (uses sample data — no license needed)
-3. `paganini query "test"`
+1. `git clone https://github.com/juboyy/paganini-aios && cd paganini-aios`
+2. `pip install -e . && cp config.example.yaml config.yaml`
+3. Set your API key in `config.yaml`
+4. `paganini ingest data/corpus/fidc/ && paganini query "test"`
 
 **Want to contribute?**
 1. Read [CONTRIBUTING.md](CONTRIBUTING.md)
@@ -655,11 +687,11 @@ Every layer has security built in. Not bolted on.
 
 | Layer | Technology | Security Posture |
 |-------|-----------|-----------------|
-| **Runtime** | Moltis — Rust, single binary | Agents in isolated containers. `cap-drop ALL`. Read-only FS. Distroless images. Signed + scanned. |
+| **Runtime** | [Moltis](https://github.com/moltis-org/moltis) v0.10.18 — Rust, single binary (~30MB) | Agents in isolated containers. `cap-drop ALL`. Read-only FS. Distroless images. Signed + scanned. |
 | **Agents** | 9 SOULs with identity + tools + scope | `network: none` by default. Unix socket only. Seccomp blocks network syscalls. PID limit 50. |
 | **Learning** | MetaClaw — auto-skill generation | Per-instance isolation (Chinese walls). Skills validated vs corpus. Contradictions rejected. |
 | **Reasoning** | RLM — recursive context, sub-LLMs | Scoped context. No state between queries. Gate token proves due diligence. |
-| **Retrieval** | Hybrid RAG — dense + sparse + graph | Corpus encrypted at rest (AES-256). In-memory only. Embeddings partitioned by fund_id. |
+| **Retrieval** | Hybrid RAG — [ChromaDB](https://www.trychroma.com/) + all-MiniLM-L6-v2 (local, no API) | Corpus encrypted at rest (AES-256). In-memory only. Embeddings partitioned by fund_id. |
 | **Memory** | pgvector + SQLite + filesystem | RLS per fund_id. 4 layers isolated. Episodic encrypted. Procedural auditable. |
 | **Guardrails** | 6-gate hard-stop pipeline | Block > Warn > Log. Override = human + justification + immutable audit entry. |
 | **Observability** | OpenTelemetry — traces + metrics | Every action traced with fund_id + gate_token. Immutable. 7-year retention (CVM). |
@@ -667,7 +699,7 @@ Every layer has security built in. Not bolted on.
 | **Secrets** | Encrypted vault — AES-256-GCM | No plaintext anywhere. Pre-commit hooks + CI scan (trufflehog, gitleaks, semgrep). |
 | **Data** | PII scrubbing + immutable records | CPF/CNPJ masked in logs. Reports append-only. Corrections = new records. |
 | **Channels** | Slack · API · CLI · Dashboard | Per-fund channels. mTLS optional. Role-based dashboard. Vault-authenticated CLI. |
-| **LLM** | BYOK — any provider | Keys passed through, never stored. No training on client data. Client controls residency. |
+| **LLM** | BYOK via [LiteLLM](https://github.com/BerriAI/litellm) — any provider | Keys passed through, never stored. No training on client data. Client controls residency. |
 
 ---
 
