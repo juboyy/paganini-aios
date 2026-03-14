@@ -10,6 +10,8 @@ from typing import Optional
 import chromadb
 import yaml
 
+from packages.rag.bm25 import BM25Index
+
 
 class Chunk:
     """A chunk of text from a document."""
@@ -58,6 +60,12 @@ class RAGPipeline:
         self.top_k = rag_cfg.get("top_k", 5)
         self.max_context_tokens = rag_cfg.get("max_context_tokens", 8000)
 
+        # === HYBRID FUSION ===
+        self.dense_weight = rag_cfg.get("dense_weight", 0.6)
+        self.sparse_weight = rag_cfg.get("sparse_weight", 0.4)
+        self.fusion_method = rag_cfg.get("fusion_method", "rrf")
+        self.rrf_k = rag_cfg.get("rrf_k", 60)
+
         # === CHROMA (embedded vector DB — no external dependency) ===
         chroma_path = str(self.data_dir / "chroma")
         self.chroma = chromadb.PersistentClient(path=chroma_path)
@@ -65,6 +73,9 @@ class RAGPipeline:
             name="corpus",
             metadata={"hnsw:space": "cosine"}
         )
+
+        # === BM25 (sparse retrieval) ===
+        self.bm25 = BM25Index(self.data_dir / "bm25_index.json")
 
     def ingest(self, corpus_dir: str) -> dict:
         """Ingest markdown files from corpus directory.
@@ -109,38 +120,92 @@ class RAGPipeline:
                 # Batch upsert every 100 chunks
                 if len(batch_ids) >= 100:
                     self.collection.upsert(ids=batch_ids, documents=batch_docs, metadatas=batch_metas)
+                    self.bm25.index(batch_docs, batch_ids, batch_metas)
                     batch_ids, batch_docs, batch_metas = [], [], []
 
         # Final batch
         if batch_ids:
             self.collection.upsert(ids=batch_ids, documents=batch_docs, metadatas=batch_metas)
+            self.bm25.index(batch_docs, batch_ids, batch_metas)
 
         return stats
 
     def retrieve(self, query: str, top_k: int = None) -> list[Chunk]:
-        """Retrieve relevant chunks for a query."""
+        """Retrieve relevant chunks using hybrid dense+sparse retrieval with RRF fusion."""
         k = top_k or self.top_k
 
         if self.collection.count() == 0:
             return []
 
-        results = self.collection.query(
+        # --- Dense retrieval (ChromaDB) ---
+        dense_results = self.collection.query(
             query_texts=[query],
-            n_results=min(k, self.collection.count()),
+            n_results=min(k * 2, self.collection.count()),
             include=["documents", "metadatas", "distances"]
         )
+        dense_hits: dict[str, dict] = {}
+        for i, doc in enumerate(dense_results["documents"][0]):
+            meta = dense_results["metadatas"][0][i]
+            distance = dense_results["distances"][0][i]
+            doc_id = dense_results["ids"][0][i]
+            dense_hits[doc_id] = {
+                "text": doc,
+                "meta": meta,
+                "dense_rank": i,           # 0-indexed rank
+                "dense_score": 1 - distance,
+            }
 
-        chunks = []
-        for i, doc in enumerate(results["documents"][0]):
-            meta = results["metadatas"][0][i]
-            distance = results["distances"][0][i]
+        # --- Sparse retrieval (BM25) ---
+        sparse_results = self.bm25.search(query, top_k=k * 2)
+        sparse_hits: dict[str, dict] = {}
+        for rank, hit in enumerate(sparse_results):
+            sparse_hits[hit["id"]] = {
+                "sparse_rank": rank,
+                "sparse_score": hit["score"],
+                "meta": hit["metadata"],
+            }
+
+        # --- RRF fusion ---
+        all_ids = set(dense_hits) | set(sparse_hits)
+        rrf_k = self.rrf_k
+
+        fused: list[tuple[str, float]] = []
+        for doc_id in all_ids:
+            score = 0.0
+            if doc_id in dense_hits:
+                score += 1.0 / (rrf_k + dense_hits[doc_id]["dense_rank"] + 1)
+            else:
+                # Not in dense results — penalise with a large rank
+                score += 1.0 / (rrf_k + k * 2 + 1)
+
+            if doc_id in sparse_hits:
+                score += 1.0 / (rrf_k + sparse_hits[doc_id]["sparse_rank"] + 1)
+            else:
+                score += 1.0 / (rrf_k + k * 2 + 1)
+
+            fused.append((doc_id, score))
+
+        fused.sort(key=lambda x: x[1], reverse=True)
+
+        # --- Build Chunk objects ---
+        chunks: list[Chunk] = []
+        for doc_id, fused_score in fused[:k]:
+            if doc_id in dense_hits:
+                hit = dense_hits[doc_id]
+                text = hit["text"]
+                meta = hit["meta"]
+            else:
+                # Sparse-only hit — we have metadata but need text from BM25 meta
+                meta = sparse_hits[doc_id]["meta"]
+                text = meta.get("text", "")  # text not stored in BM25, fallback
+
             chunk = Chunk(
-                text=doc,
+                text=text,
                 source=meta.get("source", "unknown"),
                 section=meta.get("section", ""),
-                metadata=meta
+                metadata=meta,
             )
-            chunk.score = 1 - distance  # cosine distance → similarity
+            chunk.score = fused_score
             chunks.append(chunk)
 
         return chunks
@@ -275,9 +340,14 @@ Responda citando as fontes relevantes."""
         """Return pipeline status."""
         return {
             "chunks_indexed": self.collection.count(),
+            "bm25_docs": len(self.bm25),
             "chunk_size": self.chunk_size,
             "chunk_overlap": self.chunk_overlap,
             "respect_headers": self.respect_headers,
             "top_k": self.top_k,
+            "dense_weight": self.dense_weight,
+            "sparse_weight": self.sparse_weight,
+            "fusion_method": self.fusion_method,
+            "rrf_k": self.rrf_k,
             "data_dir": str(self.data_dir),
         }
