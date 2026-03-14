@@ -575,7 +575,8 @@ paganini/
 │   ├── rag/
 │   │   ├── pipeline.py      # Hybrid RAG — dense + sparse + RRF fusion
 │   │   ├── bm25.py          # Pure Python BM25Okapi with PT-BR tokenizer
-│   │   └── eval.py          # Evaluation harness — precision@k, recall, latency
+│   │   ├── eval.py          # Evaluation harness — precision@k, recall, latency
+│   │   └── autoresearch/    # Self-optimizing RAG (program.md + runner.py)
 │   ├── agents/
 │   │   ├── framework.py     # AgentRegistry + AgentDispatcher
 │   │   └── souls/           # One .md per agent identity (9 agents)
@@ -584,8 +585,11 @@ paganini/
 │   │   └── builder.py       # Entity extraction from markdown via regex
 │   ├── shared/
 │   │   └── guardrails.py    # 6-gate hard-stop pipeline
-│   ├── dashboard/           # Operations UI (Phase 4)
-│   └── modules/             # Pre-configured verticals (Phase 4)
+│   ├── integrations/
+│   │   └── slack_bot.py     # Slack IR bot — investor Q&A, fund isolation
+│   ├── dashboard/
+│   │   └── app.py           # FastAPI dashboard MVP + inline Tailwind UI
+│   └── modules/             # Pre-configured verticals (Phase 5)
 ├── tests/                   # 55 pytest tests — all passing
 │   ├── conftest.py          # Shared fixtures (tmp_dir, sample_config, corpus)
 │   ├── test_rag.py          # RAG pipeline + retrieval tests
@@ -598,12 +602,15 @@ paganini/
 ├── vendor/metaclaw/         # MetaClaw standalone (for rl/opd modes)
 ├── infra/
 │   ├── Dockerfile           # Multi-stage build, non-root, healthcheck
-│   └── docker-compose.yaml  # Full stack: core + moltis + pgvector + agents
+│   ├── docker-compose.yaml  # Full stack: core + moltis + pgvector + agents
+│   └── helm/paganini/       # Helm chart (Chart.yaml + templates)
 ├── scripts/
 │   ├── paganini_gate.py     # Pre-execution gate (grep/AST code intelligence)
 │   └── paganini_codex.py    # Codex bridge (spec builder + invocation)
 ├── docs/                    # Architecture, security, business, pipeline
+├── templates/reports/       # 5 QMD templates (informe-mensal, CADOC, PDD, risk, covenant)
 ├── install.sh               # One-command installer (Moltis + PAGANINI)
+├── paganini.sh              # curl-pipe installer (detects OS/arch)
 ├── config.example.yaml      # All options documented
 ├── moltis.example.yaml      # Moltis runtime config
 ├── eval_questions.jsonl      # 20 gold Q&A pairs for evaluation
@@ -678,13 +685,19 @@ gantt
     Daemons + CLI Commands                       :done, p3c, 2026-03-14, 1d
     Domain Packs + Reports                       :done, p3d, 2026-03-14, 1d
 
-    section Phase 4 — Product
-    Slack IR Bot                                 :p4a, 2026-03-17, 10d
-    QMD Reporting Templates                      :p4b, 2026-03-17, 10d
-    Onboarding Wizard                            :p4c, 2026-03-24, 5d
-    Dashboard MVP                                :p4d, 2026-03-24, 10d
-    AutoResearch Loop                            :p4e, 2026-04-01, 7d
-    Helm Chart                                   :p4f, 2026-04-01, 5d
+    section Phase 4 — Product ✅
+    Slack IR Bot                                 :done, p4a, 2026-03-14, 1d
+    QMD Reporting Templates                      :done, p4b, 2026-03-14, 1d
+    Dashboard MVP                                :done, p4d, 2026-03-14, 1d
+    AutoResearch Loop                            :done, p4e, 2026-03-14, 1d
+    Helm Chart                                   :done, p4f, 2026-03-14, 1d
+
+    section Phase 5 — Scale
+    Onboarding Wizard                            :p5a, 2026-03-17, 5d
+    Landing Page Redesign                        :p5b, 2026-03-17, 3d
+    paganini.sh Domain Hosting                   :p5c, 2026-03-17, 1d
+    E2E Integration Tests                        :p5d, 2026-03-24, 7d
+    Production Hardening                         :p5e, 2026-03-24, 7d
 ```
 
 ---
