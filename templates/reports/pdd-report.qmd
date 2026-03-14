@@ -1,0 +1,129 @@
+---
+title: "Relatório de PDD — Provisão para Devedores Duvidosos (IFRS9)"
+date: "`r Sys.Date()`"
+format:
+  pdf:
+    documentclass: article
+    geometry: margin=2.5cm
+    fontsize: 11pt
+    header-includes:
+      - \usepackage{fancyhdr}
+      - \usepackage{booktabs}
+      - \usepackage{xcolor}
+      - \pagestyle{fancy}
+      - \fancyhead[L]{\textbf{PDD — IFRS9 ECL Report}}
+      - \fancyhead[R]{\thepage}
+      - \fancyfoot[C]{\small Elaborado conforme IFRS9 / CPC 48}
+      - \renewcommand{\headrulewidth}{0.4pt}
+      - \renewcommand{\footrulewidth}{0.4pt}
+params:
+  fund_name: "FIDC Exemplo"
+  reference_date: "2026-03-31"
+  carteira_total: 0.0
+  pdd_stage1: 0.0
+  pdd_stage2: 0.0
+  pdd_stage3: 0.0
+  recovery_rate: 0.0
+  aging_table: []
+engine: knitr
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+library(knitr)
+library(kableExtra)
+
+fmt_brl <- function(x) formatC(x, format = "f", digits = 2, big.mark = ".", decimal.mark = ",")
+fmt_pct <- function(x) paste0(formatC(x * 100, format = "f", digits = 4), "%")
+
+pdd_total <- params$pdd_stage1 + params$pdd_stage2 + params$pdd_stage3
+cobertura <- if (params$carteira_total > 0) pdd_total / params$carteira_total else 0
+```
+
+# 1. Metodologia
+
+O cálculo da PDD segue o modelo de **Expected Credit Loss (ECL)** conforme IFRS9/CPC48,
+com segmentação da carteira em três estágios de risco:
+
+| Estágio | Critério                       | Provisão Base |
+|---------|--------------------------------|---------------|
+| Stage 1 | Adimplente (< 30 dias atraso)  | 0,50%         |
+| Stage 2 | Deterioração significativa     | 5,00%         |
+| Stage 3 | Inadimplente (> 90 dias)       | 20,00%        |
+
+**Fundo:** `r params$fund_name` | **Referência:** `r params$reference_date`
+
+---
+
+# 2. Staging — Segmentação da Carteira
+
+```{r staging-summary}
+pct1 <- if (params$carteira_total > 0) params$pdd_stage1 / (params$carteira_total * 0.005) else 0
+pct2 <- if (params$carteira_total > 0) params$pdd_stage2 / (params$carteira_total * 0.05)  else 0
+pct3 <- if (params$carteira_total > 0) params$pdd_stage3 / (params$carteira_total * 0.20)  else 0
+
+staging_df <- data.frame(
+  Estagio      = c("Stage 1 — Performing", "Stage 2 — Underperforming", "Stage 3 — Non-performing"),
+  Taxa_Provisao = c("0,50%", "5,00%", "20,00%"),
+  PDD_R        = c(fmt_brl(params$pdd_stage1),
+                   fmt_brl(params$pdd_stage2),
+                   fmt_brl(params$pdd_stage3)),
+  Saldo_Imp    = c(fmt_brl(params$pdd_stage1 / 0.005),
+                   fmt_brl(params$pdd_stage2 / 0.05),
+                   fmt_brl(params$pdd_stage3 / 0.20))
+)
+
+kable(staging_df, booktabs = TRUE, caption = "PDD por Estágio IFRS9",
+      col.names = c("Estágio", "Taxa", "PDD (R$)", "Saldo Implicado (R$)")) |>
+  kable_styling(latex_options = c("striped", "hold_position"))
+```
+
+---
+
+# 3. Cálculo da PDD Total
+
+| Componente              | Valor (R$)                                        |
+|-------------------------|---------------------------------------------------|
+| PDD Stage 1             | R$ `r fmt_brl(params$pdd_stage1)`                |
+| PDD Stage 2             | R$ `r fmt_brl(params$pdd_stage2)`                |
+| PDD Stage 3             | R$ `r fmt_brl(params$pdd_stage3)`                |
+| **PDD Total**           | **R$ `r fmt_brl(pdd_total)`**                    |
+| Carteira Total          | R$ `r fmt_brl(params$carteira_total)`            |
+| **Cobertura PDD**       | **`r fmt_pct(cobertura)`**                       |
+
+---
+
+# 4. Aging Analysis
+
+```{r aging-table}
+if (length(params$aging_table) > 0) {
+  df <- as.data.frame(do.call(rbind, params$aging_table))
+  kable(df, booktabs = TRUE, caption = "Aging da Carteira por Faixa de Atraso",
+        col.names = c("Faixa (dias)", "Saldo (R$)", "% Carteira", "Stage", "PDD (R$)")) |>
+    kable_styling(latex_options = c("striped", "hold_position", "scale_down"))
+} else {
+  cat("| Faixa (dias) | Saldo (R$) | % Carteira | Stage | PDD (R$) |\n")
+  cat("|--------------|------------|------------|-------|----------|\n")
+  cat("| 0 (A vencer) | —          | —          | 1     | —        |\n")
+  cat("| 1 – 30       | —          | —          | 1     | —        |\n")
+  cat("| 31 – 60      | —          | —          | 2     | —        |\n")
+  cat("| 61 – 90      | —          | —          | 2     | —        |\n")
+  cat("| 91 – 180     | —          | —          | 3     | —        |\n")
+  cat("| > 180        | —          | —          | 3     | —        |\n")
+}
+```
+
+---
+
+# 5. Recuperação
+
+A taxa de recuperação histórica do fundo é de **`r fmt_pct(params$recovery_rate)`**, considerando
+créditos em estágio 3 que retornaram à adimplência ou foram liquidados nos últimos 12 meses.
+
+Esta taxa é utilizada como input na calibração do modelo ECL para os períodos futuros,
+ajustando o LGD (Loss Given Default) nas estimativas de perda esperada.
+
+---
+
+*Relatório elaborado em conformidade com IFRS9 (CPC 48) e Resolução CMN 2.682/1999.
+Para uso interno do gestor e envio ao custodiante conforme regulamento.*
