@@ -1,0 +1,18 @@
+apiVersion: v2
+name: paganini-aios
+description: AI Operating System for Brazilian Financial Markets (FIDC)
+type: application
+version: 0.1.0
+appVersion: "0.1.0"
+keywords:
+  - fidc
+  - ai
+  - financial
+  - compliance
+  - rag
+maintainers:
+  - name: PAGANINI Team
+    email: rod.marques@aios.finance
+home: https://github.com/juboyy/paganini-aios
+sources:
+  - https://github.com/juboyy/paganini-aios
