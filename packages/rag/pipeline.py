@@ -208,6 +208,14 @@ class RAGPipeline:
             chunk.score = fused_score
             chunks.append(chunk)
 
+        # Normalize scores to 0-1 range for display/confidence
+        if chunks:
+            max_score = max(c.score for c in chunks)
+            min_score = min(c.score for c in chunks)
+            score_range = max_score - min_score if max_score > min_score else 1.0
+            for c in chunks:
+                c.score = 0.5 + 0.5 * ((c.score - min_score) / score_range) if score_range > 0 else 0.75
+
         return chunks
 
     def query(self, question: str, llm_fn=None) -> Answer:
