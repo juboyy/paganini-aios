@@ -1,0 +1,130 @@
+---
+title: "CADOC 3040 — Carteira de Crédito"
+date: "`r Sys.Date()`"
+format:
+  pdf:
+    documentclass: article
+    geometry: margin=2.5cm
+    fontsize: 11pt
+    header-includes:
+      - \usepackage{fancyhdr}
+      - \usepackage{booktabs}
+      - \usepackage{longtable}
+      - \pagestyle{fancy}
+      - \fancyhead[L]{\textbf{CADOC 3040 — BCB}}
+      - \fancyhead[R]{\thepage}
+      - \fancyfoot[C]{\small Banco Central do Brasil — Sistema CADOC}
+      - \renewcommand{\headrulewidth}{0.4pt}
+      - \renewcommand{\footrulewidth}{0.4pt}
+params:
+  fund_name: "FIDC Exemplo"
+  reference_date: "2026-03-31"
+  total_carteira: 0.0
+  por_modalidade: []
+  por_prazo: []
+  por_rating: []
+  provisoes: 0.0
+engine: knitr
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE, warning = FALSE, message = FALSE)
+library(knitr)
+library(kableExtra)
+
+fmt_brl <- function(x) formatC(x, format = "f", digits = 2, big.mark = ".", decimal.mark = ",")
+fmt_pct <- function(x) paste0(formatC(x * 100, format = "f", digits = 2), "%")
+```
+
+# 1. Identificação
+
+**Instituição Declarante:** `r params$fund_name`  
+**Data de Referência:** `r params$reference_date`  
+**Documento:** CADOC 3040 — Carteira de Crédito (Art. 23, Res. BCB 131/2021)
+
+| Campo               | Valor                                        |
+|---------------------|----------------------------------------------|
+| Total da Carteira   | R$ `r fmt_brl(params$total_carteira)`        |
+| Provisões Totais    | R$ `r fmt_brl(params$provisoes)`             |
+| Cobertura de Risco  | `r fmt_pct(if(params$total_carteira>0) params$provisoes/params$total_carteira else 0)` |
+
+---
+
+# 2. Composição por Modalidade
+
+```{r modalidade-table}
+if (length(params$por_modalidade) > 0) {
+  df <- as.data.frame(do.call(rbind, params$por_modalidade))
+  kable(df, booktabs = TRUE, caption = "Carteira por Modalidade de Crédito",
+        col.names = c("Modalidade", "Saldo (R$)", "% Total", "Nº Operações")) |>
+    kable_styling(latex_options = c("striped", "hold_position", "scale_down"))
+} else {
+  cat("| Modalidade               | Saldo (R$) | % Total | Nº Op. |\n")
+  cat("|--------------------------|------------|---------|--------|\n")
+  cat("| Capital de Giro PJ       | —          | —       | —      |\n")
+  cat("| Recebíveis Comerciais    | —          | —       | —      |\n")
+  cat("| Crédito Pessoal PF       | —          | —       | —      |\n")
+  cat("| Desconto de Duplicatas   | —          | —       | —      |\n")
+}
+```
+
+---
+
+# 3. Distribuição por Prazo
+
+```{r prazo-table}
+if (length(params$por_prazo) > 0) {
+  df <- as.data.frame(do.call(rbind, params$por_prazo))
+  kable(df, booktabs = TRUE, caption = "Carteira por Faixa de Prazo",
+        col.names = c("Faixa de Prazo", "Saldo (R$)", "% Total")) |>
+    kable_styling(latex_options = c("striped", "hold_position"))
+} else {
+  cat("| Faixa de Prazo  | Saldo (R$) | % Total |\n")
+  cat("|-----------------|------------|--------|\n")
+  cat("| Até 90 dias     | —          | —       |\n")
+  cat("| 91 a 180 dias   | —          | —       |\n")
+  cat("| 181 a 360 dias  | —          | —       |\n")
+  cat("| Acima 360 dias  | —          | —       |\n")
+}
+```
+
+---
+
+# 4. Classificação de Risco (Res. CMN 2.682/99)
+
+```{r rating-table}
+niveis <- c("AA","A","B","C","D","E","F","G","H")
+provisoes_pct <- c(0, 0.005, 0.01, 0.03, 0.10, 0.30, 0.50, 0.70, 1.00)
+
+if (length(params$por_rating) > 0) {
+  df <- as.data.frame(do.call(rbind, params$por_rating))
+  kable(df, booktabs = TRUE, caption = "Carteira por Nível de Risco",
+        col.names = c("Nível", "Atraso (dias)", "Saldo (R$)", "% Carteira", "Provisão Mínima")) |>
+    kable_styling(latex_options = c("striped", "hold_position"))
+} else {
+  ref_df <- data.frame(
+    Nivel = niveis,
+    Provisao_Min = paste0(provisoes_pct * 100, "%")
+  )
+  kable(ref_df, booktabs = TRUE, caption = "Tabela de Provisões Mínimas (CMN 2.682/99)") |>
+    kable_styling(latex_options = c("striped", "hold_position"))
+}
+```
+
+---
+
+# 5. Provisões
+
+As provisões foram calculadas em conformidade com a Resolução CMN 2.682/1999
+e metodologia interna aprovada pelo Comitê de Crédito.
+
+| Categoria                    | Valor (R$)                               |
+|------------------------------|------------------------------------------|
+| Provisão Mínima Regulatória  | R$ `r fmt_brl(params$provisoes * 0.85)` |
+| Provisão Adicional (modelo)  | R$ `r fmt_brl(params$provisoes * 0.15)` |
+| **Total Constituído**        | **R$ `r fmt_brl(params$provisoes)`**    |
+
+---
+
+*Declaração elaborada nos termos do art. 23 da Resolução BCB 131/2021.
+Dados sujeitos à validação pelo sistema CADOC do Banco Central do Brasil.*
