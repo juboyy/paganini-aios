@@ -39,7 +39,8 @@ def cli():
 @click.option("--corpus", default=None, help="Path to corpus directory")
 @click.option("--runtime", "rt", type=click.Choice(["moltis", "python", "docker"]),
               default="moltis", help="Runtime engine")
-def init(provider, model, api_key, corpus, rt):
+@click.option("--pack", "pack_id", default=None, help="Install a domain pack after init (e.g. fidc-starter)")
+def init(provider, model, api_key, corpus, rt, pack_id):
     """Initialize PAGANINI AIOS."""
     from packages.kernel.engine import save_config
 
@@ -80,6 +81,16 @@ def init(provider, model, api_key, corpus, rt):
             config["provider"]["api_key"] = key
 
     save_config(config)
+
+    # Install pack if requested
+    if pack_id:
+        from packages.kernel.pack import PackManager
+        pm = PackManager(config)
+        result = pm.install(pack_id)
+        if result["status"] == "ok":
+            console.print(f"  📦 Pack: {pack_id} ({', '.join(result['agents'])})")
+        else:
+            console.print(f"  [yellow]⚠ Pack: {result['message']}[/]")
 
     console.print(Panel.fit(
         f"[bold green]✓ PAGANINI initialized[/]\n\n"
@@ -569,6 +580,50 @@ def report_generate(template_id, fund):
         console.print(f"[green]✓ {result['path']}[/]")
     else:
         console.print(f"[red]✗ {result['message']}[/]")
+
+
+@cli.command("autoresearch")
+@click.option("--iterations", "-n", default=10, help="Number of optimization iterations")
+@click.option("--eval-set", default="eval_questions.jsonl", help="Path to gold Q&A file")
+@click.option("--verbose", "-v", is_flag=True, help="Show detailed output")
+def autoresearch(iterations, eval_set, verbose):
+    """Run AutoResearch — self-optimizing RAG pipeline."""
+    try:
+        from packages.rag.autoresearch.runner import run_autoresearch
+    except ImportError:
+        console.print("[red]✗ AutoResearch module not found[/]")
+        return
+    config = _load_config()
+    console.print(Panel.fit(
+        f"[bold cyan]AutoResearch[/] — {iterations} iterations\n"
+        f"  Eval set: {eval_set}\n"
+        f"  16 tunable parameters\n"
+        f"  [dim]Ctrl+C to stop early[/]",
+        title="🔍", border_style="cyan"
+    ))
+    result = run_autoresearch(max_iters=iterations, eval_set=eval_set, verbose=verbose)
+    if result.get("improved"):
+        console.print(f"\n[green]✓ Improved! score: {result.get('before',0):.3f} → {result.get('after',0):.3f}[/]")
+    else:
+        console.print(f"\n[yellow]No improvement found after {iterations} iterations[/]")
+
+
+@cli.command("serve")
+@click.option("--host", default="0.0.0.0", help="Bind address")
+@click.option("--port", "-p", default=8000, type=int, help="Port")
+def serve(host, port):
+    """Start the PAGANINI dashboard (FastAPI)."""
+    try:
+        import uvicorn
+        from packages.dashboard.app import create_app
+    except ImportError as e:
+        console.print(f"[red]✗ Missing dependency: {e}[/]")
+        console.print("  pip install fastapi uvicorn")
+        return
+    config = _load_config()
+    app = create_app(config)
+    console.print(f"[green]🎻 Dashboard at http://{host}:{port}[/]")
+    uvicorn.run(app, host=host, port=port, log_level="info")
 
 
 if __name__ == "__main__":
