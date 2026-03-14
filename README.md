@@ -29,43 +29,42 @@ curl -fsSL https://paganini.sh | sh && paganini init --pack fidc && paganini up
 
 ## See It Work
 
-**Real output from a production EC2 instance** (Ubuntu 24.04, sa-east-1):
+**Real output from a production EC2 instance** (Ubuntu 24.04, sa-east-1, Moltis v0.10.18):
 
 ```
-$ paganini query -v "Qual o limite de concentração por cedente em um FIDC
-  e quais são as exceções previstas pela CVM?"
+$ paganini query -v "Quais são as obrigações do custodiante em relação
+  à sobrecolateralização?"
 
-🧠 Runtime: moltis | Model: gemini/gemini-2.5-flash
-🔍 RAG: 5 chunks | MetaClaw: off
-   • Critérios de Elegibilidade | Gestão de Risco de Crédito Concentrado | 0.75
-   • Artigo 51 - CVM175.md | A Regra dos 50% e a Independência do FIDC  | 0.74
-   • Artigo 45 - CVM175.md | A Diversificação como Mantra Sagrado       | 0.72
-   • Artigo 2 - CVM175.md  | Análise Detalhada                         | 0.70
-   • FIDCs Setoriais (Agro e Imobiliário) | O Processo de Securitização  | 0.70
-⏱️  7198ms | 📊 Confiança: 0.87
+🧠 Runtime: python | Model: gemini/gemini-2.5-flash
+🤖 Agent: Custodiante (simple, conf=0.85)
+🎯 Intent: factual | Domains: custodiante
+🔍 RAG: 5 chunks | MetaClaw: on
+   • Estruturação de FIDCs e Mecanismos de Mitigação de Risco.md        | 1.00
+   • Artigo 29 - CVM175.md | Visão da Custodiante                      | 1.00
+   • Convenants - Guia Avançado - Jurídico (Parte IV).md                | 0.75
+   • Due Diligence e o Papel do Custodiante e do Servicer.md            | 0.75
+   • Administradoras Custodiantes e Gestoras.md                         | 0.50
+🛡️  Guardrails: 6/6 gates passed
+⏱️  5560ms | 📊 Confiança: 0.96
 
-╭──────────────────── 📋 Resposta (87% confiança) ────────────────────╮
+╭──────────────────── 📋 Resposta (96% confiança) ────────────────────╮
 │                                                                      │
-│  O limite de concentração por cedente em um FIDC é de 10% [Fonte 1]. │
-│                                                                      │
-│  A CVM prevê exceções para FIDCs mono-cedente, onde 100% dos         │
-│  créditos podem ser de um único cedente/originador, desde que:       │
-│                                                                      │
-│  1. Fundo destinado a investidores qualificados [Fonte 2]            │
-│  2. Regulamento autorize expressamente [Fonte 2]                     │
-│  3. Nome contenha "Crédito Estruturado" ou nome do cedente           │
-│     [Fonte 2, Fonte 3]                                               │
-│  4. Investidores cientes do risco de concentração [Fonte 3]          │
+│  O custodiante atua como guardião do lastro e agente ativo de        │
+│  verificação e controle dos ativos do FIDC, garantindo que os        │
+│  ativos existam, sejam devidamente controlados, monitorados e        │
+│  liquidados. A Resolução CVM 175, em seu Anexo Normativo II         │
+│  (Art. 38), detalha essas obrigações.                                │
 │                                                                      │
 ╰──────────────────────────────────────────────────────────────────────╯
 
 📎 Fontes:
-  [1] Critérios de Elegibilidade (score: 0.75)
-  [2] CVM 175, Art. 51 (score: 0.74)
-  [3] CVM 175, Art. 45 (score: 0.72)
+  [1] Estruturação de FIDCs e Mitigação de Risco (score: 1.00)
+  [2] CVM 175, Art. 29 — Visão da Custodiante (score: 1.00)
+  [3] Due Diligence e o Papel do Custodiante (score: 0.75)
 ```
 
-> 164 documents ingested. 6,993 chunks indexed. Zero hallucination.
+> 164 documents ingested. 6,993 chunks indexed. 190 entities in knowledge graph.
+> 9 agents. 6 guardrail gates. 8 daemons. 55 tests passing. Zero hallucination.
 
 ---
 
@@ -475,16 +474,21 @@ pip install -e .
 cp config.example.yaml config.yaml
 # Edit config.yaml → set your API key
 
-# Ingest your corpus
+# Ingest your corpus (builds knowledge graph automatically)
 paganini ingest data/corpus/fidc/
-# ✓ 164 files → 6,993 chunks → 2min40s on 8-vCPU EC2
+# ✓ 164 files → 6,993 chunks → 190 KG entities → 2min40s
 
-# Query
+# Query (routes to best agent, applies guardrails)
 paganini query "Qual o limite de concentração por cedente?"
 
-# Diagnose
-paganini doctor
-paganini status
+# Explore
+paganini agents         # List 9 specialized agents
+paganini daemons status # Show 8 background daemons
+paganini pack list      # Browse domain packs
+paganini report list    # Available report templates
+paganini eval           # Run evaluation against gold Q&A
+paganini doctor         # Diagnose installation (10 checks)
+paganini status         # System overview
 ```
 
 ### Docker
@@ -559,24 +563,50 @@ paganini pack install fidc-enterprise     # R$25K/mo — everything + SLA + cust
 paganini/
 ├── packages/
 │   ├── kernel/
-│   │   ├── cli.py           # CLI entry point (click)
+│   │   ├── cli.py           # CLI entry point — 18 commands (click + rich)
 │   │   ├── engine.py        # Config loader, env var resolution
 │   │   ├── moltis.py        # Moltis gateway adapter (fallback: litellm)
-│   │   └── metaclaw.py      # MetaClaw skill proxy + auto-evolution
+│   │   ├── metaclaw.py      # MetaClaw skill proxy + auto-evolution
+│   │   ├── memory.py        # 4-layer memory (episodic, semantic, procedural, relational)
+│   │   ├── router.py        # Cognitive Router — classify, route, estimate confidence
+│   │   ├── daemons.py       # 8 YAML-driven daemons (covenant, PDD, regulatory...)
+│   │   ├── pack.py          # Domain pack management (3 tiers)
+│   │   └── reports.py       # Report generation (5 templates: CADOC, PDD, risk...)
 │   ├── rag/
-│   │   └── pipeline.py      # Hybrid RAG — ChromaDB, header-aware chunking
+│   │   ├── pipeline.py      # Hybrid RAG — dense + sparse + RRF fusion
+│   │   ├── bm25.py          # Pure Python BM25Okapi with PT-BR tokenizer
+│   │   └── eval.py          # Evaluation harness — precision@k, recall, latency
 │   ├── agents/
+│   │   ├── framework.py     # AgentRegistry + AgentDispatcher
 │   │   └── souls/           # One .md per agent identity (9 agents)
-│   ├── ontology/            # FIDC knowledge graph schema
-│   ├── dashboard/           # Operations UI
-│   ├── modules/             # Pre-configured verticals
-│   └── shared/              # Types, utils, guardrails.yaml
-├── vendor/metaclaw/         # Learning proxy (controlled fork)
-├── infra/                   # Docker, Helm, daemons, systemd
+│   ├── ontology/
+│   │   ├── schema.py        # FIDC knowledge graph — 10 entity types, 9 relations
+│   │   └── builder.py       # Entity extraction from markdown via regex
+│   ├── shared/
+│   │   └── guardrails.py    # 6-gate hard-stop pipeline
+│   ├── dashboard/           # Operations UI (Phase 4)
+│   └── modules/             # Pre-configured verticals (Phase 4)
+├── tests/                   # 55 pytest tests — all passing
+│   ├── conftest.py          # Shared fixtures (tmp_dir, sample_config, corpus)
+│   ├── test_rag.py          # RAG pipeline + retrieval tests
+│   ├── test_bm25.py         # BM25 index + PT-BR tokenizer tests
+│   ├── test_agents.py       # Agent registry + dispatcher tests
+│   ├── test_guardrails.py   # 6-gate guardrail tests
+│   ├── test_memory.py       # 4-layer memory API tests
+│   ├── test_router.py       # Cognitive router tests
+│   └── test_ontology.py     # Knowledge graph + builder tests
+├── vendor/metaclaw/         # MetaClaw standalone (for rl/opd modes)
+├── infra/
+│   ├── Dockerfile           # Multi-stage build, non-root, healthcheck
+│   └── docker-compose.yaml  # Full stack: core + moltis + pgvector + agents
+├── scripts/
+│   ├── paganini_gate.py     # Pre-execution gate (grep/AST code intelligence)
+│   └── paganini_codex.py    # Codex bridge (spec builder + invocation)
 ├── docs/                    # Architecture, security, business, pipeline
 ├── install.sh               # One-command installer (Moltis + PAGANINI)
 ├── config.example.yaml      # All options documented
 ├── moltis.example.yaml      # Moltis runtime config
+├── eval_questions.jsonl      # 20 gold Q&A pairs for evaluation
 └── pyproject.toml           # pip install -e . → `paganini` CLI
 ```
 
@@ -630,28 +660,31 @@ gantt
     dateFormat YYYY-MM-DD
     axisFormat %b %Y
 
-    section Phase 1 — Foundation
-    RAG Pipeline (ingest + embed + retrieve)     :p1a, 2026-03-17, 14d
-    Memory API (4 layers unified)                :p1b, 2026-03-17, 14d
-    Knowledge Graph Builder                       :p1c, 2026-03-24, 7d
-    Eval Suite (gold Q&A + metrics)              :p1d, 2026-03-24, 7d
+    section Phase 1 — Foundation ✅
+    RAG Pipeline (dense + sparse + RRF)          :done, p1a, 2026-03-10, 4d
+    Memory API (4 layers unified)                :done, p1b, 2026-03-12, 2d
+    Knowledge Graph Builder                       :done, p1c, 2026-03-13, 1d
+    Eval Suite (20 gold Q&A + metrics)           :done, p1d, 2026-03-13, 1d
 
-    section Phase 2 — Intelligence
-    Cognitive Router                              :p2a, 2026-04-01, 10d
-    Agent Framework (SOUL loading)               :p2b, 2026-04-01, 10d
-    Guardrail Pipeline (6 gates)                 :p2c, 2026-04-07, 7d
-    AutoResearch Loop                            :p2d, 2026-04-07, 7d
+    section Phase 2 — Intelligence ✅
+    Cognitive Router                              :done, p2a, 2026-03-13, 1d
+    Agent Framework (9 SOULs)                    :done, p2b, 2026-03-13, 1d
+    Guardrail Pipeline (6 gates)                 :done, p2c, 2026-03-14, 1d
+    Test Suite (55 tests)                        :done, p2d, 2026-03-14, 1d
 
-    section Phase 3 — Integration
-    Moltis Runtime Config                        :p3a, 2026-04-14, 10d
-    MetaClaw Integration                         :p3b, 2026-04-14, 10d
-    PinchTab + Daemons                           :p3c, 2026-04-21, 7d
+    section Phase 3 — Integration ✅
+    Moltis Runtime Config                        :done, p3a, 2026-03-14, 1d
+    MetaClaw Integration                         :done, p3b, 2026-03-14, 1d
+    Daemons + CLI Commands                       :done, p3c, 2026-03-14, 1d
+    Domain Packs + Reports                       :done, p3d, 2026-03-14, 1d
 
     section Phase 4 — Product
-    Slack IR Bot                                 :p4a, 2026-04-28, 10d
-    QMD Reporting Templates                      :p4b, 2026-04-28, 10d
-    Onboarding Wizard                            :p4c, 2026-05-05, 5d
-    Dashboard MVP                                :p4d, 2026-05-05, 10d
+    Slack IR Bot                                 :p4a, 2026-03-17, 10d
+    QMD Reporting Templates                      :p4b, 2026-03-17, 10d
+    Onboarding Wizard                            :p4c, 2026-03-24, 5d
+    Dashboard MVP                                :p4d, 2026-03-24, 10d
+    AutoResearch Loop                            :p4e, 2026-04-01, 7d
+    Helm Chart                                   :p4f, 2026-04-01, 5d
 ```
 
 ---
