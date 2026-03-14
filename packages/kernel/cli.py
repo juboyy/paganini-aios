@@ -57,7 +57,7 @@ def init(provider, model, api_key, corpus, rt):
                      "api_key": api_key or "", "base_url": ""},
         "rag": {"chunk_size": 384, "chunk_overlap": 64, "respect_headers": True,
                 "top_k": 5, "max_context_tokens": 8000},
-        "metaclaw": {"enabled": False, "skills_dir": "skills/", "auto_evolve": True,
+        "metaclaw": {"enabled": True, "skills_dir": "skills/", "auto_evolve": True,
                      "max_skills": 500, "mode": "skills_only"},
         "guardrails": {"eligibility": True, "concentration": True, "covenant": True,
                        "pld_aml": True, "compliance": True, "risk_assessment": True},
@@ -97,6 +97,7 @@ def init(provider, model, api_key, corpus, rt):
 def ingest(corpus_dir):
     """Ingest corpus documents into RAG pipeline."""
     from packages.rag.pipeline import RAGPipeline
+    from packages.ontology.builder import OntologyBuilder
     config = _load_config()
     config["corpus_dir"] = corpus_dir
     pipeline = RAGPipeline(config)
@@ -112,6 +113,13 @@ def ingest(corpus_dir):
         title="📚 Ingestion Complete", border_style="green"
     ))
 
+    # Build knowledge graph after RAG ingestion
+    builder = OntologyBuilder()
+    with console.status("[bold green]Building knowledge graph..."):
+        kg = builder.build_from_corpus(corpus_dir)
+        kg.save(str(Path(config.get("data_dir", "runtime/data")) / "knowledge_graph.json"))
+    console.print(f"[dim] KG: {kg.stats()['total_entities']} entities, {kg.stats()['total_relations']} relations[/]")
+
 
 @cli.command()
 @click.argument("question")
@@ -126,10 +134,12 @@ def query(question, no_llm, top_k, verbose):
     from packages.rag.pipeline import RAGPipeline
     from packages.kernel.moltis import get_llm_fn
     from packages.kernel.metaclaw import MetaClawProxy
-    from packages.agents.framework import AgentRegistry, AgentDispatcher
+    from packages.kernel.router import CognitiveRouter
+    from packages.kernel.memory import MemoryManager
     from packages.shared.guardrails import GuardrailPipeline
 
     config = _load_config()
+    top_k_explicit = top_k != 5  # detect if user explicitly set top_k
     config["rag"]["top_k"] = top_k
 
     # 1. RAG Pipeline
@@ -141,10 +151,15 @@ def query(question, no_llm, top_k, verbose):
     # 2. MetaClaw
     metaclaw = MetaClawProxy(config)
 
-    # 2.5 Agent dispatch
-    registry = AgentRegistry()
-    dispatcher = AgentDispatcher(registry)
-    agent, agent_confidence = dispatcher.route(question)
+    # 2.5 CognitiveRouter dispatch
+    router = CognitiveRouter(config)
+    routing = router.route(question)
+    agent = routing.primary_agent
+    agent_confidence = routing.classification.confidence_estimate
+
+    # Use router's suggested top_k
+    top_k = routing.suggested_top_k if not top_k_explicit else top_k
+    config["rag"]["top_k"] = top_k
 
     # 3. LLM (via Moltis or direct)
     llm_fn = None if no_llm else get_llm_fn(config)
@@ -164,6 +179,14 @@ def query(question, no_llm, top_k, verbose):
                 f"[Fonte {i+1}: {chunk.source} | {chunk.section} | Score: {chunk.score:.2f}]\n{chunk.text}"
             )
         context = "\n\n---\n\n".join(context_parts)
+
+        # Memory recall — inject semantic memory BEFORE LLM call
+        memory = MemoryManager(config)
+        recall = memory.recall(question, limit=3)
+        if recall.get("semantic"):
+            context += "\n\n--- Memória Semântica ---\n"
+            for mem in recall["semantic"][:3]:
+                context += f"[Memória: {mem.get('category', 'geral')}] {mem.get('fact', '')}\n"
 
         # MetaClaw enrichment
         if metaclaw.enabled:
@@ -200,11 +223,18 @@ Regras:
         guardrails = GuardrailPipeline(config)
         guard_result = guardrails.check(question, response_text, chunks, confidence)
 
+        # Record interaction in memory (after guardrails pass)
+        if guard_result.passed:
+            memory.record_interaction(
+                question, response_text, chunks, confidence,
+                agent.slug if agent else "unknown"
+            )
+
     # ── Output ──────────────────────────────────────
     if verbose:
-        agent_name = agent.name if agent else "none"
         console.print(f"\n[dim]🧠 Runtime: {runtime_engine} | Model: {config['provider']['model']}[/]")
-        console.print(f"[dim]🤖 Agent: {agent_name} (confiança: {agent_confidence:.2f})[/]")
+        console.print(f"[dim]🤖 Agent: {agent.name} ({routing.classification.complexity}, conf={agent_confidence:.2f})[/]")
+        console.print(f"[dim]🎯 Intent: {routing.classification.intent} | Domains: {', '.join(routing.classification.domains)}[/]")
         console.print(f"[dim]🔍 RAG: {len(chunks)} chunks | MetaClaw: {'on' if metaclaw.enabled else 'off'}[/]")
         if chunks:
             for c in chunks:
@@ -238,6 +268,64 @@ Regras:
         for i, c in enumerate(chunks):
             table.add_row(str(i+1), c.source, c.section, f"{c.score:.2f}")
         console.print(table)
+
+
+@cli.command()
+def agents():
+    """List available PAGANINI agents."""
+    from packages.agents.framework import AgentRegistry
+    registry = AgentRegistry()
+    table = Table(title="🤖 PAGANINI Agents")
+    table.add_column("", style="bold")
+    table.add_column("Agent", style="cyan")
+    table.add_column("Domains", style="green")
+    icons = {
+        "administrador": "📋", "custodiante": "🔐", "gestor": "📊",
+        "compliance": "⚖️", "reporting": "📄", "due_diligence": "🔍",
+        "regulatory_watch": "📡", "investor_relations": "💬", "pricing": "💰",
+    }
+    for agent in registry.list():
+        table.add_row(icons.get(agent.slug, "🤖"), agent.name, ", ".join(agent.domains) or "general")
+    console.print(table)
+
+
+@cli.group()
+def daemons():
+    """Manage PAGANINI daemon processes."""
+    pass
+
+
+@daemons.command("status")
+def daemons_status():
+    """Show daemon status."""
+    from packages.kernel.daemons import DaemonRunner
+    config = _load_config()
+    runner = DaemonRunner(config)
+    runner.register_defaults()
+    table = Table(title="⏰ Daemons")
+    table.add_column("Daemon", style="cyan")
+    table.add_column("Interval")
+    table.add_column("Status", style="green")
+    table.add_column("Runs", justify="right")
+    for d in runner.status():
+        table.add_row(d["name"], f"{d['interval_seconds']//60}m", d["status"], str(d["run_count"]))
+    console.print(table)
+
+
+@daemons.command("run")
+@click.argument("name", required=False)
+def daemons_run(name):
+    """Run a daemon (or all due daemons)."""
+    from packages.kernel.daemons import DaemonRunner
+    config = _load_config()
+    runner = DaemonRunner(config)
+    runner.register_defaults()
+    if name:
+        result = runner.run_once(name)
+        console.print(f"[green]✓ {name}: {result}[/]")
+    else:
+        executed = runner.run_due()
+        console.print(f"[green]✓ {len(executed)} daemons executed[/]")
 
 
 @cli.command()
@@ -396,6 +484,91 @@ def up():
         "  [bold]paganini status[/]",
         title="🎻", border_style="green"
     ))
+
+
+@cli.group()
+def pack():
+    """Manage domain packs."""
+    pass
+
+
+@pack.command("list")
+def pack_list():
+    """List available domain packs."""
+    from packages.kernel.pack import PackManager
+    from rich.table import Table
+    config = _load_config()
+    pm = PackManager(config)
+    table = Table(title="📦 Domain Packs")
+    table.add_column("Pack", style="cyan")
+    table.add_column("Tier")
+    table.add_column("Agents", justify="right")
+    table.add_column("Price", style="green")
+    table.add_column("Description")
+    for p in pm.list_available():
+        table.add_row(p["id"], p["tier"], str(len(p["agents"])), p["price"], p["description"])
+    console.print(table)
+    installed = pm.list_installed()
+    if installed:
+        console.print(f"\n[green]Installed: {', '.join(p['id'] for p in installed)}[/]")
+
+
+@pack.command("install")
+@click.argument("pack_id")
+def pack_install(pack_id):
+    """Install a domain pack."""
+    from packages.kernel.pack import PackManager
+    config = _load_config()
+    pm = PackManager(config)
+    result = pm.install(pack_id)
+    if result["status"] == "ok":
+        console.print(f"[green]✓ {result['message']}[/]")
+        console.print(f"  Agents: {', '.join(result['agents'])}")
+    else:
+        console.print(f"[yellow]{result['message']}[/]")
+
+
+@cli.group()
+def report():
+    """Generate regulatory reports."""
+    pass
+
+
+@report.command("list")
+def report_list():
+    """List available report templates."""
+    from packages.kernel.reports import ReportGenerator
+    from rich.table import Table
+    config = _load_config()
+    rg = ReportGenerator(config)
+    table = Table(title="📄 Report Templates")
+    table.add_column("Template", style="cyan")
+    table.add_column("Name")
+    table.add_column("Sections", justify="right")
+    table.add_column("Description")
+    for t in rg.list_templates():
+        table.add_row(t["id"], t["name"], str(len(t["sections"])), t["description"])
+    console.print(table)
+
+
+@report.command("generate")
+@click.argument("template_id")
+@click.option("--fund", default="default", help="Fund ID")
+def report_generate(template_id, fund):
+    """Generate a report from template."""
+    from packages.kernel.reports import ReportGenerator
+    from packages.kernel.moltis import get_llm_fn
+    from packages.rag.pipeline import RAGPipeline
+    config = _load_config()
+    rg = ReportGenerator(config)
+    pipeline = RAGPipeline(config)
+    llm_fn = get_llm_fn(config) if pipeline.collection.count() > 0 else None
+    with console.status(f"[bold cyan]Generating {template_id}..."):
+        result = rg.generate(template_id, fund, llm_fn=llm_fn, rag_pipeline=pipeline)
+    if result["status"] == "ok":
+        console.print(f"[green]✓ {result['path']}[/]")
+    else:
+        console.print(f"[red]✗ {result['message']}[/]")
 
 
 if __name__ == "__main__":
