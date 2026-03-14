@@ -32,7 +32,7 @@ rag:
 # MetaClaw — skill evolution proxy
 # Learns from successful interactions and generates reusable skills
 metaclaw:
-  enabled: false        # enable after initial testing
+  enabled: true         # skill injection active by default (skills_only mode)
   skills_dir: skills/
   auto_evolve: true     # automatically create skills from good interactions
   max_skills: 500
