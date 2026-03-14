@@ -29,7 +29,11 @@ DEFAULT_CONFIG = {
     },
     "data_dir": "runtime/data",
     "corpus_dir": "",
-    "runtime": "python",  # python | docker | moltis
+    "runtime": {
+        "engine": "python",  # python | docker | moltis
+        "moltis_config": "moltis.yaml",
+        "gateway_url": "http://127.0.0.1:30000",
+    },
 }
 
 
