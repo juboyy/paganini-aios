@@ -13,7 +13,7 @@
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://python.org)
 [![CI](https://github.com/juboyy/paganini-aios/actions/workflows/ci.yml/badge.svg)](https://github.com/juboyy/paganini-aios/actions)
 
-[Website](https://paganini-aios-v2.lovable.app/) · [Docs](docs/) · [Get Started](#quick-start) · [FAQ](docs/FAQ.md) · [Contributing](CONTRIBUTING.md)
+[Website](https://paganini-aios-v2.lovable.app/) · [Docs](docs/) · [Get Started](#quick-start) · [FAQ](docs/FAQ.md) · [Contributing](CONTRIBUTING.md) · [🇧🇷 Português](README.pt-BR.md)
 
 </div>
 
