@@ -11,6 +11,7 @@ from typing import Callable, Optional
 
 import yaml
 from packages.kernel.cedente_monitor import cedente_monitor as _real_cedente_monitor
+from packages.kernel.morning_report import generate_morning_report as _morning_report_fn as _real_cedente_monitor
 
 from packages.kernel.handlers import (
     # (existing imports)

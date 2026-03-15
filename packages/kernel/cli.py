@@ -9,6 +9,7 @@ import time
 from pathlib import Path
 
 import click
+from packages.kernel.onboard import onboard_cli
 from rich.console import Console
 from rich.panel import Panel
 from rich.table import Table
@@ -139,7 +140,7 @@ def ingest(corpus_dir):
 @click.option("--verbose", "-v", is_flag=True, help="Show detailed output")
 def query(question, no_llm, top_k, verbose):
     """Query the PAGANINI knowledge base.
-    
+
     Flow: Agent dispatch → RAG retrieve → MetaClaw enrich → Moltis/LLM → Guardrails → Response
     """
     from packages.rag.pipeline import RAGPipeline
@@ -673,6 +674,9 @@ def modules_info(name):
         f"(every {mod.get('daemon', {}).get('interval_minutes', '—')} min)",
         title=f"📦 {mod.get('name', name)}",
     ))
+
+
+cli.add_command(onboard_cli, "onboard")
 
 
 if __name__ == "__main__":
