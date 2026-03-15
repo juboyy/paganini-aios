@@ -1,21 +1,24 @@
+# PAGANINI AIOS — Helm Values
+# Override with: helm install paganini ./infra/helm/paganini --set provider.apiKey=sk-...
+
 replicaCount: 1
 
 image:
   repository: ghcr.io/juboyy/paganini-aios
-  tag: "0.1.0"
+  tag: "0.1.0-slim"
   pullPolicy: IfNotPresent
 
 provider:
-  name: google
-  model: gemini/gemini-2.5-flash
-  apiKey: ""  # Set via --set or secrets
+  name: openai
+  model: gpt-4o-mini
+  apiKey: ""  # REQUIRED: --set provider.apiKey=<your-key>
 
 moltis:
   enabled: true
   port: 30000
 
 corpus:
-  path: /data/corpus/fidc
+  path: /opt/paganini/data/corpus
   persistentVolume:
     enabled: true
     size: 10Gi
@@ -36,7 +39,8 @@ service:
 ingress:
   enabled: false
   className: nginx
-  host: paganini.local
+  host: paganini.example.com
+  annotations: {}
   tls: []
 
 securityContext:
@@ -46,7 +50,7 @@ securityContext:
 
 daemons:
   enabled: true
-  schedule: "*/15 * * * *"  # every 15 min for covenant-monitor
+  schedule: "*/15 * * * *"
 
 autoscaling:
   enabled: false

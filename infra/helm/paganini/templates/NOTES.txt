@@ -1,0 +1,13 @@
+🎻 PAGANINI AIOS v{{ .Chart.AppVersion }} deployed!
+
+  Release: {{ .Release.Name }}
+  Namespace: {{ .Release.Namespace }}
+
+  Dashboard: kubectl port-forward svc/{{ include "paganini.fullname" . }} {{ .Values.service.port }}:{{ .Values.service.port }}
+  Then open: http://localhost:{{ .Values.service.port }}
+
+{{- if .Values.ingress.enabled }}
+  Ingress: https://{{ .Values.ingress.host }}
+{{- end }}
+
+  Daemons: {{ if .Values.daemons.enabled }}Enabled ({{ .Values.daemons.schedule }}){{ else }}Disabled{{ end }}

@@ -1,0 +1,17 @@
+{{- if .Values.corpus.persistentVolume.enabled }}
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "paganini.fullname" . }}-corpus
+  labels:
+    {{- include "paganini.labels" . | nindent 4 }}
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.corpus.persistentVolume.size }}
+  {{- if .Values.corpus.persistentVolume.storageClass }}
+  storageClassName: {{ .Values.corpus.persistentVolume.storageClass }}
+  {{- end }}
+{{- end }}

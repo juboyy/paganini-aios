@@ -1,0 +1,45 @@
+{{- if .Values.daemons.enabled }}
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ include "paganini.fullname" . }}-daemons
+  labels:
+    {{- include "paganini.labels" . | nindent 4 }}
+    app.kubernetes.io/component: daemons
+spec:
+  schedule: {{ .Values.daemons.schedule | quote }}
+  concurrencyPolicy: Forbid
+  successfulJobsHistoryLimit: 3
+  failedJobsHistoryLimit: 1
+  jobTemplate:
+    spec:
+      activeDeadlineSeconds: 600
+      template:
+        metadata:
+          labels:
+            {{- include "paganini.selectorLabels" . | nindent 12 }}
+            app.kubernetes.io/component: daemons
+        spec:
+          securityContext:
+            runAsNonRoot: {{ .Values.securityContext.runAsNonRoot }}
+            runAsUser: {{ .Values.securityContext.runAsUser }}
+          containers:
+            - name: daemons
+              image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+              imagePullPolicy: {{ .Values.image.pullPolicy }}
+              command: ["paganini", "daemons", "run-due"]
+              env:
+                - name: PAGANINI_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ include "paganini.fullname" . }}-secrets
+                      key: api-key
+              resources:
+                limits:
+                  cpu: 500m
+                  memory: 1Gi
+                requests:
+                  cpu: 100m
+                  memory: 256Mi
+          restartPolicy: OnFailure
+{{- end }}
