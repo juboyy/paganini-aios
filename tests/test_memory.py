@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import pytest
-from packages.kernel.memory import MemoryManager
+from packages.kernel.memory import MemoryManager, SessionMemory
 
 
 def _manager(tmp_dir, fund_id: str = "test-fund") -> MemoryManager:
@@ -94,3 +94,16 @@ def test_relational_memory_add_and_search(tmp_dir):
     mm.relational.add("CVM", "regula", "FIDC", confidence=1.0)
     results = mm.relational.search("CVM regula")
     assert len(results) >= 1
+
+
+def test_session_memory_tracks_recent_history():
+    """SessionMemory keeps bounded history per session."""
+    session_memory = SessionMemory(max_history=2)
+    session_memory.add("abc", "user", "primeira pergunta")
+    session_memory.add("abc", "assistant", "primeira resposta")
+    session_memory.add("abc", "user", "segunda pergunta")
+
+    history = session_memory.get_history("abc", limit=5)
+    assert len(history) == 2
+    assert history[0]["content"] == "primeira resposta"
+    assert history[1]["content"] == "segunda pergunta"

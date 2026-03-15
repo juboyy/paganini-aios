@@ -120,6 +120,44 @@ def _parse_rss_items(xml_text: str) -> list[dict]:
     return items
 
 
+def _fetch_bacen_normativos() -> list[dict]:
+    """Fetch recent BACEN normatives from the public search page."""
+    url = "https://www.bcb.gov.br/estabilidadefinanceira/normasprudenciais"
+    try:
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=15) as resp:
+            html = resp.read().decode("utf-8", errors="replace")
+
+        import re
+
+        normativos = re.findall(
+            r"((?:Resolu[çc][ãa]o|Circular|Carta.?Circular)\s+(?:BCB\s+)?n[ºo°]\s*[\d.]+(?:/\d{4})?)",
+            html,
+        )
+
+        results = []
+        seen = set()
+        for norm in normativos[:10]:
+            clean = norm.strip()
+            if clean in seen:
+                continue
+            seen.add(clean)
+            results.append({
+                "title": clean,
+                "link": url,
+                "date": _ts(),
+                "description": "",
+                "source": url,
+                "timestamp": datetime.now(timezone.utc).isoformat(),
+                "type": "bacen_normativo",
+            })
+
+        return results
+    except Exception as exc:
+        logger.warning("BACEN page fetch failed: %s", exc)
+        return []
+
+
 def _strip_tags(text: str) -> str:
     """Remove HTML/XML tags from a string."""
     import re
@@ -206,12 +244,18 @@ def regulatory_watch(config: dict) -> dict:
         url = feed_cfg.get("url", "")
         name = feed_cfg.get("name", "unknown")
 
-        xml = _fetch_rss(url)
-        if not xml:
-            logger.warning("[%s] regulatory_watch: failed to fetch %s", started, name)
-            continue
+        if name.upper() == "BACEN":
+            items = _fetch_bacen_normativos()
+            if not items:
+                logger.warning("[%s] regulatory_watch: failed to fetch %s", started, name)
+                continue
+        else:
+            xml = _fetch_rss(url)
+            if not xml:
+                logger.warning("[%s] regulatory_watch: failed to fetch %s", started, name)
+                continue
+            items = _parse_rss_items(xml)
 
-        items = _parse_rss_items(xml)
         for item in items:
             item["feed"] = name
             h = hashlib.md5(f"{item['title']}:{item['link']}".encode()).hexdigest()
@@ -369,6 +413,9 @@ def market_data_sync(config: dict) -> dict:
     (market_dir / "latest_snapshot.json").write_text(
         json.dumps(snapshot, ensure_ascii=False, indent=2)
     )
+    history_path = market_dir / "history.jsonl"
+    with history_path.open("a", encoding="utf-8") as fh:
+        fh.write(json.dumps(snapshot, ensure_ascii=False, default=str) + "\n")
 
     result = {
         "status": "ok" if not errors else "partial",

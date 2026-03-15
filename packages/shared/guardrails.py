@@ -8,6 +8,62 @@ import re
 from dataclasses import dataclass
 from typing import Optional
 
+ADVERSARIAL_PATTERNS = [
+    "ignore all previous instructions",
+    "bypass compliance rules",
+    "how to evade regulatory oversight",
+    "hide transactions from authorities",
+    "avoid anti-money laundering detection",
+    "circumvent concentration limits",
+    "falsify fund reports",
+    "manipulate net asset value",
+    "front-run investor redemptions",
+    "create fictitious receivables",
+    "backdate fund documents",
+    "structure transactions to avoid reporting",
+    "override risk controls",
+    "disable audit logging",
+    "access other funds data",
+]
+
+
+def _compute_similarity(text_a: str, text_b: str, n: int = 3) -> float:
+    """Return a lightweight similarity score using character n-gram overlap."""
+
+    def ngrams(text: str) -> set[str]:
+        normalized = re.sub(r"\s+", " ", text.lower()).strip()
+        if len(normalized) < n:
+            return {normalized} if normalized else set()
+        return {normalized[i:i + n] for i in range(len(normalized) - n + 1)}
+
+    a_grams = ngrams(text_a)
+    b_grams = ngrams(text_b)
+    if not a_grams or not b_grams:
+        return 0.0
+
+    intersection = a_grams & b_grams
+    union = a_grams | b_grams
+    return len(intersection) / len(union)
+
+
+def semantic_guard(query: str, response: str) -> tuple[bool, str | None]:
+    """Check combined query and response against adversarial patterns."""
+    query_lower = query.strip().lower()
+    response_lower = response.strip().lower()
+    combined = f"{query_lower} {response_lower}".strip()
+    for pattern in ADVERSARIAL_PATTERNS:
+        if pattern in query_lower or pattern in response_lower or pattern in combined:
+            similarity = 1.0
+        else:
+            similarity = max(
+                _compute_similarity(query_lower, pattern),
+                _compute_similarity(response_lower, pattern),
+                _compute_similarity(combined, pattern),
+            )
+        if similarity > 0.35:
+            return False, f"semantic_guard (sim={similarity:.2f}: {pattern[:40]})"
+    return True, None
+
 
 @dataclass
 class GateResult:
@@ -30,8 +86,8 @@ class GuardrailResult:
 
 
 class GuardrailPipeline:
-    """6-gate hard-stop pipeline for FIDC compliance.
-    
+    """6-gate hard-stop pipeline for fund compliance.
+
     Gates execute in sequence. First BLOCK kills the operation.
     Gates: Eligibility → Concentration → Covenant → PLD/AML → Compliance → Risk
     """
@@ -107,11 +163,11 @@ class GuardrailPipeline:
         response_lower = response.lower()
         for phrase in dangerous:
             if phrase in response_lower:
-                # Exception: if discussing mono-cedente FIDCs (legitimate)
+                # Exception: if discussing mono-cedente funds (legitimate)
                 if "mono-cedente" in response_lower or "monocedente" in response_lower:
                     return GateResult(
                         gate="concentration", passed=True,
-                        reason="Concentração 100% mencionada no contexto de FIDC mono-cedente (permitido)",
+                        reason="Concentração 100% mencionada no contexto de fund mono-cedente (permitido)",
                         severity="info"
                     )
                 return GateResult(
@@ -148,20 +204,29 @@ class GuardrailPipeline:
             "para evitar detecção", "sem comunicar ao coaf",
             "fracionar para ficar abaixo", "ocultar beneficiário",
         ]
+        query_lower = query.lower()
+        response_lower = response.lower()
         for phrase in dangerous_query:
-            if phrase in query.lower():
+            if phrase in query_lower:
                 return GateResult(
                     gate="pld_aml", passed=False,
                     reason="Query tenta facilitar evasão de PLD/AML",
                     severity="block"
                 )
         for phrase in dangerous_response:
-            if phrase in response.lower():
+            if phrase in response_lower:
                 return GateResult(
                     gate="pld_aml", passed=False,
                     reason=f"Resposta contém orientação de evasão: '{phrase}'",
                     severity="block"
                 )
+        passed, blocked_by = semantic_guard(query, response)
+        if not passed:
+            return GateResult(
+                gate="pld_aml", passed=False,
+                reason=f"Detecção semântica de conteúdo adversarial: {blocked_by}",
+                severity="block"
+            )
         return GateResult(gate="pld_aml", passed=True)
 
     def _gate_compliance(self, response: str, chunks: list, confidence: float) -> GateResult:

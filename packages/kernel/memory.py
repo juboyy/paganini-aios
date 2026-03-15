@@ -5,6 +5,7 @@ import json
 import os
 import time
 import uuid
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
@@ -100,7 +101,51 @@ class EpisodicMemory:
 
 
 # ---------------------------------------------------------------------------
-# 2. SemanticMemory — Long-term factual knowledge
+# 2. SessionMemory — In-memory short-term conversations
+# ---------------------------------------------------------------------------
+
+class SessionMemory:
+    """Short-term conversation history keyed by session identifier."""
+
+    def __init__(self, max_history: int = 10) -> None:
+        self.max_history = max_history
+        self._sessions: dict[str, list[dict[str, Any]]] = {}
+
+    def add(
+        self,
+        session_id: str,
+        role: str,
+        content: str,
+        metadata: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        if session_id not in self._sessions:
+            self._sessions[session_id] = []
+
+        entry = {
+            "role": role,
+            "content": content,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            **(metadata or {}),
+        }
+        self._sessions[session_id].append(entry)
+
+        if len(self._sessions[session_id]) > self.max_history:
+            self._sessions[session_id] = self._sessions[session_id][-self.max_history:]
+
+        return entry
+
+    def get_history(self, session_id: str, limit: int = 5) -> list[dict[str, Any]]:
+        return self._sessions.get(session_id, [])[-limit:]
+
+    def clear(self, session_id: str) -> None:
+        self._sessions.pop(session_id, None)
+
+    def active_sessions(self) -> int:
+        return len(self._sessions)
+
+
+# ---------------------------------------------------------------------------
+# 3. SemanticMemory — Long-term factual knowledge
 # ---------------------------------------------------------------------------
 
 class SemanticMemory:
@@ -171,7 +216,7 @@ class SemanticMemory:
 
 
 # ---------------------------------------------------------------------------
-# 3. ProceduralMemory — Learned procedures/patterns
+# 4. ProceduralMemory — Learned procedures/patterns
 # ---------------------------------------------------------------------------
 
 class ProceduralMemory:
@@ -244,7 +289,7 @@ class ProceduralMemory:
 
 
 # ---------------------------------------------------------------------------
-# 4. RelationalMemory — Entity relationships (links to Knowledge Graph)
+# 5. RelationalMemory — Entity relationships (links to Knowledge Graph)
 # ---------------------------------------------------------------------------
 
 class RelationalMemory:
@@ -314,7 +359,7 @@ class RelationalMemory:
 
 
 # ---------------------------------------------------------------------------
-# 5. MemoryManager — Unified interface
+# 6. MemoryManager — Unified interface
 # ---------------------------------------------------------------------------
 
 class MemoryManager:
@@ -335,6 +380,7 @@ class MemoryManager:
         self._state_dir = base / fund_id
 
         self._episodic = EpisodicMemory(self._state_dir)
+        self._session = SessionMemory()
         self._semantic = SemanticMemory(self._state_dir)
         self._procedural = ProceduralMemory(self._state_dir)
         self._relational = RelationalMemory(self._state_dir)
@@ -350,6 +396,10 @@ class MemoryManager:
     @property
     def semantic(self) -> SemanticMemory:
         return self._semantic
+
+    @property
+    def session(self) -> SessionMemory:
+        return self._session
 
     @property
     def procedural(self) -> ProceduralMemory:
@@ -424,6 +474,7 @@ class MemoryManager:
         """Return record counts per layer."""
         return {
             "episodic": self._episodic.count(),
+            "session_active": self._session.active_sessions(),
             "semantic": self._semantic.count(),
             "procedural": self._procedural.count(),
             "relational": self._relational.count(),

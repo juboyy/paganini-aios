@@ -102,7 +102,7 @@ class Relation:
 # ---------------------------------------------------------------------------
 
 class KnowledgeGraph:
-    """In-memory knowledge graph for the FIDC domain ontology."""
+    """In-memory knowledge graph for the fund domain ontology."""
 
     def __init__(self) -> None:
         self._entities: dict[str, Entity] = {}

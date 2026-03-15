@@ -12,7 +12,11 @@ Factory: create_app(config: dict) -> FastAPI
 
 from __future__ import annotations
 
+import json
 import logging
+import uuid
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -234,6 +238,7 @@ def create_app(config: dict) -> "FastAPI":  # noqa: F821
     llm_fn = get_llm_fn(config)
     registry = AgentRegistry(souls_dir=config.get("souls_dir", "packages/agents/souls"))
     daemons = DaemonRunner(config)
+    base_path = Path(config.get("base_path", ".")).resolve()
 
     app = FastAPI(
         title="PAGANINI AIOS Dashboard",
@@ -346,14 +351,32 @@ def create_app(config: dict) -> "FastAPI":  # noqa: F821
         request: Request,
         q: str = Query(..., description="Natural language question"),
         fund_id: str | None = Query(None, description="Fund identifier for isolation"),
+        session_id: str | None = Query(None, description="Conversation session identifier"),
     ) -> dict:
         if not q.strip():
             raise HTTPException(status_code=400, detail="Query parameter 'q' cannot be empty.")
 
         import time
+        current_session_id = session_id or str(uuid.uuid4())
+        history = memory.session.get_history(current_session_id, limit=5)
+        history_context = ""
+        if history:
+            serialized_history = []
+            for entry in history:
+                role = entry.get("role", "unknown")
+                content = str(entry.get("content", "")).strip()
+                if content:
+                    serialized_history.append(f"{role}: {content}")
+            if serialized_history:
+                history_context = "Conversation history:\n" + "\n".join(serialized_history)
+
+        rag_query = q
+        if history_context:
+            rag_query = f"{history_context}\n\nCurrent question: {q}"
+
         t0 = time.time()
         try:
-            answer_obj = rag.query(q, llm_fn=llm_fn)
+            answer_obj = rag.query(rag_query, llm_fn=llm_fn)
         except Exception as exc:
             logger.error("RAG pipeline error: %s", exc)
             raise HTTPException(status_code=500, detail=str(exc)) from exc
@@ -376,7 +399,9 @@ def create_app(config: dict) -> "FastAPI":  # noqa: F821
 
         # Persist to memory
         try:
-            memory.store({"query": q, "answer": answer, "fund_id": fund_id, "confidence": confidence})
+            memory.record_interaction(q, answer, chunks=[c.text[:200] for c in chunks], confidence=confidence, agent="dashboard")
+            memory.session.add(current_session_id, "user", q, {"fund_id": fund_id})
+            memory.session.add(current_session_id, "assistant", answer, {"fund_id": fund_id, "confidence": confidence})
         except Exception as exc:
             logger.warning("Memory store failed: %s", exc)
 
@@ -385,6 +410,7 @@ def create_app(config: dict) -> "FastAPI":  # noqa: F821
             "confidence": confidence,
             "sources": sources,
             "fund_id": fund_id,
+            "session_id": current_session_id,
         }
 
     # ----------------------------------------------------------------
@@ -518,14 +544,66 @@ def create_app(config: dict) -> "FastAPI":  # noqa: F821
     @app.get("/api/market")
     async def get_market() -> dict:
         """Return latest market indicators from BCB sync."""
-        import os
-        base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-        snapshot_file = os.path.join(base, "runtime", "data", "market", "latest_snapshot.json")
+        snapshot_file = base_path / "runtime" / "data" / "market" / "latest_snapshot.json"
 
-        if os.path.exists(snapshot_file):
-            with open(snapshot_file) as f:
-                return __import__("json").load(f)
+        if snapshot_file.exists():
+            with snapshot_file.open(encoding="utf-8") as f:
+                return json.load(f)
         return {"error": "No market data available. Run market_data_sync daemon."}
+
+    @app.get("/api/market/history")
+    async def get_market_history(
+        days: int = Query(30, ge=1, le=3650, description="Number of days to return"),
+        indicator: str | None = Query(None, description="Indicator key filter"),
+    ) -> dict:
+        history_file = base_path / "runtime" / "data" / "market" / "history.jsonl"
+        if not history_file.exists():
+            return {"points": [], "indicators": []}
+
+        cutoff = datetime.now(timezone.utc) - timedelta(days=days)
+        points: list[dict[str, Any]] = []
+        indicator_names: set[str] = set()
+
+        with history_file.open(encoding="utf-8") as fh:
+            for line in fh:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    entry = json.loads(line)
+                except json.JSONDecodeError:
+                    continue
+
+                timestamp_str = entry.get("timestamp")
+                try:
+                    timestamp = datetime.fromisoformat(str(timestamp_str).replace("Z", "+00:00"))
+                except ValueError:
+                    continue
+                if timestamp < cutoff:
+                    continue
+
+                indicators = entry.get("indicators", {})
+                if not isinstance(indicators, dict):
+                    continue
+                indicator_names.update(indicators.keys())
+
+                if indicator:
+                    if indicator in indicators:
+                        points.append({
+                            "timestamp": timestamp.isoformat(),
+                            "indicator": indicator,
+                            **indicators[indicator],
+                        })
+                    continue
+
+                points.append({
+                    "timestamp": timestamp.isoformat(),
+                    "indicators": indicators,
+                })
+
+        points.sort(key=lambda item: item["timestamp"])
+        filtered_names = sorted(name for name in indicator_names if indicator is None or name == indicator)
+        return {"points": points, "indicators": filtered_names}
 
     # ─── Daemon Results ────────────────────────────────────────────
     @app.get("/api/daemons/history")
