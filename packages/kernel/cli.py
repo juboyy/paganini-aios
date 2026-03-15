@@ -626,5 +626,54 @@ def serve(host, port):
     uvicorn.run(app, host=host, port=port, log_level="info")
 
 
+@cli.group()
+def modules():
+    """Manage vertical solution modules."""
+    pass
+
+
+@modules.command("list")
+def modules_list():
+    """List available modules."""
+    from packages.modules import list_modules
+
+    mods = list_modules()
+    if not mods:
+        console.print("[yellow]No modules found.[/]")
+        return
+
+    table = Table(title="📦 Available Modules")
+    table.add_column("Name", style="cyan")
+    table.add_column("Version", style="green")
+    table.add_column("Description")
+
+    for m in mods:
+        table.add_row(m["name"], m["version"], m["description"])
+
+    console.print(table)
+
+
+@modules.command("info")
+@click.argument("name")
+def modules_info(name):
+    """Show detailed info about a module."""
+    from packages.modules import load_module, get_module_agents, get_module_guardrails
+
+    mod = load_module(name)
+    if not mod:
+        console.print(f"[red]✗ Module '{name}' not found.[/]")
+        return
+
+    console.print(Panel(
+        f"[bold]{mod.get('name', name)}[/] v{mod.get('version', '?')}\n\n"
+        f"{(mod.get('description', '') or '').strip()}\n\n"
+        f"[cyan]Agents:[/] {', '.join(get_module_agents(name))}\n"
+        f"[cyan]Guardrails:[/] {', '.join(get_module_guardrails(name))}\n"
+        f"[cyan]Daemon:[/] {mod.get('daemon', {}).get('handler', 'on-demand')} "
+        f"(every {mod.get('daemon', {}).get('interval_minutes', '—')} min)",
+        title=f"📦 {mod.get('name', name)}",
+    ))
+
+
 if __name__ == "__main__":
     cli()

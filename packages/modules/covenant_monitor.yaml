@@ -1,0 +1,46 @@
+# Module: Covenant Monitor
+# Automated covenant tracking and breach detection for FIDC funds.
+# Wires: gestor agent + compliance guardrail + covenant daemon
+
+name: covenant-monitor
+version: "1.0.0"
+description: |
+  Monitora covenants financeiros (razão de garantia, inadimplência,
+  concentração, PDD) em intervalos configuráveis. Dispara alertas
+  antes do breach via Slack/email.
+
+agents:
+  primary: gestor
+  secondary: [compliance, administrador]
+
+guardrails:
+  required: [covenant, concentration, eligibility]
+  block_on_fail: true
+
+daemon:
+  handler: covenant_monitor
+  interval_minutes: 15
+  log_path: runtime/logs/daemons/covenant.jsonl
+
+inputs:
+  - source: data/corpus/covenants/
+    format: markdown
+    description: Covenant definitions per fund
+  - source: api
+    endpoint: ${FUND_API_URL}/positions
+    description: Live position data for ratio calculation
+
+outputs:
+  - type: alert
+    channels: [slack, email]
+    severity_levels: [info, warning, critical]
+  - type: report
+    template: covenant-report
+    schedule: daily
+
+thresholds:
+  overcollateralization_warning: 1.15   # alert at 115%
+  overcollateralization_critical: 1.05  # block at 105%
+  delinquency_warning: 0.05            # 5% portfolio
+  delinquency_critical: 0.10           # 10% portfolio
+  concentration_max_single: 0.20       # 20% single cedente

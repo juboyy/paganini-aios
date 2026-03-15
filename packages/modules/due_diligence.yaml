@@ -1,0 +1,62 @@
+# Module: Due Diligence
+# End-to-end KYC/KYB pipeline for new cedentes and counterparties.
+
+name: due-diligence
+version: "1.0.0"
+description: |
+  Pipeline automatizado de due diligence para onboarding de cedentes.
+  Executa: consulta CNPJ, busca judicial, scoring de crédito,
+  análise de demonstrações financeiras, e parecer consolidado.
+
+agents:
+  primary: due_diligence
+  secondary: [compliance, gestor]
+
+guardrails:
+  required: [eligibility, pld_aml, compliance]
+  block_on_fail: true
+
+daemon:
+  handler: null  # On-demand, not periodic
+  trigger: manual
+
+inputs:
+  - source: user
+    fields:
+      - cnpj
+      - razao_social
+      - segmento
+      - volume_mensal_estimado
+  - source: api
+    endpoint: ${RECEITA_API_URL}/cnpj/{cnpj}
+    description: Consulta Receita Federal
+  - source: api
+    endpoint: ${JUCESP_API_URL}/search
+    description: Busca judicial (protestos, ações)
+
+outputs:
+  - type: report
+    template: due-diligence-report
+    format: pdf
+    sections:
+      - identificacao
+      - situacao_cadastral
+      - analise_judicial
+      - scoring_credito
+      - demonstracoes_financeiras
+      - parecer_final
+  - type: decision
+    fields: [approved, risk_score, conditions, validity_days]
+
+scoring:
+  weights:
+    situacao_cadastral: 0.15
+    tempo_operacao: 0.10
+    judicial_limpo: 0.20
+    saude_financeira: 0.25
+    concentracao_risco: 0.15
+    compliance_pld: 0.15
+  thresholds:
+    auto_approve: 0.80
+    manual_review: 0.50
+    auto_reject: 0.30

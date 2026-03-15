@@ -1,0 +1,55 @@
+# Module: Risk Scanner
+# Periodic credit risk assessment across all cedentes.
+
+name: risk-scanner
+version: "1.0.0"
+description: |
+  Avalia risco de crédito do portfolio a cada 6 horas.
+  Calcula PDD (Provisão para Devedores Duvidosos) conforme IFRS 9,
+  monitora concentração por cedente/segmento, e detecta deterioração.
+
+agents:
+  primary: gestor
+  secondary: [pricing, compliance]
+
+guardrails:
+  required: [concentration, risk, eligibility]
+  block_on_fail: true
+
+daemon:
+  handler: risk_scanner
+  interval_minutes: 360  # 6h
+  log_path: runtime/logs/daemons/risk.jsonl
+
+inputs:
+  - source: api
+    endpoint: ${FUND_API_URL}/portfolio
+    description: Portfolio positions and aging data
+  - source: data/corpus/
+    format: markdown
+    description: Risk methodology documents
+
+outputs:
+  - type: report
+    template: risk-report
+    schedule: daily
+  - type: report
+    template: pdd-report
+    schedule: monthly
+  - type: alert
+    channels: [slack]
+    conditions:
+      - pdd_increase_pct: ">= 10"
+      - concentration_breach: true
+      - rating_downgrade: true
+
+risk_parameters:
+  pdd_stages:  # IFRS 9
+    stage_1: "Performing — 12-month ECL"
+    stage_2: "Underperforming — Lifetime ECL"
+    stage_3: "Non-performing — Lifetime ECL (credit-impaired)"
+  aging_buckets_days: [0, 30, 60, 90, 120, 180, 360]
+  concentration_limits:
+    single_cedente: 0.20
+    top_5_cedentes: 0.50
+    single_segment: 0.30

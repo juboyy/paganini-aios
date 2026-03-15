@@ -101,9 +101,10 @@ agents:
 
 # Guardrails
 guardrails:
-  config: "packages/shared/guardrails.yaml"
+  engine: "packages/shared/guardrails.py"
   override_requires_human: true
   log_blocked_operations: true
+  log_path: "runtime/logs/guardrails/"
 
 # Daemons
 daemons:

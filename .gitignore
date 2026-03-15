@@ -40,3 +40,7 @@ build/
 .vscode/
 .idea/
 .cursor/
+
+runtime/
+skills/
+moltis.yaml

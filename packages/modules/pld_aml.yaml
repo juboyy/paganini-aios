@@ -1,0 +1,61 @@
+# Module: PLD/AML Monitor
+# Anti-money laundering and suspicious activity detection.
+
+name: pld-aml
+version: "1.0.0"
+description: |
+  Monitoramento contínuo de PLD/FT (Prevenção à Lavagem de Dinheiro
+  e Financiamento ao Terrorismo). Verifica transações, cedentes e
+  cotistas contra listas restritivas e padrões suspeitos.
+
+agents:
+  primary: compliance
+  secondary: [due_diligence, administrador]
+
+guardrails:
+  required: [pld_aml, eligibility, compliance]
+  block_on_fail: true  # HARD STOP on PLD violations
+
+daemon:
+  handler: pld_monitor
+  interval_minutes: 60  # Hourly
+  log_path: runtime/logs/daemons/pld.jsonl
+
+inputs:
+  - source: api
+    endpoint: ${FUND_API_URL}/transactions
+    description: Transaction feed for pattern analysis
+  - source: api
+    endpoint: ${SANCTIONS_API_URL}/search
+    description: COAF, OFAC, EU sanctions lists
+  - source: data/corpus/compliance/
+    format: markdown
+    description: Internal PLD policies and procedures
+
+outputs:
+  - type: alert
+    channels: [slack, email]
+    severity_levels: [suspicious, critical]
+    escalation:
+      suspicious: compliance_officer
+      critical: [compliance_officer, administrador, coaf]
+  - type: report
+    template: pld-report
+    schedule: monthly
+    regulatory: true  # Required by CVM
+
+detection_rules:
+  structuring:
+    threshold: 10000  # BRL
+    window_hours: 24
+    description: Multiple transactions just below reporting threshold
+  unusual_volume:
+    stddev_multiplier: 3.0
+    window_days: 30
+    description: Volume deviating significantly from historical pattern
+  sanctions_match:
+    fuzzy_threshold: 0.85
+    lists: [coaf, ofac, eu, un]
+  pep_check:
+    enabled: true
+    refresh_days: 90

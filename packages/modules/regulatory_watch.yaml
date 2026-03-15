@@ -1,0 +1,60 @@
+# Module: Regulatory Watch
+# CVM/ANBIMA/BACEN regulatory scanner and impact assessor.
+
+name: regulatory-watch
+version: "1.0.0"
+description: |
+  Monitora diariamente publicações de CVM, ANBIMA e BACEN.
+  Detecta normas novas ou alterações relevantes para FIDCs.
+  Gera relatório de impacto com ações recomendadas.
+
+agents:
+  primary: regulatory_watch
+  secondary: [compliance, administrador]
+
+guardrails:
+  required: [compliance]
+  block_on_fail: false  # Advisory, not blocking
+
+daemon:
+  handler: regulatory_watch
+  interval_minutes: 1440  # Daily (24h)
+  preferred_time: "06:00"
+  timezone: America/Sao_Paulo
+  log_path: runtime/logs/daemons/regulatory.jsonl
+
+inputs:
+  - source: rss
+    feeds:
+      - url: https://www.gov.br/cvm/pt-br/RSS
+        name: CVM
+      - url: https://www.anbima.com.br/feed
+        name: ANBIMA
+      - url: https://www.bcb.gov.br/api/feed/sitebcb/sitefeeds/normativos
+        name: BACEN
+  - source: data/corpus/regulatorio/
+    format: markdown
+    description: Base normativa vigente (CVM 175, etc.)
+
+outputs:
+  - type: alert
+    channels: [slack, email]
+    conditions:
+      - keyword_match: [FIDC, "fundo de investimento", CVM, securitização]
+      - impact_score: ">= 0.5"
+  - type: report
+    template: regulatory-impact
+    sections:
+      - norma_identificada
+      - resumo_executivo
+      - artigos_afetados
+      - impacto_operacional
+      - acoes_recomendadas
+      - prazo_adequacao
+
+classification:
+  impact_levels:
+    critical: "Altera obrigações diretas do fundo (registro, reporte, limites)"
+    high: "Modifica procedimentos operacionais existentes"
+    medium: "Nova orientação que pode afetar práticas"
+    low: "Informativo, sem ação imediata necessária"
