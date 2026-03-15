@@ -18,6 +18,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import click
+from packages.kernel.cvm_ingester import build_fund_profile, save_fund_profile
 
 
 def _ts():
@@ -321,6 +322,23 @@ def onboard_validate(fund):
             click.echo(f"   • {i}")
     else:
         click.echo(f"\n   ✅ Validação OK — fundo pronto para operação")
+
+
+
+
+@onboard_cli.command("auto")
+@click.option("--cnpj", required=True, help="Fund CNPJ number")
+def onboard_auto(cnpj):
+    """Auto-onboard a fund using CVM public data. No client data needed."""
+    base = _base()
+    click.echo(f"Onboarding via CVM dados abertos...")
+    profile = build_fund_profile(cnpj)
+    fund_dir = save_fund_profile(profile, str(base))
+
+    nome = profile.get("cadastro", {}).get("nome", "?") if profile.get("cadastro") else "?"
+    click.echo(f"\n✅ {nome} onboarded via CVM")
+    click.echo(f"   paganini onboard status --fund {fund_dir.name}")
+    click.echo(f"   paganini onboard validate --fund {fund_dir.name}")
 
 
 if __name__ == "__main__":
