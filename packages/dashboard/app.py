@@ -230,7 +230,7 @@ def create_app(config: dict) -> "FastAPI":  # noqa: F821
     guardrails = GuardrailPipeline(config)
     memory = MemoryManager(config)
     llm_fn = get_llm_fn(config)
-    registry = AgentRegistry(config)
+    registry = AgentRegistry(souls_dir=config.get("souls_dir", "packages/agents/souls"))
     daemons = DaemonRunner(config)
 
     app = FastAPI(
@@ -270,13 +270,13 @@ def create_app(config: dict) -> "FastAPI":  # noqa: F821
     @app.get("/api/status")
     async def status() -> dict:
         try:
-            chunks = rag.chunk_count()
+            chunks = rag.collection.count()
         except Exception as exc:
             logger.warning("rag.chunk_count failed: %s", exc)
             chunks = None
 
         try:
-            agent_list = registry.list_agents()
+            agent_list = registry.list()
             agent_count = len(agent_list)
         except Exception as exc:
             logger.warning("registry.list_agents failed: %s", exc)
@@ -306,7 +306,7 @@ def create_app(config: dict) -> "FastAPI":  # noqa: F821
     @app.get("/api/agents")
     async def agents() -> dict:
         try:
-            agent_list = registry.list_agents()
+            agent_list = registry.list()
         except Exception as exc:
             raise HTTPException(status_code=500, detail=str(exc)) from exc
         return {"agents": agent_list}
@@ -335,23 +335,27 @@ def create_app(config: dict) -> "FastAPI":  # noqa: F821
         if not q.strip():
             raise HTTPException(status_code=400, detail="Query parameter 'q' cannot be empty.")
 
-        # Guardrail pre-check
-        guard_result = guardrails.check(q, context={"fund_id": fund_id})
-        if guard_result.get("blocked"):
-            raise HTTPException(
-                status_code=403,
-                detail=f"Request blocked by guardrails: {guard_result.get('reason')}",
-            )
-
+        import time
+        t0 = time.time()
         try:
-            rag_result = rag.run(query=q, fund_id=fund_id)
+            answer_obj = rag.query(q, llm_fn=llm_fn)
         except Exception as exc:
             logger.error("RAG pipeline error: %s", exc)
-            raise HTTPException(status_code=500, detail="RAG pipeline error.") from exc
+            raise HTTPException(status_code=500, detail=str(exc)) from exc
 
-        answer = rag_result.get("answer", "")
-        confidence = float(rag_result.get("confidence", 0.0))
-        sources = rag_result.get("sources", [])
+        answer = answer_obj.text
+        confidence = answer_obj.confidence
+        chunks = answer_obj.chunks
+        sources = [{"source": c.source, "section": c.section, "text": c.text[:200]} for c in chunks]
+        latency_ms = int((time.time() - t0) * 1000)
+
+        # Post-response guardrails
+        try:
+            guard = guardrails.check(q, answer, [c.text[:100] for c in chunks], confidence)
+            if not guard.passed:
+                return {"answer": f"[Bloqueado por {guard.blocked_by}] Consulta bloqueada pelos guardrails.", "confidence": 0.0, "sources": [], "blocked": True, "blocked_by": guard.blocked_by, "latency_ms": latency_ms}
+        except Exception as exc:
+            logger.warning("Guardrail check failed: %s", exc)
 
         # Persist to memory
         try:
@@ -441,5 +445,85 @@ def create_app(config: dict) -> "FastAPI":  # noqa: F821
             status_code=500,
             content={"detail": "Internal server error.", "error": str(exc)},
         )
+
+
+    # ─── Alerts Timeline ───────────────────────────────────────────
+    @app.get("/api/alerts")
+    async def get_alerts(
+        limit: int = Query(50, description="Max alerts to return"),
+        severity: str | None = Query(None, description="Filter by severity"),
+        alert_type: str | None = Query(None, description="Filter by type"),
+    ) -> dict:
+        """Return unified alert timeline from all daemons."""
+        import os
+        base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        alerts_file = os.path.join(base, "runtime", "data", "alerts.jsonl")
+
+        alerts = []
+        if os.path.exists(alerts_file):
+            with open(alerts_file) as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        alert = __import__("json").loads(line)
+                        if severity and alert.get("severity") != severity:
+                            continue
+                        if alert_type and alert.get("type") != alert_type:
+                            continue
+                        alerts.append(alert)
+                    except Exception:
+                        continue
+
+        # Most recent first
+        alerts.reverse()
+        return {
+            "total": len(alerts),
+            "alerts": alerts[:limit],
+            "filters": {"severity": severity, "type": alert_type},
+        }
+
+    # ─── Market Data ───────────────────────────────────────────────
+    @app.get("/api/market")
+    async def get_market() -> dict:
+        """Return latest market indicators from BCB sync."""
+        import os
+        base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        snapshot_file = os.path.join(base, "runtime", "data", "market", "latest_snapshot.json")
+
+        if os.path.exists(snapshot_file):
+            with open(snapshot_file) as f:
+                return __import__("json").load(f)
+        return {"error": "No market data available. Run market_data_sync daemon."}
+
+    # ─── Daemon Results ────────────────────────────────────────────
+    @app.get("/api/daemons/history")
+    async def daemon_history(
+        daemon: str | None = Query(None, description="Filter by daemon name"),
+        limit: int = Query(50, description="Max entries"),
+    ) -> dict:
+        """Return daemon execution history."""
+        import os
+        base = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        results_file = os.path.join(base, "runtime", "data", "daemon_results.jsonl")
+
+        entries = []
+        if os.path.exists(results_file):
+            with open(results_file) as f:
+                for line in f:
+                    line = line.strip()
+                    if not line:
+                        continue
+                    try:
+                        entry = __import__("json").loads(line)
+                        if daemon and entry.get("daemon") != daemon:
+                            continue
+                        entries.append(entry)
+                    except Exception:
+                        continue
+
+        entries.reverse()
+        return {"total": len(entries), "entries": entries[:limit]}
 
     return app

@@ -11,6 +11,15 @@ from typing import Callable, Optional
 
 import yaml
 
+from packages.kernel.handlers import (
+    regulatory_watch as _real_regulatory_watch,
+    market_data_sync as _real_market_data_sync,
+    reconciliation as _real_reconciliation,
+    memory_reflection as _real_memory_reflection,
+    self_audit as _real_self_audit,
+    AlertDispatcher,
+)
+
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------
@@ -366,17 +375,13 @@ def pdd_calculator(config: dict) -> dict:
 
 
 def reconciliation(config: dict) -> dict:
-    msg = "Running payment reconciliation"
-    logger.info("[%s] reconciliation: %s", _ts(), msg)
-    print(f"[{_ts()}] reconciliation: {msg}")
-    return {"status": "ok", "details": msg}
+    """Real implementation: portfolio vs custody reconciliation."""
+    return _real_reconciliation(config)
 
 
 def market_data_sync(config: dict) -> dict:
-    msg = "Syncing market data from BACEN"
-    logger.info("[%s] market_data_sync: %s", _ts(), msg)
-    print(f"[{_ts()}] market_data_sync: {msg}")
-    return {"status": "ok", "details": msg}
+    """Real implementation: BCB SGS API sync."""
+    return _real_market_data_sync(config)
 
 
 def risk_scanner(config: dict) -> dict:
@@ -491,24 +496,18 @@ def risk_scanner(config: dict) -> dict:
 
 
 def regulatory_watch(config: dict) -> dict:
-    msg = "Scanning CVM/ANBIMA/BACEN publications"
-    logger.info("[%s] regulatory_watch: %s", _ts(), msg)
-    print(f"[{_ts()}] regulatory_watch: {msg}")
-    return {"status": "ok", "details": msg}
+    """Real implementation: RSS scan + classify + alert."""
+    return _real_regulatory_watch(config)
 
 
 def memory_reflection(config: dict) -> dict:
-    msg = "Running memory reflection/consolidation"
-    logger.info("[%s] memory_reflection: %s", _ts(), msg)
-    print(f"[{_ts()}] memory_reflection: {msg}")
-    return {"status": "ok", "details": msg}
+    """Real implementation: analyze patterns + recommendations."""
+    return _real_memory_reflection(config)
 
 
 def self_audit(config: dict) -> dict:
-    msg = "Running system self-audit"
-    logger.info("[%s] self_audit: %s", _ts(), msg)
-    print(f"[{_ts()}] self_audit: {msg}")
-    return {"status": "ok", "details": msg}
+    """Real implementation: system integrity verification."""
+    return _real_self_audit(config)
 
 
 # Map YAML daemon names → built-in handlers

@@ -1,0 +1,86 @@
+{
+  "fund_id": "ATLAS-PREMIUM-FIDC",
+  "cnpj": "45.678.901/0001-23",
+  "nome": "Atlas Premium FIDC Multicedente",
+  "tipo": "FIDC Multicedente Multisacado",
+  "classe": "Não-Padronizado",
+  "administrador": "Oliveira Trust DTVM",
+  "gestor": "Atlas Capital Gestão de Recursos",
+  "custodiante": "Banco Votorantim",
+  "auditor": "PricewaterhouseCoopers",
+  "rating": "brAA (S&P)",
+  "data_constituicao": "2024-06-15",
+  "patrimonio_liquido": 287450000.00,
+  "patrimonio_liquido_formatted": "R$ 287,45 milhões",
+  "cotas": {
+    "senior": {
+      "pl": 230000000.00,
+      "quantidade": 230000,
+      "valor_cota": 1000.00,
+      "rentabilidade_alvo": "CDI + 2.5% a.a.",
+      "subordinacao_minima": 0.20,
+      "cotistas": 47
+    },
+    "mezanino": {
+      "pl": 28745000.00,
+      "quantidade": 28745,
+      "valor_cota": 1000.00,
+      "rentabilidade_alvo": "CDI + 5.0% a.a.",
+      "cotistas": 8
+    },
+    "subordinada": {
+      "pl": 28705000.00,
+      "quantidade": 28705,
+      "valor_cota": 1000.00,
+      "cotistas": 3
+    }
+  },
+  "carteira": {
+    "total_recebiveis": 3412,
+    "valor_total": 312800000.00,
+    "prazo_medio_dias": 67,
+    "taxa_media_cessao": 0.0185,
+    "inadimplencia_carteira": 0.034,
+    "sobrecolateralizacao": 1.088,
+    "setores": [
+      {"nome": "Comércio Varejista", "percentual": 0.32, "valor": 100096000},
+      {"nome": "Serviços", "percentual": 0.28, "valor": 87584000},
+      {"nome": "Indústria", "percentual": 0.22, "valor": 68816000},
+      {"nome": "Agronegócio", "percentual": 0.11, "valor": 34408000},
+      {"nome": "Saúde", "percentual": 0.07, "valor": 21896000}
+    ]
+  },
+  "cedentes": [
+    {"nome": "TechRetail Comercio Ltda", "cnpj": "12.345.678/0001-90", "setor": "Comércio Varejista", "concentracao": 0.18, "valor": 56304000, "rating_interno": "A", "desde": "2024-07"},
+    {"nome": "MedServ Saúde S.A.", "cnpj": "23.456.789/0001-01", "setor": "Saúde", "concentracao": 0.12, "valor": 37536000, "rating_interno": "A+", "desde": "2024-08"},
+    {"nome": "AgroSul Commodities", "cnpj": "34.567.890/0001-12", "setor": "Agronegócio", "concentracao": 0.11, "valor": 34408000, "rating_interno": "B+", "desde": "2024-09"},
+    {"nome": "Construtora Meridian", "cnpj": "45.678.901/0001-23", "setor": "Indústria", "concentracao": 0.09, "valor": 28152000, "rating_interno": "A-", "desde": "2024-07"},
+    {"nome": "LogiPrime Transportes", "cnpj": "56.789.012/0001-34", "setor": "Serviços", "concentracao": 0.08, "valor": 25024000, "rating_interno": "B+", "desde": "2025-01"},
+    {"nome": "Grupo Alimenta S.A.", "cnpj": "67.890.123/0001-45", "setor": "Comércio Varejista", "concentracao": 0.07, "valor": 21896000, "rating_interno": "A", "desde": "2024-11"},
+    {"nome": "EduTech Brasil", "cnpj": "78.901.234/0001-56", "setor": "Serviços", "concentracao": 0.06, "valor": 18768000, "rating_interno": "B", "desde": "2025-02"},
+    {"nome": "SolarPark Energia", "cnpj": "89.012.345/0001-67", "setor": "Indústria", "concentracao": 0.05, "valor": 15640000, "rating_interno": "A-", "desde": "2025-01"},
+    {"nome": "Outros (14 cedentes)", "cnpj": "-", "setor": "Diversos", "concentracao": 0.24, "valor": 75072000, "rating_interno": "B+/A-", "desde": "2024-2025"}
+  ],
+  "covenants": {
+    "razao_garantia_minima": {"limite": 1.15, "atual": 1.088, "status": "WARNING", "projecao_30d": 1.06},
+    "concentracao_max_cedente": {"limite": 0.20, "atual": 0.18, "status": "OK", "maior_cedente": "TechRetail"},
+    "inadimplencia_max": {"limite": 0.05, "atual": 0.034, "status": "OK"},
+    "subordinacao_minima": {"limite": 0.20, "atual": 0.20, "status": "BORDERLINE"},
+    "prazo_medio_max_dias": {"limite": 90, "atual": 67, "status": "OK"},
+    "pdd_max_pl": {"limite": 0.03, "atual": 0.021, "status": "OK"}
+  },
+  "alertas_ativos": [
+    {
+      "tipo": "COVENANT_WARNING",
+      "severidade": "HIGH",
+      "descricao": "Razão de garantia (1.088) se aproximando do limite (1.15). Projeção 30d: 1.06 — possível breach em 22 dias.",
+      "acao_recomendada": "Acelerar cessão de novos recebíveis ou amortizar cotas senior"
+    },
+    {
+      "tipo": "CONCENTRACAO_ALERTA",
+      "severidade": "MEDIUM",
+      "descricao": "TechRetail Comercio com 18% de concentração (limite: 20%). Margem de 2pp.",
+      "acao_recomendada": "Monitorar cessões de TechRetail. Bloquear novas cessões acima de R$3M"
+    }
+  ]
+}
