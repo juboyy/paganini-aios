@@ -1,0 +1,54 @@
+# Module: Cedente Monitor
+# Proactive intelligence on fund assignors (cedentes).
+
+name: cedente-monitor
+version: "1.0.0"
+description: |
+  Monitora notícias e eventos sobre cada cedente da carteira do fundo.
+  Detecta riscos de crédito, processos judiciais, mudanças societárias,
+  inadimplência e outros sinais que possam afetar a qualidade dos recebíveis.
+  Due diligence contínua e automatizada.
+
+agents:
+  primary: due_diligence
+  secondary: [gestor, compliance]
+
+guardrails:
+  required: [compliance, pld_aml]
+  block_on_fail: false
+
+daemon:
+  handler: cedente-monitor
+  interval_minutes: 720  # 2x/day (12h)
+  preferred_time: "08:00"
+  timezone: America/Sao_Paulo
+  log_path: runtime/logs/daemons/cedente_monitor.jsonl
+
+inputs:
+  - source: fund_data
+    path: runtime/data/funds.json
+    description: Lista de cedentes com CNPJ e dados cadastrais
+  - source: web_search
+    provider: google_news_rss
+    description: Busca automatizada por notícias sobre cada cedente
+
+outputs:
+  - type: alert
+    channels: [slack, email]
+    conditions:
+      - risk_severity: ">= medium"
+  - type: report
+    template: cedente-risk-digest
+    sections:
+      - cedente_identificado
+      - evento_detectado
+      - classificacao_risco
+      - impacto_carteira
+      - acoes_recomendadas
+
+classification:
+  risk_levels:
+    critical: "Falência, recuperação judicial, fraude, operação policial"
+    high: "Inadimplência, protesto, execução fiscal, rebaixamento, prejuízo"
+    medium: "Processo judicial, mudança societária, reestruturação"
+    low: "Expansão, novo contrato, crescimento (sinal positivo)"

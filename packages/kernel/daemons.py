@@ -10,8 +10,11 @@ from pathlib import Path
 from typing import Callable, Optional
 
 import yaml
+from packages.kernel.cedente_monitor import cedente_monitor as _real_cedente_monitor
 
 from packages.kernel.handlers import (
+    # (existing imports)
+
     regulatory_watch as _real_regulatory_watch,
     market_data_sync as _real_market_data_sync,
     reconciliation as _real_reconciliation,
@@ -520,6 +523,7 @@ _BUILTIN_HANDLERS: dict[str, Callable] = {
     "regulatory-watch": regulatory_watch,
     "memory-reflection": memory_reflection,
     "self-audit": self_audit,
+    "cedente-monitor": _real_cedente_monitor,
 }
 
 
