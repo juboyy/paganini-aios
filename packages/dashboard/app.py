@@ -21,10 +21,11 @@ logger = logging.getLogger(__name__)
 # Optional dependency guard — FastAPI + Uvicorn are not in pyproject.toml
 # ---------------------------------------------------------------------------
 try:
-    from fastapi import Depends, FastAPI, HTTPException, Query
+    from fastapi import Depends, FastAPI, HTTPException, Query, Request
     from fastapi.middleware.cors import CORSMiddleware
     from fastapi.responses import HTMLResponse, JSONResponse
     from pydantic import BaseModel
+    from packages.dashboard.audit import AuditMiddleware, query_audit_log
     from packages.dashboard.auth import get_api_key, verify_api_key
 
     _FASTAPI_AVAILABLE = True
@@ -248,6 +249,7 @@ def create_app(config: dict) -> "FastAPI":  # noqa: F821
         allow_methods=["*"],
         allow_headers=["*"],
     )
+    app.add_middleware(AuditMiddleware)
 
     # ----------------------------------------------------------------
     # GET /
@@ -341,6 +343,7 @@ def create_app(config: dict) -> "FastAPI":  # noqa: F821
 
     @app.get("/api/query")
     async def query(
+        request: Request,
         q: str = Query(..., description="Natural language question"),
         fund_id: str | None = Query(None, description="Fund identifier for isolation"),
     ) -> dict:
@@ -357,6 +360,8 @@ def create_app(config: dict) -> "FastAPI":  # noqa: F821
 
         answer = answer_obj.text
         confidence = answer_obj.confidence
+        request.state.audit_confidence = confidence
+        request.state.audit_agent_used = getattr(answer_obj, "model", None) or "rag"
         chunks = answer_obj.chunks
         sources = [{"source": c.source, "section": c.section, "text": c.text[:200]} for c in chunks]
         latency_ms = int((time.time() - t0) * 1000)
@@ -445,6 +450,19 @@ def create_app(config: dict) -> "FastAPI":  # noqa: F821
         except Exception as exc:
             raise HTTPException(status_code=500, detail=str(exc)) from exc
         return stats
+
+    # ----------------------------------------------------------------
+    # GET /api/audit
+    # ----------------------------------------------------------------
+
+    @app.get("/api/audit")
+    async def audit_entries(
+        limit: int = Query(50, ge=1, le=500, description="Max entries to return"),
+        path: str | None = Query(None, description="Filter by request path"),
+        since: str | None = Query(None, description="Filter entries since ISO timestamp"),
+    ) -> dict:
+        entries = query_audit_log(since=since, path_filter=path, limit=limit)
+        return {"total": len(entries), "entries": entries}
 
     # ----------------------------------------------------------------
     # Global exception handler

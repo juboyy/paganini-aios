@@ -40,7 +40,7 @@ class Answer:
 
 class RAGPipeline:
     """Hybrid RAG pipeline — modular and configurable.
-    
+
     Designed to be optimized by AutoResearch (program.md + eval.py loop).
     Every parameter is exposed and tunable.
     """
@@ -68,7 +68,11 @@ class RAGPipeline:
 
         # === CHROMA (embedded vector DB — no external dependency) ===
         chroma_path = str(self.data_dir / "chroma")
-        self.chroma = chromadb.PersistentClient(path=chroma_path)
+        Path(chroma_path).mkdir(parents=True, exist_ok=True)
+        try:
+            self.chroma = chromadb.PersistentClient(path=chroma_path)
+        except Exception:
+            self.chroma = chromadb.Client()
         self.collection = self.chroma.get_or_create_collection(
             name="corpus",
             metadata={"hnsw:space": "cosine"}
@@ -79,7 +83,7 @@ class RAGPipeline:
 
     def ingest(self, corpus_dir: str) -> dict:
         """Ingest markdown files from corpus directory.
-        
+
         Returns stats about the ingestion.
         """
         corpus_path = Path(corpus_dir)
@@ -220,7 +224,7 @@ class RAGPipeline:
 
     def query(self, question: str, llm_fn=None) -> Answer:
         """Full RAG: retrieve + generate answer.
-        
+
         llm_fn: callable that takes (system_prompt, user_prompt) → response text
         """
         chunks = self.retrieve(question)
@@ -243,7 +247,7 @@ class RAGPipeline:
 
 Regras:
 1. Responda APENAS com base no contexto fornecido
-2. Cite as fontes usando [Fonte N] 
+2. Cite as fontes usando [Fonte N]
 3. Se não encontrar a resposta no contexto, diga explicitamente
 4. Seja preciso e objetivo
 5. Use terminologia técnica correta do mercado financeiro brasileiro"""
