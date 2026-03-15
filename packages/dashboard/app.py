@@ -309,7 +309,17 @@ def create_app(config: dict) -> "FastAPI":  # noqa: F821
             agent_list = registry.list()
         except Exception as exc:
             raise HTTPException(status_code=500, detail=str(exc)) from exc
-        return {"agents": agent_list}
+        # Serialize AgentSOUL objects to dicts
+        serialized = []
+        for a in agent_list:
+            serialized.append({
+                "id": getattr(a, "slug", ""),
+                "name": getattr(a, "name", ""),
+                "domains": getattr(a, "domains", []),
+                "tools": len(getattr(a, "tools", [])),
+                "constraints": len(getattr(a, "constraints", [])),
+            })
+        return {"agents": serialized}
 
     # ----------------------------------------------------------------
     # GET /api/daemons
