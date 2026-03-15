@@ -1,0 +1,62 @@
+[
+  {
+    "id": "rec-001",
+    "cedente_id": "ced-001",
+    "sacado": "Sacado Exemplo 001",
+    "valor_face": 50000.00,
+    "valor_presente": 48500.00,
+    "data_emissao": "2025-12-01",
+    "data_vencimento": "2026-03-01",
+    "aging_days": 14,
+    "stage": 1,
+    "status": "performing"
+  },
+  {
+    "id": "rec-002",
+    "cedente_id": "ced-001",
+    "sacado": "Sacado Exemplo 002",
+    "valor_face": 75000.00,
+    "valor_presente": 72000.00,
+    "data_emissao": "2025-11-15",
+    "data_vencimento": "2026-02-15",
+    "aging_days": 28,
+    "stage": 1,
+    "status": "performing"
+  },
+  {
+    "id": "rec-003",
+    "cedente_id": "ced-002",
+    "sacado": "Sacado Exemplo 003",
+    "valor_face": 120000.00,
+    "valor_presente": 115000.00,
+    "data_emissao": "2025-10-01",
+    "data_vencimento": "2026-01-01",
+    "aging_days": 73,
+    "stage": 2,
+    "status": "underperforming"
+  },
+  {
+    "id": "rec-004",
+    "cedente_id": "ced-003",
+    "sacado": "Sacado Exemplo 004",
+    "valor_face": 30000.00,
+    "valor_presente": 22000.00,
+    "data_emissao": "2025-06-01",
+    "data_vencimento": "2025-09-01",
+    "aging_days": 196,
+    "stage": 3,
+    "status": "non_performing"
+  },
+  {
+    "id": "rec-005",
+    "cedente_id": "ced-004",
+    "sacado": "Sacado Exemplo 005",
+    "valor_face": 95000.00,
+    "valor_presente": 93000.00,
+    "data_emissao": "2026-01-15",
+    "data_vencimento": "2026-04-15",
+    "aging_days": 0,
+    "stage": 1,
+    "status": "performing"
+  }
+]

@@ -1,0 +1,50 @@
+[
+  {
+    "id": "ced-001",
+    "razao_social": "Empresa Exemplo Alpha Ltda",
+    "cnpj": "00.000.001/0001-00",
+    "segmento": "Comércio",
+    "rating": "A",
+    "volume_mensal": 2500000.00,
+    "concentracao_atual": 0.12,
+    "dias_relacionamento": 450,
+    "inadimplencia_historica": 0.02,
+    "status": "ativo"
+  },
+  {
+    "id": "ced-002",
+    "razao_social": "Indústria Exemplo Beta S.A.",
+    "cnpj": "00.000.002/0001-00",
+    "segmento": "Indústria",
+    "rating": "A+",
+    "volume_mensal": 3800000.00,
+    "concentracao_atual": 0.08,
+    "dias_relacionamento": 720,
+    "inadimplencia_historica": 0.01,
+    "status": "ativo"
+  },
+  {
+    "id": "ced-003",
+    "razao_social": "Serviços Exemplo Gamma Ltda",
+    "cnpj": "00.000.003/0001-00",
+    "segmento": "Serviços",
+    "rating": "B+",
+    "volume_mensal": 1200000.00,
+    "concentracao_atual": 0.05,
+    "dias_relacionamento": 180,
+    "inadimplencia_historica": 0.05,
+    "status": "em_observação"
+  },
+  {
+    "id": "ced-004",
+    "razao_social": "Distribuidora Exemplo Delta S.A.",
+    "cnpj": "00.000.004/0001-00",
+    "segmento": "Comércio",
+    "rating": "A-",
+    "volume_mensal": 1800000.00,
+    "concentracao_atual": 0.07,
+    "dias_relacionamento": 365,
+    "inadimplencia_historica": 0.03,
+    "status": "ativo"
+  }
+]

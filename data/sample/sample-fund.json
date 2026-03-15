@@ -1,0 +1,56 @@
+{
+  "fund": {
+    "name": "FIDC Exemplo Alpha I",
+    "cnpj": "00.000.000/0001-00",
+    "type": "FIDC Multicedente/Multisacado",
+    "administrator": "Administradora Exemplo S.A.",
+    "custodian": "Banco Custódia Exemplo S.A.",
+    "manager": "Gestora Exemplo Asset Management",
+    "aum": 150000000.00,
+    "currency": "BRL",
+    "inception_date": "2025-01-15",
+    "series": [
+      {
+        "name": "Sênior",
+        "target_return": "CDI + 2.5%",
+        "subordination": 0.25,
+        "current_nav": 112500000.00
+      },
+      {
+        "name": "Mezanino",
+        "target_return": "CDI + 5.0%",
+        "subordination": 0.10,
+        "current_nav": 22500000.00
+      },
+      {
+        "name": "Subordinada",
+        "target_return": "residual",
+        "subordination": 0.00,
+        "current_nav": 15000000.00
+      }
+    ]
+  },
+  "covenants": [
+    {
+      "name": "Razão de Garantia Mínima",
+      "type": "overcollateralization",
+      "threshold": 1.15,
+      "current_value": 1.22,
+      "status": "compliant"
+    },
+    {
+      "name": "Inadimplência Máxima",
+      "type": "delinquency",
+      "threshold": 0.10,
+      "current_value": 0.04,
+      "status": "compliant"
+    },
+    {
+      "name": "Concentração Máxima por Cedente",
+      "type": "concentration",
+      "threshold": 0.20,
+      "current_value": 0.12,
+      "status": "compliant"
+    }
+  ]
+}

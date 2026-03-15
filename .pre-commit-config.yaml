@@ -1,0 +1,40 @@
+repos:
+  - repo: local
+    hooks:
+      - id: no-secrets
+        name: 🔑 Detect secrets
+        entry: python3 scripts/security/detect-secrets.py
+        language: system
+        pass_filenames: true
+        types: [text]
+
+      - id: no-pii
+        name: 🛡️ Detect PII
+        entry: python3 scripts/security/detect-pii.py
+        language: system
+        pass_filenames: true
+        types: [text]
+
+      - id: no-corpus
+        name: 📚 Detect corpus content
+        entry: python3 scripts/security/detect-corpus.py
+        language: system
+        pass_filenames: true
+        types: [text]
+
+      - id: gitignore-check
+        name: 🔒 Verify gitignore rules
+        entry: python3 scripts/security/verify-gitignore.py
+        language: system
+        pass_filenames: false
+
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: check-yaml
+      - id: check-json
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-merge-conflict
+      - id: check-added-large-files
+        args: ['--maxkb=500']
