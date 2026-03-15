@@ -27,7 +27,8 @@ logger = logging.getLogger(__name__)
 try:
     from fastapi import Depends, FastAPI, HTTPException, Query, Request
     from fastapi.middleware.cors import CORSMiddleware
-    from fastapi.responses import HTMLResponse, JSONResponse
+    from fastapi.responses import FileResponse, JSONResponse
+    from fastapi.staticfiles import StaticFiles
     from pydantic import BaseModel
     from packages.dashboard.audit import AuditMiddleware, query_audit_log
     from packages.dashboard.auth import get_api_key, verify_api_key  # noqa: F401
@@ -54,158 +55,6 @@ if _FASTAPI_AVAILABLE:
         template_id: str
         fund_id: str
 
-
-# ---------------------------------------------------------------------------
-# Inline HTML dashboard
-# ---------------------------------------------------------------------------
-
-_DASHBOARD_HTML = """<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>PAGANINI AIOS — Dashboard</title>
-  <script src="https://cdn.tailwindcss.com"></script>
-  <script>
-    tailwind.config = {
-      darkMode: 'class',
-      theme: {
-        extend: {
-          colors: {
-            brand: { DEFAULT: '#7c3aed', dark: '#5b21b6', light: '#a78bfa' },
-          },
-        },
-      },
-    };
-  </script>
-  <style>
-    body { background: #0f0f17; }
-    .card { background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); }
-    .pulse-dot { animation: pulse 2s cubic-bezier(0.4,0,0.6,1) infinite; }
-    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
-    ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-thumb { background:#7c3aed; border-radius:2px; }
-  </style>
-</head>
-<body class="dark text-gray-100 min-h-screen font-mono">
-
-  <!-- Header -->
-  <header class="border-b border-white/10 px-6 py-4 flex items-center justify-between">
-    <div class="flex items-center gap-3">
-      <span class="text-brand text-2xl font-bold tracking-widest">PAGANINI</span>
-      <span class="text-xs text-gray-500 uppercase tracking-widest">AIOS Dashboard</span>
-    </div>
-    <div id="health-badge" class="flex items-center gap-2 text-xs">
-      <span class="pulse-dot w-2 h-2 rounded-full bg-gray-500 inline-block"></span>
-      <span class="text-gray-400">connecting…</span>
-    </div>
-  </header>
-
-  <main class="max-w-6xl mx-auto px-6 py-8 grid gap-6">
-
-    <!-- Status card -->
-    <section class="card rounded-xl p-6">
-      <h2 class="text-xs uppercase tracking-widest text-gray-400 mb-4">System Status</h2>
-      <div id="status-grid" class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
-        <div><div id="st-chunks" class="text-3xl font-bold text-brand">—</div><div class="text-xs text-gray-500 mt-1">RAG Chunks</div></div>
-        <div><div id="st-agents" class="text-3xl font-bold text-brand">—</div><div class="text-xs text-gray-500 mt-1">Agents</div></div>
-        <div><div id="st-daemons" class="text-3xl font-bold text-brand">—</div><div class="text-xs text-gray-500 mt-1">Daemons</div></div>
-        <div><div id="st-meta" class="text-3xl font-bold text-brand">—</div><div class="text-xs text-gray-500 mt-1">MetaClaw</div></div>
-      </div>
-    </section>
-
-    <!-- Two-column: agents + query -->
-    <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-      <!-- Agents -->
-      <section class="card rounded-xl p-6">
-        <h2 class="text-xs uppercase tracking-widest text-gray-400 mb-4">Agents</h2>
-        <ul id="agents-list" class="space-y-2 text-sm text-gray-300">
-          <li class="text-gray-600 italic">loading…</li>
-        </ul>
-      </section>
-
-      <!-- Query -->
-      <section class="card rounded-xl p-6 flex flex-col gap-4">
-        <h2 class="text-xs uppercase tracking-widest text-gray-400">Query</h2>
-        <div class="flex gap-2">
-          <input id="q-input" type="text" placeholder="Ask anything about the fund…"
-            class="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:border-brand"
-          />
-          <input id="q-fund" type="text" placeholder="fund id"
-            class="w-24 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-gray-100 placeholder-gray-600 focus:outline-none focus:border-brand"
-          />
-          <button onclick="runQuery()"
-            class="bg-brand hover:bg-brand-dark px-4 py-2 rounded-lg text-sm font-medium transition-colors">
-            Ask
-          </button>
-        </div>
-        <div id="q-result" class="hidden card rounded-lg p-4 text-sm text-gray-200 whitespace-pre-wrap"></div>
-        <div>
-          <div class="text-xs uppercase tracking-widest text-gray-500 mb-2">Recent Queries</div>
-          <ul id="recent-queries" class="space-y-1 text-xs text-gray-500 max-h-40 overflow-y-auto"></ul>
-        </div>
-      </section>
-    </div>
-
-    <!-- Footer -->
-    <footer class="text-center text-xs text-gray-700 py-2">
-      PAGANINI AIOS · <span id="footer-ts"></span>
-    </footer>
-  </main>
-
-  <script>
-    const api = (path) => fetch(path).then(r => r.json()).catch(() => ({}));
-
-    async function loadStatus() {
-      const [status, agents] = await Promise.all([api('/api/status'), api('/api/agents')]);
-      document.getElementById('st-chunks').textContent = status.chunks ?? '—';
-      document.getElementById('st-agents').textContent = status.agents ?? '—';
-      document.getElementById('st-daemons').textContent = status.daemons ?? '—';
-      document.getElementById('st-meta').textContent = status.metaclaw ?? '—';
-      const badge = document.getElementById('health-badge');
-      badge.innerHTML = status.ok !== false
-        ? '<span class="pulse-dot w-2 h-2 rounded-full bg-green-500 inline-block"></span><span class="text-green-400">healthy</span>'
-        : '<span class="pulse-dot w-2 h-2 rounded-full bg-red-500 inline-block"></span><span class="text-red-400">degraded</span>';
-
-      const list = document.getElementById('agents-list');
-      if (agents.agents?.length) {
-        list.innerHTML = agents.agents.map(a =>
-          `<li class="flex justify-between"><span>${a.name}</span><span class="text-gray-500">${(a.domains||[]).join(', ')}</span></li>`
-        ).join('');
-      }
-    }
-
-    async function runQuery() {
-      const q = document.getElementById('q-input').value.trim();
-      const fundId = document.getElementById('q-fund').value.trim();
-      if (!q) return;
-      const resultEl = document.getElementById('q-result');
-      resultEl.textContent = '⏳ thinking…';
-      resultEl.classList.remove('hidden');
-      const url = `/api/query?q=${encodeURIComponent(q)}${fundId ? '&fund_id=' + encodeURIComponent(fundId) : ''}`;
-      const data = await api(url);
-      resultEl.textContent = data.answer || JSON.stringify(data, null, 2);
-      const recent = document.getElementById('recent-queries');
-      const li = document.createElement('li');
-      li.textContent = `${new Date().toLocaleTimeString()} · ${q.slice(0, 80)}`;
-      recent.prepend(li);
-    }
-
-    document.getElementById('q-input').addEventListener('keydown', e => {
-      if (e.key === 'Enter') runQuery();
-    });
-
-    document.getElementById('footer-ts').textContent = new Date().toISOString();
-    loadStatus();
-    setInterval(loadStatus, 30000);
-  </script>
-</body>
-</html>"""
-
-
-# ---------------------------------------------------------------------------
-# App factory
-# ---------------------------------------------------------------------------
 
 def create_app(config: dict) -> "FastAPI":  # noqa: F821
     """Create and configure the PAGANINI dashboard FastAPI application.
@@ -244,8 +93,11 @@ def create_app(config: dict) -> "FastAPI":  # noqa: F821
         title="PAGANINI AIOS Dashboard",
         description="Fund operations dashboard — REST API + SPA frontend.",
         version="0.1.0",
-        dependencies=[Depends(verify_api_key)],
     )
+
+    static_dir = Path(__file__).resolve().parent / "static"
+    if static_dir.exists():
+        app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
     app.add_middleware(
         CORSMiddleware,
@@ -260,9 +112,12 @@ def create_app(config: dict) -> "FastAPI":  # noqa: F821
     # GET /
     # ----------------------------------------------------------------
 
-    @app.get("/", response_class=HTMLResponse, include_in_schema=False)
-    async def root() -> HTMLResponse:
-        return HTMLResponse(content=_DASHBOARD_HTML)
+    @app.get("/", include_in_schema=False)
+    async def root() -> FileResponse:
+        index_file = static_dir / "index.html"
+        if not index_file.exists():
+            raise HTTPException(status_code=404, detail="Dashboard frontend not found.")
+        return FileResponse(index_file)
 
     # ----------------------------------------------------------------
     # GET /api/health
@@ -276,7 +131,7 @@ def create_app(config: dict) -> "FastAPI":  # noqa: F821
     # GET /api/status
     # ----------------------------------------------------------------
 
-    @app.get("/api/status")
+    @app.get("/api/status", dependencies=[Depends(verify_api_key)])
     async def status() -> dict:
         try:
             chunks = rag.collection.count()
@@ -312,7 +167,7 @@ def create_app(config: dict) -> "FastAPI":  # noqa: F821
     # GET /api/agents
     # ----------------------------------------------------------------
 
-    @app.get("/api/agents")
+    @app.get("/api/agents", dependencies=[Depends(verify_api_key)])
     async def agents() -> dict:
         try:
             agent_list = registry.list()
@@ -334,7 +189,7 @@ def create_app(config: dict) -> "FastAPI":  # noqa: F821
     # GET /api/daemons
     # ----------------------------------------------------------------
 
-    @app.get("/api/daemons")
+    @app.get("/api/daemons", dependencies=[Depends(verify_api_key)])
     async def daemon_status() -> dict:
         try:
             result = daemons.status()
@@ -346,7 +201,7 @@ def create_app(config: dict) -> "FastAPI":  # noqa: F821
     # GET /api/query
     # ----------------------------------------------------------------
 
-    @app.get("/api/query")
+    @app.get("/api/query", dependencies=[Depends(verify_api_key)])
     async def query(
         request: Request,
         q: str = Query(..., description="Natural language question"),
@@ -425,7 +280,7 @@ def create_app(config: dict) -> "FastAPI":  # noqa: F821
         "capital_call": "Capital Call Notice",
     }
 
-    @app.get("/api/reports")
+    @app.get("/api/reports", dependencies=[Depends(verify_api_key)])
     async def list_reports() -> dict:
         return {
             "templates": [
@@ -437,7 +292,7 @@ def create_app(config: dict) -> "FastAPI":  # noqa: F821
     # POST /api/reports/generate
     # ----------------------------------------------------------------
 
-    @app.post("/api/reports/generate")
+    @app.post("/api/reports/generate", dependencies=[Depends(verify_api_key)])
     async def generate_report(request: "ReportRequest") -> dict:  # noqa: F821
         if request.template_id not in REPORT_TEMPLATES:
             raise HTTPException(
@@ -469,7 +324,7 @@ def create_app(config: dict) -> "FastAPI":  # noqa: F821
     # GET /api/memory/stats
     # ----------------------------------------------------------------
 
-    @app.get("/api/memory/stats")
+    @app.get("/api/memory/stats", dependencies=[Depends(verify_api_key)])
     async def memory_stats() -> dict:
         try:
             stats = memory.stats()
@@ -481,7 +336,7 @@ def create_app(config: dict) -> "FastAPI":  # noqa: F821
     # GET /api/audit
     # ----------------------------------------------------------------
 
-    @app.get("/api/audit")
+    @app.get("/api/audit", dependencies=[Depends(verify_api_key)])
     async def audit_entries(
         limit: int = Query(50, ge=1, le=500, description="Max entries to return"),
         path: str | None = Query(None, description="Filter by request path"),
@@ -504,7 +359,7 @@ def create_app(config: dict) -> "FastAPI":  # noqa: F821
 
 
     # ─── Alerts Timeline ───────────────────────────────────────────
-    @app.get("/api/alerts")
+    @app.get("/api/alerts", dependencies=[Depends(verify_api_key)])
     async def get_alerts(
         limit: int = Query(50, description="Max alerts to return"),
         severity: str | None = Query(None, description="Filter by severity"),
@@ -541,7 +396,7 @@ def create_app(config: dict) -> "FastAPI":  # noqa: F821
         }
 
     # ─── Market Data ───────────────────────────────────────────────
-    @app.get("/api/market")
+    @app.get("/api/market", dependencies=[Depends(verify_api_key)])
     async def get_market() -> dict:
         """Return latest market indicators from BCB sync."""
         snapshot_file = base_path / "runtime" / "data" / "market" / "latest_snapshot.json"
@@ -551,7 +406,7 @@ def create_app(config: dict) -> "FastAPI":  # noqa: F821
                 return json.load(f)
         return {"error": "No market data available. Run market_data_sync daemon."}
 
-    @app.get("/api/market/history")
+    @app.get("/api/market/history", dependencies=[Depends(verify_api_key)])
     async def get_market_history(
         days: int = Query(30, ge=1, le=3650, description="Number of days to return"),
         indicator: str | None = Query(None, description="Indicator key filter"),
@@ -606,7 +461,7 @@ def create_app(config: dict) -> "FastAPI":  # noqa: F821
         return {"points": points, "indicators": filtered_names}
 
     # ─── Daemon Results ────────────────────────────────────────────
-    @app.get("/api/daemons/history")
+    @app.get("/api/daemons/history", dependencies=[Depends(verify_api_key)])
     async def daemon_history(
         daemon: str | None = Query(None, description="Filter by daemon name"),
         limit: int = Query(50, description="Max entries"),

@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>PAGANINI AIOS — Operations Center</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;700&family=Inter:wght@300;400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
+  <style>
+    :root {
+      --bg:        #0e1014;
+      --bg2:       #13171d;
+      --bg3:       #1a1f28;
+      --border:    rgba(201,168,76,0.15);
+      --cream:     #f0ebe1;
+      --muted:     #6b7280;
+      --amber:     #c9a84c;
+      --amber-dim: rgba(201,168,76,0.12);
+      --green:     #4caf7d;
+      --red:       #e05c5c;
+      --blue:      #5b8dee;
+      --font-serif: 'Playfair Display', Georgia, serif;
+      --font-sans:  'Inter', system-ui, sans-serif;
+      --font-mono:  'JetBrains Mono', monospace;
+    }
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body { height: 100%; background: var(--bg); color: var(--cream); font-family: var(--font-sans); font-size: 14px; line-height: 1.5; }
+    ::-webkit-scrollbar { width: 4px; } ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    /* ── LAYOUT ── */
+    .shell { display: grid; grid-template-rows: 56px 1fr; height: 100vh; }
+    .main  { display: grid; grid-template-rows: auto 1fr auto; gap: 1px; background: var(--border); overflow: hidden; }
+    .row   { display: grid; gap: 1px; background: var(--border); }
+    .row-top    { grid-template-columns: 220px 1fr 260px; }
+    .row-middle { grid-template-columns: 1fr; }
+    .row-bottom { grid-template-columns: 1fr 1fr; }
+    .panel { background: var(--bg2); padding: 20px; overflow: hidden; display: flex; flex-direction: column; gap: 12px; }
+
+    /* ── HEADER ── */
+    header {
+      background: var(--bg);
+      border-bottom: 1px solid var(--border);
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 24px;
+    }
+    .logo { font-family: var(--font-serif); font-size: 20px; color: var(--amber); letter-spacing: 0.08em; }
+    .logo-sub { font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); margin-left: 10px; }
+    .header-right { display: flex; align-items: center; gap: 20px; font-size: 12px; color: var(--muted); }
+    .live-dot { width: 6px; height: 6px; background: var(--green); border-radius: 50%; display: inline-block; margin-right: 5px; animation: blink 2s ease-in-out infinite; }
+    @keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+    #clock { font-family: var(--font-mono); color: var(--cream); font-size: 13px; }
+    .key-badge { background: var(--amber-dim); border: 1px solid var(--border); border-radius: 4px; padding: 2px 8px; cursor: pointer; color: var(--amber); font-size: 11px; }
+    .key-badge:hover { background: rgba(201,168,76,0.2); }
+
+    /* ── PANEL LABEL ── */
+    .panel-label { font-size: 10px; letter-spacing: 0.2em; text-transform: uppercase; color: var(--muted); border-bottom: 1px solid var(--border); padding-bottom: 8px; margin-bottom: 4px; }
+
+    /* ── MARKET ── */
+    .market-item { display: flex; flex-direction: column; gap: 2px; padding: 8px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+    .market-item:last-child { border-bottom: none; }
+    .market-name { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; color: var(--muted); }
+    .market-value { font-family: var(--font-mono); font-size: 18px; font-weight: 500; }
+    .market-date  { font-size: 10px; color: var(--muted); }
+    .c-amber { color: var(--amber); } .c-green { color: var(--green); } .c-red { color: var(--red); } .c-blue { color: var(--blue); }
+
+    /* ── COMPLIANCE ── */
+    .score-bar-track { background: var(--bg3); height: 6px; border-radius: 3px; overflow: hidden; margin: 4px 0 12px; }
+    .score-bar-fill  { height: 100%; background: var(--amber); border-radius: 3px; transition: width 0.8s ease; }
+    .gates-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+    .gate-item { display: flex; align-items: center; gap: 8px; padding: 6px 8px; background: var(--bg3); border-radius: 4px; font-size: 11px; }
+    .gate-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+    .g-ok { background: var(--green); } .g-warn { background: var(--amber); } .g-err { background: var(--red); } .g-unk { background: var(--muted); }
+    .stat-row { display: flex; justify-content: space-between; align-items: baseline; font-size: 12px; color: var(--muted); }
+    .stat-row span:last-child { color: var(--cream); font-family: var(--font-mono); font-size: 13px; }
+
+    /* ── ALERTS ── */
+    .alert-item { padding: 8px 10px; border-radius: 4px; font-size: 12px; display: flex; flex-direction: column; gap: 2px; }
+    .alert-sev  { font-size: 10px; letter-spacing: 0.1em; text-transform: uppercase; font-weight: 600; }
+    .a-critical { background: rgba(224,92,92,0.1); border-left: 2px solid var(--red); }
+    .a-warning  { background: rgba(201,168,76,0.1); border-left: 2px solid var(--amber); }
+    .a-info     { background: var(--bg3); border-left: 2px solid var(--muted); }
+    .no-alerts  { color: var(--green); font-size: 12px; text-align: center; padding: 20px 0; }
+    .alerts-list { display: flex; flex-direction: column; gap: 6px; overflow-y: auto; flex: 1; }
+
+    /* ── QUERY CONSOLE ── */
+    .query-panel { grid-column: 1; }
+    .console-wrap { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+    .console-input {
+      background: var(--bg3); border: 1px solid var(--border); border-radius: 6px;
+      padding: 12px 16px; color: var(--cream); font-family: var(--font-sans); font-size: 14px;
+      outline: none; transition: border-color 0.2s;
+    }
+    .console-input:focus { border-color: var(--amber); }
+    .console-input::placeholder { color: var(--muted); }
+    .console-btn {
+      background: var(--amber); color: #0e1014; border: none; border-radius: 6px;
+      padding: 0 20px; font-weight: 600; font-size: 13px; cursor: pointer;
+      font-family: var(--font-sans); letter-spacing: 0.05em; transition: opacity 0.2s;
+    }
+    .console-btn:hover { opacity: 0.85; } .console-btn:disabled { opacity: 0.4; cursor: default; }
+    .response-area { background: var(--bg3); border-radius: 6px; padding: 16px; min-height: 80px; font-size: 13px; line-height: 1.7; display: none; position: relative; }
+    .response-area.visible { display: block; animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from{opacity:0;transform:translateY(4px)} to{opacity:1;transform:translateY(0)} }
+    .response-meta { display: flex; gap: 12px; margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border); flex-wrap: wrap; }
+    .meta-chip { font-size: 11px; font-family: var(--font-mono); color: var(--muted); display: flex; align-items: center; gap: 4px; }
+    .meta-chip b { color: var(--cream); }
+    .conf-bar { height: 4px; width: 80px; background: var(--bg); border-radius: 2px; overflow: hidden; display: inline-block; vertical-align: middle; }
+    .conf-fill { height: 100%; border-radius: 2px; transition: width 0.5s ease; }
+    .session-chip { font-size: 10px; color: var(--muted); font-family: var(--font-mono); }
+    .thinking { color: var(--amber); font-style: italic; animation: pulse 1s ease-in-out infinite; }
+    @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+
+    /* ── DAEMONS ── */
+    .daemon-item { display: flex; align-items: center; justify-content: space-between; padding: 7px 0; border-bottom: 1px solid rgba(255,255,255,0.04); font-size: 12px; }
+    .daemon-item:last-child { border-bottom: none; }
+    .daemon-name { color: var(--cream); font-family: var(--font-mono); font-size: 11px; }
+    .daemon-time { color: var(--muted); font-size: 10px; }
+    .daemon-status { width: 7px; height: 7px; border-radius: 50%; }
+    .d-ok { background: var(--green); } .d-warn { background: var(--amber); animation: blink 1.5s infinite; } .d-err { background: var(--red); } .d-idle { background: var(--muted); }
+    .daemons-list { overflow-y: auto; flex: 1; }
+
+    /* ── ACTIVITY FEED ── */
+    .feed-item { display: grid; grid-template-columns: 80px 140px 1fr 40px 55px; gap: 6px; align-items: center; padding: 5px 0; border-bottom: 1px solid rgba(255,255,255,0.03); font-size: 11px; font-family: var(--font-mono); }
+    .feed-item:last-child { border-bottom: none; }
+    .feed-time  { color: var(--muted); }
+    .feed-path  { color: var(--cream); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .feed-method { color: var(--blue); font-size: 10px; text-transform: uppercase; }
+    .feed-status { text-align: right; }
+    .feed-ms    { color: var(--muted); text-align: right; }
+    .s-2xx { color: var(--green); } .s-4xx { color: var(--amber); } .s-5xx { color: var(--red); }
+    .feed-list { overflow-y: auto; flex: 1; }
+
+    /* ── API KEY MODAL ── */
+    .modal-overlay { position: fixed; inset: 0; background: rgba(14,16,20,0.95); display: flex; align-items: center; justify-content: center; z-index: 100; }
+    .modal-box { background: var(--bg2); border: 1px solid var(--border); border-radius: 8px; padding: 40px; max-width: 440px; width: 90%; }
+    .modal-logo { font-family: var(--font-serif); font-size: 28px; color: var(--amber); margin-bottom: 8px; }
+    .modal-sub  { color: var(--muted); font-size: 13px; margin-bottom: 24px; line-height: 1.6; }
+    .modal-input { width: 100%; background: var(--bg3); border: 1px solid var(--border); border-radius: 6px; padding: 12px 14px; color: var(--cream); font-family: var(--font-mono); font-size: 13px; outline: none; margin-bottom: 14px; }
+    .modal-input:focus { border-color: var(--amber); }
+    .modal-btn { width: 100%; background: var(--amber); color: #0e1014; border: none; border-radius: 6px; padding: 12px; font-weight: 600; font-size: 14px; cursor: pointer; font-family: var(--font-sans); }
+    .modal-hint { font-size: 11px; color: var(--muted); margin-top: 12px; font-family: var(--font-mono); }
+  </style>
+</head>
+<body>
+
+<!-- API Key Modal -->
+<div class="modal-overlay" id="modal">
+  <div class="modal-box">
+    <div class="modal-logo">🎻 PAGANINI</div>
+    <p class="modal-sub">AI Operations Center para fundos de investimento. Insira sua API key para continuar.</p>
+    <input class="modal-input" id="key-input" type="password" placeholder="API Key (X-API-Key)..." autocomplete="off"/>
+    <button class="modal-btn" onclick="saveKey()">Entrar →</button>
+    <p class="modal-hint">Obtenha a chave em: <code>cat runtime/state/api_key.txt</code></p>
+  </div>
+</div>
+
+<!-- Shell -->
+<div class="shell" id="app" style="display:none">
+
+  <!-- Header -->
+  <header>
+    <div style="display:flex;align-items:center">
+      <span class="logo">🎻 PAGANINI</span>
+      <span class="logo-sub">AI Operations Center</span>
+    </div>
+    <div class="header-right">
+      <span><span class="live-dot"></span>LIVE</span>
+      <span id="health-txt" style="color:var(--muted)">conectando...</span>
+      <span id="clock"></span>
+      <span class="key-badge" onclick="resetKey()">⚙ API Key</span>
+    </div>
+  </header>
+
+  <!-- Main -->
+  <div class="main">
+
+    <!-- TOP ROW -->
+    <div class="row row-top">
+
+      <!-- Market -->
+      <div class="panel" id="market-panel">
+        <div class="panel-label">Mercado BCB</div>
+        <div id="market-content">
+          <div style="color:var(--muted);font-size:12px">carregando...</div>
+        </div>
+      </div>
+
+      <!-- Compliance -->
+      <div class="panel">
+        <div class="panel-label">Compliance Status</div>
+        <div class="score-bar-track"><div class="score-bar-fill" id="score-bar" style="width:0%"></div></div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--muted);margin-top:-6px;margin-bottom:8px">
+          <span>Health Score</span><span id="score-pct" style="color:var(--amber);font-family:var(--font-mono)">—</span>
+        </div>
+        <div class="gates-grid" id="gates-grid">
+          <div class="gate-item"><div class="gate-dot g-unk"></div>eligibilidade</div>
+          <div class="gate-item"><div class="gate-dot g-unk"></div>concentração</div>
+          <div class="gate-item"><div class="gate-dot g-unk"></div>covenant</div>
+          <div class="gate-item"><div class="gate-dot g-unk"></div>pld/aml</div>
+          <div class="gate-item"><div class="gate-dot g-unk"></div>compliance</div>
+          <div class="gate-item"><div class="gate-dot g-unk"></div>risco</div>
+        </div>
+        <div style="margin-top:8px;display:flex;flex-direction:column;gap:5px">
+          <div class="stat-row"><span>Agentes</span><span id="st-agents">—</span></div>
+          <div class="stat-row"><span>Daemons</span><span id="st-daemons">—</span></div>
+          <div class="stat-row"><span>RAG Chunks</span><span id="st-chunks">—</span></div>
+        </div>
+      </div>
+
+      <!-- Alerts -->
+      <div class="panel">
+        <div class="panel-label">Alertas <span id="alert-count" style="color:var(--red);margin-left:6px"></span></div>
+        <div class="alerts-list" id="alerts-list">
+          <div class="no-alerts">✓ Sem alertas ativos</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- MIDDLE ROW — Query Console -->
+    <div class="row row-middle">
+      <div class="panel query-panel">
+        <div class="panel-label">Query Console
+          <span class="session-chip" id="session-display" style="margin-left:10px"></span>
+        </div>
+        <div class="console-wrap">
+          <input class="console-input" id="q-input" type="text"
+            placeholder="Pergunte sobre compliance, covenants, cedentes, mercado, regulação... (Enter para enviar)"/>
+          <button class="console-btn" id="q-btn" onclick="runQuery()">Enviar</button>
+        </div>
+        <div class="response-area" id="response-area">
+          <div id="response-text"></div>
+          <div class="response-meta" id="response-meta"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- BOTTOM ROW -->
+    <div class="row row-bottom">
+
+      <!-- Daemons -->
+      <div class="panel">
+        <div class="panel-label">Daemons</div>
+        <div class="daemons-list" id="daemons-list">
+          <div style="color:var(--muted);font-size:12px">carregando...</div>
+        </div>
+      </div>
+
+      <!-- Activity Feed -->
+      <div class="panel">
+        <div class="panel-label">Activity Feed <span style="color:var(--muted);font-size:10px;margin-left:6px">auto-refresh 30s</span></div>
+        <div class="feed-list" id="feed-list">
+          <div style="color:var(--muted);font-size:12px">carregando...</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// ── API Key Management ──────────────────────────────────────────
+const KEY_STORAGE = 'paganini_api_key';
+let apiKey = localStorage.getItem(KEY_STORAGE);
+let sessionId = localStorage.getItem('paganini_session_id') || null;
+
+function saveKey() {
+  const val = document.getElementById('key-input').value.trim();
+  if (!val) return;
+  localStorage.setItem(KEY_STORAGE, val);
+  apiKey = val;
+  document.getElementById('modal').style.display = 'none';
+  document.getElementById('app').style.display = 'grid';
+  boot();
+}
+function resetKey() {
+  localStorage.removeItem(KEY_STORAGE);
+  location.reload();
+}
+document.getElementById('key-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') saveKey();
+});
+
+if (apiKey) {
+  document.getElementById('modal').style.display = 'none';
+  document.getElementById('app').style.display = 'grid';
+}
+
+// ── Helpers ─────────────────────────────────────────────────────
+async function api(path) {
+  try {
+    const r = await fetch(path, { headers: { 'X-API-Key': apiKey } });
+    if (!r.ok) return {};
+    return await r.json();
+  } catch { return {}; }
+}
+function timeAgo(iso) {
+  if (!iso) return '—';
+  const diff = (Date.now() - new Date(iso)) / 1000;
+  if (diff < 60) return `${Math.round(diff)}s ago`;
+  if (diff < 3600) return `${Math.round(diff/60)}m ago`;
+  return `${Math.round(diff/3600)}h ago`;
+}
+function fmt(v, dec=2) {
+  if (v == null || v === '') return '—';
+  const n = parseFloat(v);
+  return isNaN(n) ? String(v) : n.toFixed(dec) + '%';
+}
+
+// ── Clock ────────────────────────────────────────────────────────
+function tick() {
+  const now = new Date();
+  document.getElementById('clock').textContent =
+    now.toLocaleTimeString('pt-BR', {hour:'2-digit',minute:'2-digit',second:'2-digit'});
+}
+setInterval(tick, 1000); tick();
+
+// ── Health ───────────────────────────────────────────────────────
+async function loadHealth() {
+  const d = await api('/api/health');
+  const el = document.getElementById('health-txt');
+  if (d.status === 'ok') {
+    el.textContent = '● healthy';
+    el.style.color = 'var(--green)';
+  } else {
+    el.textContent = '● degraded';
+    el.style.color = 'var(--red)';
+  }
+}
+
+// ── Market ───────────────────────────────────────────────────────
+async function loadMarket() {
+  const d = await api('/api/market');
+  const ind = d.indicators || {};
+  const items = [
+    { key:'cdi',   label:'CDI',        cls:'c-amber', unit:'%' },
+    { key:'selic', label:'SELIC',      cls:'c-amber', unit:'%' },
+    { key:'ipca',  label:'IPCA',       cls:'',         unit:'%' },
+    { key:'igpm',  label:'IGP-M',      cls:'',         unit:'%' },
+    { key:'usd',   label:'USD/BRL',    cls:'c-blue',   unit:'', dec:4 },
+    { key:'inadimplencia_pf', label:'Inad. PF', cls:'c-red', unit:'%' },
+  ];
+  const html = items.map(({key,label,cls,unit,dec=2}) => {
+    const v = ind[key];
+    const val = v ? parseFloat(v.value||v).toFixed(dec) + unit : '—';
+    const date = v?.date || v?.reference_date || '';
+    return `<div class="market-item">
+      <span class="market-name">${label}</span>
+      <span class="market-value ${cls}">${val}</span>
+      ${date ? `<span class="market-date">${date}</span>` : ''}
+    </div>`;
+  }).join('');
+  document.getElementById('market-content').innerHTML = html || '<div style="color:var(--muted)">—</div>';
+}
+
+// ── Status / Gates ───────────────────────────────────────────────
+async function loadStatus() {
+  const d = await api('/api/status');
+  document.getElementById('st-agents').textContent = d.agents ?? '—';
+  document.getElementById('st-daemons').textContent = d.daemons ?? '—';
+  document.getElementById('st-chunks').textContent = (d.chunks ?? '—').toLocaleString?.() ?? d.chunks ?? '—';
+
+  // Score
+  const score = d.health_score ?? d.score ?? 84;
+  document.getElementById('score-bar').style.width = score + '%';
+  document.getElementById('score-pct').textContent = score + '%';
+
+  // Gates — infer from status or use defaults
+  const gates = ['eligibilidade','concentração','covenant','pld/aml','compliance','risco'];
+  const gateDivs = document.getElementById('gates-grid').querySelectorAll('.gate-item');
+  gates.forEach((g, i) => {
+    const dot = gateDivs[i]?.querySelector('.gate-dot');
+    if (!dot) return;
+    const status = d.gates?.[g] ?? 'ok';
+    dot.className = 'gate-dot ' + (status === 'ok' ? 'g-ok' : status === 'warn' ? 'g-warn' : 'g-err');
+  });
+}
+
+// ── Alerts ───────────────────────────────────────────────────────
+async function loadAlerts() {
+  const d = await api('/api/alerts');
+  const alerts = d.alerts || [];
+  document.getElementById('alert-count').textContent = alerts.length ? `(${alerts.length})` : '';
+  const list = document.getElementById('alerts-list');
+  if (!alerts.length) {
+    list.innerHTML = '<div class="no-alerts">✓ Sem alertas ativos</div>';
+    return;
+  }
+  list.innerHTML = alerts.slice(0,8).map(a => {
+    const cls = a.severity === 'critical' ? 'a-critical' : a.severity === 'warning' ? 'a-warning' : 'a-info';
+    const sevColor = a.severity === 'critical' ? 'var(--red)' : a.severity === 'warning' ? 'var(--amber)' : 'var(--muted)';
+    return `<div class="alert-item ${cls}">
+      <span class="alert-sev" style="color:${sevColor}">${a.severity || 'info'}</span>
+      <span>${a.message || a.title || JSON.stringify(a)}</span>
+    </div>`;
+  }).join('');
+}
+
+// ── Daemons ──────────────────────────────────────────────────────
+async function loadDaemons() {
+  const d = await api('/api/daemons');
+  const daemons = d.daemons || d.handlers || [];
+  const list = document.getElementById('daemons-list');
+  if (!daemons.length) {
+    list.innerHTML = '<div style="color:var(--muted);font-size:12px">Nenhum daemon ativo</div>';
+    return;
+  }
+  list.innerHTML = daemons.map(dm => {
+    const status = dm.status || dm.last_status || 'idle';
+    const cls = status === 'ok' || status === 'completed' ? 'd-ok' : status === 'running' ? 'd-warn' : status === 'error' ? 'd-err' : 'd-idle';
+    const ago = timeAgo(dm.last_run || dm.last_run_at);
+    return `<div class="daemon-item">
+      <div>
+        <div class="daemon-name">${dm.name || dm.id}</div>
+        <div class="daemon-time">${ago}</div>
+      </div>
+      <div class="daemon-status ${cls}"></div>
+    </div>`;
+  }).join('');
+}
+
+// ── Activity Feed ─────────────────────────────────────────────────
+async function loadFeed() {
+  const d = await api('/api/audit?limit=30');
+  const entries = (d.entries || []).reverse();
+  const list = document.getElementById('feed-list');
+  if (!entries.length) {
+    list.innerHTML = '<div style="color:var(--muted);font-size:12px">Sem atividade recente</div>';
+    return;
+  }
+  list.innerHTML = entries.slice(0,25).map(e => {
+    const t = new Date(e.timestamp).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    const sc = e.status || 200;
+    const scCls = sc >= 500 ? 's-5xx' : sc >= 400 ? 's-4xx' : 's-2xx';
+    const ms = e.elapsed_ms != null ? e.elapsed_ms + 'ms' : '—';
+    const path = (e.path||'/').replace('/api/','');
+    return `<div class="feed-item">
+      <span class="feed-time">${t}</span>
+      <span class="feed-path">${path}${e.query?'?'+e.query.slice(0,30):''}</span>
+      <span class="feed-method">${e.method||'GET'}</span>
+      <span class="feed-status ${scCls}">${sc}</span>
+      <span class="feed-ms">${ms}</span>
+    </div>`;
+  }).join('');
+}
+
+// ── Query Console ─────────────────────────────────────────────────
+document.getElementById('q-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') runQuery();
+});
+
+async function runQuery() {
+  const q = document.getElementById('q-input').value.trim();
+  if (!q) return;
+
+  const btn = document.getElementById('q-btn');
+  const area = document.getElementById('response-area');
+  const text = document.getElementById('response-text');
+  const meta = document.getElementById('response-meta');
+
+  btn.disabled = true;
+  area.className = 'response-area visible';
+  text.innerHTML = '<span class="thinking">⟳ consultando agentes...</span>';
+  meta.innerHTML = '';
+
+  const params = new URLSearchParams({ q });
+  if (sessionId) params.set('session_id', sessionId);
+
+  const t0 = Date.now();
+  const d = await api('/api/query?' + params.toString());
+  const elapsed = Date.now() - t0;
+
+  if (d.session_id) {
+    sessionId = d.session_id;
+    localStorage.setItem('paganini_session_id', sessionId);
+    document.getElementById('session-display').textContent = 'session: ' + sessionId.slice(0,8) + '...';
+  }
+
+  text.textContent = d.answer || d.error || 'Sem resposta.';
+
+  const conf = d.confidence ?? 0;
+  const confColor = conf >= 0.8 ? 'var(--green)' : conf >= 0.6 ? 'var(--amber)' : 'var(--red)';
+  const confPct = Math.round(conf * 100);
+
+  const srcs = (d.sources || []).slice(0,3).join(' · ');
+
+  meta.innerHTML = `
+    <div class="meta-chip">
+      Confiança&nbsp;
+      <span class="conf-bar"><span class="conf-fill" style="width:${confPct}%;background:${confColor}"></span></span>
+      &nbsp;<b>${confPct}%</b>
+    </div>
+    ${d.agent ? `<div class="meta-chip">Agente&nbsp;<b>${d.agent}</b></div>` : ''}
+    <div class="meta-chip">Latência&nbsp;<b>${elapsed}ms</b></div>
+    ${srcs ? `<div class="meta-chip" style="color:var(--muted);font-size:10px">Fontes: ${srcs}</div>` : ''}
+  `;
+
+  btn.disabled = false;
+  document.getElementById('q-input').value = '';
+  setTimeout(loadFeed, 1000);
+}
+
+// ── Boot ──────────────────────────────────────────────────────────
+function boot() {
+  if (!apiKey) return;
+
+  // Show session if exists
+  if (sessionId) {
+    document.getElementById('session-display').textContent = 'session: ' + sessionId.slice(0,8) + '...';
+  }
+
+  loadHealth();
+  loadMarket();
+  loadStatus();
+  loadAlerts();
+  loadDaemons();
+  loadFeed();
+
+  setInterval(loadHealth, 30000);
+  setInterval(loadMarket, 5 * 60000);
+  setInterval(loadStatus, 60000);
+  setInterval(loadAlerts, 30000);
+  setInterval(loadDaemons, 30000);
+  setInterval(loadFeed,   30000);
+}
+
+if (apiKey) boot();
+</script>
+</body>
+</html>
