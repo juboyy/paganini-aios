@@ -21,10 +21,11 @@ logger = logging.getLogger(__name__)
 # Optional dependency guard — FastAPI + Uvicorn are not in pyproject.toml
 # ---------------------------------------------------------------------------
 try:
-    from fastapi import FastAPI, HTTPException, Query
+    from fastapi import Depends, FastAPI, HTTPException, Query
     from fastapi.middleware.cors import CORSMiddleware
     from fastapi.responses import HTMLResponse, JSONResponse
     from pydantic import BaseModel
+    from packages.dashboard.auth import get_api_key, verify_api_key
 
     _FASTAPI_AVAILABLE = True
 except ImportError:  # pragma: no cover
@@ -237,6 +238,7 @@ def create_app(config: dict) -> "FastAPI":  # noqa: F821
         title="PAGANINI AIOS Dashboard",
         description="Fund operations dashboard — REST API + SPA frontend.",
         version="0.1.0",
+        dependencies=[Depends(verify_api_key)],
     )
 
     app.add_middleware(

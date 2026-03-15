@@ -1,0 +1,17 @@
+[Unit]
+Description=PAGANINI AIOS — Run all scheduled daemons (one-shot)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=ubuntu
+WorkingDirectory=/home/ubuntu/paganini-aios
+EnvironmentFile=-/home/ubuntu/paganini-aios/runtime/state/env
+ExecStart=/home/ubuntu/paganini-aios/.venv/bin/python3 -m packages.kernel.daemons --run-all
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=paganini-daemons
+
+[Install]
+WantedBy=multi-user.target

@@ -1,0 +1,22 @@
+[Unit]
+Description=PAGANINI AIOS — Dashboard web server
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=ubuntu
+WorkingDirectory=/home/ubuntu/paganini-aios
+EnvironmentFile=-/home/ubuntu/paganini-aios/runtime/state/env
+ExecStart=/home/ubuntu/paganini-aios/.venv/bin/uvicorn packages.dashboard.app:app \
+    --host 0.0.0.0 \
+    --port 8000 \
+    --log-level info
+Restart=always
+RestartSec=5
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=paganini-dashboard
+
+[Install]
+WantedBy=multi-user.target

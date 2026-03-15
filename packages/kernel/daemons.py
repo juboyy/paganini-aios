@@ -681,6 +681,21 @@ class DaemonRunner:
                 executed.append(name)
         return executed
 
+    def run_all(self) -> list[str]:
+        """Run all registered daemons once regardless of schedule.
+
+        Returns list of daemon names executed.
+        Used by the systemd one-shot service (--run-all flag).
+        """
+        executed: list[str] = []
+        for name in list(self._tasks.keys()):
+            if name not in self._handlers:
+                continue
+            logger.info("run_all: executing daemon %s", name)
+            self.run_once(name)
+            executed.append(name)
+        return executed
+
     def run_loop(self, interval: int = 60) -> None:
         """
         Blocking infinite loop — calls run_due() every `interval` seconds.
@@ -731,3 +746,61 @@ class DaemonRunner:
                     continue
 
         return records[-limit:]
+
+
+# ---------------------------------------------------------------------------
+# CLI entry point — supports --run-all for systemd one-shot mode
+# ---------------------------------------------------------------------------
+
+def main() -> None:
+    """CLI entry point for running all daemons once (used by systemd service)."""
+    import argparse
+    import sys
+
+    parser = argparse.ArgumentParser(
+        prog="python3 -m packages.kernel.daemons",
+        description="PAGANINI AIOS daemon runner",
+    )
+    parser.add_argument(
+        "--run-all",
+        action="store_true",
+        help="Run all registered daemons once and exit (one-shot mode).",
+    )
+    parser.add_argument(
+        "--loop",
+        action="store_true",
+        help="Run in continuous loop mode (blocking).",
+    )
+    parser.add_argument(
+        "--config",
+        default="daemons.yaml",
+        help="Path to daemons YAML config (default: daemons.yaml).",
+    )
+    args = parser.parse_args()
+
+    # Load config
+    config_path = Path(args.config)
+    if config_path.exists():
+        with config_path.open() as fh:
+            cfg = yaml.safe_load(fh) or {}
+    else:
+        cfg = {}
+
+    runner = DaemonRunner(cfg)
+
+    if args.run_all:
+        logging.basicConfig(level=logging.INFO)
+        logger.info("--run-all: running all registered daemons once")
+        executed = runner.run_all()
+        print(f"Executed {len(executed)} daemon(s): {executed}")
+        sys.exit(0)
+    elif args.loop:
+        logging.basicConfig(level=logging.INFO)
+        runner.run_loop()
+    else:
+        parser.print_help()
+        sys.exit(0)
+
+
+if __name__ == "__main__":
+    main()
