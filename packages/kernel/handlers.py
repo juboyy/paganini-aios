@@ -13,7 +13,6 @@ import hashlib
 import json
 import logging
 import os
-import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -167,7 +166,7 @@ def _strip_tags(text: str) -> str:
     return clean.strip()
 
 
-FIDC_KEYWORDS = [
+FUND_KEYWORDS = [
     "fidc", "fundo de investimento em direitos creditórios",
     "securitização", "cvm 175", "resolução cvm", "direitos creditórios",
     "custodiante", "cedente", "pdd", "inadimplência",
@@ -186,12 +185,12 @@ def _classify_relevance(item: dict) -> dict:
 
     score = 0.0
     matched = []
-    for kw in FIDC_KEYWORDS:
+    for kw in FUND_KEYWORDS:
         if kw in text:
             score += 1.0
             matched.append(kw)
 
-    # Normalize: max possible = len(FIDC_KEYWORDS)
+    # Normalize: max possible = len(FUND_KEYWORDS)
     score = min(score / 4.0, 1.0)  # 4 keywords = max score
 
     if score >= 0.75:
@@ -755,7 +754,7 @@ def self_audit(config: dict) -> dict:
     # 6. Guardrails import check
     try:
         from packages.shared.guardrails import GuardrailPipeline
-        gp = GuardrailPipeline(config)
+        GuardrailPipeline(config)
         checks.append({"component": "guardrails", "status": "ok"})
     except Exception as exc:
         checks.append({"component": "guardrails", "status": "error", "error": str(exc)})

@@ -1,14 +1,10 @@
 """PAGANINI RAG Pipeline — Modular, swappable retrieval system."""
 
 import hashlib
-import json
-import os
 import re
 from pathlib import Path
-from typing import Optional
 
 import chromadb
-import yaml
 
 from packages.rag.bm25 import BM25Index
 
@@ -243,7 +239,7 @@ class RAGPipeline:
             )
         context = "\n\n---\n\n".join(context_parts)
 
-        system_prompt = """Você é um especialista em FIDC (Fundos de Investimento em Direitos Creditórios) e regulamentação CVM.
+        system_prompt = """Você é um especialista em fundos de investimento em direitos creditórios e regulamentação CVM.
 
 Regras:
 1. Responda APENAS com base no contexto fornecido

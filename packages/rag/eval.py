@@ -6,15 +6,13 @@ It measures ground truth. pipeline.py changes; eval.py stays fixed.
 
 import json
 import time
-from pathlib import Path
-from typing import Optional
 
 from packages.rag.pipeline import RAGPipeline
 
 
 def load_eval_set(path: str = "eval_questions.jsonl") -> list[dict]:
     """Load gold Q&A pairs.
-    
+
     Format: {"question": "...", "expected": "...", "sources": ["file1.md"], "category": "regulatorio"}
     """
     entries = []
@@ -45,7 +43,7 @@ def recall(retrieved_sources: list[str], expected_sources: list[str]) -> float:
 
 def answer_contains_key_facts(answer_text: str, expected_text: str) -> float:
     """Simple keyword overlap score between answer and expected.
-    
+
     Not a substitute for LLM-as-judge, but a fast automated check.
     """
     if not expected_text:
@@ -67,12 +65,12 @@ def answer_contains_key_facts(answer_text: str, expected_text: str) -> float:
 def run_eval(pipeline: RAGPipeline, eval_path: str = "eval_questions.jsonl",
              llm_fn=None, top_k: int = 5) -> dict:
     """Run full evaluation suite.
-    
+
     Returns metrics dict with per-question and aggregate scores.
     """
     eval_set = load_eval_set(eval_path)
     results = []
-    
+
     for entry in eval_set:
         question = entry["question"]
         expected = entry.get("expected", "")
@@ -109,7 +107,8 @@ def run_eval(pipeline: RAGPipeline, eval_path: str = "eval_questions.jsonl",
 
     # Aggregate
     n = len(results)
-    avg = lambda key: sum(r[key] for r in results) / n if n else 0
+    def avg(key):
+        return sum(r[key] for r in results) / n if n else 0
 
     metrics = {
         "total_questions": n,
@@ -140,7 +139,7 @@ def run_eval(pipeline: RAGPipeline, eval_path: str = "eval_questions.jsonl",
 def print_report(metrics: dict):
     """Print a human-readable eval report."""
     print(f"\n{'='*60}")
-    print(f"  PAGANINI RAG Evaluation Report")
+    print("  PAGANINI RAG Evaluation Report")
     print(f"{'='*60}")
     print(f"  Questions:       {metrics['total_questions']}")
     print(f"  Precision@5:     {metrics['avg_precision_at_k']:.2%}")
@@ -176,4 +175,4 @@ if __name__ == "__main__":
     # Save results
     with open("eval_results.json", "w") as f:
         json.dump(metrics, f, indent=2, ensure_ascii=False)
-    print(f"Results saved to eval_results.json")
+    print("Results saved to eval_results.json")

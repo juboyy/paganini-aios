@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import time
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable, Optional
@@ -20,7 +19,6 @@ from packages.kernel.handlers import (
     reconciliation as _real_reconciliation,
     memory_reflection as _real_memory_reflection,
     self_audit as _real_self_audit,
-    AlertDispatcher,
 )
 
 logger = logging.getLogger(__name__)

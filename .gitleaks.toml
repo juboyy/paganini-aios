@@ -1,0 +1,11 @@
+title = "Paganini AIOS gitleaks config"
+
+[allowlist]
+description = "Allow sample/test data patterns"
+paths = [
+    '''data/sample/.*''',
+    '''tests/.*''',
+    '''scripts/security/.*''',
+    '''.pre-commit-config.yaml''',
+]
+regexTarget = "match"

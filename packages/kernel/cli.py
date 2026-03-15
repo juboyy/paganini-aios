@@ -210,7 +210,7 @@ def query(question, no_llm, top_k, verbose):
             if agent:
                 agent_context = f"\nVocê está atuando como o agente {agent.name}. {agent.role[:200]}\n"
 
-            system_prompt = f"""Você é um especialista em FIDC (Fundos de Investimento em Direitos Creditórios) e regulamentação CVM.
+            system_prompt = f"""Você é um especialista em fundos de investimento em direitos creditórios e regulamentação CVM.
 {agent_context}
 Regras:
 1. Responda APENAS com base no contexto fornecido
@@ -382,7 +382,7 @@ def status():
         rs = pipeline.status()
         console.print(f"  Chunks:    {rs['chunks_indexed']}")
     except Exception:
-        console.print(f"  Chunks:    [red]error[/]")
+        console.print("  Chunks:    [red]error[/]")
 
     # Corpus
     corpus = config.get("corpus_dir", "")
@@ -390,7 +390,7 @@ def status():
         files = list(Path(corpus).rglob("*.md"))
         console.print(f"  Corpus:    {len(files)} files")
     else:
-        console.print(f"  Corpus:    [yellow]not configured[/]")
+        console.print("  Corpus:    [yellow]not configured[/]")
 
     console.print()
 
@@ -594,7 +594,7 @@ def autoresearch(iterations, eval_set, verbose):
     except ImportError:
         console.print("[red]✗ AutoResearch module not found[/]")
         return
-    config = _load_config()
+    _load_config()
     console.print(Panel.fit(
         f"[bold cyan]AutoResearch[/] — {iterations} iterations\n"
         f"  Eval set: {eval_set}\n"

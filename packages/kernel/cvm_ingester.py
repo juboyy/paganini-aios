@@ -16,7 +16,6 @@ import csv
 import io
 import json
 import logging
-import os
 import re
 import urllib.parse
 import urllib.request
@@ -168,7 +167,7 @@ def fetch_daily_info(cnpj: str, months_back: int = 3) -> list[dict]:
 def fetch_portfolio_composition(cnpj: str, months_back: int = 1) -> list[dict]:
     """Fetch CDA (Composição e Diversificação das Aplicações).
 
-    Shows what assets the fund holds — for FIDCs this includes receivables data.
+    Shows what assets the fund holds — for credit receivable funds this includes receivables data.
     """
     clean = _clean_cnpj(cnpj)
     now = datetime.now(timezone.utc)
@@ -207,7 +206,7 @@ def build_fund_profile(cnpj: str) -> dict:
     needed for the POC without any client-provided data.
     """
     print(f"\n{'='*50}")
-    print(f"PAGANINI AIOS — CVM Data Ingestion")
+    print("PAGANINI AIOS — CVM Data Ingestion")
     print(f"CNPJ: {_format_cnpj(cnpj)}")
     print(f"{'='*50}\n")
 
@@ -225,11 +224,11 @@ def build_fund_profile(cnpj: str) -> dict:
         print(f"     Custódia: {reg['custodiante']}")
         print(f"     Situação: {reg['situacao']}")
     else:
-        print(f"  ❌ Fundo não encontrado no cadastro CVM")
+        print("  ❌ Fundo não encontrado no cadastro CVM")
         profile["cadastro"] = None
 
     # 2. Daily info (last 3 months)
-    print(f"\n[2/3] Informe Diário (últimos 3 meses)")
+    print("\n[2/3] Informe Diário (últimos 3 meses)")
     daily = fetch_daily_info(cnpj, months_back=3)
     if daily:
         latest = daily[-1]
@@ -249,11 +248,11 @@ def build_fund_profile(cnpj: str) -> dict:
         print(f"     Cota: R$ {latest['valor_cota']:,.6f}")
         print(f"     Cotistas: {latest['nr_cotistas']}")
     else:
-        print(f"  ⚠️ Sem dados no informe diário")
+        print("  ⚠️ Sem dados no informe diário")
         profile["informe_diario"] = None
 
     # 3. Portfolio composition
-    print(f"\n[3/3] Composição da Carteira (CDA)")
+    print("\n[3/3] Composição da Carteira (CDA)")
     portfolio = fetch_portfolio_composition(cnpj, months_back=1)
     if portfolio:
         total_val = sum(p["valor"] for p in portfolio)
@@ -276,7 +275,7 @@ def build_fund_profile(cnpj: str) -> dict:
             pct = val / total_val * 100 if total_val else 0
             print(f"     {tp}: R$ {val:,.2f} ({pct:.1f}%)")
     else:
-        print(f"  ⚠️ Sem dados de composição")
+        print("  ⚠️ Sem dados de composição")
         profile["carteira"] = None
 
     # Summary

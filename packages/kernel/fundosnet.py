@@ -9,7 +9,6 @@ Do NOT embed real CNPJ numbers in this module.
 from __future__ import annotations
 
 import logging
-import os
 from pathlib import Path
 from typing import Any
 

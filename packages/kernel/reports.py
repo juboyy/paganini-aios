@@ -5,11 +5,8 @@ Templates are markdown-based, rendered via the LLM.
 """
 from __future__ import annotations
 
-import json
-import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
 
 REPORT_TEMPLATES = {
     "informe-mensal": {
@@ -61,7 +58,7 @@ class ReportGenerator:
             f"# {template['name']}",
             f"**Fundo**: {fund_id}",
             f"**Data**: {now.strftime('%d/%m/%Y %H:%M UTC')}",
-            f"**Gerado por**: PAGANINI AIOS v0.1.0",
+            "**Gerado por**: PAGANINI AIOS v0.1.0",
             "",
         ]
 
@@ -78,14 +75,14 @@ class ReportGenerator:
                     prompt = (f"Gere a seção '{section_title}' de um {template['name']} "
                               f"com base no contexto:\n{context}")
                     try:
-                        content = llm_fn("Você é um especialista em relatórios regulatórios de FIDC.", prompt)
+                        content = llm_fn("Você é um especialista em relatórios regulatórios de fundos.", prompt)
                         report_lines.append(content)
                     except Exception:
                         report_lines.append(f"*Seção pendente — dados do fundo {fund_id} não disponíveis.*")
                 else:
-                    report_lines.append(f"*Sem dados no corpus para esta seção.*")
+                    report_lines.append("*Sem dados no corpus para esta seção.*")
             else:
-                report_lines.append(f"*Seção pendente — execute com --fund e API key configurada.*")
+                report_lines.append("*Seção pendente — execute com --fund e API key configurada.*")
 
             report_lines.append("")
 

@@ -30,7 +30,7 @@ try:
     from fastapi.responses import HTMLResponse, JSONResponse
     from pydantic import BaseModel
     from packages.dashboard.audit import AuditMiddleware, query_audit_log
-    from packages.dashboard.auth import get_api_key, verify_api_key
+    from packages.dashboard.auth import get_api_key, verify_api_key  # noqa: F401
 
     _FASTAPI_AVAILABLE = True
 except ImportError:  # pragma: no cover

@@ -10,28 +10,27 @@ A 'pack' is a domain knowledge bundle containing:
 from __future__ import annotations
 
 import json
-import shutil
 from pathlib import Path
 from typing import Optional
 
 # Available packs (would be fetched from aios.finance in production)
 PACK_REGISTRY = {
     "fidc-starter": {
-        "name": "FIDC Starter",
-        "description": "Core FIDC operations — 3 agents, basic skills",
+        "name": "Fund Starter",
+        "description": "Core fund operations — 3 agents, basic skills",
         "agents": ["administrador", "custodiante", "gestor"],
         "price": "R$2K/month",
         "tier": "starter",
     },
     "fidc-professional": {
-        "name": "FIDC Professional",
+        "name": "Fund Professional",
         "description": "Full regulatory coverage — 9 agents, 12 skills, reporting",
         "agents": ["administrador", "custodiante", "gestor", "compliance", "reporting", "due_diligence", "regulatory_watch", "investor_relations", "pricing"],
         "price": "R$8K/month",
         "tier": "professional",
     },
     "fidc-enterprise": {
-        "name": "FIDC Enterprise",
+        "name": "Fund Enterprise",
         "description": "Everything + SLA + custom agents and skills",
         "agents": ["administrador", "custodiante", "gestor", "compliance", "reporting", "due_diligence", "regulatory_watch", "investor_relations", "pricing"],
         "price": "R$25K/month",

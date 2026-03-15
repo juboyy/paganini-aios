@@ -7,7 +7,6 @@ Moltis is the AI gateway (Rust binary). This adapter:
 """
 
 import os
-import json
 import shutil
 import subprocess
 import time
@@ -85,7 +84,7 @@ class MoltisAdapter:
 
     def completion(self, model: str, messages: list, **kwargs) -> dict:
         """Route LLM call through Moltis gateway.
-        
+
         Uses OpenAI-compatible /v1/chat/completions endpoint.
         """
         try:
@@ -117,7 +116,7 @@ class MoltisAdapter:
 
 def get_llm_fn(config: dict):
     """Create LLM callable — routes through Moltis if available, falls back to litellm.
-    
+
     Architecture:
         paganini query → Moltis gateway → LLM provider (BYOK)
                               ↓
@@ -143,7 +142,7 @@ def get_llm_fn(config: dict):
                         ],
                     )
                     return result["choices"][0]["message"]["content"]
-                except Exception as e:
+                except Exception:
                     # Fallback to direct call
                     return _direct_llm_call(model, api_key, provider, system_prompt, user_prompt)
 

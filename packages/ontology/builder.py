@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import re
-import uuid
 from pathlib import Path
 
 from .schema import (
@@ -138,11 +137,11 @@ def _make_id(prefix: str, text: str) -> str:
 
 
 class OntologyBuilder:
-    """Extract entities and relations from FIDC domain markdown documents."""
+    """Extract entities and relations from fund domain markdown documents."""
 
     def extract_entities(self, text: str, source: str = "") -> list[Entity]:
         """
-        Scan *text* for FIDC domain patterns and return a deduplicated list
+        Scan *text* for fund domain patterns and return a deduplicated list
         of Entity objects.  *source* is the originating document path/name.
         """
         entities: dict[str, Entity] = {}

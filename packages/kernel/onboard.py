@@ -1,7 +1,7 @@
 """Paganini AIOS — Fund Onboarding Flow
 
 CLI commands for onboarding a real fund:
-  paganini onboard --name "FIDC XYZ" --regulation reg.pdf --cedentes ced.csv
+  paganini onboard --name "Fund XYZ" --regulation reg.pdf --cedentes ced.csv
   paganini onboard status
   paganini onboard validate
 
@@ -223,7 +223,7 @@ def onboard_init(name, regulation, cedentes, custody, covenants):
     click.echo(f"\n{'='*50}")
     click.echo(f"✅ Fundo '{name}' onboarded com sucesso!")
     click.echo(f"   Dir: {fund_dir}")
-    click.echo(f"\nPróximos passos:")
+    click.echo("\nPróximos passos:")
     click.echo(f"   paganini onboard status --fund {fund_dir.name}")
     click.echo(f"   paganini onboard validate --fund {fund_dir.name}")
     click.echo(f"   paganini daemons run --fund {fund_dir.name}")
@@ -247,7 +247,7 @@ def onboard_status(fund):
         click.echo(f"   Criado: {m['created_at']}")
         for k, v in m.get("stats", {}).items():
             click.echo(f"   {k}: {v}")
-        click.echo(f"\n   Arquivos:")
+        click.echo("\n   Arquivos:")
         for k, v in m.get("files", {}).items():
             click.echo(f"   • {k}: {v}")
     else:
@@ -305,23 +305,23 @@ def onboard_validate(fund):
         click.echo(f"   ✅ Regulamento: {len(text):,} chars")
         # Basic checks
         if "fidc" not in text.lower() and "fundo" not in text.lower():
-            issues.append("Regulamento não parece ser de FIDC")
+            issues.append("Regulamento não parece ser de fundo de investimento")
     else:
         issues.append("Sem regulamento processado")
 
     # Check covenants
     cov_path = fund_dir / "covenants.json"
     if cov_path.exists():
-        click.echo(f"   ✅ Covenants carregados")
+        click.echo("   ✅ Covenants carregados")
     else:
-        click.echo(f"   ℹ️ Sem covenants (opcional)")
+        click.echo("   ℹ️ Sem covenants (opcional)")
 
     if issues:
         click.echo(f"\n   ⚠️ {len(issues)} issue(s):")
         for i in issues:
             click.echo(f"   • {i}")
     else:
-        click.echo(f"\n   ✅ Validação OK — fundo pronto para operação")
+        click.echo("\n   ✅ Validação OK — fundo pronto para operação")
 
 
 
@@ -331,7 +331,7 @@ def onboard_validate(fund):
 def onboard_auto(cnpj):
     """Auto-onboard a fund using CVM public data. No client data needed."""
     base = _base()
-    click.echo(f"Onboarding via CVM dados abertos...")
+    click.echo("Onboarding via CVM dados abertos...")
     profile = build_fund_profile(cnpj)
     fund_dir = save_fund_profile(profile, str(base))
 

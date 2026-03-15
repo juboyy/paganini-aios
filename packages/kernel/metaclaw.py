@@ -15,7 +15,6 @@ Modes:
 import json
 import time
 from pathlib import Path
-from typing import Optional
 
 
 class Skill:
@@ -74,7 +73,7 @@ class MetaClawProxy:
 
     def enrich_query(self, query: str, context: str) -> str:
         """Enrich the LLM prompt with relevant skills.
-        
+
         Called BEFORE the LLM call. Injects skill knowledge into context.
         """
         if not self.enabled or not self.skills:
@@ -97,7 +96,7 @@ class MetaClawProxy:
     def learn_from_interaction(self, query: str, response: str,
                                chunks_used: list, confidence: float):
         """Post-interaction learning — potentially generates new skills.
-        
+
         Called AFTER successful LLM response. Decides if the interaction
         pattern is worth persisting as a reusable skill.
         """

@@ -1,9 +1,7 @@
 """PAGANINI Kernel — Config, LLM integration, and core engine."""
 
-import json
 import os
 from pathlib import Path
-from typing import Optional
 
 import yaml
 

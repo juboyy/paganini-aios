@@ -16,7 +16,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-import yaml
 
 # ---------------------------------------------------------------------------
 # Paths
@@ -125,7 +124,7 @@ def read_current_params() -> dict[str, Any]:
         re.MULTILINE,
     )
     for match in pattern.finditer(source):
-        attr, key, raw_default = match.group(1), match.group(2), match.group(3).strip()
+        _attr, key, raw_default = match.group(1), match.group(2), match.group(3).strip()
         if key in params:
             try:
                 # Evaluate the literal safely
@@ -476,7 +475,7 @@ def run_autoresearch(
 
         history = load_experiments()
 
-    log(f"\n── AutoResearch complete ──", verbose)
+    log("\n── AutoResearch complete ──", verbose)
     log(f"Best score: {best_score:.4f}", verbose)
     log(f"Best config saved to: {BEST_CONFIG_PATH}", verbose)
 
