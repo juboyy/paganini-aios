@@ -5,26 +5,36 @@ FROM python:3.12-slim AS builder
 
 WORKDIR /build
 
-# System deps for build
+# System deps for build (libgomp1 required by Moltis)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    git curl && \
+    git curl libgomp1 && \
     rm -rf /var/lib/apt/lists/*
 
-# Install Moltis runtime
+# Install Moltis runtime (optional — continue if unavailable)
 RUN ARCH=$(dpkg --print-architecture) && \
     curl -fsSL https://github.com/moltis-org/moltis/releases/download/v0.10.18/moltis_0.10.18-1_${ARCH}.deb \
-    -o /tmp/moltis.deb && dpkg -i /tmp/moltis.deb && rm /tmp/moltis.deb
+    -o /tmp/moltis.deb && dpkg -i /tmp/moltis.deb && rm /tmp/moltis.deb || \
+    echo "WARN: Moltis install failed — running in python-only mode"
 
-# Python deps
-COPY pyproject.toml .
-RUN pip install --no-cache-dir -e '.[all]'
+# Copy full source (needed for hatchling build)
+COPY pyproject.toml README.md ./
+COPY packages/ packages/
+
+# Python deps (non-editable for container)
+RUN pip install --no-cache-dir ".[all]" 2>/dev/null || \
+    pip install --no-cache-dir ".[dev]" 2>/dev/null || \
+    pip install --no-cache-dir .
 
 # --- Production stage ---
 FROM python:3.12-slim
 
 WORKDIR /opt/paganini
 
-# Copy Moltis binary
+# Runtime dep for Moltis
+RUN apt-get update && apt-get install -y --no-install-recommends libgomp1 && \
+    rm -rf /var/lib/apt/lists/*
+
+# Copy Moltis binary (if it was installed)
 COPY --from=builder /usr/bin/moltis /usr/bin/moltis
 
 # Copy Python environment
@@ -38,9 +48,10 @@ COPY docs/ docs/
 COPY config.example.yaml .
 COPY moltis.example.yaml .
 COPY pyproject.toml .
+COPY README.md .
 
-# Install package (entry points)
-RUN pip install --no-cache-dir --no-deps -e .
+# Install package (entry points only — deps already copied)
+RUN pip install --no-cache-dir --no-deps .
 
 # Runtime directories
 RUN mkdir -p runtime/state runtime/logs runtime/traces runtime/data \

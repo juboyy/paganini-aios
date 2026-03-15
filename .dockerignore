@@ -1,0 +1,12 @@
+.venv/
+.git/
+runtime/
+skills/
+data/corpus/
+*.pyc
+__pycache__/
+.pytest_cache/
+.ruff_cache/
+moltis.yaml
+.env
+*.egg-info/

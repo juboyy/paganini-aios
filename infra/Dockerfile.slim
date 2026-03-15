@@ -1,0 +1,50 @@
+# Dockerfile.slim — PAGANINI AIOS (CPU-only, sem torch)
+# Para produção sem MetaClaw RL mode
+# ~800MB vs 8GB da imagem full
+
+FROM python:3.12-slim
+
+WORKDIR /opt/paganini
+
+# Runtime dep for Moltis
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    libgomp1 curl && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install Moltis (optional)
+RUN ARCH=$(dpkg --print-architecture) && \
+    curl -fsSL https://github.com/moltis-org/moltis/releases/download/v0.10.18/moltis_0.10.18-1_${ARCH}.deb \
+    -o /tmp/moltis.deb && dpkg -i /tmp/moltis.deb && rm /tmp/moltis.deb || \
+    echo "WARN: Moltis not available"
+
+# Copy source
+COPY pyproject.toml README.md ./
+COPY packages/ packages/
+
+# Install WITHOUT torch/transformers (slim mode)
+RUN pip install --no-cache-dir \
+    "click>=8.0" "rich>=13.0" "pyyaml>=6.0" \
+    "litellm>=1.0" "chromadb>=1.0" "httpx>=0.27" \
+    fastapi "uvicorn[standard]" && \
+    pip install --no-cache-dir --no-deps .
+
+# App code
+COPY infra/ infra/
+COPY docs/ docs/
+COPY config.example.yaml .
+COPY moltis.example.yaml .
+
+# Runtime dirs + non-root user
+RUN mkdir -p runtime/state runtime/logs runtime/traces runtime/data \
+    data/corpus data/indexes skills/ \
+    && useradd -r -s /bin/false paganini \
+    && chown -R paganini:paganini /opt/paganini
+
+USER paganini
+
+HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
+    CMD paganini doctor || exit 1
+
+EXPOSE 8000 30000
+ENTRYPOINT ["paganini"]
+CMD ["status"]
