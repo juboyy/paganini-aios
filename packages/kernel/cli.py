@@ -681,3 +681,10 @@ cli.add_command(onboard_cli, "onboard")
 
 if __name__ == "__main__":
     cli()
+
+
+@cli.command("shell")
+def shell_cmd():
+    """Interactive terminal UI — query, monitor, manage without a browser."""
+    from packages.kernel.tui import run_shell
+    run_shell()
