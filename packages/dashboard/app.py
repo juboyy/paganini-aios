@@ -176,6 +176,46 @@ def create_app(config: dict) -> "FastAPI":  # noqa: F821
             raise HTTPException(status_code=500, detail=str(exc))
 
 
+
+    # ----------------------------------------------------------------
+    # GET /api/skills — MetaClaw learned skills
+    # ----------------------------------------------------------------
+    @app.get("/api/skills", dependencies=[Depends(verify_api_key)])
+    async def list_skills():
+        import json as _json
+        skills_dir = Path("runtime/skills")
+        skills = []
+        if skills_dir.exists():
+            for sf in sorted(skills_dir.glob("*.json")):
+                try:
+                    sd = _json.loads(sf.read_text())
+                    skills.append(sd)
+                except Exception:
+                    pass
+        return {"skills": skills, "total": len(skills), "metaclaw_enabled": config.get("metaclaw", {}).get("enabled", False)}
+
+
+    # ----------------------------------------------------------------
+    # GET /api/metaclaw — MetaClaw skill store
+    # ----------------------------------------------------------------
+    @app.get("/api/metaclaw", dependencies=[Depends(verify_api_key)])
+    async def metaclaw_skills():
+        import json as _json
+        skills_dir = Path("runtime/skills")
+        skills = []
+        if skills_dir.exists():
+            for sf in sorted(skills_dir.glob("*.json")):
+                try:
+                    skills.append(_json.loads(sf.read_text()))
+                except Exception:
+                    pass
+        return {
+            "enabled": config.get("metaclaw", {}).get("enabled", False),
+            "mode": config.get("metaclaw", {}).get("mode", "off"),
+            "skills": skills,
+            "total": len(skills),
+        }
+
     static_dir = Path(__file__).resolve().parent / "static"
     if static_dir.exists():
         app.mount("/static", StaticFiles(directory=static_dir), name="static")

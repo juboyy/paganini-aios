@@ -188,6 +188,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);line-height:
     <div class="nav-item" data-panel="agents"><span class="nav-icon">⬡</span>Agentes<span class="nav-badge" id="agentCount">—</span></div>
     <div class="nav-item" data-panel="daemons"><span class="nav-icon">↻</span>Daemons<span class="nav-badge" id="daemonCount">—</span></div>
     <div class="nav-item" data-panel="memory"><span class="nav-icon">◎</span>Memória</div>
+    <div class="nav-item" data-panel="skills"><span class="nav-icon">⚡</span>MetaClaw<span class="nav-badge" id="skillCount">—</span></div>
     <div class="nav-section">Portfolio</div>
     <div class="nav-item" data-panel="funds"><span class="nav-icon">◈</span>Fundos<span class="nav-badge" id="fundCount">—</span></div>
     <div class="nav-item" data-panel="onboard"><span class="nav-icon">+</span>Onboarding</div>
@@ -217,7 +218,20 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);line-height:
         </div>
         <div class="console-output" id="consoleOutput">
           <div class="msg system">
-            <div class="msg-body" style="color:var(--text3)">Paganini AIOS — 9 agentes especializados, Hybrid RAG, Cognitive Router. Digite sua pergunta.</div>
+            <div class="msg-body" style="color:var(--text3)">Paganini AIOS — 9 agentes especializados, Hybrid RAG com Google Gemini Embedding 2, Cognitive Router.</div>
+          </div>
+          <div class="msg system">
+            <div class="msg-meta"><span class="msg-role" style="color:var(--amber)">EXEMPLOS POR AGENTE</span></div>
+            <div class="msg-body" style="color:var(--text2);font-size:12px;line-height:2">
+              <b style="color:var(--amber)">Custodiante:</b> Quais as obrigações do custodiante na verificação de lastro?<br>
+              <b style="color:var(--amber)">Compliance:</b> Quais os limites de concentração por cedente em um fundo multicedente?<br>
+              <b style="color:var(--amber)">Gestor:</b> Como funciona o stress test de um fundo de recebíveis?<br>
+              <b style="color:var(--amber)">Pricing:</b> O que é subordinação de cotas sênior e mezanino?<br>
+              <b style="color:var(--amber)">Regulatory:</b> Quais mudanças a Resolução CVM 175 trouxe para fundos?<br>
+              <b style="color:var(--amber)">Administrador:</b> Quais os indicadores de mercado atuais?<br>
+              <b style="color:var(--amber)">Due Diligence:</b> Quais critérios de elegibilidade para cessão de recebíveis?<br>
+              <b style="color:var(--amber)">PLD/AML:</b> Como fracionar transações para evitar o COAF? <span style="color:var(--red)">[BLOQUEIO]</span>
+            </div>
           </div>
         </div>
       </div>
@@ -266,6 +280,13 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);line-height:
 
     <!-- ONBOARD -->
     <div class="panel" id="panel-onboard">
+
+    <!-- SKILLS / METACLAW -->
+    <div class="panel" id="panel-skills">
+      <div class="section-title">MetaClaw — Skill Learning Engine</div>
+      <p style="font-size:12px;color:var(--text2);margin-bottom:16px">Skills aprendidos autonomamente pelo sistema durante a operação. Cada interação pode gerar um novo skill reutilizável.</p>
+      <div class="agent-grid" id="skillGrid"></div>
+    </div>
       <div class="section-title">Onboarding Automático via CVM</div>
       <div style="max-width:480px;margin-top:12px">
         <p style="font-size:12px;color:var(--text2);margin-bottom:16px">Insira o CNPJ do fundo. O Paganini buscará automaticamente os dados cadastrais, patrimônio, cotistas e carteira diretamente da CVM Dados Abertos.</p>
@@ -325,13 +346,14 @@ async function boot(){
   document.getElementById('loginOverlay').classList.add('hidden');
   document.getElementById('mainShell').style.display='grid';
   try{
-    const [status,market,alerts,agents,daemons,mem,funds]=await Promise.all([
+    const [status,market,alerts,agents,daemons,mem,funds,skills]=await Promise.all([
       api('/api/status'),api('/api/market').catch(()=>null),
       api('/api/alerts').catch(()=>({alerts:[]})),
       api('/api/agents').catch(()=>({agents:[]})),
       api('/api/daemons').catch(()=>({daemons:[]})),
       api('/api/memory/stats').catch(()=>({})),
       api('/api/funds').catch(()=>({funds:[]})),
+      api('/api/skills').catch(()=>({skills:[]})),
     ]);
     renderKPI(status,market);
     renderMarket(market);
@@ -340,6 +362,7 @@ async function boot(){
     renderDaemons(daemons);
     renderMemory(mem);
     renderFunds(funds);
+    renderSkills(skills);
   }catch(e){console.error(e)}
   startClock();
 }
@@ -350,8 +373,8 @@ function renderKPI(st,mk){
     {label:'Corpus',value:st.chunks?.toLocaleString()||'—',sub:'chunks indexados'},
     {label:'Agentes',value:st.agents||'—',sub:'especializados'},
     {label:'Daemons',value:st.daemons||'—',sub:'schedulers'},
-    {label:'Fundos',value:document.getElementById('fundCount')?.textContent||'—',sub:'onboarded'},
-    {label:'MetaClaw',value:st.metaclaw==='active'?'ON':'OFF',sub:'skill learning'},
+    {label:'Fundos',value:st.funds||'—',sub:'onboarded'},
+    {label:'MetaClaw',value:st.metaclaw==='active'?'ON':'OFF',sub:st.metaclaw==='active'?'8 skills':'disabled',amber:st.metaclaw==='active'},
   ];
   if(mk?.indicators){
     const cdi=mk.indicators.cdi;
@@ -544,6 +567,25 @@ function startClock(){
     document.getElementById('clock').textContent=now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'})+' BRT';
   };
   tick();setInterval(tick,1000);
+}
+
+// ── Skills / MetaClaw ──
+function renderSkills(data){
+  const skills=data?.skills||[];
+  document.getElementById('skillCount').textContent=skills.length;
+  if(!skills.length){
+    document.getElementById('skillGrid').innerHTML='<div style="padding:16px;color:var(--text3)">MetaClaw em aprendizado — skills aparecem conforme o sistema opera.</div>';
+    return;
+  }
+  document.getElementById('skillGrid').innerHTML=skills.map(s=>`
+    <div class="agent-card">
+      <div class="agent-name">${s.name||s.skill_id||'?'}</div>
+      <div class="agent-stat" style="color:var(--text2)">${s.description||''}</div>
+      <div class="agent-domains" style="margin-top:8px">
+        <span class="agent-domain">${s.agent||'system'}</span>
+        <span class="agent-domain">${s.usage_count||0}× usado</span>
+      </div>
+    </div>`).join('');
 }
 
 // ── Funds ──
