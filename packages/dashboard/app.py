@@ -109,18 +109,21 @@ def create_app(config: dict) -> "FastAPI":  # noqa: F821
                 if fj.exists():
                     try:
                         fd = _json.loads(fj.read_text())
+                        # Support both flat and nested CVM profile formats
                         cad = fd.get("cadastro", {})
                         inf = fd.get("informe_diario", {})
                         ult = inf.get("ultimo", {})
                         funds.append({
                             "id": fdir.name,
-                            "nome": cad.get("nome") or fd.get("nome", "?"),
-                            "cnpj": cad.get("cnpj") or fd.get("cnpj", "?"),
-                            "classe": cad.get("classe") or cad.get("tipo") or "Multimercado",
-                            "pl": inf.get("pl_atual") or ult.get("pl", 0),
-                            "cotistas": inf.get("nr_cotistas") or ult.get("nr_cotistas", 0),
-                            "data_info": ult.get("data", inf.get("periodo", "")),
-                            "situacao": cad.get("situacao") or "EM FUNCIONAMENTO NORMAL",
+                            "nome": fd.get("nome") or cad.get("nome", "?"),
+                            "cnpj": fd.get("cnpj") or cad.get("cnpj", "?"),
+                            "classe": fd.get("classe") or cad.get("classe") or cad.get("tipo") or "",
+                            "pl": fd.get("patrimonio_liquido") or inf.get("pl_atual") or ult.get("pl", 0),
+                            "cotistas": fd.get("num_cotistas") or inf.get("nr_cotistas") or ult.get("nr_cotistas", 0),
+                            "data_info": fd.get("onboarded_at", ult.get("data", ""))[:10],
+                            "situacao": fd.get("situacao") or cad.get("situacao") or "EM FUNCIONAMENTO NORMAL",
+                            "administrador": fd.get("administrador") or cad.get("administrador") or "",
+                            "gestor": fd.get("gestor") or cad.get("gestor") or "",
                         })
                     except Exception:
                         pass
@@ -150,16 +153,17 @@ def create_app(config: dict) -> "FastAPI":  # noqa: F821
                 "source": "dashboard"
             }
             Path("runtime/logs").mkdir(parents=True, exist_ok=True)
-            with open("runtime/logs/alerts.jsonl", "a") as f:
+            with open("runtime/data/alerts.jsonl", "a") as f:
                 f.write(_json.dumps(alert, ensure_ascii=False) + "\n")
             cad = profile.get("cadastro", {})
             inf = profile.get("informe_diario", {})
+            nome = cad.get("nome") or profile.get("nome") or profile.get("cnpj", "?")
             return {
                 "ok": True,
-                "nome": cad.get("nome") or profile.get("cnpj", "?"),
+                "nome": nome,
                 "cnpj": cad.get("cnpj") or profile.get("cnpj", "?"),
-                "pl": inf.get("pl_atual", 0),
-                "cotistas": inf.get("nr_cotistas", 0),
+                "pl": profile.get("patrimonio_liquido") or inf.get("pl_atual", 0),
+                "cotistas": profile.get("num_cotistas") or inf.get("nr_cotistas", 0),
             }
         except HTTPException:
             raise
