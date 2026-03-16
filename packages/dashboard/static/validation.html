@@ -88,6 +88,33 @@
     /* Footer */
     .footer{text-align:center;padding:32px;color:var(--muted);font-size:11px;border-top:1px solid var(--border);margin-top:48px}
     .footer a{color:var(--amber);text-decoration:none}
+
+    /* ── MOBILE ── */
+    @media (max-width: 768px) {
+      .page { padding: 24px 16px 60px; }
+      .hero-logo { font-size: 24px; }
+      .hero-title { font-size: 18px; }
+      .config-bar { flex-direction: column; }
+      .config-input { min-width: 100%; font-size: 14px; }
+      .run-all-btn { width: 100%; padding: 14px; font-size: 14px; }
+      .summary { flex-wrap: wrap; gap: 16px; padding: 14px 16px; }
+      .summary-value { font-size: 18px; }
+      .section-header { flex-wrap: wrap; gap: 6px; }
+      .section-num { font-size: 22px; }
+      .section-desc { margin-left: 0; width: 100%; }
+      .test-row { grid-template-columns: 24px 1fr; gap: 8px; padding: 10px 12px; }
+      .test-meta { flex-direction: row; align-items: center; gap: 8px; grid-column: 1 / -1; margin-top: 4px; }
+      .test-detail { font-size: 10px; padding: 6px 8px; }
+      .uc-query { font-size: 12px; padding: 8px 10px; }
+      .uc-meta { gap: 8px; }
+      .use-case-highlight { padding: 14px; }
+    }
+    @media (max-width: 380px) {
+      .hero-title { font-size: 16px; }
+      .test-name { font-size: 12px; }
+      .test-desc { font-size: 10px; }
+      .summary { gap: 12px; }
+    }
   </style>
 </head>
 <body>
