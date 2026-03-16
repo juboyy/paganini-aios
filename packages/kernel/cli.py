@@ -466,34 +466,77 @@ def doctor():
 
 @cli.command("up")
 def up():
-    """Start PAGANINI services (Moltis + MetaClaw)."""
-    from packages.kernel.moltis import MoltisAdapter
+    """Start all PAGANINI services headless (dashboard + telegram + daemons)."""
+    import subprocess
+    import signal
 
     config = _load_config()
-    runtime = config.get("runtime", {})
-    engine = runtime.get("engine", "python")
+    project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    venv_python = os.path.join(project_root, ".venv", "bin", "python3")
+    if not os.path.exists(venv_python):
+        venv_python = "python3"
 
-    if engine == "moltis":
-        adapter = MoltisAdapter(config)
-        if adapter.is_running():
-            console.print("[green]✓ Moltis already running[/]")
-        elif adapter.is_installed:
-            with console.status("Starting Moltis gateway..."):
-                if adapter.start():
-                    console.print("[green]✓ Moltis gateway started[/]")
-                else:
-                    console.print("[red]✗ Failed to start Moltis[/]")
-                    console.print("  Run manually: moltis gateway start")
-        else:
-            console.print("[yellow]⚠ Moltis not installed. Run install.sh or use --runtime python[/]")
+    pids_file = os.path.join(project_root, "runtime", "state", "pids.json")
+    os.makedirs(os.path.dirname(pids_file), exist_ok=True)
+    pids = {}
 
-    elif engine == "docker":
-        os.system("docker compose -f infra/docker-compose.yaml up -d")
+    # Logs directory
+    log_dir = os.path.join(project_root, "runtime", "logs")
+    os.makedirs(log_dir, exist_ok=True)
 
+    console.print()
+    console.print(Panel(
+        "[bold #c9a84c]🎻 PAGANINI AIOS[/bold #c9a84c]\n"
+        "[dim]Starting services...[/dim]",
+        border_style="#c9a84c"
+    ))
+
+    # 1. Dashboard server
+    console.print("[#c9a84c]▸[/#c9a84c] Starting dashboard server...")
+    dash_log = open(os.path.join(log_dir, "dashboard.log"), "a")
+    dash_proc = subprocess.Popen(
+        [venv_python, "-m", "uvicorn", "packages.dashboard.app:app",
+         "--host", "0.0.0.0", "--port", "8000", "--log-level", "warning"],
+        cwd=project_root,
+        stdout=dash_log, stderr=dash_log,
+        start_new_session=True,
+    )
+    pids["dashboard"] = dash_proc.pid
+    console.print(f"  [green]✓[/green] Dashboard: http://localhost:8000 (PID {dash_proc.pid})")
+
+    import time
+    time.sleep(2)
+
+    # 2. Telegram bot (if configured)
+    tg_token = config.get("telegram", {}).get("bot_token", "") or os.environ.get("TELEGRAM_BOT_TOKEN", "")
+    if tg_token:
+        console.print("[#c9a84c]▸[/#c9a84c] Starting Telegram bot...")
+        tg_log = open(os.path.join(log_dir, "telegram.log"), "a")
+        tg_proc = subprocess.Popen(
+            [venv_python, "-c",
+             f"from packages.kernel.telegram_bot import run_bot; run_bot(token='{tg_token}')"],
+            cwd=project_root,
+            stdout=tg_log, stderr=tg_log,
+            start_new_session=True,
+        )
+        pids["telegram"] = tg_proc.pid
+        console.print(f"  [green]✓[/green] Telegram bot (PID {tg_proc.pid})")
+    else:
+        console.print("  [dim]⊘ Telegram: no bot_token in config.yaml[/dim]")
+
+    # Save PIDs
+    import json as _json
+    with open(pids_file, "w") as f:
+        _json.dump(pids, f)
+
+    console.print()
     console.print(Panel.fit(
-        "[bold green]PAGANINI AIOS ready.[/]\n\n"
-        "  [bold]paganini query \"sua pergunta\"[/]\n"
-        "  [bold]paganini status[/]",
+        "[bold green]✅ PAGANINI AIOS — Running[/]\n\n"
+        f"  [bold]Dashboard:[/] http://localhost:8000\n"
+        f"  [bold]Telegram:[/]  {'🟢 active' if tg_token else '⊘ not configured'}\n"
+        f"  [bold]Logs:[/]      runtime/logs/\n\n"
+        "  [dim]Stop with:[/] [bold]paganini down[/]\n"
+        "  [dim]Status:[/]    [bold]paganini status[/]",
         title="🎻", border_style="green"
     ))
 
@@ -692,6 +735,33 @@ def telegram_cmd(token):
     from packages.kernel.telegram_bot import run_bot
     run_bot(token=token)
 
+
+
+
+@cli.command("down")
+def down():
+    """Stop all PAGANINI services."""
+    import json as _json
+    project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+    pids_file = os.path.join(project_root, "runtime", "state", "pids.json")
+
+    if not os.path.exists(pids_file):
+        console.print("[dim]No services running.[/dim]")
+        return
+
+    pids = _json.loads(open(pids_file).read())
+    import signal
+    for name, pid in pids.items():
+        try:
+            os.kill(pid, signal.SIGTERM)
+            console.print(f"  [green]✓[/green] Stopped {name} (PID {pid})")
+        except ProcessLookupError:
+            console.print(f"  [dim]⊘ {name} already stopped[/dim]")
+        except Exception as e:
+            console.print(f"  [red]✗ {name}: {e}[/red]")
+
+    os.remove(pids_file)
+    console.print("[green]All services stopped.[/green]")
 
 cli.add_command(serve, "dashboard")
 
