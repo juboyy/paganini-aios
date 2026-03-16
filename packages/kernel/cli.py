@@ -468,7 +468,6 @@ def doctor():
 def up():
     """Start all PAGANINI services headless (dashboard + telegram + daemons)."""
     import subprocess
-    import signal
 
     config = _load_config()
     project_root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))

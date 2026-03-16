@@ -66,6 +66,7 @@ SKIP_PATTERNS = [
     r'package-lock\.json$',
     r'detect-secrets\.py$',  # Don't flag ourselves
     r'\.md$',                # Docs may reference patterns as examples
+    r'tests/',               # Test files use fake/mock secrets
 ]
 
 # Allowlisted strings (known false positives)

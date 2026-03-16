@@ -12,7 +12,6 @@ Usage:
 from __future__ import annotations
 
 import json
-import os
 from pathlib import Path
 from urllib.request import Request, urlopen
 from urllib.parse import urlencode

@@ -7,8 +7,8 @@ root = os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)
 sys.path.insert(0, root)
 os.chdir(root)
 
-from packages.kernel.engine import load_config
-from packages.dashboard.app import create_app
+from packages.kernel.engine import load_config  # noqa: E402
+from packages.dashboard.app import create_app  # noqa: E402
 
 config = load_config()
 app = create_app(config)

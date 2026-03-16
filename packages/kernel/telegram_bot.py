@@ -16,7 +16,6 @@ import os
 import re
 import time
 from pathlib import Path
-from typing import Optional
 from urllib.request import Request, urlopen
 
 log = logging.getLogger("paganini.telegram")

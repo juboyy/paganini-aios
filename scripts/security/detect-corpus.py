@@ -49,6 +49,9 @@ SKIP_PATTERNS = [
     r'README',               # READMEs may describe corpus content
     r'docs/',                # Architecture docs may reference
     r'eval_questions',       # Eval uses generic questions
+    r'tests/',               # Tests use synthetic regulatory text for validation
+    r'templates/',           # Report templates reference fund concepts
+    r'program\.md$',         # System prompts reference domain concepts by design
 ]
 
 

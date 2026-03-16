@@ -12,17 +12,12 @@ from __future__ import annotations
 import json
 import os
 import readline  # noqa: F401 — enables arrow keys + history in input()
-import sys
-import textwrap
 from datetime import datetime, timezone
 from pathlib import Path
 
-from rich.columns import Columns
 from rich.console import Console
-from rich.markup import escape
 from rich.panel import Panel
 from rich.table import Table
-from rich.text import Text
 
 # Suppress ONNX GPU warning
 import os as _os
@@ -271,7 +266,7 @@ def cmd_query(text: str = "", **_):
         console.print("[dim]Ex: [bold]Quais as obrigações do custodiante?[/bold][/dim]")
         return
 
-    console.print(f"[dim]⟳ Querying agents...[/dim]")
+    console.print("[dim]⟳ Querying agents...[/dim]")
 
     rag = _get_rag()
     if rag is None:

@@ -52,6 +52,8 @@ SKIP_PATTERNS = [
     r'\.jsonl$',             # Eval questions may have synthetic data
     r'test_.*\.py$',         # Tests may have synthetic PII
     r'sample.*\.json$',      # Sample data is synthetic by design
+    r'templates/',           # Templates use placeholder data
+    r'tests/',               # Test files use synthetic data
 ]
 
 # Known false positives
@@ -59,6 +61,7 @@ ALLOWLIST = [
     '123.456.789-00',        # Example CPF in docs
     '12.345.678/0001-90',    # Example CNPJ in docs
     '00.000.000/0000-00',    # Placeholder
+    '00.000.000/0001-00',    # Template placeholder CNPJ
     'example@example.com',
     'rod.marques@aios.finance',  # Public contact
     'art@vivaldi.finance',
