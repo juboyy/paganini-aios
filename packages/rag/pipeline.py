@@ -69,10 +69,25 @@ class RAGPipeline:
             self.chroma = chromadb.PersistentClient(path=chroma_path)
         except Exception:
             self.chroma = chromadb.Client()
-        self.collection = self.chroma.get_or_create_collection(
-            name="corpus",
-            metadata={"hnsw:space": "cosine"}
-        )
+        # Use Google Gemini embedding for superior multilingual quality
+        _embed_fn = None
+        try:
+            import chromadb.utils.embedding_functions as ef
+            _api_key = config.get("provider", {}).get("api_key") or __import__("os").environ.get("GOOGLE_API_KEY", "")
+            if _api_key:
+                _embed_fn = ef.GoogleGenerativeAiEmbeddingFunction(
+                    api_key=_api_key,
+                    model_name="models/gemini-embedding-2-preview",
+                    task_type="RETRIEVAL_DOCUMENT",
+                )
+                print("Using Google text-embedding-004")
+        except Exception as _e:
+            print(f"Google embedding unavailable: {_e} — using default")
+
+        _col_kwargs = {"name": "corpus", "metadata": {"hnsw:space": "cosine"}}
+        if _embed_fn:
+            _col_kwargs["embedding_function"] = _embed_fn
+        self.collection = self.chroma.get_or_create_collection(**_col_kwargs)
 
         # === BM25 (sparse retrieval) ===
         self.bm25 = BM25Index(self.data_dir / "bm25_index.json")
@@ -239,14 +254,17 @@ class RAGPipeline:
             )
         context = "\n\n---\n\n".join(context_parts)
 
-        system_prompt = """Você é um especialista em fundos de investimento em direitos creditórios e regulamentação CVM.
+        system_prompt = """Você é um especialista sênior em fundos de investimento, regulamentação CVM e mercado de capitais brasileiro.
 
-Regras:
-1. Responda APENAS com base no contexto fornecido
-2. Cite as fontes usando [Fonte N]
-3. Se não encontrar a resposta no contexto, diga explicitamente
-4. Seja preciso e objetivo
-5. Use terminologia técnica correta do mercado financeiro brasileiro"""
+Diretrizes:
+1. Use o contexto fornecido como base principal para a resposta
+2. Cite fontes usando [Fonte N] quando se basear nos documentos
+3. Quando o contexto cobrir parcialmente a pergunta, RESPONDA com o que está disponível e indique o que está coberto e o que não está
+4. Conecte informações de múltiplas fontes para construir respostas mais completas
+5. Se o contexto fornece regulações gerais aplicáveis à pergunta, APLIQUE-AS ao caso específico perguntado
+6. Use terminologia técnica do mercado financeiro brasileiro
+7. Seja direto e informativo — nunca responda apenas "não encontrei"
+8. Estruture respostas longas com tópicos e subtítulos para clareza"""
 
         user_prompt = f"""Contexto:
 {context}
