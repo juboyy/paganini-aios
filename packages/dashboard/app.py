@@ -109,15 +109,18 @@ def create_app(config: dict) -> "FastAPI":  # noqa: F821
                 if fj.exists():
                     try:
                         fd = _json.loads(fj.read_text())
+                        cad = fd.get("cadastro", {})
+                        inf = fd.get("informe_diario", {})
+                        ult = inf.get("ultimo", {})
                         funds.append({
                             "id": fdir.name,
-                            "nome": fd.get("nome", "?"),
-                            "cnpj": fd.get("cnpj", "?"),
-                            "classe": fd.get("classe", "Multimercado"),
-                            "pl": fd.get("patrimonio_liquido", 0),
-                            "cotistas": fd.get("num_cotistas", 0),
-                            "data_info": fd.get("data_informacao", ""),
-                            "situacao": fd.get("situacao", "EM FUNCIONAMENTO NORMAL"),
+                            "nome": cad.get("nome") or fd.get("nome", "?"),
+                            "cnpj": cad.get("cnpj") or fd.get("cnpj", "?"),
+                            "classe": cad.get("classe") or cad.get("tipo") or "Multimercado",
+                            "pl": inf.get("pl_atual") or ult.get("pl", 0),
+                            "cotistas": inf.get("nr_cotistas") or ult.get("nr_cotistas", 0),
+                            "data_info": ult.get("data", inf.get("periodo", "")),
+                            "situacao": cad.get("situacao") or "EM FUNCIONAMENTO NORMAL",
                         })
                     except Exception:
                         pass
@@ -142,18 +145,21 @@ def create_app(config: dict) -> "FastAPI":  # noqa: F821
             import json as _json, datetime
             alert = {
                 "type": "onboarding", "severity": "info",
-                "title": f"Fundo onboarded: {profile['nome'][:50]}",
+                "title": f"Fundo onboarded: {(profile.get('cadastro',{}).get('nome','') or profile.get('cnpj',''))[:50]}",
                 "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
                 "source": "dashboard"
             }
             Path("runtime/logs").mkdir(parents=True, exist_ok=True)
             with open("runtime/logs/alerts.jsonl", "a") as f:
                 f.write(_json.dumps(alert, ensure_ascii=False) + "\n")
+            cad = profile.get("cadastro", {})
+            inf = profile.get("informe_diario", {})
             return {
                 "ok": True,
-                "nome": profile.get("nome"),
-                "cnpj": profile.get("cnpj"),
-                "pl": profile.get("patrimonio_liquido", 0),
+                "nome": cad.get("nome") or profile.get("cnpj", "?"),
+                "cnpj": cad.get("cnpj") or profile.get("cnpj", "?"),
+                "pl": inf.get("pl_atual", 0),
+                "cotistas": inf.get("nr_cotistas", 0),
             }
         except HTTPException:
             raise

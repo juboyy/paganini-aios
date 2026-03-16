@@ -713,7 +713,7 @@ def self_audit(config: dict) -> dict:
     # 3. Agent souls directory
     souls_dir = Path(config.get("souls_dir", "packages/agents/souls"))
     if souls_dir.exists():
-        soul_count = len(list(souls_dir.glob("*.yaml"))) + len(list(souls_dir.glob("*.yml")))
+        soul_count = len(list(souls_dir.glob("*.md"))) + len(list(souls_dir.glob("*.yaml"))) + len(list(souls_dir.glob("*.yml")))
         checks.append({"component": "agents", "status": "ok", "souls": soul_count})
         if soul_count == 0:
             issues.append({
