@@ -141,7 +141,7 @@ def create_app(config: dict) -> "FastAPI":  # noqa: F821
         try:
             from packages.kernel.cvm_ingester import build_fund_profile, save_fund_profile
             profile = build_fund_profile(cnpj)
-            if not profile or not profile.get("nome"):
+            if not profile or not (profile.get("nome") or profile.get("cadastro", {}).get("nome") or profile.get("cnpj")):
                 raise HTTPException(status_code=404, detail="Fundo não encontrado na CVM")
             save_fund_profile(profile, ".")
             # Log alert
