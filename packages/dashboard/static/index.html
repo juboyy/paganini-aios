@@ -372,11 +372,11 @@ async function loadOverview(){
     {key:'selic',label:'SELIC',color:'var(--amber)',unit:'%'},
     {key:'ipca',label:'IPCA',color:'var(--cream)',unit:'%'},
     {key:'igpm',label:'IGP-M',color:'var(--cream)',unit:'%'},
-    {key:'usd',label:'USD/BRL',color:'var(--blue)',unit:'',dec:4},
-    {key:'inadimplencia_pf',label:'Inad. PF',color:'var(--red)',unit:'%'},
+    {key:'cambio_usd',label:'USD/BRL',color:'var(--blue)',unit:'',dec:4},
+    {key:'inad_pf',label:'Inad. PF',color:'var(--red)',unit:'%'},
   ];
   document.getElementById('mkt-grid').innerHTML=mktItems.map(m=>{
-    const v=ind[m.key];const val=v?parseFloat(v.value||v).toFixed(m.dec||2)+m.unit:'—';
+    const v=ind[m.key];const raw=v?.latest_value||v?.value||v;const val=raw?parseFloat(raw).toFixed(m.dec||2)+m.unit:'—';
     return`<div class="mkt-card"><div class="mkt-label">${m.label}</div><div class="mkt-val" style="color:${m.color}">${val}</div><svg class="mkt-spark" id="spark-${m.key}"></svg></div>`;
   }).join('');
 
@@ -499,8 +499,9 @@ async function sendQuery(){
 
   const conf=Math.round((d.confidence||0)*100);
   const confColor=conf>=80?'var(--green)':conf>=60?'var(--amber)':'var(--red)';
-  const agent=d.agent||'rag';
-  const blocked=d.blocked;
+  const agent=d.agent||d.routed_to||'rag';
+  const answerLow=(d.answer||'').toLowerCase();
+  const blocked=d.blocked||answerLow.includes('bloqueado')||answerLow.includes('blocked')||answerLow.includes('não posso')||answerLow.includes('violação');
   const sources=(d.sources||[]).slice(0,4);
 
   let bubble='';
@@ -615,13 +616,17 @@ function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
 // ═════════════════════════════════════════════════════════════
 const AGENT_META={
   administrador:{icon:'📋',role:'Gestão e relatórios regulatórios'},
+  'administrador_fiduciario':{icon:'📋',role:'Gestão e relatórios regulatórios'},
   compliance:{icon:'🛡️',role:'Verificação de conformidade CVM'},
   custodiante:{icon:'🏦',role:'Controle de ativos e conciliação'},
   due_diligence:{icon:'🔍',role:'Análise de cedentes e contrapartes'},
   gestor:{icon:'💼',role:'Gestão de carteira e estratégia'},
   investor_relations:{icon:'📊',role:'Comunicação com cotistas'},
+  'investor relations':{icon:'📊',role:'Comunicação com cotistas'},
   pricing:{icon:'💰',role:'Precificação e marcação a mercado'},
+  'pricing_engine':{icon:'💰',role:'Precificação e marcação a mercado'},
   regulatory_watch:{icon:'📡',role:'Monitoramento de normativos'},
+  'regulatory watch':{icon:'📡',role:'Monitoramento de normativos'},
   reporting:{icon:'📝',role:'Geração de CADOC e relatórios'},
 };
 
@@ -640,12 +645,14 @@ async function loadAgents(){
   }
 
   grid.innerHTML=agents.map(a=>{
-    const id=a.id||a.name||'agent';
-    const m=AGENT_META[id]||{icon:'🤖',role:''};
+    const rawName=a.name||a.id||'agent';
+    const id=rawName.replace(/^Agent:\s*/i,'').toLowerCase().replace(/\s+/g,'_').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    const displayName=rawName.replace(/^Agent:\s*/i,'');
+    const m=AGENT_META[id]||AGENT_META[displayName.toLowerCase()]||{icon:'🤖',role:'Agente AI'};
     const domains=(a.domains||[]).slice(0,4);
     const tools=(a.tools||[]).slice(0,3);
     return`<div class="agent-card">
-      <div class="agent-top"><div class="agent-avatar">${m.icon}</div><div><div class="agent-name">${(a.name||id).replace(/_/g,' ')}</div><div class="agent-role">${m.role||'Agente AI'}</div></div></div>
+      <div class="agent-top"><div class="agent-avatar">${m.icon}</div><div><div class="agent-name">${displayName}</div><div class="agent-role">${m.role||'Agente AI'}</div></div></div>
       ${domains.length?`<div class="agent-domains">${domains.map(d=>`<span class="agent-domain">${d}</span>`).join('')}</div>`:''}
       ${tools.length?`<div class="agent-tools">🔧 ${tools.join(', ')}</div>`:''}
       <div class="agent-status"><div class="agent-status-dot"></div><span style="color:var(--green)">ready</span></div>
