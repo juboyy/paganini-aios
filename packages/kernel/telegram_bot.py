@@ -1,7 +1,7 @@
-"""Paganini AIOS — Telegram Bot Interface.
+"""Paganini AIOS — Telegram Bot Interface (API Client mode).
 
-Connects the fund AI system to Telegram via long polling.
-No webhooks needed, no HTTPS required.
+Connects to the running dashboard server via HTTP API.
+Multiple bots/clients can run simultaneously.
 
 Usage:
     paganini telegram              # uses token from config.yaml
@@ -18,360 +18,282 @@ import time
 from pathlib import Path
 from typing import Optional
 from urllib.request import Request, urlopen
-from urllib.parse import quote
 
 log = logging.getLogger("paganini.telegram")
 
-BASE = Path(__file__).resolve().parent.parent.parent
-RUNTIME = BASE / "runtime"
-
 
 class TelegramBot:
-    """Minimal Telegram bot using only stdlib (no external deps)."""
+    """Telegram bot that connects to Paganini dashboard API."""
 
-    def __init__(self, token: str, engine_config: dict):
+    def __init__(self, token: str, api_base: str = "http://localhost:8000",
+                 api_key: str = ""):
         self.token = token
-        self.api = f"https://api.telegram.org/bot{token}"
-        self.config = engine_config
+        self.tg_api = f"https://api.telegram.org/bot{token}"
+        self.api_base = api_base.rstrip("/")
+        self.api_key = api_key
         self.offset = 0
-        self._rag = None
-        self._llm_fn = None
-        self._setup_engine()
+        self._sessions: dict[int, str] = {}  # chat_id → session_id
 
-    def _setup_engine(self):
-        """Initialize RAG pipeline and LLM function."""
-        try:
-            from packages.rag.pipeline import RAGPipeline
-            from packages.kernel.engine import get_llm_fn
-            self._rag = RAGPipeline(self.config)
-            self._llm_fn = get_llm_fn(self.config)
-            log.info("Engine initialized: RAG + LLM ready")
-        except Exception as e:
-            log.error(f"Engine init failed: {e}")
-
-    def _api_call(self, method: str, data: dict = None) -> dict:
+    def _tg_call(self, method: str, data: dict = None) -> dict:
         """Call Telegram Bot API."""
-        url = f"{self.api}/{method}"
+        url = f"{self.tg_api}/{method}"
         if data:
             payload = json.dumps(data).encode("utf-8")
-            req = Request(url, data=payload, headers={"Content-Type": "application/json"})
+            req = Request(url, data=payload,
+                          headers={"Content-Type": "application/json"})
         else:
             req = Request(url)
         try:
             with urlopen(req, timeout=60) as resp:
                 return json.loads(resp.read())
         except Exception as e:
-            log.error(f"API call {method} failed: {e}")
-            return {"ok": False, "error": str(e)}
+            log.error(f"Telegram API {method}: {e}")
+            return {"ok": False}
 
-    def send_message(self, chat_id: int, text: str, parse_mode: str = "HTML"):
-        """Send a message, splitting if >4096 chars."""
-        # Telegram limit is 4096 chars
-        chunks = [text[i:i+4000] for i in range(0, len(text), 4000)]
-        for chunk in chunks:
-            self._api_call("sendMessage", {
+    def _api_call(self, path: str, timeout: int = 60) -> dict:
+        """Call Paganini dashboard API."""
+        url = f"{self.api_base}{path}"
+        headers = {}
+        if self.api_key:
+            headers["X-API-Key"] = self.api_key
+        req = Request(url, headers=headers)
+        try:
+            with urlopen(req, timeout=timeout) as resp:
+                return json.loads(resp.read())
+        except Exception as e:
+            return {"_error": str(e)}
+
+    def send(self, chat_id: int, text: str, parse_mode: str = "HTML"):
+        """Send message, auto-split if >4000 chars."""
+        for i in range(0, len(text), 4000):
+            self._tg_call("sendMessage", {
                 "chat_id": chat_id,
-                "text": chunk,
+                "text": text[i:i+4000],
                 "parse_mode": parse_mode,
             })
 
-    def send_typing(self, chat_id: int):
-        """Send typing indicator."""
-        self._api_call("sendChatAction", {
-            "chat_id": chat_id,
-            "action": "typing",
-        })
+    def typing(self, chat_id: int):
+        self._tg_call("sendChatAction", {"chat_id": chat_id, "action": "typing"})
 
-    def handle_message(self, message: dict):
+    def handle(self, msg: dict):
         """Process incoming message."""
-        chat_id = message["chat"]["id"]
-        text = message.get("text", "").strip()
-        user = message.get("from", {})
-        username = user.get("first_name", "User")
-
+        chat_id = msg["chat"]["id"]
+        text = (msg.get("text") or "").strip()
         if not text:
             return
 
         # Commands
         if text == "/start":
-            self.send_message(chat_id,
+            self.send(chat_id,
                 "🎻 <b>Paganini AIOS</b>\n\n"
                 "Sistema de IA para fundos de investimento.\n\n"
                 "Pergunte qualquer coisa sobre regulação, "
                 "covenants, custodia, compliance, ou operações.\n\n"
                 "<b>Comandos:</b>\n"
-                "/query [pergunta] — Consultar agentes\n"
                 "/market — Indicadores BCB\n"
-                "/status — Status do sistema\n"
                 "/agents — Agentes disponíveis\n"
-                "/help — Ajuda\n\n"
+                "/status — Status do sistema\n\n"
                 "Ou simplesmente digite sua pergunta."
             )
             return
 
-        if text == "/help":
-            self.send_message(chat_id,
-                "🎻 <b>Comandos</b>\n\n"
-                "Qualquer mensagem é tratada como consulta.\n\n"
-                "/market — CDI, SELIC, IPCA, USD/BRL\n"
-                "/status — Status do sistema\n"
-                "/agents — 9 agentes especializados\n"
-                "/onboard [CNPJ] — Onboarding via CVM"
-            )
-            return
+        if text in ("/help", "/start@" + self._bot_username):
+            return self.handle({"chat": {"id": chat_id}, "text": "/start"})
 
         if text == "/market":
-            self._handle_market(chat_id)
+            self.typing(chat_id)
+            d = self._api_call("/api/market")
+            if "_error" in d:
+                self.send(chat_id, f"❌ {d['_error'][:200]}")
+                return
+            indicators = d.get("indicators", {})
+            labels = {"cdi": "CDI", "selic": "SELIC", "ipca": "IPCA",
+                      "igpm": "IGP-M", "cambio_usd": "USD/BRL",
+                      "inad_pf": "Inad. PF", "inad_pj": "Inad. PJ"}
+            lines = ["📊 <b>Indicadores BCB</b>\n"]
+            for k, label in labels.items():
+                ind = indicators.get(k, {})
+                v = ind.get("latest_value", "—")
+                dt = ind.get("latest_date", "")
+                unit = "" if k == "cambio_usd" else "%"
+                lines.append(f"  <b>{label}:</b> {v}{unit}  <i>({dt})</i>")
+            self.send(chat_id, "\n".join(lines))
             return
 
         if text == "/status":
-            self._handle_status(chat_id)
+            self.typing(chat_id)
+            d = self._api_call("/api/status")
+            if "_error" in d:
+                self.send(chat_id, f"❌ {d['_error'][:200]}")
+                return
+            self.send(chat_id,
+                "🎻 <b>Paganini AIOS</b>\n\n"
+                f"  <b>Status:</b> {'🟢 online' if d.get('ok') else '🔴 offline'}\n"
+                f"  <b>Agentes:</b> {d.get('agents', '?')}\n"
+                f"  <b>Chunks:</b> {d.get('chunks', '?')}\n"
+                f"  <b>Modelo:</b> {d.get('model', '?')}\n"
+            )
             return
 
         if text == "/agents":
-            self._handle_agents(chat_id)
+            self.typing(chat_id)
+            agents = self._api_call("/api/agents")
+            if isinstance(agents, dict) and "_error" in agents:
+                self.send(chat_id, f"❌ {agents['_error'][:200]}")
+                return
+            if isinstance(agents, dict):
+                agents = agents.get("agents", [])
+            icons = {"administrador": "📋", "compliance": "🛡️",
+                     "custodiante": "🏦", "due_diligence": "🔍",
+                     "gestor": "💼", "investor_relations": "📊",
+                     "pricing": "💰", "regulatory_watch": "📡",
+                     "reporting": "📝"}
+            lines = ["🤖 <b>Agentes</b>\n"]
+            for a in agents:
+                name = a.get("name", str(a)) if isinstance(a, dict) else str(a)
+                key = name.lower().replace(" ", "_").replace("agent:", "").strip()
+                icon = icons.get(key, "🤖")
+                lines.append(f"  {icon} {name}")
+            self.send(chat_id, "\n".join(lines))
             return
 
-        if text.startswith("/onboard"):
-            cnpj = text.replace("/onboard", "").strip()
-            self._handle_onboard(chat_id, cnpj)
-            return
-
-        # Strip /query prefix if present
+        # Strip /query prefix
         if text.startswith("/query"):
             text = text[6:].strip()
-
         if not text:
-            self.send_message(chat_id, "Digite sua pergunta.")
             return
 
-        # Guardrail check — adversarial intent
-        adversarial = re.search(
+        # Guardrail — client-side adversarial check
+        if re.search(
             r"coaf|lavagem|fraude|burlar|evadir|bypass|fracionar.*evitar|"
-            r"ocultar.*origem|simular|fraudar|driblar",
-            text, re.IGNORECASE
-        )
-        if adversarial:
-            self.send_message(chat_id,
+            r"ocultar.*origem|simular|fraudar|driblar", text, re.IGNORECASE
+        ):
+            self.send(chat_id,
                 "🛡️ <b>QUERY BLOQUEADA</b>\n\n"
                 "Guardrail PLD/AML detectou tentativa de obter "
                 "orientações que violam regulação.\n\n"
-                "<b>Gates acionados:</b> PLD/AML, Semantic Guard, Compliance\n"
                 "<b>Base legal:</b> CVM 175 Art. 23 · Lei 9.613/98"
             )
             return
 
-        # RAG Query
-        self.send_typing(chat_id)
+        # Query via API
+        self.typing(chat_id)
+        from urllib.parse import urlencode
+        params = urlencode({"q": text})
+        sid = self._sessions.get(chat_id)
+        if sid:
+            params += f"&session_id={sid}"
 
-        if not self._rag:
-            self.send_message(chat_id,
-                "⚠️ RAG pipeline não disponível. "
-                "Execute <code>paganini ingest</code> primeiro."
+        d = self._api_call(f"/api/query?{params}", timeout=60)
+
+        if "_error" in d:
+            self.send(chat_id, f"❌ Erro: {d['_error'][:200]}")
+            return
+
+        # Track session
+        if d.get("session_id"):
+            self._sessions[chat_id] = d["session_id"]
+
+        answer = d.get("answer", "Sem resposta.")
+        conf = int((d.get("confidence", 0)) * 100)
+        sources = d.get("sources", [])
+        blocked = d.get("blocked", False)
+
+        if blocked:
+            self.send(chat_id,
+                "🛡️ <b>QUERY BLOQUEADA</b>\n\n"
+                f"{answer[:500]}"
             )
             return
 
-        try:
-            t0 = time.time()
-            result = self._rag.query(text, llm_fn=self._llm_fn)
-            elapsed = time.time() - t0
+        conf_emoji = "🟢" if conf >= 80 else "🟡" if conf >= 60 else "🔴"
 
-            answer = result.text if hasattr(result, "text") else str(result)
-            confidence = result.confidence if hasattr(result, "confidence") else 0
-            chunks = result.chunks if hasattr(result, "chunks") else []
+        # Format sources
+        src_text = ""
+        if sources:
+            names = []
+            for s in sources[:3]:
+                n = s.get("source", "doc") if isinstance(s, dict) else str(s)
+                n = n.split("/")[-1].replace(".md", "")
+                n = re.sub(r"#U([0-9a-fA-F]{4})",
+                           lambda m: chr(int(m.group(1), 16)), n)
+                names.append(f"📄 {n}")
+            src_text = "\n\n<b>Fontes:</b> " + " · ".join(names)
 
-            conf_pct = int(confidence * 100)
-            conf_emoji = "🟢" if conf_pct >= 80 else "🟡" if conf_pct >= 60 else "🔴"
+        # Escape HTML in answer
+        safe = (answer
+                .replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+                .replace("**", ""))
 
-            # Format sources
-            sources_text = ""
-            if chunks:
-                src_names = []
-                for c in chunks[:3]:
-                    name = getattr(c, "source", "doc")
-                    name = name.split("/")[-1].replace(".md", "")
-                    # Decode #U00xx
-                    name = re.sub(
-                        r"#U([0-9a-fA-F]{4})",
-                        lambda m: chr(int(m.group(1), 16)),
-                        name
-                    )
-                    src_names.append(f"📄 {name}")
-                sources_text = "\n\n<b>Fontes:</b> " + " · ".join(src_names)
-
-            # Escape HTML in answer
-            safe_answer = (
-                answer
-                .replace("&", "&amp;")
-                .replace("<", "&lt;")
-                .replace(">", "&gt;")
-                # Re-enable bold
-                .replace("**", "")  # strip markdown bold
-            )
-
-            self.send_message(chat_id,
-                f"{safe_answer}\n\n"
-                f"{conf_emoji} <b>Confiança:</b> {conf_pct}% · "
-                f"⏱ {elapsed:.1f}s"
-                f"{sources_text}"
-            )
-
-        except Exception as e:
-            log.error(f"Query failed: {e}")
-            self.send_message(chat_id,
-                f"❌ Erro na consulta: <code>{str(e)[:200]}</code>"
-            )
-
-    def _handle_market(self, chat_id: int):
-        """Show market indicators."""
-        snapshot_file = RUNTIME / "data" / "market" / "latest_snapshot.json"
-        if not snapshot_file.exists():
-            self.send_message(chat_id, "⚠️ Sem dados de mercado. Execute <code>paganini market sync</code>")
-            return
-
-        data = json.loads(snapshot_file.read_text())
-        indicators = data.get("indicators", {})
-
-        labels = {
-            "cdi": ("CDI", "%"), "selic": ("SELIC", "%"),
-            "ipca": ("IPCA", "%"), "igpm": ("IGP-M", "%"),
-            "cambio_usd": ("USD/BRL", ""), "inad_pf": ("Inad. PF", "%"),
-            "inad_pj": ("Inad. PJ", "%"),
-        }
-
-        lines = ["📊 <b>Indicadores BCB</b>\n"]
-        for key, (label, unit) in labels.items():
-            ind = indicators.get(key, {})
-            val = ind.get("latest_value", "—")
-            date = ind.get("latest_date", "")
-            lines.append(f"  <b>{label}:</b> {val}{unit}  <i>({date})</i>")
-
-        lines.append(f"\n⏱ Atualizado: {data.get('timestamp', '—')[:19]}")
-        self.send_message(chat_id, "\n".join(lines))
-
-    def _handle_status(self, chat_id: int):
-        """Show system status."""
-        from packages.kernel.engine import load_config
-        config = load_config()
-
-        agents_dir = BASE / "packages" / "agents" / "souls"
-        agent_count = len(list(agents_dir.glob("*.md"))) if agents_dir.exists() else 0
-
-        chunks = 0
-        if self._rag and hasattr(self._rag, "collection") and self._rag.collection:
-            try:
-                chunks = self._rag.collection.count()
-            except Exception:
-                pass
-
-        model = config.get("provider", {}).get("model", "not configured")
-
-        self.send_message(chat_id,
-            "🎻 <b>Paganini AIOS</b>\n\n"
-            f"  <b>Versão:</b> 0.1.0\n"
-            f"  <b>Agentes:</b> {agent_count}\n"
-            f"  <b>RAG Chunks:</b> {chunks:,}\n"
-            f"  <b>Modelo:</b> {model}\n"
+        self.send(chat_id,
+            f"{safe}\n\n"
+            f"{conf_emoji} <b>Confiança:</b> {conf}% "
+            f"{src_text}"
         )
-
-    def _handle_agents(self, chat_id: int):
-        """List agents."""
-        agents_dir = BASE / "packages" / "agents" / "souls"
-        if not agents_dir.exists():
-            self.send_message(chat_id, "Nenhum agente encontrado.")
-            return
-
-        icons = {
-            "administrador": "📋", "compliance": "🛡️", "custodiante": "🏦",
-            "due_diligence": "🔍", "gestor": "💼", "investor_relations": "📊",
-            "pricing": "💰", "regulatory_watch": "📡", "reporting": "📝",
-        }
-
-        lines = ["🤖 <b>Agentes</b>\n"]
-        for f in sorted(agents_dir.glob("*.md")):
-            name = f.stem.replace("_", " ").title()
-            icon = icons.get(f.stem, "🤖")
-            lines.append(f"  {icon} {name}")
-
-        self.send_message(chat_id, "\n".join(lines))
-
-    def _handle_onboard(self, chat_id: int, cnpj: str):
-        """Onboard a fund from CVM data."""
-        if not cnpj or len(cnpj) < 14:
-            self.send_message(chat_id,
-                "Usage: <code>/onboard XX.XXX.XXX/0001-XX</code>"
-            )
-            return
-
-        self.send_typing(chat_id)
-        try:
-            from packages.kernel.cvm_ingester import build_fund_profile, save_fund_profile
-            profile = build_fund_profile(cnpj)
-            path = save_fund_profile(profile, str(RUNTIME / "funds"))
-
-            name = profile.get("nome", "—")
-            admin = profile.get("cadastro", {}).get("administrador", "—")
-            pl = profile.get("patrimonio_liquido", "—")
-
-            self.send_message(chat_id,
-                f"✅ <b>Fund Onboarded</b>\n\n"
-                f"  <b>Nome:</b> {name}\n"
-                f"  <b>Admin:</b> {admin}\n"
-                f"  <b>PL:</b> R$ {pl}\n"
-                f"  <b>Salvo em:</b> <code>{path}</code>"
-            )
-        except Exception as e:
-            self.send_message(chat_id, f"❌ Onboarding falhou: {str(e)[:200]}")
 
     def poll(self):
         """Long polling loop."""
-        log.info("Bot started — listening for messages...")
-        print(f"🎻 Paganini Telegram Bot running. Send /start to your bot.")
+        me = self._tg_call("getMe")
+        self._bot_username = me.get("result", {}).get("username", "bot")
+        log.info(f"Bot @{self._bot_username} started")
+        print(f"🎻 Paganini Telegram Bot → @{self._bot_username}")
+        print(f"   API: {self.api_base}")
 
-        # Get bot info
-        me = self._api_call("getMe")
-        if me.get("ok"):
-            username = me["result"].get("username", "?")
-            print(f"   Bot: @{username}")
+        # Check API
+        h = self._api_call("/api/health")
+        if h.get("ok"):
+            print("   Server: 🟢 connected")
+        else:
+            print("   Server: 🔴 not reachable — start with: paganini dashboard")
 
         while True:
             try:
-                updates = self._api_call("getUpdates", {
-                    "offset": self.offset,
-                    "timeout": 30,
+                updates = self._tg_call("getUpdates", {
+                    "offset": self.offset, "timeout": 30
                 })
-                if not updates.get("ok"):
-                    time.sleep(5)
-                    continue
-
-                for update in updates.get("result", []):
-                    self.offset = update["update_id"] + 1
-                    if "message" in update:
-                        self.handle_message(update["message"])
-
+                for u in updates.get("result", []):
+                    self.offset = u["update_id"] + 1
+                    if "message" in u:
+                        try:
+                            self.handle(u["message"])
+                        except Exception as e:
+                            log.error(f"Handle error: {e}")
             except KeyboardInterrupt:
                 print("\nBot stopped.")
                 break
             except Exception as e:
-                log.error(f"Poll error: {e}")
+                log.error(f"Poll: {e}")
                 time.sleep(5)
 
 
-def run_bot(token: Optional[str] = None):
+def run_bot(token: str = None, api_base: str = None, api_key: str = None):
     """Start the Telegram bot."""
     from packages.kernel.engine import load_config
-
     config = load_config()
 
-    if not token:
-        token = config.get("telegram", {}).get("bot_token", "")
-        token = token or os.environ.get("TELEGRAM_BOT_TOKEN", "")
+    token = (token
+             or config.get("telegram", {}).get("bot_token", "")
+             or os.environ.get("TELEGRAM_BOT_TOKEN", ""))
+    api_base = (api_base
+                or config.get("telegram", {}).get("api_base", "")
+                or os.environ.get("PAGANINI_API_BASE", "http://localhost:8000"))
+    api_key = (api_key
+               or config.get("telegram", {}).get("api_key", "")
+               or "")
+
+    # Try to load API key from runtime
+    if not api_key:
+        key_file = Path("runtime/state/api_key.txt")
+        if key_file.exists():
+            api_key = key_file.read_text().strip()
 
     if not token:
-        print("❌ No bot token. Set in config.yaml under telegram.bot_token")
-        print("   Or pass: paganini telegram --token YOUR_TOKEN")
+        print("❌ No bot token.")
+        print("   Set in config.yaml: telegram.bot_token")
+        print("   Or: TELEGRAM_BOT_TOKEN=... paganini telegram")
         return
 
-    logging.basicConfig(level=logging.INFO, format="%(asctime)s %(message)s")
-    bot = TelegramBot(token, config)
+    logging.basicConfig(level=logging.INFO,
+                        format="%(asctime)s %(message)s")
+    bot = TelegramBot(token, api_base, api_key)
     bot.poll()
