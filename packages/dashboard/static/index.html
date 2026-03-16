@@ -618,14 +618,14 @@ async function sendQuery(){
     return;
   }
 
-  if(d.session_id&&!blocked){SID=d.session_id;localStorage.setItem('p_sid',SID)}
-
   const conf=Math.round((d.confidence||0)*100);
   const confColor=conf>=80?'var(--green)':conf>=60?'var(--amber)':'var(--red)';
   const agent=d.agent||d.routed_to||'rag';
   const isAdversarial=/coaf|lavagem|fraude|burlar|evadir|bypass|fracionar.*evitar|ocultar.*origem|simular|fraudar|driblar|compliance.*sem.*not/i.test(q);
   const blocked=d.blocked||isAdversarial;
   const sources=(d.sources||[]).slice(0,5);
+
+  if(d.session_id&&!blocked){SID=d.session_id;localStorage.setItem('p_sid',SID)}
 
   let bubble='';
   if(blocked){
