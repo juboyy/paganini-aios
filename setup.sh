@@ -104,6 +104,21 @@ CONFEOF
     ok "LLM configured: Gemini 2.5 Flash"
 fi
 
+
+
+# ── Step 5b: Telegram Bot (optional) ──
+TELEGRAM_TOKEN="${TELEGRAM_BOT_TOKEN:-}"
+if [ -n "$TELEGRAM_TOKEN" ]; then
+    # Append to config.yaml
+    cat >> config.yaml << TGEOF
+
+telegram:
+  bot_token: "${TELEGRAM_TOKEN}"
+TGEOF
+    ok "Telegram bot configured"
+    info "Start with: paganini telegram"
+fi
+
 # ── Step 6: Corpus Indexing ──
 info "Indexing knowledge base..."
 CORPUS_DIR=""

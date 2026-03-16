@@ -683,6 +683,15 @@ if __name__ == "__main__":
     cli()
 
 
+
+
+@cli.command("telegram")
+@click.option("--token", default=None, help="Telegram bot token from @BotFather")
+def telegram_cmd(token):
+    """Start Telegram bot — chat with your fund via Telegram."""
+    from packages.kernel.telegram_bot import run_bot
+    run_bot(token=token)
+
 @cli.command("shell")
 def shell_cmd():
     """Interactive terminal UI — query, monitor, manage without a browser."""
