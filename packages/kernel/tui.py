@@ -254,9 +254,9 @@ def cmd_query(text: str = "", **_):
         console.print(f"[red]Query failed: {e}[/red]")
         return
 
-    answer = result.answer if hasattr(result, "answer") else result.get("answer", "No answer.")
-    confidence = result.confidence if hasattr(result, "confidence") else result.get("confidence", 0)
-    sources = result.sources if hasattr(result, "sources") else result.get("sources", [])
+    answer = result.text if hasattr(result, "text") else (result.get("answer", "No answer.") if isinstance(result, dict) else str(result))
+    confidence = result.confidence if hasattr(result, "confidence") else (result.get("confidence", 0) if isinstance(result, dict) else 0)
+    sources = result.chunks if hasattr(result, "chunks") else (result.get("sources", []) if isinstance(result, dict) else [])
 
     # Confidence color
     conf_pct = int(confidence * 100)
@@ -279,7 +279,7 @@ def cmd_query(text: str = "", **_):
                 name = s.get("source", "doc").split("/")[-1].replace(".md", "")
                 section = s.get("section", "")
             elif hasattr(s, "source"):
-                name = (s.source or "doc").split("/")[-1].replace(".md", "")
+                name = (getattr(s, "source", None) or "doc").split("/")[-1].replace(".md", "")
                 section = getattr(s, "section", "")
             else:
                 name = str(s)
