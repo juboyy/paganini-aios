@@ -249,7 +249,10 @@ def cmd_query(text: str = "", **_):
         return
 
     try:
-        result = rag.query(text)
+        from packages.kernel.engine import load_config, get_llm_fn
+        config = load_config()
+        llm_fn = get_llm_fn(config)
+        result = rag.query(text, llm_fn=llm_fn)
     except Exception as e:
         console.print(f"[red]Query failed: {e}[/red]")
         return

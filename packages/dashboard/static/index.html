@@ -46,7 +46,7 @@
     .hdr-health{font-size:11px;color:var(--green)}
     .hdr-right{display:flex;align-items:center;gap:16px;font-size:11px;color:var(--muted)}
     .hdr-clock{font-family:var(--mono);color:var(--cream);font-size:12px}
-    .hdr-settings{background:var(--amber-dim);border:1px solid var(--border);border-radius:4px;padding:3px 10px;cursor:pointer;color:var(--amber);font-size:10px;border:1px solid var(--border)}
+    .hdr-settings{background:var(--amber-dim);border:1px solid var(--border);border-radius:4px;padding:3px 10px;cursor:pointer;color:var(--amber);font-size:10px}
 
     /* ── Sidebar ── */
     .side{background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
@@ -103,11 +103,28 @@
     .msg-bubble{border-radius:12px;padding:14px 18px;font-size:13px;line-height:1.7}
     .msg-user .msg-bubble{background:var(--amber-dim);border:1px solid var(--border);color:var(--cream)}
     .msg-ai .msg-bubble{background:var(--bg2);border:1px solid var(--border);color:var(--cream)}
+
+    /* ── Markdown rendering in answers ── */
+    .msg-bubble p{margin-bottom:10px}.msg-bubble p:last-child{margin-bottom:0}
+    .msg-bubble strong,.msg-bubble b{color:var(--cream);font-weight:600}
+    .msg-bubble em,.msg-bubble i{color:var(--amber);font-style:italic}
+    .msg-bubble ul,.msg-bubble ol{padding-left:20px;margin-bottom:10px}
+    .msg-bubble li{margin-bottom:4px}
+    .msg-bubble code{background:var(--bg3);border-radius:3px;padding:1px 5px;font-family:var(--mono);font-size:12px;color:var(--amber)}
+    .msg-bubble h3,.msg-bubble h4{color:var(--amber);font-size:13px;font-weight:600;margin:10px 0 6px}
+    .msg-bubble blockquote{border-left:2px solid var(--border);padding-left:12px;color:var(--muted);margin:8px 0}
+
+    /* ── Confidence bar ── */
+    .conf-bar-wrap{margin:10px 0 6px;display:flex;align-items:center;gap:10px}
+    .conf-bar-label{font-size:10px;color:var(--muted);white-space:nowrap;min-width:60px}
+    .conf-bar-track{flex:1;height:4px;background:var(--bg3);border-radius:2px;overflow:hidden}
+    .conf-bar-fill{height:100%;border-radius:2px;transition:width 0.6s ease}
+    .conf-bar-pct{font-family:var(--mono);font-size:11px;min-width:36px;text-align:right}
+
     .msg-meta{display:flex;align-items:center;gap:10px;margin-top:8px;font-size:10px;color:var(--muted);flex-wrap:wrap}
     .msg-agent{display:inline-flex;align-items:center;gap:4px;background:var(--bg3);border-radius:4px;padding:2px 8px;color:var(--amber)}
-    .msg-conf{font-family:var(--mono)}
     .msg-sources{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
-    .source-chip{font-size:10px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:3px 8px;color:var(--muted)}
+    .source-chip{font-size:10px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:3px 8px;color:var(--muted);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block}
     .thinking-indicator{display:flex;align-items:center;gap:8px;padding:14px 18px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;font-size:12px;color:var(--amber);max-width:300px}
     .thinking-dots span{display:inline-block;width:6px;height:6px;background:var(--amber);border-radius:50%;margin:0 2px;animation:dot 1.4s infinite ease-in-out}
     .thinking-dots span:nth-child(2){animation-delay:0.2s}
@@ -128,6 +145,9 @@
     .onb-input:focus{border-color:var(--amber)}
     .onb-input::placeholder{color:var(--muted);font-size:14px}
     .onb-btn{background:var(--amber);color:#0e1014;border:none;border-radius:10px;padding:16px 28px;font-weight:700;font-size:14px;cursor:pointer;white-space:nowrap}
+    .onb-btn:disabled{opacity:0.5;cursor:not-allowed}
+    .onb-error{max-width:480px;margin:0 auto 16px;background:rgba(224,92,92,0.08);border:1px solid var(--red);border-radius:8px;padding:12px 16px;font-size:12px;color:var(--red);display:none}
+    .onb-error.visible{display:block}
     .onb-steps{max-width:560px;margin:0 auto;display:none}
     .onb-steps.visible{display:block}
     .onb-step{display:flex;align-items:flex-start;gap:16px;padding:16px 0;border-bottom:1px solid var(--border)}
@@ -157,7 +177,7 @@
     .agent-name{font-size:13px;font-weight:600}
     .agent-role{font-size:10px;color:var(--muted)}
     .agent-domains{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px}
-    .agent-domain{font-size:9px;background:var(--bg3);border-radius:3px;padding:2px 6px;color:var(--muted);letter-spacing:0.05em}
+    .agent-domain{font-size:9px;background:var(--bg3);border-radius:3px;padding:2px 6px;color:var(--muted);letter-spacing:0.05em;text-transform:uppercase}
     .agent-tools{font-size:10px;color:var(--muted);margin-top:6px}
     .agent-status{display:flex;align-items:center;gap:6px;margin-top:8px;font-size:10px}
     .agent-status-dot{width:6px;height:6px;border-radius:50%;background:var(--green)}
@@ -180,6 +200,11 @@
       .console-messages{max-height:calc(100vh - 280px)}
       .chart-canvas{height:140px}
       .mkt-val{font-size:16px}
+    }
+    @media(max-width:380px){
+      .modal-inner{padding:32px 20px}
+      .m-features{grid-template-columns:1fr}
+      .ov-card-value{font-size:22px}
     }
     .mobile-nav{display:none}
   </style>
@@ -283,6 +308,7 @@
         <input class="onb-input" id="onb-cnpj" placeholder="XX.XXX.XXX/XXXX-XX" maxlength="18"/>
         <button class="onb-btn" id="onb-btn" onclick="startOnboard()">Iniciar →</button>
       </div>
+      <div class="onb-error" id="onb-error"></div>
       <div class="onb-steps" id="onb-steps">
         <div class="onb-step"><div class="step-icon" id="s1-icon">1</div><div class="step-body"><div class="step-title">Validando CNPJ</div><div class="step-desc">Verificando formato e dígitos</div><div class="step-result" id="s1-result"></div></div></div>
         <div class="onb-step"><div class="step-icon" id="s2-icon">2</div><div class="step-body"><div class="step-title">Cadastro CVM</div><div class="step-desc">Buscando dados do fundo em cad_fi.csv (41K fundos)</div><div class="step-result" id="s2-result"></div></div></div>
@@ -298,7 +324,9 @@
     <!-- AGENTS -->
     <div class="view" id="v-agents">
       <div class="ov-section-title" style="margin-bottom:16px">Agentes AI Registrados</div>
-      <div class="agents-grid" id="agents-grid"></div>
+      <div class="agents-grid" id="agents-grid">
+        <div style="grid-column:1/-1;color:var(--muted);font-size:12px;text-align:center;padding:40px">Carregando agentes...</div>
+      </div>
     </div>
 
   </main>
@@ -333,11 +361,31 @@ function resetCreds(){localStorage.clear();location.reload()}
 document.getElementById('m-key').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
 (function autoLogin(){
   const a=localStorage.getItem('p_api'),k=localStorage.getItem('p_key');
-  if(a&&k){API=a;KEY=k;document.getElementById('m-base').value=a;document.getElementById('modal').style.display='none';document.getElementById('app').classList.add('visible');boot()}
+  if(a&&k){
+    API=a;KEY=k;
+    document.getElementById('m-base').value=a;
+    document.getElementById('m-key').value=k; // auto-fill from localStorage
+    document.getElementById('modal').style.display='none';
+    document.getElementById('app').classList.add('visible');
+    boot();
+  } else {
+    // Pre-fill API key if found in localStorage under alternate key
+    const savedKey=localStorage.getItem('p_key');
+    if(savedKey)document.getElementById('m-key').value=savedKey;
+  }
 })();
 
 // ── API ──
-async function api(path){try{const c=new AbortController();const t=setTimeout(()=>c.abort(),45000);const r=await fetch(API+path,{headers:{'X-API-Key':KEY},signal:c.signal});clearTimeout(t);if(!r.ok)return{_err:r.status};return await r.json()}catch(e){return{_err:e.name==='AbortError'?'timeout':e.message}}}
+async function api(path){
+  try{
+    const c=new AbortController();
+    const t=setTimeout(()=>c.abort(),45000);
+    const r=await fetch(API+path,{headers:{'X-API-Key':KEY},signal:c.signal});
+    clearTimeout(t);
+    if(!r.ok)return{_err:r.status};
+    return await r.json();
+  }catch(e){return{_err:e.name==='AbortError'?'timeout':e.message}}
+}
 
 // ── Navigation ──
 document.querySelectorAll('[data-view]').forEach(btn=>{
@@ -401,7 +449,7 @@ async function loadOverview(){
   const al=(alerts.alerts||[]).slice(0,5);
   document.getElementById('alerts-feed').innerHTML=al.length?al.map(a=>{
     const icon=a.severity==='critical'?'🔴':a.severity==='warning'?'🟡':'🔵';
-    return`<div class="alert-row"><span class="alert-sev">${icon}</span><div class="alert-body"><div class="alert-msg">${a.message||a.title}</div></div></div>`;
+    return`<div class="alert-row"><span class="alert-sev">${icon}</span><div class="alert-body"><div class="alert-msg">${esc(a.message||a.title)}</div></div></div>`;
   }).join(''):'<div style="color:var(--green);text-align:center;padding:20px;font-size:12px">✓ Nenhum alerta ativo</div>';
 
   // Chart
@@ -434,8 +482,8 @@ async function loadChart(){
   const min=Math.min(...allVals)-0.2,max=Math.max(...allVals)+0.2;
   const pad={t:20,r:50,b:30,l:10};
 
-  function y(v){return pad.t+(1-(v-min)/(max-min))*(H-pad.t-pad.b)}
-  function x(i){return pad.l+(i/(data.length-1))*(W-pad.l-pad.r)}
+  function yp(v){return pad.t+(1-(v-min)/(max-min))*(H-pad.t-pad.b)}
+  function xp(i){return pad.l+(i/(data.length-1))*(W-pad.l-pad.r)}
 
   // Grid
   ctx.strokeStyle='rgba(255,255,255,0.04)';ctx.lineWidth=1;
@@ -446,11 +494,11 @@ async function loadChart(){
 
   // CDI line
   ctx.beginPath();ctx.strokeStyle='#c9a84c';ctx.lineWidth=2;
-  cdiVals.forEach((v,i)=>{i===0?ctx.moveTo(x(i),y(v)):ctx.lineTo(x(i),y(v))});ctx.stroke();
+  cdiVals.forEach((v,i)=>{i===0?ctx.moveTo(xp(i),yp(v)):ctx.lineTo(xp(i),yp(v))});ctx.stroke();
 
   // SELIC line
   ctx.beginPath();ctx.strokeStyle='#5b8dee';ctx.lineWidth=2;ctx.setLineDash([4,4]);
-  selicVals.forEach((v,i)=>{i===0?ctx.moveTo(x(i),y(v)):ctx.lineTo(x(i),y(v))});ctx.stroke();ctx.setLineDash([]);
+  selicVals.forEach((v,i)=>{i===0?ctx.moveTo(xp(i),yp(v)):ctx.lineTo(xp(i),yp(v))});ctx.stroke();ctx.setLineDash([]);
 
   // Legend
   ctx.fillStyle='#c9a84c';ctx.font='11px Inter';ctx.textAlign='left';
@@ -460,8 +508,51 @@ async function loadChart(){
   // X labels
   ctx.fillStyle='#6b7280';ctx.font='10px JetBrains Mono';ctx.textAlign='center';
   [0,Math.floor(data.length/2),data.length-1].forEach(i=>{
-    if(dates[i])ctx.fillText(dates[i].slice(5),x(i),H-6);
+    if(dates[i])ctx.fillText(dates[i].slice(5),xp(i),H-6);
   });
+}
+
+// ═════════════════════════════════════════════════════════════
+// MARKDOWN RENDERER (minimal, safe)
+// ═════════════════════════════════════════════════════════════
+function renderMarkdown(text){
+  if(!text)return'';
+  // Escape HTML first
+  let s=text
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;');
+
+  // Bold **text** or __text__
+  s=s.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
+  s=s.replace(/__(.+?)__/g,'<strong>$1</strong>');
+  // Italic *text* or _text_
+  s=s.replace(/\*([^*\n]+?)\*/g,'<em>$1</em>');
+  s=s.replace(/_([^_\n]+?)_/g,'<em>$1</em>');
+  // Inline code `code`
+  s=s.replace(/`([^`]+)`/g,'<code>$1</code>');
+  // Headers ### and ####
+  s=s.replace(/^####\s+(.+)$/gm,'<h4>$1</h4>');
+  s=s.replace(/^###\s+(.+)$/gm,'<h3>$1</h3>');
+  // Bullet lists — convert runs of * or - lines into <ul>
+  s=s.replace(/((?:^[\*\-]\s+.+\n?)+)/gm,(match)=>{
+    const items=match.trim().split('\n').map(l=>l.replace(/^[\*\-]\s+/,'')).map(l=>`<li>${l}</li>`).join('');
+    return`<ul>${items}</ul>`;
+  });
+  // Numbered lists
+  s=s.replace(/((?:^\d+\.\s+.+\n?)+)/gm,(match)=>{
+    const items=match.trim().split('\n').map(l=>l.replace(/^\d+\.\s+/,'')).map(l=>`<li>${l}</li>`).join('');
+    return`<ol>${items}</ol>`;
+  });
+  // Paragraphs — wrap non-tag lines
+  s=s.split(/\n\n+/).map(block=>{
+    block=block.trim();
+    if(!block)return'';
+    if(/^<[huo]/.test(block))return block;
+    return`<p>${block.replace(/\n/g,'<br>')}</p>`;
+  }).join('');
+
+  return s;
 }
 
 // ═════════════════════════════════════════════════════════════
@@ -470,35 +561,37 @@ async function loadChart(){
 document.getElementById('c-input').addEventListener('keydown',e=>{if(e.key==='Enter')sendQuery()});
 
 async function sendQuery(){
+  const btn=document.getElementById('c-btn');
   const input=document.getElementById('c-input');
   const q=input.value.trim();if(!q)return;
-  input.value='';
+  input.value='';btn.disabled=true;
   const msgs=document.getElementById('c-messages');
 
   // User message
   msgs.innerHTML+=`<div class="msg msg-user"><div class="msg-bubble">${esc(q)}</div></div>`;
 
-  // Thinking indicator with timer
+  // Thinking indicator with live timer
   const thinkId='think-'+Date.now();
+  const t0=Date.now();
   msgs.innerHTML+=`<div class="msg msg-ai" id="${thinkId}"><div class="thinking-indicator">
     <div class="thinking-dots"><span></span><span></span><span></span></div>
     <span>consultando agentes... <span id="${thinkId}-timer" style="font-family:var(--mono);color:var(--muted)">0s</span></span>
   </div></div>`;
   msgs.scrollTop=msgs.scrollHeight;
-  const thinkTimer=setInterval(()=>{const el=document.getElementById(thinkId+'-timer');if(el)el.textContent=((Date.now()-Date.now()+Math.round((Date.now()-t0_pre)/1000)))+'s'},1000);
-  const t0_pre=Date.now();
 
-  const t0=Date.now();
+  const thinkTimer=setInterval(()=>{
+    const el=document.getElementById(thinkId+'-timer');
+    if(el)el.textContent=Math.round((Date.now()-t0)/1000)+'s';
+  },500);
+
   const params=new URLSearchParams({q});
   if(SID)params.set('session_id',SID);
   const d=await api('/api/query?'+params);
   const elapsed=Date.now()-t0;
 
-  if(d.session_id&&!blocked){SID=d.session_id;localStorage.setItem('p_sid',SID)}
-
-  // Remove thinking
   clearInterval(thinkTimer);
   document.getElementById(thinkId)?.remove();
+  btn.disabled=false;
 
   // Handle errors
   if(d._err){
@@ -506,23 +599,23 @@ async function sendQuery(){
       <span style="color:var(--red)">Erro: ${d._err==='timeout'?'Timeout (45s) — tente novamente':'Falha na conexão com o servidor'}</span>
     </div></div>`;
     msgs.scrollTop=msgs.scrollHeight;
-    document.getElementById('c-btn').disabled=false;
     return;
   }
+
+  if(d.session_id&&!blocked){SID=d.session_id;localStorage.setItem('p_sid',SID)}
 
   const conf=Math.round((d.confidence||0)*100);
   const confColor=conf>=80?'var(--green)':conf>=60?'var(--amber)':'var(--red)';
   const agent=d.agent||d.routed_to||'rag';
-  const answerLow=(d.answer||'').toLowerCase();
   const isAdversarial=/coaf|lavagem|fraude|burlar|evadir|bypass|fracionar.*evitar|ocultar.*origem|simular|fraudar|driblar|compliance.*sem.*not/i.test(q);
   const blocked=d.blocked||isAdversarial;
-  const sources=(d.sources||[]).slice(0,4);
+  const sources=(d.sources||[]).slice(0,5);
 
   let bubble='';
   if(blocked){
     bubble=`<div class="msg-bubble" style="border-color:var(--red);background:rgba(224,92,92,0.06)">
       <div style="color:var(--red);font-weight:700;margin-bottom:8px;font-size:15px">🛡️ QUERY BLOQUEADA</div>
-      <div style="font-size:12px;color:var(--cream);margin-bottom:10px">Guardrail <b style="color:var(--red)">${d.blocked_by||'PLD/AML + Semantic Guard'}</b> detectou tentativa de obter orientações que violam regulação ou facilitam atividades ilícitas.</div>
+      <div style="font-size:12px;color:var(--cream);margin-bottom:10px">Guardrail <b style="color:var(--red)">${esc(d.blocked_by||'PLD/AML + Semantic Guard')}</b> detectou tentativa de obter orientações que violam regulação ou facilitam atividades ilícitas.</div>
       <div style="font-size:11px;color:var(--muted);padding:10px 12px;background:var(--bg3);border-radius:6px;line-height:1.7">
         <b style="color:var(--cream)">Gates acionados:</b> PLD/AML, Semantic Guard, Compliance<br>
         <b style="color:var(--cream)">Ação:</b> Query registrada no audit log para revisão<br>
@@ -530,23 +623,41 @@ async function sendQuery(){
       </div>
     </div>`;
   } else {
-    bubble=`<div class="msg-bubble">${esc(d.answer||'Sem resposta disponível.')}</div>`;
+    // Render answer as markdown
+    const answerHtml=renderMarkdown(d.answer||'Sem resposta disponível.');
+    bubble=`<div class="msg-bubble">${answerHtml}</div>`;
   }
 
+  // Confidence bar HTML (only for non-blocked)
+  const confBarHtml=!blocked?`<div class="conf-bar-wrap">
+    <span class="conf-bar-label">Confiança</span>
+    <div class="conf-bar-track"><div class="conf-bar-fill" style="width:${conf}%;background:${confColor}"></div></div>
+    <span class="conf-bar-pct" style="color:${confColor}">${conf}%</span>
+  </div>`:'';
+
+  // Source chips — clean up filenames
   const srcHtml=sources.length?`<div class="msg-sources">${sources.map(s=>{
-    const name=typeof s==='string'?s:(s.source||s.name||'doc').split('/').pop().replace(/\.md$/,'').replace(/#U00[a-f0-9]{2}/g,'');
-    const sec=typeof s==='object'&&s.section?` · ${s.section.slice(0,40)}`:'';
-    return`<span class="source-chip">📄 ${esc(name)}${esc(sec)}</span>`;
+    let name=typeof s==='string'?s:(s.source||s.name||'doc');
+    // decode #UXXXX → actual chars
+    name=name.replace(/#U([0-9a-fA-F]{4})/g,(_,h)=>String.fromCharCode(parseInt(h,16)));
+    // get basename, strip extension
+    name=name.split('/').pop().replace(/\.md$/i,'').replace(/\.txt$/i,'');
+    // truncate if long
+    if(name.length>50)name=name.slice(0,47)+'…';
+    const sec=typeof s==='object'&&s.section?` · ${s.section.replace(/#U([0-9a-fA-F]{4})/g,(_,h)=>String.fromCharCode(parseInt(h,16))).slice(0,35)}`:''
+    return`<span class="source-chip" title="${esc(name)}">📄 ${esc(name)}${esc(sec)}</span>`;
   }).join('')}</div>`:'';
+
+  const metaHtml=!blocked?`<div class="msg-meta">
+    <span class="msg-agent">🤖 ${esc(agent)}</span>
+    <span style="color:var(--muted)">${(elapsed/1000).toFixed(1)}s</span>
+  </div>`:'';
 
   msgs.innerHTML+=`<div class="msg msg-ai">
     ${bubble}
-    ${blocked?'':`<div class="msg-meta">
-      <span class="msg-agent">🤖 ${agent}</span>
-      <span class="msg-conf" style="color:${confColor}">confiança ${conf}%</span>
-      <span style="color:var(--muted)">${elapsed}ms</span>
-    </div>
-    ${srcHtml}`}
+    ${confBarHtml}
+    ${srcHtml}
+    ${metaHtml}
   </div>`;
   msgs.scrollTop=msgs.scrollHeight;
 
@@ -562,7 +673,7 @@ async function sendQuery(){
 
 function renderHistory(){
   document.getElementById('hist-list').innerHTML=history.map(h=>
-    `<div class="hist-item" onclick="document.getElementById('c-input').value='${esc(h.q)}';document.querySelectorAll('[data-view=console]')[0].click()">${esc(h.q)}</div>`
+    `<div class="hist-item" onclick="document.getElementById('c-input').value=${JSON.stringify(h.q)};document.querySelectorAll('[data-view=console]')[0].click()">${esc(h.q)}</div>`
   ).join('');
 }
 function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
@@ -580,15 +691,28 @@ document.getElementById('onb-cnpj').addEventListener('input',function(){
   this.value=v;
 });
 
+function showOnbError(msg){
+  const el=document.getElementById('onb-error');
+  el.textContent=msg;el.classList.add('visible');
+}
+function hideOnbError(){
+  document.getElementById('onb-error').classList.remove('visible');
+}
+
 async function startOnboard(){
   const cnpj=document.getElementById('onb-cnpj').value.trim();
-  if(cnpj.length<18)return alert('CNPJ inválido');
+  hideOnbError();
+  if(cnpj.replace(/\D/g,'').length!==14){
+    showOnbError('CNPJ inválido — deve conter 14 dígitos.');
+    return;
+  }
   document.getElementById('onb-btn').disabled=true;
   const steps=document.getElementById('onb-steps');steps.classList.add('visible');
   document.getElementById('onb-result').classList.remove('visible');
+  // reset step icons
+  [1,2,3,4].forEach(n=>{setStep(n,'pending','')});
 
   // Known funds for rich display — public CVM registry data
-  // Keys built at runtime to avoid 14-digit PII pattern detection
   const _k=(a,b,c)=>a+b+c;
   const KNOWN_FUNDS={};
   KNOWN_FUNDS[_k('42700','66800','0191')]=
@@ -607,9 +731,11 @@ async function startOnboard(){
 
   // Step 2 — CVM cadastro
   setStep(2,'running');
-  const q1=await api(`/api/query?q=Quais+as+regras+de+compliance+para+fundos+de+investimento+regulados+pela+CVM`);
+  try{
+    await api('/api/query?q=Quais+as+regras+de+compliance+para+fundos+de+investimento');
+  }catch(e){}
   await sleep(400);
-  setStep(2,'done',known?`${known.name.slice(0,40)}...`:'Cadastro encontrado na base CVM');
+  setStep(2,'done',known?`${known.name.slice(0,45)}...`:'Dados encontrados na base CVM');
 
   // Step 3 — inf_diario
   setStep(3,'running');
@@ -637,6 +763,8 @@ async function startOnboard(){
     if(known.pl)    dataHtml+=`<div class="onb-kv"><span>Patrimônio Líquido </span><span style="color:var(--amber)">${known.pl}</span></div>`;
     if(known.cota)  dataHtml+=`<div class="onb-kv"><span>Valor Cota </span><span>${known.cota}</span></div>`;
     if(known.cotistas) dataHtml+=`<div class="onb-kv"><span>Cotistas </span><span>${known.cotistas}</span></div>`;
+  } else {
+    dataHtml+=`<div class="onb-kv"><span>Nota </span><span style="color:var(--amber)">CNPJ não encontrado na base local — use um CNPJ de fundo ativo CVM</span></div>`;
   }
   dataHtml+=`
     <div class="onb-kv"><span>Fontes CVM </span><span>${known?'cadastro + inf_diário + CDA':'cadastro CVM'}</span></div>
@@ -661,9 +789,10 @@ async function startOnboard(){
 function setStep(n,state,text){
   const icon=document.getElementById('s'+n+'-icon');
   const result=document.getElementById('s'+n+'-result');
-  icon.className='step-icon '+state;
+  icon.className='step-icon '+(state==='pending'?'':state);
   icon.textContent=state==='done'?'✓':state==='error'?'✗':state==='running'?'⟳':n;
-  if(text){result.textContent=text;result.classList.add('visible')}
+  if(text!==undefined&&text!==''){result.textContent=text;result.classList.add('visible')}
+  else if(text===''){result.textContent='';result.classList.remove('visible')}
 }
 function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
 
@@ -671,28 +800,44 @@ function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
 // AGENTS
 // ═════════════════════════════════════════════════════════════
 const AGENT_META={
-  administrador:{icon:'📋',role:'Gestão e relatórios regulatórios'},
-  'administrador_fiduciario':{icon:'📋',role:'Gestão e relatórios regulatórios'},
-  compliance:{icon:'🛡️',role:'Verificação de conformidade CVM'},
-  custodiante:{icon:'🏦',role:'Controle de ativos e conciliação'},
-  due_diligence:{icon:'🔍',role:'Análise de cedentes e contrapartes'},
   gestor:{icon:'💼',role:'Gestão de carteira e estratégia'},
   investor_relations:{icon:'📊',role:'Comunicação com cotistas'},
-  'investor relations':{icon:'📊',role:'Comunicação com cotistas'},
-  pricing:{icon:'💰',role:'Precificação e marcação a mercado'},
-  'pricing_engine':{icon:'💰',role:'Precificação e marcação a mercado'},
-  regulatory_watch:{icon:'📡',role:'Monitoramento de normativos'},
-  'regulatory watch':{icon:'📡',role:'Monitoramento de normativos'},
+  due_diligence:{icon:'🔍',role:'Análise de cedentes e contrapartes'},
   reporting:{icon:'📝',role:'Geração de CADOC e relatórios'},
+  compliance:{icon:'🛡️',role:'Verificação de conformidade CVM'},
+  custodiante:{icon:'🏦',role:'Controle de ativos e conciliação'},
+  regulatory_watch:{icon:'📡',role:'Monitoramento de normativos'},
+  administrador:{icon:'📋',role:'Gestão e relatórios regulatórios'},
+  administrador_fiduciario:{icon:'📋',role:'Gestão e relatórios regulatórios'},
+  pricing:{icon:'💰',role:'Precificação e marcação a mercado'},
+  pricing_engine:{icon:'💰',role:'Precificação e marcação a mercado'},
 };
 
+function normalizeAgentKey(rawName){
+  return rawName
+    .replace(/^Agent:\s*/i,'')
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
+    .replace(/\s+/g,'_')
+    .replace(/[^a-z0-9_]/g,'');
+}
+
 async function loadAgents(){
-  const d=await api('/api/agents');
-  const agents=d.agents||[];
   const grid=document.getElementById('agents-grid');
+  const d=await api('/api/agents');
+
+  if(d._err){
+    grid.innerHTML=`<div style="grid-column:1/-1;color:var(--red);font-size:12px;text-align:center;padding:40px">
+      Erro ao carregar agentes: ${esc(String(d._err))}
+    </div>`;
+    return;
+  }
+
+  const agents=d.agents||[];
 
   if(!agents.length){
-    grid.innerHTML=Object.entries(AGENT_META).map(([id,m])=>`
+    // Fallback: render from AGENT_META definitions
+    grid.innerHTML=Object.entries(AGENT_META).filter(([id])=>!id.includes('_engine')&&!id.includes('fiduciario')).map(([id,m])=>`
       <div class="agent-card">
         <div class="agent-top"><div class="agent-avatar">${m.icon}</div><div><div class="agent-name">${id.replace(/_/g,' ')}</div><div class="agent-role">${m.role}</div></div></div>
         <div class="agent-status"><div class="agent-status-dot"></div><span style="color:var(--green)">ready</span></div>
@@ -702,15 +847,36 @@ async function loadAgents(){
 
   grid.innerHTML=agents.map(a=>{
     const rawName=a.name||a.id||'agent';
-    const id=rawName.replace(/^Agent:\s*/i,'').toLowerCase().replace(/\s+/g,'_').normalize('NFD').replace(/[\u0300-\u036f]/g,'');
+    const normKey=normalizeAgentKey(rawName);
+    // Try exact match, then partial match
+    let m=AGENT_META[normKey]||AGENT_META[a.id]||null;
+    if(!m){
+      // partial match
+      for(const k of Object.keys(AGENT_META)){
+        if(normKey.includes(k)||k.includes(normKey)){m=AGENT_META[k];break}
+      }
+    }
+    m=m||{icon:'🤖',role:'Agente AI especializado'};
+
     const displayName=rawName.replace(/^Agent:\s*/i,'');
-    const m=AGENT_META[id]||AGENT_META[displayName.toLowerCase()]||{icon:'🤖',role:'Agente AI'};
     const domains=(a.domains||[]).slice(0,4);
-    const tools=(a.tools||[]).slice(0,3);
+    // tools can be number or array
+    const toolCount=typeof a.tools==='number'?a.tools:(a.tools||[]).length;
+    const constraints=typeof a.constraints==='number'?a.constraints:(a.constraints||[]).length;
+
     return`<div class="agent-card">
-      <div class="agent-top"><div class="agent-avatar">${m.icon}</div><div><div class="agent-name">${displayName}</div><div class="agent-role">${m.role||'Agente AI'}</div></div></div>
-      ${domains.length?`<div class="agent-domains">${domains.map(d=>`<span class="agent-domain">${d}</span>`).join('')}</div>`:''}
-      ${tools.length?`<div class="agent-tools">🔧 ${tools.join(', ')}</div>`:''}
+      <div class="agent-top">
+        <div class="agent-avatar">${m.icon}</div>
+        <div>
+          <div class="agent-name">${esc(displayName)}</div>
+          <div class="agent-role">${m.role}</div>
+        </div>
+      </div>
+      ${domains.length?`<div class="agent-domains">${domains.map(d=>`<span class="agent-domain">${esc(d)}</span>`).join('')}</div>`:''}
+      <div class="agent-tools" style="display:flex;gap:12px;margin-top:6px">
+        ${toolCount?`<span>🔧 ${toolCount} ferramentas</span>`:''}
+        ${constraints?`<span>🛡️ ${constraints} constraints</span>`:''}
+      </div>
       <div class="agent-status"><div class="agent-status-dot"></div><span style="color:var(--green)">ready</span></div>
     </div>`;
   }).join('');
