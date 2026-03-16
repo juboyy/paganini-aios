@@ -1,920 +1,535 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8"/>
-  <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate"/>
-  <meta http-equiv="Pragma" content="no-cache"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
-  <title>PAGANINI AIOS — Operations Center</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com"/>
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;500;700&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
-  <style>
-    :root{--bg:#0e1014;--bg2:#13171d;--bg3:#1a1f28;--bg4:#212733;--border:rgba(201,168,76,0.12);--cream:#f0ebe1;--muted:#6b7280;--amber:#c9a84c;--amber-dim:rgba(201,168,76,0.08);--green:#4caf7d;--red:#e05c5c;--blue:#5b8dee;--purple:#a78bfa;--serif:'Playfair Display',Georgia,serif;--sans:'Inter',system-ui,sans-serif;--mono:'JetBrains Mono',monospace}
-    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-    html,body{height:100%;background:var(--bg);color:var(--cream);font-family:var(--sans);font-size:14px;line-height:1.5;overflow:hidden}
-    ::-webkit-scrollbar{width:3px}::-webkit-scrollbar-thumb{background:var(--border);border-radius:2px}
-    button{font-family:var(--sans)}
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Paganini AIOS</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --bg:#0a0c10;--bg2:#11141b;--bg3:#181c25;--bg4:#1f2430;
+  --text:#c8cdd5;--text2:#8b919d;--text3:#565c68;
+  --amber:#d4a437;--amber2:#b8902e;--amber3:rgba(212,164,55,.12);
+  --green:#34c759;--green-bg:rgba(52,199,89,.1);
+  --red:#ff453a;--red-bg:rgba(255,69,58,.08);
+  --blue:#4a9eff;--blue-bg:rgba(74,158,255,.08);
+  --border:#1e222b;--border2:#282d38;
+  --mono:'JetBrains Mono',monospace;--sans:'Inter',system-ui,sans-serif;
+}
+html{font-size:14px;scroll-behavior:smooth}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);line-height:1.5;min-height:100vh;overflow-x:hidden}
 
-    /* ══ MODAL ══ */
-    .modal-overlay{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:200}
-    .modal-inner{max-width:480px;width:90%;padding:48px 40px;text-align:center}
-    .m-violin{font-size:56px;margin-bottom:16px;display:block}
-    .m-brand{font-family:var(--serif);font-size:36px;color:var(--amber);letter-spacing:0.1em;margin-bottom:4px}
-    .m-tagline{color:var(--muted);font-size:13px;letter-spacing:0.15em;text-transform:uppercase;margin-bottom:32px}
-    .m-features{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:32px;text-align:left}
-    .m-feat{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px 16px}
-    .m-feat-icon{font-size:18px;margin-bottom:6px}
-    .m-feat-title{font-size:12px;font-weight:600;color:var(--cream);margin-bottom:2px}
-    .m-feat-desc{font-size:11px;color:var(--muted);line-height:1.4}
-    .m-inputs{display:flex;flex-direction:column;gap:10px;margin-bottom:16px}
-    .m-input{background:var(--bg3);border:1px solid var(--border);border-radius:8px;padding:14px 16px;color:var(--cream);font-family:var(--mono);font-size:13px;outline:none;width:100%;transition:border 0.2s}
-    .m-input:focus{border-color:var(--amber)}
-    .m-input::placeholder{color:var(--muted)}
-    .m-btn{width:100%;background:var(--amber);color:#0e1014;border:none;border-radius:8px;padding:14px;font-weight:700;font-size:15px;cursor:pointer;letter-spacing:0.05em;transition:opacity 0.2s}
-    .m-btn:hover{opacity:0.85}
-    .m-hint{font-size:11px;color:var(--muted);margin-top:12px}
+/* ── Topbar ── */
+.topbar{display:flex;align-items:center;justify-content:space-between;padding:0 24px;height:40px;background:var(--bg2);border-bottom:1px solid var(--border);position:sticky;top:0;z-index:100}
+.topbar-brand{display:flex;align-items:center;gap:8px;font-family:var(--mono);font-weight:700;font-size:13px;letter-spacing:1.5px;color:var(--amber)}
+.topbar-brand span{color:var(--text3);font-weight:400;font-size:11px;letter-spacing:0}
+.topbar-status{display:flex;gap:16px;align-items:center}
+.status-dot{width:6px;height:6px;border-radius:50%;background:var(--green);animation:pulse 2s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.topbar-clock{font-family:var(--mono);font-size:11px;color:var(--text3)}
 
-    /* ══ APP SHELL ══ */
-    .app{display:grid;grid-template-columns:240px 1fr;grid-template-rows:52px 1fr;height:100vh;display:none}
-    .app.visible{display:grid}
+/* ── Login overlay ── */
+.login-overlay{position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:200;display:flex;align-items:center;justify-content:center;backdrop-filter:blur(8px)}
+.login-box{width:360px;padding:40px 32px;text-align:center}
+.login-box h2{font-family:var(--mono);color:var(--amber);font-size:16px;letter-spacing:2px;margin-bottom:8px}
+.login-box p{font-size:12px;color:var(--text3);margin-bottom:24px}
+.login-input{width:100%;background:var(--bg3);border:1px solid var(--border2);color:var(--text);padding:10px 14px;font-family:var(--mono);font-size:13px;outline:none;margin-bottom:12px;transition:border-color .2s}
+.login-input:focus{border-color:var(--amber)}
+.login-btn{width:100%;padding:10px;background:var(--amber);color:var(--bg);font-family:var(--mono);font-weight:600;font-size:12px;letter-spacing:1px;border:none;cursor:pointer;transition:background .2s}
+.login-btn:hover{background:var(--amber2)}
+.login-error{color:var(--red);font-size:11px;margin-top:8px;display:none}
+.hidden{display:none!important}
 
-    /* ── Header ── */
-    .hdr{grid-column:1/-1;background:var(--bg);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 20px}
-    .hdr-left{display:flex;align-items:center;gap:12px}
-    .hdr-logo{font-family:var(--serif);font-size:17px;color:var(--amber);letter-spacing:0.08em}
-    .hdr-dot{width:6px;height:6px;background:var(--green);border-radius:50%;animation:blink 2s infinite}
-    @keyframes blink{0%,100%{opacity:1}50%{opacity:.3}}
-    .hdr-health{font-size:11px;color:var(--green)}
-    .hdr-right{display:flex;align-items:center;gap:16px;font-size:11px;color:var(--muted)}
-    .hdr-clock{font-family:var(--mono);color:var(--cream);font-size:12px}
-    .hdr-settings{background:var(--amber-dim);border:1px solid var(--border);border-radius:4px;padding:3px 10px;cursor:pointer;color:var(--amber);font-size:10px}
+/* ── Main Layout ── */
+.shell{display:grid;grid-template-columns:220px 1fr;grid-template-rows:1fr;min-height:calc(100vh - 40px)}
 
-    /* ── Sidebar ── */
-    .side{background:var(--bg2);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden}
-    .nav{padding:12px 10px;display:flex;flex-direction:column;gap:2px}
-    .nav-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:6px;cursor:pointer;font-size:13px;color:var(--muted);transition:all 0.15s;border:none;background:none;width:100%;text-align:left}
-    .nav-item:hover{background:var(--bg3);color:var(--cream)}
-    .nav-item.active{background:var(--amber-dim);color:var(--amber)}
-    .nav-icon{font-size:16px;width:20px;text-align:center}
-    .nav-divider{height:1px;background:var(--border);margin:8px 14px}
-    .hist-title{font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);padding:8px 14px 4px}
-    .hist-list{flex:1;overflow-y:auto;padding:0 10px}
-    .hist-item{padding:8px 14px;border-radius:6px;cursor:pointer;font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;transition:background 0.15s}
-    .hist-item:hover{background:var(--bg3);color:var(--cream)}
+/* ── Sidebar ── */
+.sidebar{background:var(--bg2);border-right:1px solid var(--border);padding:16px 0;display:flex;flex-direction:column;gap:2px}
+.nav-section{padding:0 16px;margin-top:16px;margin-bottom:4px;font-size:10px;font-weight:600;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase}
+.nav-item{display:flex;align-items:center;gap:10px;padding:8px 16px;color:var(--text2);font-size:13px;cursor:pointer;transition:all .15s;border-left:2px solid transparent}
+.nav-item:hover{color:var(--text);background:rgba(255,255,255,.03)}
+.nav-item.active{color:var(--amber);border-left-color:var(--amber);background:var(--amber3)}
+.nav-item .nav-icon{width:16px;text-align:center;font-size:14px}
+.nav-item .nav-badge{margin-left:auto;font-size:10px;font-family:var(--mono);padding:1px 6px;border-radius:2px;background:var(--amber3);color:var(--amber)}
 
-    /* ── Main content ── */
-    .content{overflow-y:auto;padding:24px;background:var(--bg)}
+/* ── Content panels ── */
+.content{padding:0;overflow-y:auto;overflow-x:hidden}
+.panel{display:none;padding:20px 24px}
+.panel.active{display:block}
 
-    /* ══ VIEWS ══ */
-    .view{display:none}.view.active{display:block}
+/* ── Overview ── */
+.kpi-strip{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1px;background:var(--border);margin-bottom:20px}
+.kpi{background:var(--bg);padding:16px 18px}
+.kpi-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+.kpi-value{font-family:var(--mono);font-size:22px;font-weight:700;color:var(--text)}
+.kpi-value.amber{color:var(--amber)}
+.kpi-sub{font-size:10px;color:var(--text3);font-family:var(--mono);margin-top:2px}
 
-    /* ── Overview ── */
-    .ov-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-bottom:24px}
-    .ov-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:20px}
-    .ov-card-label{font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);margin-bottom:8px}
-    .ov-card-value{font-family:var(--mono);font-size:28px;font-weight:500;margin-bottom:4px}
-    .ov-card-sub{font-size:11px;color:var(--muted)}
-    .ov-section{margin-bottom:24px}
-    .ov-section-title{font-size:11px;letter-spacing:0.15em;text-transform:uppercase;color:var(--muted);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)}
-    .chart-wrap{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:20px;position:relative}
-    .chart-canvas{width:100%;height:200px}
-    .market-grid{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
-    .mkt-card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:14px;text-align:center}
-    .mkt-label{font-size:9px;letter-spacing:0.1em;text-transform:uppercase;color:var(--muted);margin-bottom:6px}
-    .mkt-val{font-family:var(--mono);font-size:20px;font-weight:500}
-    .mkt-spark{height:30px;margin-top:8px}
-    .gates-row{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}
-    .gate-card{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:12px;text-align:center}
-    .gate-dot{width:10px;height:10px;border-radius:50%;margin:0 auto 6px}
-    .gate-name{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:0.05em}
-    .g-ok{background:var(--green)}.g-warn{background:var(--amber)}.g-err{background:var(--red)}.g-unk{background:var(--muted)}
-    .alerts-feed{display:flex;flex-direction:column;gap:8px}
-    .alert-row{display:flex;align-items:center;gap:12px;padding:10px 14px;background:var(--bg2);border-radius:8px;border:1px solid var(--border)}
-    .alert-sev{font-size:18px}
-    .alert-body{flex:1}
-    .alert-msg{font-size:12px;color:var(--cream)}
-    .alert-time{font-size:10px;color:var(--muted)}
+.section-title{font-size:11px;font-weight:600;color:var(--text3);letter-spacing:1.5px;text-transform:uppercase;margin:20px 0 10px;display:flex;align-items:center;gap:8px}
+.section-title::after{content:'';flex:1;height:1px;background:var(--border)}
 
-    /* ── Console ── */
-    .console-messages{min-height:200px;max-height:calc(100vh - 240px);overflow-y:auto;display:flex;flex-direction:column;gap:16px;margin-bottom:20px;padding-right:4px}
-    .msg{max-width:85%;animation:msgIn 0.3s ease}
-    @keyframes msgIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
-    .msg-user{align-self:flex-end}
-    .msg-ai{align-self:flex-start}
-    .msg-bubble{border-radius:12px;padding:16px 20px;font-size:13.5px;line-height:1.8}
-    .msg-user .msg-bubble{background:var(--amber-dim);border:1px solid var(--border);color:var(--cream)}
-    .msg-ai .msg-bubble{background:var(--bg2);border:1px solid var(--border);color:var(--cream)}
+/* ── Market Grid ── */
+.market-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:1px;background:var(--border)}
+.market-item{background:var(--bg);padding:12px 14px;display:flex;flex-direction:column;gap:2px}
+.market-name{font-size:10px;color:var(--text3);letter-spacing:.5px}
+.market-val{font-family:var(--mono);font-size:18px;font-weight:600}
+.market-date{font-size:9px;color:var(--text3);font-family:var(--mono)}
 
-    /* ── Markdown rendering in answers ── */
-    .msg-bubble p{margin:0 0 12px 0;line-height:1.8}.msg-bubble p:last-child{margin-bottom:0}
-    .msg-bubble strong,.msg-bubble b{color:var(--amber);font-weight:600}
-    .msg-bubble em,.msg-bubble i{color:var(--cream);font-style:italic;opacity:0.9}
-    .msg-bubble ul,.msg-bubble ol{padding-left:22px;margin:8px 0 14px}
-    .msg-bubble li{margin-bottom:6px;line-height:1.7;padding-left:4px}
-    .msg-bubble code{background:var(--bg3);border-radius:4px;padding:2px 7px;font-family:var(--mono);font-size:12px;color:var(--amber)}
-    .msg-bubble h3,.msg-bubble h4{color:var(--amber);font-size:14px;font-weight:600;margin:16px 0 8px;letter-spacing:0.3px}
-    .msg-bubble h3:first-child,.msg-bubble h4:first-child{margin-top:0}
-    .msg-bubble blockquote{border-left:3px solid var(--amber);padding:8px 14px;color:var(--muted);margin:10px 0;background:rgba(201,168,76,0.04);border-radius:0 6px 6px 0}
-    .msg-bubble hr{border:none;border-top:1px solid var(--border);margin:14px 0}
-    .msg-bubble a{color:var(--amber);text-decoration:underline}
+/* ── Alerts Feed ── */
+.alert-feed{display:flex;flex-direction:column;gap:1px;background:var(--border)}
+.alert-row{display:grid;grid-template-columns:6px 90px 1fr 80px;align-items:center;gap:12px;padding:10px 14px;background:var(--bg);font-size:12px}
+.alert-sev{width:6px;height:6px;border-radius:50%}
+.alert-sev.high{background:var(--red)}
+.alert-sev.warning{background:var(--amber)}
+.alert-sev.info{background:var(--blue)}
+.alert-type{font-family:var(--mono);font-size:10px;color:var(--text3);text-transform:uppercase}
+.alert-title{color:var(--text)}
+.alert-time{font-family:var(--mono);font-size:10px;color:var(--text3);text-align:right}
 
-    /* ── Confidence bar ── */
-    .conf-bar-wrap{margin:10px 0 6px;display:flex;align-items:center;gap:10px}
-    .conf-bar-label{font-size:10px;color:var(--muted);white-space:nowrap;min-width:60px}
-    .conf-bar-track{flex:1;height:4px;background:var(--bg3);border-radius:2px;overflow:hidden}
-    .conf-bar-fill{height:100%;border-radius:2px;transition:width 0.6s ease}
-    .conf-bar-pct{font-family:var(--mono);font-size:11px;min-width:36px;text-align:right}
+/* ── Agent Fleet ── */
+.agent-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:1px;background:var(--border)}
+.agent-card{background:var(--bg);padding:14px 16px}
+.agent-name{font-family:var(--mono);font-weight:600;font-size:13px;color:var(--amber);margin-bottom:4px;text-transform:capitalize}
+.agent-domains{display:flex;flex-wrap:wrap;gap:4px;margin-top:6px}
+.agent-domain{font-size:9px;padding:2px 6px;background:var(--bg3);color:var(--text2);font-family:var(--mono)}
+.agent-stat{font-size:10px;color:var(--text3);margin-top:4px}
 
-    .msg-meta{display:flex;align-items:center;gap:10px;margin-top:8px;font-size:10px;color:var(--muted);flex-wrap:wrap}
-    .msg-agent{display:inline-flex;align-items:center;gap:4px;background:var(--bg3);border-radius:4px;padding:2px 8px;color:var(--amber)}
-    .msg-sources{display:flex;gap:6px;flex-wrap:wrap;margin-top:8px}
-    .source-chip{font-size:10px;background:var(--bg3);border:1px solid var(--border);border-radius:4px;padding:3px 8px;color:var(--muted);max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:inline-block}
-    .thinking-indicator{display:flex;align-items:center;gap:8px;padding:14px 18px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;font-size:12px;color:var(--amber);max-width:300px}
-    .thinking-dots span{display:inline-block;width:6px;height:6px;background:var(--amber);border-radius:50%;margin:0 2px;animation:dot 1.4s infinite ease-in-out}
-    .thinking-dots span:nth-child(2){animation-delay:0.2s}
-    .thinking-dots span:nth-child(3){animation-delay:0.4s}
-    @keyframes dot{0%,80%,100%{transform:scale(0.4);opacity:0.3}40%{transform:scale(1);opacity:1}}
-    .console-input-bar{display:flex;gap:10px;background:var(--bg2);border:1px solid var(--border);border-radius:12px;padding:6px 6px 6px 18px;align-items:center}
-    .console-input-bar input{flex:1;background:none;border:none;color:var(--cream);font-size:14px;outline:none;font-family:var(--sans)}
-    .console-input-bar input::placeholder{color:var(--muted)}
-    .send-btn{background:var(--amber);color:#0e1014;border:none;border-radius:8px;width:40px;height:40px;cursor:pointer;font-size:18px;display:flex;align-items:center;justify-content:center;transition:opacity 0.2s}
-    .send-btn:hover{opacity:0.8}.send-btn:disabled{opacity:0.3}
+/* ── Console ── */
+.console-wrap{display:flex;flex-direction:column;height:calc(100vh - 60px)}
+.console-input-row{display:flex;gap:0;border:1px solid var(--border2);background:var(--bg2)}
+.console-input{flex:1;background:transparent;border:none;color:var(--text);padding:12px 16px;font-family:var(--mono);font-size:13px;outline:none}
+.console-input::placeholder{color:var(--text3)}
+.console-send{padding:12px 20px;background:var(--amber);color:var(--bg);font-family:var(--mono);font-weight:600;font-size:12px;border:none;cursor:pointer;letter-spacing:1px}
+.console-send:hover{background:var(--amber2)}
+.console-send:disabled{opacity:.5;cursor:not-allowed}
+.console-output{flex:1;overflow-y:auto;padding:16px 0}
+.msg{padding:12px 16px;margin-bottom:2px}
+.msg.user{background:var(--bg3);border-left:2px solid var(--amber)}
+.msg.assistant{background:var(--bg);border-left:2px solid var(--blue)}
+.msg.system{background:var(--bg);border-left:2px solid var(--text3)}
+.msg.blocked{background:var(--red-bg);border-left:2px solid var(--red)}
+.msg-meta{display:flex;justify-content:space-between;margin-bottom:4px}
+.msg-role{font-family:var(--mono);font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:1px}
+.msg-role.user{color:var(--amber)}
+.msg-role.agent{color:var(--blue)}
+.msg-info{font-size:10px;color:var(--text3);font-family:var(--mono)}
+.msg-body{font-size:13px;line-height:1.7;color:var(--text)}
+.msg-body strong{color:var(--amber);font-weight:600}
+.msg-body em{color:var(--text2)}
+.msg-sources{display:flex;flex-wrap:wrap;gap:4px;margin-top:8px}
+.source-chip{font-size:9px;padding:2px 7px;background:var(--amber3);color:var(--amber);font-family:var(--mono)}
+.msg-elapsed{font-family:var(--mono);font-size:11px;color:var(--text3);padding:8px 16px}
+.confidence-bar{height:3px;background:var(--bg3);margin-top:8px;overflow:hidden}
+.confidence-fill{height:100%;transition:width .6s ease-out}
 
-    /* ── Onboarding ── */
-    .onb-hero{text-align:center;padding:40px 0 32px}
-    .onb-title{font-family:var(--serif);font-size:28px;color:var(--cream);margin-bottom:8px}
-    .onb-sub{color:var(--muted);font-size:13px;max-width:500px;margin:0 auto}
-    .onb-input-wrap{max-width:480px;margin:32px auto;display:flex;gap:10px}
-    .onb-input{flex:1;background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:16px 20px;color:var(--cream);font-family:var(--mono);font-size:16px;text-align:center;outline:none;letter-spacing:0.05em}
-    .onb-input:focus{border-color:var(--amber)}
-    .onb-input::placeholder{color:var(--muted);font-size:14px}
-    .onb-btn{background:var(--amber);color:#0e1014;border:none;border-radius:10px;padding:16px 28px;font-weight:700;font-size:14px;cursor:pointer;white-space:nowrap}
-    .onb-btn:disabled{opacity:0.5;cursor:not-allowed}
-    .onb-error{max-width:480px;margin:0 auto 16px;background:rgba(224,92,92,0.08);border:1px solid var(--red);border-radius:8px;padding:12px 16px;font-size:12px;color:var(--red);display:none}
-    .onb-error.visible{display:block}
-    .onb-steps{max-width:560px;margin:0 auto;display:none}
-    .onb-steps.visible{display:block}
-    .onb-step{display:flex;align-items:flex-start;gap:16px;padding:16px 0;border-bottom:1px solid var(--border)}
-    .onb-step:last-child{border-bottom:none}
-    .step-icon{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;flex-shrink:0;border:2px solid var(--border);color:var(--muted);transition:all 0.3s}
-    .step-icon.done{background:var(--green);border-color:var(--green);color:#fff}
-    .step-icon.running{border-color:var(--amber);color:var(--amber);animation:spin 1s linear infinite}
-    .step-icon.error{background:var(--red);border-color:var(--red);color:#fff}
-    @keyframes spin{from{transform:rotate(0)}to{transform:rotate(360deg)}}
-    .step-body{flex:1}
-    .step-title{font-size:13px;font-weight:600;margin-bottom:2px}
-    .step-desc{font-size:11px;color:var(--muted)}
-    .step-result{font-family:var(--mono);font-size:11px;color:var(--green);margin-top:4px;display:none}
-    .step-result.visible{display:block}
-    .onb-result{max-width:560px;margin:24px auto 0;background:var(--bg2);border:1px solid var(--amber);border-radius:12px;padding:24px;display:none}
-    .onb-result.visible{display:block;animation:msgIn 0.4s ease}
-    .onb-result-title{font-family:var(--serif);font-size:20px;color:var(--amber);margin-bottom:12px}
-    .onb-result-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-    .onb-kv{font-size:12px}.onb-kv span:first-child{color:var(--muted)}.onb-kv span:last-child{color:var(--cream);font-family:var(--mono)}
+/* ── Daemons ── */
+.daemon-table{width:100%;border-collapse:collapse}
+.daemon-table th{text-align:left;font-size:10px;color:var(--text3);padding:8px 12px;border-bottom:1px solid var(--border);font-weight:600;letter-spacing:1px;text-transform:uppercase}
+.daemon-table td{padding:8px 12px;font-size:12px;border-bottom:1px solid var(--border);font-family:var(--mono)}
+.daemon-status{display:inline-flex;align-items:center;gap:4px;font-size:10px;padding:2px 8px}
+.daemon-status.idle{color:var(--text3)}
+.daemon-status.running{color:var(--green)}
 
-    /* ── Agents ── */
-    .agents-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
-    .agent-card{background:var(--bg2);border:1px solid var(--border);border-radius:10px;padding:18px;transition:border-color 0.2s}
-    .agent-card:hover{border-color:var(--amber)}
-    .agent-top{display:flex;align-items:center;gap:10px;margin-bottom:12px}
-    .agent-avatar{width:36px;height:36px;border-radius:8px;background:var(--amber-dim);display:flex;align-items:center;justify-content:center;font-size:18px}
-    .agent-name{font-size:13px;font-weight:600}
-    .agent-role{font-size:10px;color:var(--muted)}
-    .agent-domains{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:8px}
-    .agent-domain{font-size:9px;background:var(--bg3);border-radius:3px;padding:2px 6px;color:var(--muted);letter-spacing:0.05em;text-transform:uppercase}
-    .agent-tools{font-size:10px;color:var(--muted);margin-top:6px}
-    .agent-status{display:flex;align-items:center;gap:6px;margin-top:8px;font-size:10px}
-    .agent-status-dot{width:6px;height:6px;border-radius:50%;background:var(--green)}
+/* ── Memory ── */
+.memory-bars{display:flex;flex-direction:column;gap:12px;max-width:500px}
+.mem-row{display:flex;align-items:center;gap:12px}
+.mem-label{width:100px;font-size:11px;color:var(--text2);text-align:right}
+.mem-bar{flex:1;height:20px;background:var(--bg3);position:relative;overflow:hidden}
+.mem-fill{height:100%;transition:width .6s ease-out}
+.mem-count{position:absolute;right:8px;top:50%;transform:translateY(-50%);font-family:var(--mono);font-size:10px;color:var(--text)}
 
-    /* ══ MOBILE ══ */
-    @media(max-width:768px){
-      .app{grid-template-columns:1fr;grid-template-rows:52px 1fr 56px}
-      .side{display:none}
-      .mobile-nav{display:flex !important;grid-column:1;background:var(--bg2);border-top:1px solid var(--border);justify-content:space-around;align-items:center;padding:0 8px}
-      .mobile-nav button{background:none;border:none;color:var(--muted);font-size:20px;padding:8px 12px;cursor:pointer;display:flex;flex-direction:column;align-items:center;gap:2px}
-      .mobile-nav button span{font-size:9px}
-      .mobile-nav button.active{color:var(--amber)}
-      .content{padding:16px}
-      .ov-grid{grid-template-columns:1fr}
-      .market-grid{grid-template-columns:repeat(3,1fr)}
-      .gates-row{grid-template-columns:repeat(3,1fr)}
-      .agents-grid{grid-template-columns:1fr}
-      .onb-input-wrap{flex-direction:column}
-      .onb-result-grid{grid-template-columns:1fr}
-      .console-messages{max-height:calc(100vh - 280px)}
-      .chart-canvas{height:140px}
-      .mkt-val{font-size:16px}
-    }
-    @media(max-width:380px){
-      .modal-inner{padding:32px 20px}
-      .m-features{grid-template-columns:1fr}
-      .ov-card-value{font-size:22px}
-    }
-    .mobile-nav{display:none}
-  </style>
+/* ── Responsive ── */
+@media(max-width:768px){
+  .shell{grid-template-columns:1fr}
+  .sidebar{display:none}
+  .topbar-brand span{display:none}
+  .kpi-strip{grid-template-columns:repeat(2,1fr)}
+  .market-grid{grid-template-columns:repeat(2,1fr)}
+  .agent-grid{grid-template-columns:1fr}
+  .alert-row{grid-template-columns:6px 60px 1fr}
+  .alert-time{display:none}
+}
+</style>
 </head>
 <body>
 
-<!-- ══ LOGIN MODAL ══ -->
-<div class="modal-overlay" id="modal">
-  <div class="modal-inner">
-    <span class="m-violin">🎻</span>
-    <div class="m-brand">PAGANINI</div>
-    <div class="m-tagline">AI Operations System</div>
-    <div class="m-features">
-      <div class="m-feat"><div class="m-feat-icon">🤖</div><div class="m-feat-title">9 Agentes AI</div><div class="m-feat-desc">Especializados em compliance, risco, custódia, pricing</div></div>
-      <div class="m-feat"><div class="m-feat-icon">🛡️</div><div class="m-feat-title">6 Guardrails</div><div class="m-feat-desc">Gates de segurança com bloqueio adversário</div></div>
-      <div class="m-feat"><div class="m-feat-icon">📊</div><div class="m-feat-title">Market Data</div><div class="m-feat-desc">CDI, SELIC, IPCA via BCB em tempo real</div></div>
-      <div class="m-feat"><div class="m-feat-icon">🏢</div><div class="m-feat-title">Zero-Data Start</div><div class="m-feat-desc">Onboarding com apenas o CNPJ do fundo</div></div>
-    </div>
-    <div class="m-inputs">
-      <input class="m-input" id="m-base" type="text" placeholder="API URL (tunnel ou localhost)" value="https://wondering-mention-commonwealth-geometry.trycloudflare.com"/>
-      <input class="m-input" id="m-key" type="password" placeholder="API Key"/>
-    </div>
-    <button class="m-btn" onclick="doLogin()">Acessar Operations Center →</button>
-    <p class="m-hint">API Key: <code>cat runtime/state/api_key.txt</code></p>
+<!-- Login -->
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-box">
+    <h2>PAGANINI</h2>
+    <p>Agent Intelligence Operating System</p>
+    <input class="login-input" id="loginKey" type="password" placeholder="API Key" autofocus>
+    <input class="login-input" id="loginUrl" type="text" placeholder="API URL (padrão: auto-detect)">
+    <button class="login-btn" id="loginBtn" onclick="doLogin()">CONNECT</button>
+    <div class="login-error" id="loginError"></div>
   </div>
 </div>
 
-<!-- ══ APP ══ -->
-<div class="app" id="app">
+<!-- Topbar -->
+<div class="topbar">
+  <div class="topbar-brand">
+    PAGANINI <span>AIOS v5.0</span>
+  </div>
+  <div class="topbar-status">
+    <div class="status-dot" id="statusDot"></div>
+    <div class="topbar-clock" id="clock"></div>
+  </div>
+</div>
 
-  <!-- Header -->
-  <header class="hdr">
-    <div class="hdr-left">
-      <span class="hdr-logo">🎻 PAGANINI</span>
-      <span class="hdr-dot"></span>
-      <span class="hdr-health" id="h-status">conectando...</span>
-    </div>
-    <div class="hdr-right">
-      <span class="hdr-clock" id="h-clock"></span>
-      <button class="hdr-settings" onclick="resetCreds()">⚙ Logout</button>
-    </div>
-  </header>
-
+<!-- Shell -->
+<div class="shell" id="mainShell" style="display:none">
   <!-- Sidebar -->
-  <aside class="side">
-    <nav class="nav">
-      <button class="nav-item active" data-view="overview"><span class="nav-icon">📊</span>Overview</button>
-      <button class="nav-item" data-view="console"><span class="nav-icon">💬</span>Query Console</button>
-      <button class="nav-item" data-view="onboard"><span class="nav-icon">🏢</span>Onboarding</button>
-      <button class="nav-item" data-view="agents"><span class="nav-icon">🤖</span>Agentes</button>
-    </nav>
-    <div class="nav-divider"></div>
-    <div class="hist-title">Queries Recentes</div>
-    <div class="hist-list" id="hist-list"></div>
-  </aside>
+  <nav class="sidebar">
+    <div class="nav-section">Monitor</div>
+    <div class="nav-item active" data-panel="overview"><span class="nav-icon">◉</span>Overview</div>
+    <div class="nav-item" data-panel="console"><span class="nav-icon">▸</span>Console<span class="nav-badge" id="queryCount">0</span></div>
+    <div class="nav-section">Sistema</div>
+    <div class="nav-item" data-panel="agents"><span class="nav-icon">⬡</span>Agentes<span class="nav-badge" id="agentCount">—</span></div>
+    <div class="nav-item" data-panel="daemons"><span class="nav-icon">↻</span>Daemons<span class="nav-badge" id="daemonCount">—</span></div>
+    <div class="nav-item" data-panel="memory"><span class="nav-icon">◎</span>Memória</div>
+    <div class="nav-section">Dados</div>
+    <div class="nav-item" data-panel="market"><span class="nav-icon">₿</span>Mercado</div>
+    <div class="nav-item" data-panel="alerts"><span class="nav-icon">!</span>Alertas<span class="nav-badge" id="alertCount">—</span></div>
+  </nav>
 
   <!-- Content -->
   <main class="content">
 
     <!-- OVERVIEW -->
-    <div class="view active" id="v-overview">
-      <div class="ov-grid" id="ov-cards"></div>
-      <div class="ov-section">
-        <div class="ov-section-title">Indicadores de Mercado</div>
-        <div class="market-grid" id="mkt-grid"></div>
-      </div>
-      <div class="ov-section">
-        <div class="ov-section-title">Tendência CDI / SELIC — 30 dias</div>
-        <div class="chart-wrap"><canvas class="chart-canvas" id="chart-main"></canvas></div>
-      </div>
-      <div class="ov-section">
-        <div class="ov-section-title">Guardrail Gates</div>
-        <div class="gates-row" id="gates-row"></div>
-      </div>
-      <div class="ov-section">
-        <div class="ov-section-title">Alertas Recentes</div>
-        <div class="alerts-feed" id="alerts-feed"></div>
-      </div>
+    <div class="panel active" id="panel-overview">
+      <div class="kpi-strip" id="kpiStrip"></div>
+      <div class="section-title">Mercado BCB</div>
+      <div class="market-grid" id="marketGrid"></div>
+      <div class="section-title">Alertas Recentes</div>
+      <div class="alert-feed" id="alertFeedOverview"></div>
     </div>
 
     <!-- CONSOLE -->
-    <div class="view" id="v-console">
-      <div class="console-messages" id="c-messages">
-        <div class="msg msg-ai"><div class="msg-bubble" style="color:var(--muted);font-size:12px">
-          Olá. Pergunte sobre compliance, covenants, cedentes, regulação, mercado — ou teste o guardrail com uma query adversária.
-        </div></div>
-      </div>
-      <div class="console-input-bar">
-        <input id="c-input" placeholder="Pergunte ao Paganini..." autocomplete="off"/>
-        <button class="send-btn" id="c-btn" onclick="sendQuery()">→</button>
-      </div>
-    </div>
-
-    <!-- ONBOARDING -->
-    <div class="view" id="v-onboard">
-      <div class="onb-hero">
-        <div class="onb-title">Onboarding de Fundo</div>
-        <div class="onb-sub">Insira o CNPJ do fundo. O Paganini busca automaticamente dados públicos da CVM — cadastro, informes diários, composição de carteira — sem precisar de nenhum documento do cliente.</div>
-      </div>
-      <div class="onb-input-wrap">
-        <input class="onb-input" id="onb-cnpj" placeholder="XX.XXX.XXX/XXXX-XX" maxlength="18"/>
-        <button class="onb-btn" id="onb-btn" onclick="startOnboard()">Iniciar →</button>
-      </div>
-      <div class="onb-error" id="onb-error"></div>
-      <div class="onb-steps" id="onb-steps">
-        <div class="onb-step"><div class="step-icon" id="s1-icon">1</div><div class="step-body"><div class="step-title">Validando CNPJ</div><div class="step-desc">Verificando formato e dígitos</div><div class="step-result" id="s1-result"></div></div></div>
-        <div class="onb-step"><div class="step-icon" id="s2-icon">2</div><div class="step-body"><div class="step-title">Cadastro CVM</div><div class="step-desc">Buscando dados do fundo em cad_fi.csv (41K fundos)</div><div class="step-result" id="s2-result"></div></div></div>
-        <div class="onb-step"><div class="step-icon" id="s3-icon">3</div><div class="step-body"><div class="step-title">Informes Diários</div><div class="step-desc">Baixando PL, cota, cotistas dos dados abertos CVM</div><div class="step-result" id="s3-result"></div></div></div>
-        <div class="onb-step"><div class="step-icon" id="s4-icon">4</div><div class="step-body"><div class="step-title">Perfil do Fundo</div><div class="step-desc">Construindo perfil consolidado para os agentes</div><div class="step-result" id="s4-result"></div></div></div>
-      </div>
-      <div class="onb-result" id="onb-result">
-        <div class="onb-result-title" id="onb-fund-name"></div>
-        <div class="onb-result-grid" id="onb-fund-data"></div>
+    <div class="panel" id="panel-console">
+      <div class="console-wrap">
+        <div class="console-input-row">
+          <input class="console-input" id="queryInput" placeholder="Pergunte ao Paganini..." autocomplete="off">
+          <button class="console-send" id="sendBtn" onclick="sendQuery()">ENVIAR</button>
+        </div>
+        <div class="console-output" id="consoleOutput">
+          <div class="msg system">
+            <div class="msg-body" style="color:var(--text3)">Paganini AIOS — 9 agentes especializados, Hybrid RAG, Cognitive Router. Digite sua pergunta.</div>
+          </div>
+        </div>
       </div>
     </div>
 
     <!-- AGENTS -->
-    <div class="view" id="v-agents">
-      <div class="ov-section-title" style="margin-bottom:16px">Agentes AI Registrados</div>
-      <div class="agents-grid" id="agents-grid">
-        <div style="grid-column:1/-1;color:var(--muted);font-size:12px;text-align:center;padding:40px">Carregando agentes...</div>
-      </div>
+    <div class="panel" id="panel-agents">
+      <div class="section-title">Fleet de Agentes</div>
+      <div class="agent-grid" id="agentGrid"></div>
+    </div>
+
+    <!-- DAEMONS -->
+    <div class="panel" id="panel-daemons">
+      <div class="section-title">Daemon Scheduler</div>
+      <table class="daemon-table" id="daemonTable">
+        <thead><tr><th>Daemon</th><th>Intervalo</th><th>Status</th><th>Runs</th><th>Descrição</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <!-- MEMORY -->
+    <div class="panel" id="panel-memory">
+      <div class="section-title">Camadas de Memória</div>
+      <div class="memory-bars" id="memoryBars"></div>
+    </div>
+
+    <!-- MARKET -->
+    <div class="panel" id="panel-market">
+      <div class="section-title">Indicadores BCB SGS</div>
+      <div class="market-grid" id="marketGridFull"></div>
+      <div class="section-title" style="margin-top:24px">Histórico (30d)</div>
+      <div id="marketHistory" style="font-family:var(--mono);font-size:12px;color:var(--text2)">Carregando...</div>
+    </div>
+
+    <!-- ALERTS -->
+    <div class="panel" id="panel-alerts">
+      <div class="section-title">Feed de Alertas</div>
+      <div class="alert-feed" id="alertFeedFull"></div>
     </div>
 
   </main>
-
-  <!-- Mobile nav -->
-  <div class="mobile-nav">
-    <button class="active" data-view="overview"><span>📊</span><span>Overview</span></button>
-    <button data-view="console"><span>💬</span><span>Console</span></button>
-    <button data-view="onboard"><span>🏢</span><span>Onboard</span></button>
-    <button data-view="agents"><span>🤖</span><span>Agentes</span></button>
-  </div>
 </div>
 
 <script>
-// ═════════════════════════════════════════════════════════════
-// STATE
-// ═════════════════════════════════════════════════════════════
-let API='',KEY='',SID=localStorage.getItem('p_sid')||null;
-const history=JSON.parse(localStorage.getItem('p_hist')||'[]');
+const S={key:'',url:'',sid:null};
+let queryN=0;
 
 // ── Auth ──
-function doLogin(){
-  API=document.getElementById('m-base').value.trim().replace(/\/$/,'');
-  KEY=document.getElementById('m-key').value.trim();
-  if(!API||!KEY)return;
-  localStorage.setItem('p_api',API);localStorage.setItem('p_key',KEY);
-  document.getElementById('modal').style.display='none';
-  document.getElementById('app').classList.add('visible');
-  boot();
-}
-function resetCreds(){localStorage.clear();location.reload()}
-document.getElementById('m-key').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
-(function autoLogin(){
-  const a=localStorage.getItem('p_api'),k=localStorage.getItem('p_key');
-  if(a&&k){
-    API=a;KEY=k;
-    document.getElementById('m-base').value=a;
-    document.getElementById('m-key').value=k; // auto-fill from localStorage
-    document.getElementById('modal').style.display='none';
-    document.getElementById('app').classList.add('visible');
-    boot();
-  } else {
-    // Pre-fill API key if found in localStorage under alternate key
-    const savedKey=localStorage.getItem('p_key');
-    if(savedKey)document.getElementById('m-key').value=savedKey;
+function getStored(){
+  S.key=localStorage.getItem('pag_key')||'';
+  S.url=localStorage.getItem('pag_url')||'';
+  if(S.key&&S.url)return true;
+  // Auto-detect: if hosted alongside API, use same origin
+  if(!S.url){
+    const origin=location.origin;
+    if(origin.includes('localhost')||origin.includes('127.0.0.1'))S.url=origin;
   }
-})();
+  return false;
+}
+async function doLogin(){
+  const key=document.getElementById('loginKey').value.trim();
+  let url=document.getElementById('loginUrl').value.trim()||location.origin;
+  if(url.endsWith('/'))url=url.slice(0,-1);
+  const err=document.getElementById('loginError');
+  try{
+    const r=await fetch(url+'/api/health',{headers:{'X-API-Key':key}});
+    if(!r.ok)throw new Error('Auth failed');
+    S.key=key;S.url=url;
+    localStorage.setItem('pag_key',key);
+    localStorage.setItem('pag_url',url);
+    err.style.display='none';
+    boot();
+  }catch(e){err.textContent='Conexão falhou — verifique URL e API Key';err.style.display='block'}
+}
+document.getElementById('loginKey').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin()});
 
 // ── API ──
 async function api(path){
+  const r=await fetch(S.url+path,{headers:{'X-API-Key':S.key}});
+  if(!r.ok)throw new Error(r.statusText);
+  return r.json();
+}
+
+// ── Boot ──
+async function boot(){
+  document.getElementById('loginOverlay').classList.add('hidden');
+  document.getElementById('mainShell').style.display='grid';
   try{
-    const c=new AbortController();
-    const t=setTimeout(()=>c.abort(),45000);
-    const r=await fetch(API+path,{headers:{'X-API-Key':KEY},signal:c.signal});
-    clearTimeout(t);
-    if(!r.ok)return{_err:r.status};
-    return await r.json();
-  }catch(e){return{_err:e.name==='AbortError'?'timeout':e.message}}
+    const [status,market,alerts,agents,daemons,mem]=await Promise.all([
+      api('/api/status'),api('/api/market').catch(()=>null),
+      api('/api/alerts').catch(()=>({alerts:[]})),
+      api('/api/agents').catch(()=>({agents:[]})),
+      api('/api/daemons').catch(()=>({daemons:[]})),
+      api('/api/memory/stats').catch(()=>({})),
+    ]);
+    renderKPI(status,market);
+    renderMarket(market);
+    renderAlerts(alerts);
+    renderAgents(agents);
+    renderDaemons(daemons);
+    renderMemory(mem);
+  }catch(e){console.error(e)}
+  startClock();
+}
+
+// ── KPI ──
+function renderKPI(st,mk){
+  const kpis=[
+    {label:'Corpus',value:st.chunks?.toLocaleString()||'—',sub:'chunks indexados'},
+    {label:'Agentes',value:st.agents||'—',sub:'especializados'},
+    {label:'Daemons',value:st.daemons||'—',sub:'schedulers'},
+    {label:'MetaClaw',value:st.metaclaw==='active'?'ON':'OFF',sub:'skill learning'},
+  ];
+  if(mk?.indicators){
+    const cdi=mk.indicators.cdi;
+    const selic=mk.indicators.selic;
+    if(cdi)kpis.push({label:'CDI',value:cdi.latest_value+'%',sub:cdi.latest_date,amber:true});
+    if(selic)kpis.push({label:'SELIC',value:selic.latest_value+'%',sub:selic.latest_date,amber:true});
+  }
+  document.getElementById('kpiStrip').innerHTML=kpis.map(k=>`
+    <div class="kpi"><div class="kpi-label">${k.label}</div>
+    <div class="kpi-value${k.amber?' amber':''}">${k.value}</div>
+    <div class="kpi-sub">${k.sub||''}</div></div>`).join('');
+  document.getElementById('agentCount').textContent=st.agents||'—';
+  document.getElementById('daemonCount').textContent=st.daemons||'—';
+}
+
+// ── Market ──
+function renderMarket(mk){
+  if(!mk?.indicators)return;
+  const labels={cdi:'CDI',selic:'SELIC',ipca:'IPCA',igpm:'IGP-M',cambio_usd:'USD/BRL',inad_pf:'Inadimpl. PF',inad_pj:'Inadimpl. PJ'};
+  const html=Object.entries(labels).map(([k,label])=>{
+    const ind=mk.indicators[k];
+    if(!ind)return '';
+    const unit=k==='cambio_usd'?'':'%';
+    return `<div class="market-item"><div class="market-name">${label}</div>
+      <div class="market-val" style="color:${k==='cambio_usd'?'var(--blue)':'var(--amber)'}">${ind.latest_value}${unit}</div>
+      <div class="market-date">${ind.latest_date||''}</div></div>`;
+  }).join('');
+  document.getElementById('marketGrid').innerHTML=html;
+  document.getElementById('marketGridFull').innerHTML=html;
+  // History
+  api('/api/market/history').then(h=>{
+    const rows=(h.history||[]).slice(-10).reverse();
+    document.getElementById('marketHistory').innerHTML=rows.length?
+      rows.map(r=>`<div style="padding:4px 0;border-bottom:1px solid var(--border)">${r.timestamp?.slice(0,10)||'?'} — CDI ${r.indicators?.cdi?.latest_value||'?'}% | SELIC ${r.indicators?.selic?.latest_value||'?'}%</div>`).join(''):
+      '<div style="color:var(--text3)">Sem histórico disponível</div>';
+  }).catch(()=>{});
+}
+
+// ── Alerts ──
+function renderAlerts(data){
+  const alerts=data.alerts||[];
+  document.getElementById('alertCount').textContent=alerts.length;
+  const html=alerts.map(a=>{
+    const sev=a.severity||'info';
+    const time=a.timestamp?new Date(a.timestamp).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'';
+    return `<div class="alert-row"><div class="alert-sev ${sev}"></div>
+      <div class="alert-type">${a.type||''}</div>
+      <div class="alert-title">${a.title||''}</div>
+      <div class="alert-time">${time}</div></div>`;
+  }).join('');
+  document.getElementById('alertFeedFull').innerHTML=html||'<div style="padding:12px;color:var(--text3)">Nenhum alerta</div>';
+  document.getElementById('alertFeedOverview').innerHTML=alerts.slice(0,5).map(a=>{
+    const sev=a.severity||'info';
+    const time=a.timestamp?new Date(a.timestamp).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'}):'';
+    return `<div class="alert-row"><div class="alert-sev ${sev}"></div>
+      <div class="alert-type">${a.type||''}</div>
+      <div class="alert-title">${a.title||''}</div>
+      <div class="alert-time">${time}</div></div>`;
+  }).join('')||'<div style="padding:12px;color:var(--text3)">Sistema operacional — sem alertas</div>';
+}
+
+// ── Agents ──
+function renderAgents(data){
+  const agents=data.agents||[];
+  document.getElementById('agentGrid').innerHTML=agents.map(a=>`
+    <div class="agent-card">
+      <div class="agent-name">${a.id||a.name||'?'}</div>
+      <div class="agent-stat">${a.tools||0} tools · ${a.constraints||0} constraints</div>
+      <div class="agent-domains">${(a.domains||[]).map(d=>`<span class="agent-domain">${d}</span>`).join('')}</div>
+    </div>`).join('');
+}
+
+// ── Daemons ──
+function renderDaemons(data){
+  const ds=data.daemons||[];
+  const tbody=document.querySelector('#daemonTable tbody');
+  tbody.innerHTML=ds.map(d=>{
+    const interval=d.interval_seconds>=3600?Math.round(d.interval_seconds/3600)+'h':
+      d.interval_seconds>=60?Math.round(d.interval_seconds/60)+'min':d.interval_seconds+'s';
+    return `<tr><td style="color:var(--amber)">${d.name}</td><td>${interval}</td>
+      <td><span class="daemon-status ${d.status||'idle'}">${d.status||'idle'}</span></td>
+      <td>${d.run_count||0}</td><td style="color:var(--text2)">${d.description||''}</td></tr>`;
+  }).join('');
+}
+
+// ── Memory ──
+function renderMemory(m){
+  const layers=[
+    {label:'Episodic',count:m.episodic||0,color:'var(--amber)'},
+    {label:'Semantic',count:m.semantic||0,color:'var(--blue)'},
+    {label:'Session',count:m.session_active||0,color:'var(--green)'},
+    {label:'Procedural',count:m.procedural||0,color:'var(--text3)'},
+    {label:'Relational',count:m.relational||0,color:'var(--text3)'},
+  ];
+  const max=Math.max(...layers.map(l=>l.count),1);
+  document.getElementById('memoryBars').innerHTML=layers.map(l=>`
+    <div class="mem-row"><div class="mem-label">${l.label}</div>
+    <div class="mem-bar"><div class="mem-fill" style="width:${(l.count/max)*100}%;background:${l.color}"></div>
+    <span class="mem-count">${l.count}</span></div></div>`).join('');
+}
+
+// ── Console ──
+const input=document.getElementById('queryInput');
+input.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey)sendQuery()});
+
+async function sendQuery(){
+  const q=input.value.trim();
+  if(!q)return;
+  input.value='';
+  queryN++;
+  document.getElementById('queryCount').textContent=queryN;
+  const out=document.getElementById('consoleOutput');
+  // User msg
+  out.innerHTML+=`<div class="msg user"><div class="msg-meta"><span class="msg-role user">Você</span></div><div class="msg-body">${esc(q)}</div></div>`;
+  // Elapsed
+  const elId='el-'+Date.now();
+  out.innerHTML+=`<div class="msg-elapsed" id="${elId}">⟳ 0s</div>`;
+  out.scrollTop=out.scrollHeight;
+  const t0=Date.now();
+  const timer=setInterval(()=>{
+    const el=document.getElementById(elId);
+    if(el)el.textContent=`⟳ ${((Date.now()-t0)/1000).toFixed(0)}s`;
+  },1000);
+  // Disable
+  const btn=document.getElementById('sendBtn');
+  btn.disabled=true;
+  try{
+    const ctrl=new AbortController();
+    const to=setTimeout(()=>ctrl.abort(),60000);
+    if(!S.sid)S.sid=crypto.randomUUID();
+    const r=await fetch(S.url+'/api/query?q='+encodeURIComponent(q)+'&session_id='+S.sid,{
+      headers:{'X-API-Key':S.key},signal:ctrl.signal
+    });
+    clearTimeout(to);
+    const d=await r.json();
+    clearInterval(timer);
+    const elEl=document.getElementById(elId);
+    if(elEl)elEl.remove();
+    if(d.blocked){
+      out.innerHTML+=`<div class="msg blocked"><div class="msg-meta"><span class="msg-role agent">GUARDRAIL</span><span class="msg-info">${d.blocked_by||''}</span></div><div class="msg-body">${esc(d.answer||'Bloqueado')}</div></div>`;
+    }else{
+      const conf=d.confidence||0;
+      const confPct=Math.round(conf*100);
+      const confColor=conf>=.8?'var(--green)':conf>=.5?'var(--amber)':'var(--red)';
+      const sources=(d.sources||[]).map(s=>`<span class="source-chip">📄 ${s.source||'?'}</span>`).join('');
+      const agent=d.routed_to||d.agent||'rag';
+      const lat=d.latency_ms?`${(d.latency_ms/1000).toFixed(1)}s`:'';
+      out.innerHTML+=`<div class="msg assistant">
+        <div class="msg-meta"><span class="msg-role agent">${agent.toUpperCase()}</span><span class="msg-info">${confPct}% · ${lat}</span></div>
+        <div class="msg-body">${renderMd(d.answer||'')}</div>
+        ${sources?'<div class="msg-sources">'+sources+'</div>':''}
+        <div class="confidence-bar"><div class="confidence-fill" style="width:${confPct}%;background:${confColor}"></div></div>
+      </div>`;
+    }
+  }catch(e){
+    clearInterval(timer);
+    const elEl=document.getElementById(elId);
+    if(elEl)elEl.textContent='✕ '+e.message;
+    out.innerHTML+=`<div class="msg blocked"><div class="msg-body">Erro: ${esc(e.message)}</div></div>`;
+  }
+  btn.disabled=false;
+  out.scrollTop=out.scrollHeight;
+  input.focus();
+}
+
+function esc(s){return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}
+function renderMd(t){
+  return t.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+    .replace(/\*(.+?)\*/g,'<em>$1</em>')
+    .replace(/\[Fonte (\d+)\]/g,'<span class="source-chip" style="display:inline;font-size:10px">📄 Fonte $1</span>')
+    .replace(/\n/g,'<br>');
 }
 
 // ── Navigation ──
-document.querySelectorAll('[data-view]').forEach(btn=>{
-  btn.addEventListener('click',()=>{
-    document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
-    document.querySelectorAll('[data-view]').forEach(b=>b.classList.remove('active'));
-    document.getElementById('v-'+btn.dataset.view).classList.add('active');
-    document.querySelectorAll(`[data-view="${btn.dataset.view}"]`).forEach(b=>b.classList.add('active'));
+document.querySelectorAll('.nav-item').forEach(el=>{
+  el.addEventListener('click',()=>{
+    document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+    el.classList.add('active');
+    document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+    const panel=document.getElementById('panel-'+el.dataset.panel);
+    if(panel)panel.classList.add('active');
+    if(el.dataset.panel==='console')input.focus();
   });
 });
 
 // ── Clock ──
-setInterval(()=>{document.getElementById('h-clock').textContent=new Date().toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'})},1000);
-
-// ═════════════════════════════════════════════════════════════
-// OVERVIEW
-// ═════════════════════════════════════════════════════════════
-async function loadOverview(){
-  const[status,market,alerts]=await Promise.all([api('/api/status'),api('/api/market'),api('/api/alerts')]);
-
-  // KPI cards
-  document.getElementById('ov-cards').innerHTML=[
-    {label:'Agentes Ativos',value:status.agents||9,sub:'Especializados por domínio',color:'var(--amber)'},
-    {label:'RAG Chunks',value:(status.chunks||6993).toLocaleString(),sub:'Documentos regulatórios indexados',color:'var(--green)'},
-    {label:'Daemons',value:status.daemons||9,sub:'Monitoramento contínuo',color:'var(--blue)'},
-  ].map(c=>`<div class="ov-card"><div class="ov-card-label">${c.label}</div><div class="ov-card-value" style="color:${c.color}">${c.value}</div><div class="ov-card-sub">${c.sub}</div></div>`).join('');
-
-  // Market
-  const ind=market.indicators||{};
-  const mktItems=[
-    {key:'cdi',label:'CDI',color:'var(--amber)',unit:'%'},
-    {key:'selic',label:'SELIC',color:'var(--amber)',unit:'%'},
-    {key:'ipca',label:'IPCA',color:'var(--cream)',unit:'%'},
-    {key:'igpm',label:'IGP-M',color:'var(--cream)',unit:'%'},
-    {key:'cambio_usd',label:'USD/BRL',color:'var(--blue)',unit:'',dec:4},
-    {key:'inad_pf',label:'Inad. PF',color:'var(--red)',unit:'%'},
-  ];
-  document.getElementById('mkt-grid').innerHTML=mktItems.map(m=>{
-    const v=ind[m.key];const raw=v?.latest_value||v?.value||v;const val=raw?parseFloat(raw).toFixed(m.dec||2)+m.unit:'—';
-    return`<div class="mkt-card"><div class="mkt-label">${m.label}</div><div class="mkt-val" style="color:${m.color}">${val}</div><svg class="mkt-spark" id="spark-${m.key}"></svg></div>`;
-  }).join('');
-
-  // Draw mini sparklines
-  mktItems.forEach(m=>{
-    const svg=document.getElementById('spark-'+m.key);if(!svg)return;
-    const pts=[];for(let i=0;i<20;i++)pts.push(Math.random()*20+5);
-    const w=svg.clientWidth||100,h=30;
-    const path=pts.map((p,i)=>`${i===0?'M':'L'}${(i/(pts.length-1))*w},${h-p}`).join(' ');
-    svg.innerHTML=`<path d="${path}" fill="none" stroke="${m.color}" stroke-width="1.5" opacity="0.5"/>`;
-  });
-
-  // Gates
-  const gates=['eligibilidade','concentração','covenant','pld/aml','compliance','risco'];
-  document.getElementById('gates-row').innerHTML=gates.map(g=>{
-    const st=status.gates?.[g]||'ok';
-    const cls=st==='ok'?'g-ok':st==='warn'?'g-warn':'g-err';
-    return`<div class="gate-card"><div class="gate-dot ${cls}"></div><div class="gate-name">${g}</div></div>`;
-  }).join('');
-
-  // Alerts
-  const al=(alerts.alerts||[]).slice(0,5);
-  document.getElementById('alerts-feed').innerHTML=al.length?al.map(a=>{
-    const icon=a.severity==='critical'?'🔴':a.severity==='warning'?'🟡':'🔵';
-    return`<div class="alert-row"><span class="alert-sev">${icon}</span><div class="alert-body"><div class="alert-msg">${esc(a.message||a.title)}</div></div></div>`;
-  }).join(''):'<div style="color:var(--green);text-align:center;padding:20px;font-size:12px">✓ Nenhum alerta ativo</div>';
-
-  // Chart
-  loadChart();
+function startClock(){
+  const tick=()=>{
+    const now=new Date();
+    document.getElementById('clock').textContent=now.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit',second:'2-digit'})+' BRT';
+  };
+  tick();setInterval(tick,1000);
 }
 
-async function loadChart(){
-  const canvas=document.getElementById('chart-main');
-  if(!canvas)return;
-  const ctx=canvas.getContext('2d');
-  const dpr=window.devicePixelRatio||1;
-  const rect=canvas.getBoundingClientRect();
-  canvas.width=rect.width*dpr;canvas.height=rect.height*dpr;
-  ctx.scale(dpr,dpr);
-  const W=rect.width,H=rect.height;
-
-  const d=await api('/api/market/history?days=30');
-  const pts=d.points||[];
-
-  // Use real data if available, mock otherwise
-  const data=pts.length>=5?pts:Array.from({length:30},(_,i)=>({
-    timestamp:new Date(Date.now()-((29-i)*86400000)).toISOString(),
-    indicators:{cdi:{latest_value:String(14.65+Math.random()*0.5)},selic:{latest_value:String(14.75+Math.random()*0.5)}},
-  }));
-
-  const cdiVals=data.map(p=>{const c=p.indicators?.cdi;return parseFloat(c?.latest_value||c?.value||'14.9')});
-  const selicVals=data.map(p=>{const s=p.indicators?.selic;return parseFloat(s?.latest_value||s?.value||'15.0')});
-  const dates=data.map(p=>(p.timestamp||'').slice(0,10));
-  const allVals=[...cdiVals,...selicVals];
-  const min=Math.min(...allVals)-0.2,max=Math.max(...allVals)+0.2;
-  const pad={t:20,r:50,b:30,l:10};
-
-  function yp(v){return pad.t+(1-(v-min)/(max-min))*(H-pad.t-pad.b)}
-  function xp(i){return pad.l+(i/(data.length-1))*(W-pad.l-pad.r)}
-
-  // Grid
-  ctx.strokeStyle='rgba(255,255,255,0.04)';ctx.lineWidth=1;
-  for(let i=0;i<5;i++){const yy=pad.t+i*((H-pad.t-pad.b)/4);ctx.beginPath();ctx.moveTo(pad.l,yy);ctx.lineTo(W-pad.r,yy);ctx.stroke();
-    ctx.fillStyle='#6b7280';ctx.font='10px Inter';ctx.textAlign='right';
-    ctx.fillText((max-(i/4)*(max-min)).toFixed(2)+'%',W-4,yy+4);
-  }
-
-  // CDI line
-  ctx.beginPath();ctx.strokeStyle='#c9a84c';ctx.lineWidth=2;
-  cdiVals.forEach((v,i)=>{i===0?ctx.moveTo(xp(i),yp(v)):ctx.lineTo(xp(i),yp(v))});ctx.stroke();
-
-  // SELIC line
-  ctx.beginPath();ctx.strokeStyle='#5b8dee';ctx.lineWidth=2;ctx.setLineDash([4,4]);
-  selicVals.forEach((v,i)=>{i===0?ctx.moveTo(xp(i),yp(v)):ctx.lineTo(xp(i),yp(v))});ctx.stroke();ctx.setLineDash([]);
-
-  // Legend
-  ctx.fillStyle='#c9a84c';ctx.font='11px Inter';ctx.textAlign='left';
-  ctx.fillRect(W-pad.r-80,6,12,3);ctx.fillText('CDI',W-pad.r-64,11);
-  ctx.fillStyle='#5b8dee';ctx.fillRect(W-pad.r-30,6,12,3);ctx.fillText('SELIC',W-pad.r-14,11);
-
-  // X labels
-  ctx.fillStyle='#6b7280';ctx.font='10px JetBrains Mono';ctx.textAlign='center';
-  [0,Math.floor(data.length/2),data.length-1].forEach(i=>{
-    if(dates[i])ctx.fillText(dates[i].slice(5),xp(i),H-6);
-  });
-}
-
-// ═════════════════════════════════════════════════════════════
-// MARKDOWN RENDERER (minimal, safe)
-// ═════════════════════════════════════════════════════════════
-function renderMarkdown(text){
-  if(!text)return'';
-  // Escape HTML first
-  let s=text
-    .replace(/&/g,'&amp;')
-    .replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;');
-
-  // Bold **text** or __text__
-  s=s.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>');
-  s=s.replace(/__(.+?)__/g,'<strong>$1</strong>');
-  // Italic *text* or _text_
-  s=s.replace(/\*([^*\n]+?)\*/g,'<em>$1</em>');
-  s=s.replace(/_([^_\n]+?)_/g,'<em>$1</em>');
-  // Inline code `code`
-  s=s.replace(/`([^`]+)`/g,'<code>$1</code>');
-  // Headers ### and ####
-  s=s.replace(/^####\s+(.+)$/gm,'<h4>$1</h4>');
-  s=s.replace(/^###\s+(.+)$/gm,'<h3>$1</h3>');
-  // Bullet lists — convert runs of * or - lines into <ul>
-  s=s.replace(/((?:^[\*\-]\s+.+\n?)+)/gm,(match)=>{
-    const items=match.trim().split('\n').map(l=>l.replace(/^[\*\-]\s+/,'')).map(l=>`<li>${l}</li>`).join('');
-    return`<ul>${items}</ul>`;
-  });
-  // Numbered lists
-  s=s.replace(/((?:^\d+\.\s+.+\n?)+)/gm,(match)=>{
-    const items=match.trim().split('\n').map(l=>l.replace(/^\d+\.\s+/,'')).map(l=>`<li>${l}</li>`).join('');
-    return`<ol>${items}</ol>`;
-  });
-  // Paragraphs — wrap non-tag lines
-  // Blockquotes > lines
-  s=s.replace(/((?:^&gt;\s?.+\n?)+)/gm,(match)=>{
-    const lines=match.trim().split('\n').map(l=>l.replace(/^&gt;\s?/,'')).join('<br>');
-    return`<blockquote>${lines}</blockquote>`;
-  });
-  // Horizontal rules
-  s=s.replace(/^---+$/gm,'<hr>');
-  // [Fonte N] references — highlight in amber
-  s=s.replace(/\[Fonte\s+(\d+)\]/gi,'<span style="color:var(--amber);font-weight:600;font-size:11px;background:rgba(201,168,76,0.1);padding:1px 5px;border-radius:3px">📄 Fonte $1</span>');
-  // Paragraphs — wrap non-tag lines
-  s=s.split(/\n\n+/).map(block=>{
-    block=block.trim();
-    if(!block)return'';
-    if(/^<[huo]/.test(block))return block;
-    if(/^<blockquote/.test(block))return block;
-    return`<p>${block.replace(/\n/g,'<br>')}</p>`;
-  }).join('');
-
-  return s;
-}
-
-// ═════════════════════════════════════════════════════════════
-// CONSOLE
-// ═════════════════════════════════════════════════════════════
-document.getElementById('c-input').addEventListener('keydown',e=>{if(e.key==='Enter')sendQuery()});
-
-async function sendQuery(){
-  const btn=document.getElementById('c-btn');
-  const input=document.getElementById('c-input');
-  const q=input.value.trim();if(!q)return;
-  input.value='';btn.disabled=true;
-  const msgs=document.getElementById('c-messages');
-
-  // User message
-  msgs.innerHTML+=`<div class="msg msg-user"><div class="msg-bubble">${esc(q)}</div></div>`;
-
-  // Thinking indicator with live timer
-  const thinkId='think-'+Date.now();
-  const t0=Date.now();
-  msgs.innerHTML+=`<div class="msg msg-ai" id="${thinkId}"><div class="thinking-indicator">
-    <div class="thinking-dots"><span></span><span></span><span></span></div>
-    <span>consultando agentes... <span id="${thinkId}-timer" style="font-family:var(--mono);color:var(--muted)">0s</span></span>
-  </div></div>`;
-  msgs.scrollTop=msgs.scrollHeight;
-
-  const thinkTimer=setInterval(()=>{
-    const el=document.getElementById(thinkId+'-timer');
-    if(el)el.textContent=Math.round((Date.now()-t0)/1000)+'s';
-  },500);
-
-  const params=new URLSearchParams({q});
-  if(SID)params.set('session_id',SID);
-  const d=await api('/api/query?'+params);
-  const elapsed=Date.now()-t0;
-
-  clearInterval(thinkTimer);
-  document.getElementById(thinkId)?.remove();
-  btn.disabled=false;
-
-  // Handle errors
-  if(d._err){
-    msgs.innerHTML+=`<div class="msg msg-ai"><div class="msg-bubble" style="border-color:var(--red)">
-      <span style="color:var(--red)">Erro: ${d._err==='timeout'?'Timeout (45s) — tente novamente':'Falha na conexão com o servidor'}</span>
-    </div></div>`;
-    msgs.scrollTop=msgs.scrollHeight;
-    return;
-  }
-
-  const conf=Math.round((d.confidence||0)*100);
-  const confColor=conf>=80?'var(--green)':conf>=60?'var(--amber)':'var(--red)';
-  const agent=d.agent||d.routed_to||'rag';
-  const isAdversarial=/coaf|lavagem|fraude|burlar|evadir|bypass|fracionar.*evitar|ocultar.*origem|simular|fraudar|driblar|compliance.*sem.*not/i.test(q);
-  const blocked=d.blocked||isAdversarial;
-  const sources=(d.sources||[]).slice(0,5);
-
-  if(d.session_id&&!blocked){SID=d.session_id;localStorage.setItem('p_sid',SID)}
-
-  let bubble='';
-  if(blocked){
-    bubble=`<div class="msg-bubble" style="border-color:var(--red);background:rgba(224,92,92,0.06)">
-      <div style="color:var(--red);font-weight:700;margin-bottom:8px;font-size:15px">🛡️ QUERY BLOQUEADA</div>
-      <div style="font-size:12px;color:var(--cream);margin-bottom:10px">Guardrail <b style="color:var(--red)">${esc(d.blocked_by||'PLD/AML + Semantic Guard')}</b> detectou tentativa de obter orientações que violam regulação ou facilitam atividades ilícitas.</div>
-      <div style="font-size:11px;color:var(--muted);padding:10px 12px;background:var(--bg3);border-radius:6px;line-height:1.7">
-        <b style="color:var(--cream)">Gates acionados:</b> PLD/AML, Semantic Guard, Compliance<br>
-        <b style="color:var(--cream)">Ação:</b> Query registrada no audit log para revisão<br>
-        <b style="color:var(--cream)">Base legal:</b> CVM 175 Art. 23 · Lei 9.613/98 (Lavagem)
-      </div>
-    </div>`;
-  } else {
-    // Render answer as markdown
-    const answerHtml=renderMarkdown(d.answer||'Sem resposta disponível.');
-    bubble=`<div class="msg-bubble">${answerHtml}</div>`;
-  }
-
-  // Confidence bar HTML (only for non-blocked)
-  const confBarHtml=!blocked?`<div class="conf-bar-wrap">
-    <span class="conf-bar-label">Confiança</span>
-    <div class="conf-bar-track"><div class="conf-bar-fill" style="width:${conf}%;background:${confColor}"></div></div>
-    <span class="conf-bar-pct" style="color:${confColor}">${conf}%</span>
-  </div>`:'';
-
-  // Source chips — clean up filenames
-  const srcHtml=sources.length?`<div class="msg-sources">${sources.map(s=>{
-    let name=typeof s==='string'?s:(s.source||s.name||'doc');
-    // decode #UXXXX → actual chars
-    name=name.replace(/#U([0-9a-fA-F]{4})/g,(_,h)=>String.fromCharCode(parseInt(h,16)));
-    // get basename, strip extension
-    name=name.split('/').pop().replace(/\.md$/i,'').replace(/\.txt$/i,'');
-    // truncate if long
-    if(name.length>50)name=name.slice(0,47)+'…';
-    const sec=typeof s==='object'&&s.section?` · ${s.section.replace(/#U([0-9a-fA-F]{4})/g,(_,h)=>String.fromCharCode(parseInt(h,16))).slice(0,35)}`:''
-    return`<span class="source-chip" title="${esc(name)}">📄 ${esc(name)}${esc(sec)}</span>`;
-  }).join('')}</div>`:'';
-
-  const metaHtml=!blocked?`<div class="msg-meta">
-    <span class="msg-agent">🤖 ${esc(agent)}</span>
-    <span style="color:var(--muted)">${(elapsed/1000).toFixed(1)}s</span>
-  </div>`:'';
-
-  msgs.innerHTML+=`<div class="msg msg-ai">
-    ${bubble}
-    ${confBarHtml}
-    ${srcHtml}
-    ${metaHtml}
-  </div>`;
-  msgs.scrollTop=msgs.scrollHeight;
-
-  // Reset session after blocked query to prevent context poisoning
-  if(blocked){SID=null;localStorage.removeItem('p_sid')}
-
-  // History
-  history.unshift({q,t:Date.now()});
-  if(history.length>20)history.length=20;
-  localStorage.setItem('p_hist',JSON.stringify(history));
-  renderHistory();
-}
-
-function renderHistory(){
-  document.getElementById('hist-list').innerHTML=history.map(h=>
-    `<div class="hist-item" onclick="document.getElementById('c-input').value=${JSON.stringify(h.q)};document.querySelectorAll('[data-view=console]')[0].click()">${esc(h.q)}</div>`
-  ).join('');
-}
-function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;').replace(/'/g,'&#39;')}
-
-// ═════════════════════════════════════════════════════════════
-// ONBOARDING
-// ═════════════════════════════════════════════════════════════
-document.getElementById('onb-cnpj').addEventListener('input',function(){
-  let v=this.value.replace(/\D/g,'');
-  if(v.length>14)v=v.slice(0,14);
-  if(v.length>12)v=v.slice(0,2)+'.'+v.slice(2,5)+'.'+v.slice(5,8)+'/'+v.slice(8,12)+'-'+v.slice(12);
-  else if(v.length>8)v=v.slice(0,2)+'.'+v.slice(2,5)+'.'+v.slice(5,8)+'/'+v.slice(8);
-  else if(v.length>5)v=v.slice(0,2)+'.'+v.slice(2,5)+'.'+v.slice(5);
-  else if(v.length>2)v=v.slice(0,2)+'.'+v.slice(2);
-  this.value=v;
-});
-
-function showOnbError(msg){
-  const el=document.getElementById('onb-error');
-  el.textContent=msg;el.classList.add('visible');
-}
-function hideOnbError(){
-  document.getElementById('onb-error').classList.remove('visible');
-}
-
-async function startOnboard(){
-  const cnpj=document.getElementById('onb-cnpj').value.trim();
-  hideOnbError();
-  if(cnpj.replace(/\D/g,'').length!==14){
-    showOnbError('CNPJ inválido — deve conter 14 dígitos.');
-    return;
-  }
-  document.getElementById('onb-btn').disabled=true;
-  const steps=document.getElementById('onb-steps');steps.classList.add('visible');
-  document.getElementById('onb-result').classList.remove('visible');
-  // reset step icons
-  [1,2,3,4].forEach(n=>{setStep(n,'pending','')});
-
-  // Known funds for rich display — public CVM registry data
-  const _k=(a,b,c)=>a+b+c;
-  const KNOWN_FUNDS={};
-  KNOWN_FUNDS[_k('42700','66800','0191')]=
-    {name:'Grand Fundo de Investimento em Direitos Creditórios NP',admin:'Oliveira Trust',type:'Não Padronizado',seg:'Crédito',sit:'Em Funcionamento'};
-  KNOWN_FUNDS[_k('47388','72400','0118')]=
-    {name:'3R Fundo de Investimento em Direitos Creditórios NP',admin:'Singulare',type:'Não Padronizado',seg:'Crédito',sit:'Em Funcionamento'};
-  KNOWN_FUNDS[_k('05943','66100','0174')]=
-    {name:'BB Renda Fixa Referenciado DI Plus Ágil FI',admin:'BB DTVM',type:'Renda Fixa',seg:'Varejo',sit:'Em Funcionamento',pl:'R$ 37.480.922.275,72',cota:'R$ 8,165998',cotistas:'585.871'};
-  const cnpjDigits=cnpj.replace(/\D/g,'');
-  const known=KNOWN_FUNDS[cnpjDigits];
-
-  // Step 1 — validate
-  setStep(1,'running');
-  await sleep(600);
-  setStep(1,'done',`CNPJ ${cnpj} válido ✓`);
-
-  // Step 2 — CVM cadastro
-  setStep(2,'running');
-  try{
-    await api('/api/query?q=Quais+as+regras+de+compliance+para+fundos+de+investimento');
-  }catch(e){}
-  await sleep(400);
-  setStep(2,'done',known?`${known.name.slice(0,45)}...`:'Dados encontrados na base CVM');
-
-  // Step 3 — inf_diario
-  setStep(3,'running');
-  await sleep(1200);
-  setStep(3,'done',known?.pl?`PL: ${known.pl}`:'Informes diários processados');
-
-  // Step 4 — build profile
-  setStep(4,'running');
-  await sleep(800);
-  setStep(4,'done','Perfil consolidado para 9 agentes');
-
-  // Show result
-  const result=document.getElementById('onb-result');
-  const fundName=known?.name||`Fundo CNPJ ${cnpj}`;
-  document.getElementById('onb-fund-name').textContent=fundName;
-
-  let dataHtml=`
-    <div class="onb-kv"><span>CNPJ </span><span>${cnpj}</span></div>
-    <div class="onb-kv"><span>Situação </span><span style="color:var(--green)">✓ ${known?.sit||'Ativo'}</span></div>
-  `;
-  if(known){
-    if(known.admin) dataHtml+=`<div class="onb-kv"><span>Administrador </span><span>${known.admin}</span></div>`;
-    if(known.type)  dataHtml+=`<div class="onb-kv"><span>Tipo </span><span>${known.type}</span></div>`;
-    if(known.seg)   dataHtml+=`<div class="onb-kv"><span>Segmento </span><span>${known.seg}</span></div>`;
-    if(known.pl)    dataHtml+=`<div class="onb-kv"><span>Patrimônio Líquido </span><span style="color:var(--amber)">${known.pl}</span></div>`;
-    if(known.cota)  dataHtml+=`<div class="onb-kv"><span>Valor Cota </span><span>${known.cota}</span></div>`;
-    if(known.cotistas) dataHtml+=`<div class="onb-kv"><span>Cotistas </span><span>${known.cotistas}</span></div>`;
-  } else {
-    dataHtml+=`<div class="onb-kv"><span>Nota </span><span style="color:var(--amber)">CNPJ não encontrado na base local — use um CNPJ de fundo ativo CVM</span></div>`;
-  }
-  dataHtml+=`
-    <div class="onb-kv"><span>Fontes CVM </span><span>${known?'cadastro + inf_diário + CDA':'cadastro CVM'}</span></div>
-    <div class="onb-kv"><span>Agentes Alocados </span><span style="color:var(--green)">9 / 9</span></div>
-  `;
-
-  // Capabilities summary
-  dataHtml+=`<div class="onb-kv" style="grid-column:1/-1;margin-top:12px">
-    <div style="font-size:11px;color:var(--muted);margin-bottom:6px">CAPACIDADES ATIVADAS</div>
-    <div style="display:flex;flex-wrap:wrap;gap:6px">
-      ${['Compliance CVM 175','Covenants','PLD/AML','Stress Test','Precificação','CADOC','Due Diligence','Monitoramento'].map(c=>
-        `<span style="font-size:10px;background:rgba(76,175,125,0.1);color:var(--green);padding:3px 8px;border-radius:4px;border:1px solid rgba(76,175,125,0.2)">${c}</span>`
-      ).join('')}
-    </div>
-  </div>`;
-
-  document.getElementById('onb-fund-data').innerHTML=dataHtml;
-  result.classList.add('visible');
-  document.getElementById('onb-btn').disabled=false;
-}
-
-function setStep(n,state,text){
-  const icon=document.getElementById('s'+n+'-icon');
-  const result=document.getElementById('s'+n+'-result');
-  icon.className='step-icon '+(state==='pending'?'':state);
-  icon.textContent=state==='done'?'✓':state==='error'?'✗':state==='running'?'⟳':n;
-  if(text!==undefined&&text!==''){result.textContent=text;result.classList.add('visible')}
-  else if(text===''){result.textContent='';result.classList.remove('visible')}
-}
-function sleep(ms){return new Promise(r=>setTimeout(r,ms))}
-
-// ═════════════════════════════════════════════════════════════
-// AGENTS
-// ═════════════════════════════════════════════════════════════
-const AGENT_META={
-  gestor:{icon:'💼',role:'Gestão de carteira e estratégia'},
-  investor_relations:{icon:'📊',role:'Comunicação com cotistas'},
-  due_diligence:{icon:'🔍',role:'Análise de cedentes e contrapartes'},
-  reporting:{icon:'📝',role:'Geração de CADOC e relatórios'},
-  compliance:{icon:'🛡️',role:'Verificação de conformidade CVM'},
-  custodiante:{icon:'🏦',role:'Controle de ativos e conciliação'},
-  regulatory_watch:{icon:'📡',role:'Monitoramento de normativos'},
-  administrador:{icon:'📋',role:'Gestão e relatórios regulatórios'},
-  administrador_fiduciario:{icon:'📋',role:'Gestão e relatórios regulatórios'},
-  pricing:{icon:'💰',role:'Precificação e marcação a mercado'},
-  pricing_engine:{icon:'💰',role:'Precificação e marcação a mercado'},
-};
-
-function normalizeAgentKey(rawName){
-  return rawName
-    .replace(/^Agent:\s*/i,'')
-    .toLowerCase()
-    .normalize('NFD').replace(/[\u0300-\u036f]/g,'')
-    .replace(/\s+/g,'_')
-    .replace(/[^a-z0-9_]/g,'');
-}
-
-async function loadAgents(){
-  const grid=document.getElementById('agents-grid');
-  const d=await api('/api/agents');
-
-  if(d._err){
-    grid.innerHTML=`<div style="grid-column:1/-1;color:var(--red);font-size:12px;text-align:center;padding:40px">
-      Erro ao carregar agentes: ${esc(String(d._err))}
-    </div>`;
-    return;
-  }
-
-  const agents=d.agents||[];
-
-  if(!agents.length){
-    // Fallback: render from AGENT_META definitions
-    grid.innerHTML=Object.entries(AGENT_META).filter(([id])=>!id.includes('_engine')&&!id.includes('fiduciario')).map(([id,m])=>`
-      <div class="agent-card">
-        <div class="agent-top"><div class="agent-avatar">${m.icon}</div><div><div class="agent-name">${id.replace(/_/g,' ')}</div><div class="agent-role">${m.role}</div></div></div>
-        <div class="agent-status"><div class="agent-status-dot"></div><span style="color:var(--green)">ready</span></div>
-      </div>`).join('');
-    return;
-  }
-
-  grid.innerHTML=agents.map(a=>{
-    const rawName=a.name||a.id||'agent';
-    const normKey=normalizeAgentKey(rawName);
-    // Try exact match, then partial match
-    let m=AGENT_META[normKey]||AGENT_META[a.id]||null;
-    if(!m){
-      // partial match
-      for(const k of Object.keys(AGENT_META)){
-        if(normKey.includes(k)||k.includes(normKey)){m=AGENT_META[k];break}
-      }
-    }
-    m=m||{icon:'🤖',role:'Agente AI especializado'};
-
-    const displayName=rawName.replace(/^Agent:\s*/i,'');
-    const domains=(a.domains||[]).slice(0,4);
-    // tools can be number or array
-    const toolCount=typeof a.tools==='number'?a.tools:(a.tools||[]).length;
-    const constraints=typeof a.constraints==='number'?a.constraints:(a.constraints||[]).length;
-
-    return`<div class="agent-card">
-      <div class="agent-top">
-        <div class="agent-avatar">${m.icon}</div>
-        <div>
-          <div class="agent-name">${esc(displayName)}</div>
-          <div class="agent-role">${m.role}</div>
-        </div>
-      </div>
-      ${domains.length?`<div class="agent-domains">${domains.map(d=>`<span class="agent-domain">${esc(d)}</span>`).join('')}</div>`:''}
-      <div class="agent-tools" style="display:flex;gap:12px;margin-top:6px">
-        ${toolCount?`<span>🔧 ${toolCount} ferramentas</span>`:''}
-        ${constraints?`<span>🛡️ ${constraints} constraints</span>`:''}
-      </div>
-      <div class="agent-status"><div class="agent-status-dot"></div><span style="color:var(--green)">ready</span></div>
-    </div>`;
-  }).join('');
-}
-
-// ═════════════════════════════════════════════════════════════
-// HEALTH
-// ═════════════════════════════════════════════════════════════
-async function loadHealth(){
-  const d=await api('/api/health');
-  const el=document.getElementById('h-status');
-  if(d.ok||d.status==='ok'){el.textContent='● online';el.style.color='var(--green)'}
-  else{el.textContent='● offline';el.style.color='var(--red)'}
-}
-
-// ═════════════════════════════════════════════════════════════
-// BOOT
-// ═════════════════════════════════════════════════════════════
-function boot(){
-  loadHealth();loadOverview();loadAgents();renderHistory();
-  setInterval(loadHealth,30000);
-  setInterval(()=>{if(document.getElementById('v-overview').classList.contains('active'))loadOverview()},60000);
+// ── Init ──
+if(getStored()){
+  // Auto-fill login fields
+  document.getElementById('loginKey').value=S.key;
+  document.getElementById('loginUrl').value=S.url;
+  // Try auto-connect
+  fetch(S.url+'/api/health',{headers:{'X-API-Key':S.key}})
+    .then(r=>{if(r.ok)boot();})
+    .catch(()=>{});
 }
 </script>
 </body>
