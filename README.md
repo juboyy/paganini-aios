@@ -8,6 +8,7 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green.svg)](https://fastapi.tiangolo.com)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![CI](https://github.com/juboyy/paganini-aios/actions/workflows/ci.yml/badge.svg)](https://github.com/juboyy/paganini-aios/actions/workflows/ci.yml)
+[![Security](https://github.com/juboyy/paganini-aios/actions/workflows/security.yml/badge.svg)](https://github.com/juboyy/paganini-aios/actions/workflows/security.yml)
 [![Tests](https://img.shields.io/badge/tests-93%20passing-brightgreen.svg)](#)
 [![Docker](https://img.shields.io/badge/docker-ready-blue.svg)](infra/)
 [![Helm](https://img.shields.io/badge/helm-chart-blue.svg)](infra/helm/)
