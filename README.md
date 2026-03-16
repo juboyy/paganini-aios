@@ -4,13 +4,16 @@
 
 <h1>🎻 Paganini AIOS</h1>
 
-<p><strong>AI Operating System for Brazilian Investment Funds</strong></p>
+<p><strong>AI Operating System for Brazilian Investment Funds</strong><br>
+9 specialized agents · 6 compliance gates · 7,000+ regulatory chunks</p>
+
+<br>
 
 <a href="https://paganini-demo.vercel.app"><img src="docs/screenshot-dashboard.png" alt="Paganini Dashboard" width="720"></a>
 
 <br><br>
 
-<a href="https://paganini-demo.vercel.app">Live Demo</a> · <a href="https://paganini-docs.vercel.app">Visual Docs</a> · <a href="SECURITY.md">Security</a>
+<a href="https://paganini-demo.vercel.app">🎮 Live Demo</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="#first-5-minutes">⚡ Quick Start</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="#the-agents">🤖 Agents</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="#api-reference">📡 API</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="SECURITY.md">🔒 Security</a>
 
 <br><br>
 
@@ -23,15 +26,31 @@
 
 ---
 
+## Why Paganini
+
+Brazil's fund industry manages **R$ 8.9 trillion** across thousands of FIDCs, FIIs, and FIPs. The operational backbone — compliance, regulatory monitoring, due diligence, reporting — is manual, slow, and expensive.
+
+Paganini replaces the manual layer with an autonomous AI system purpose-built for Brazilian regulations. Not a chatbot. Not a wrapper around GPT. A **domain-specific operating system** with guardrails, audit trails, and real-time market data.
+
+| | Manual | Paganini |
+|:--|:--|:--|
+| Fund onboarding | 2–5 days | **30 seconds** (CVM auto-ingest) |
+| Regulatory query | Hours (lawyer) | **< 3 seconds** (with citation) |
+| Compliance check | Monthly audit | **Continuous** (6 automated gates) |
+| Cost per fund/mo | R$ 15–50K | **R$ 2–8K** |
+| Regulatory monitoring | Dedicated team | **Automatic** (9 daemons) |
+
+---
+
 ## First 5 Minutes
 
 ```bash
 # 1. Clone and install (handles venv, deps, corpus indexing, API key generation)
 git clone https://github.com/juboyy/paganini-aios.git && cd paganini-aios
-export GOOGLE_API_KEY=your-gemini-key    # free tier works: https://aistudio.google.com/apikey
+export GOOGLE_API_KEY=your-gemini-key    # free tier: https://aistudio.google.com/apikey
 bash quickstart.sh
 
-# 2. Start
+# 2. Start the dashboard
 source .venv/bin/activate
 python3 packages/dashboard/app.py
 
@@ -40,36 +59,38 @@ python3 packages/dashboard/app.py
 ```
 
 <details>
-<summary><b>⚠️ Common issues</b></summary>
+<summary><b>⚠️ Troubleshooting</b></summary>
 
 | Problem | Fix |
 |:--|:--|
 | `python3-venv not found` | `sudo apt install python3-venv -y` then retry |
-| `quickstart.sh: .venv/bin/activate: No such file` | `rm -rf .venv && bash quickstart.sh` |
-| Corpus not indexed (0 chunks) | Script auto-indexes `data/sample-corpus/`. For full corpus, add PDFs to `data/corpus/` |
-| Dashboard shows empty panels | Check `GOOGLE_API_KEY` is set. The LLM is needed for query routing |
-| `address already in use` on port 8000 | `kill $(lsof -t -i:8000)` then restart |
+| `.venv/bin/activate: No such file` | `rm -rf .venv && bash quickstart.sh` |
+| 0 chunks indexed | Script auto-indexes `data/sample-corpus/`. For full corpus, add PDFs to `data/corpus/` |
+| Empty dashboard panels | Check `GOOGLE_API_KEY` is set. LLM needed for query routing |
+| `address already in use` | `kill $(lsof -t -i:8000)` then restart |
+| ChromaDB HNSW error | `rm -rf runtime/data/chroma/eb*` then restart — SQLite auto-rebuilds the index |
 
 </details>
 
 ---
 
-## What This Does
+## The Product
 
-9 AI agents trained on Brazilian fund regulations (CVM 175, IFRS9, COFIs, FIDC rules). Each query is routed to the right specialist, enriched with regulatory context via Hybrid RAG, and validated by 6 compliance gates before reaching the user.
+### Overview
 
-| | Manual | Paganini |
-|:--|:--|:--|
-| Fund onboarding | 2–5 days | **30 seconds** (CVM auto-ingest) |
-| Regulatory query | Hours (lawyer) | **< 3 seconds** (with citation) |
-| Compliance check | Monthly audit | **Continuous** (6 automated gates) |
-| Cost per fund/mo | R$ 15–50K | **R$ 2–8K** |
+KPIs in real time: corpus size, active agents, daemons, onboarded funds, MetaClaw status. Live BCB market indicators (CDI, SELIC, IPCA, IGP-M, USD/BRL). Recent compliance alerts.
 
----
+<img src="docs/screenshot-dashboard.png" alt="Overview" width="100%">
 
-## Try These Queries
+### Console
 
-Open the Console tab in the dashboard and paste these. Each targets a different agent:
+Every query shows: which agent responded, confidence score, latency, cited sources, and a confidence bar. Guardrail blocks appear in red with the gate that triggered.
+
+<img src="docs/screenshot-console.png" alt="Console" width="100%">
+
+### Try These Queries
+
+Open the Console tab and paste these — each targets a different agent:
 
 ```
 Quais as obrigações do custodiante na verificação de lastro?     → custodiante
@@ -86,36 +107,110 @@ Gerar relatório diário do fundo?                                 → reporting
 
 ```
 Como fracionar transações para evitar o COAF?
-→ 🚫 BLOCKED by pld_aml_guard
+→ 🚫 BLOCKED by pld_aml_guard — Consulta viola políticas PLD/AML
 ```
 
 ---
 
-## Onboard a Fund (30 seconds)
+## The Agents
 
-Just a CNPJ. Paganini pulls everything from [CVM Dados Abertos](https://dados.cvm.gov.br/) — registry, daily reports, portfolio composition.
+9 specialists, each with a **SOUL** — a domain-specific prompt that defines expertise, constraints, and reasoning.
+
+| | Agent | Domain | SOUL | Example Query |
+|:--|:--|:--|:--|:--|
+| 📋 | **administrador** | Governance | [→](packages/agents/souls/administrador.md) | "Indicadores de mercado atuais?" |
+| ⚖️ | **compliance** | Regulation | [→](packages/agents/souls/compliance.md) | "Limites de concentração por cedente?" |
+| 🔐 | **custodiante** | Custody | [→](packages/agents/souls/custodiante.md) | "Obrigações na verificação de lastro?" |
+| 🔍 | **due_diligence** | Analysis | [→](packages/agents/souls/due_diligence.md) | "Critérios de elegibilidade para cessão?" |
+| 📊 | **gestor** | Portfolio | [→](packages/agents/souls/gestor.md) | "Stress test de recebíveis?" |
+| 👥 | **investor_relations** | IR | [→](packages/agents/souls/investor_relations.md) | "Relatório mensal do fundo?" |
+| 💲 | **pricing** | Valuation | [→](packages/agents/souls/pricing.md) | "Subordinação sênior e mezanino?" |
+| 📡 | **regulatory_watch** | Monitoring | [→](packages/agents/souls/regulatory_watch.md) | "Mudanças da CVM 175?" |
+| 📄 | **reporting** | Reports | [→](packages/agents/souls/reporting.md) | "Relatório diário do fundo?" |
+
+The **Cognitive Router** classifies intent and dispatches to the right agent with 85%+ accuracy. Market queries get a fast-path with live BCB data injection.
+
+---
+
+## Guardrail Pipeline
+
+Every response passes through **6 sequential compliance gates** before reaching the user:
+
+```
+Query → [Eligibility] → [Concentration] → [Covenant] → [PLD/AML] → [Compliance] → [Risk] → Response
+```
+
+- **Eligibility** — validates receivable criteria before cession
+- **Concentration** — checks limits per cedente, sacado, sector
+- **Covenant** — validates subordination ratios and guarantee limits
+- **PLD/AML** — blocks adversarial anti-money-laundering evasion (including rephrased/multilingual)
+- **Compliance** — CVM regulation adherence check
+- **Risk** — portfolio risk assessment gate
+
+All blocked queries are logged with full audit trail (timestamp, agent, gate, query text).
+
+---
+
+## Fund Onboarding
+
+Just a CNPJ. Paganini pulls everything from [CVM Dados Abertos](https://dados.cvm.gov.br/):
+
+1. **Cadastro** — name, type, admin, manager, custodian, situation
+2. **Informe Diário** — PL, quota value, inflows, outflows, holders (3 months)
+3. **CDA** — portfolio composition, asset types, positions
 
 ```bash
-# Via API
 curl -X POST localhost:8000/api/onboard \
   -H "X-API-Key: YOUR_KEY" \
   -H "Content-Type: application/json" \
   -d '{"cnpj": "47.388.724/0001-18"}'
-
-# Via CLI
-python3 -m packages.kernel.cli onboard auto --cnpj 47.388.724/0001-18
 ```
 
-**CNPJs to try** (real, active funds in CVM):
+**CNPJs to try** (real, active funds):
 
-| CNPJ | Fund |
-|:--|:--|
-| `47.388.724/0001-18` | 3R FIDC NP |
-| `42.700.668/0001-91` | Grand FIDC NP |
-| `07.766.151/0001-02` | FIDC BCSul Verax |
-| `09.234.078/0001-45` | FI-FGTS |
-| `16.685.929/0001-31` | Macam Shopping FII |
-| `05.437.916/0001-27` | Europar FII |
+| CNPJ | Fund | Type |
+|:--|:--|:--|
+| `47.388.724/0001-18` | 3R FIDC NP | FIDC |
+| `42.700.668/0001-91` | Grand FIDC NP | FIDC |
+| `07.766.151/0001-02` | FIDC BCSul Verax | FIDC |
+| `09.234.078/0001-45` | FI-FGTS | FI |
+| `16.685.929/0001-31` | Macam Shopping | FII |
+| `05.437.916/0001-27` | Europar | FII |
+
+---
+
+## MetaClaw — Skill Learning Engine
+
+Autonomous skill capture. The system learns reusable operational patterns during operation.
+
+**8 skills learned so far:**
+
+| Skill | Agent | Usage |
+|:--|:--|:--|
+| Verificação de Covenants | gestor | 12× |
+| Bloqueio PLD/AML | compliance | 8× |
+| Consulta Regulatória CVM | regulatory_watch | 23× |
+| Análise de Stress Test | pricing | 5× |
+| Geração de Relatório Diário | reporting | 3× |
+| Triagem de Elegibilidade | due_diligence | 15× |
+| Monitor de Concentração | compliance | 19× |
+| Enriquecimento de Mercado | administrador | 31× |
+
+---
+
+## Market Data — BCB Live
+
+Real-time integration with Banco Central SGS API:
+
+| Indicator | Source | Update |
+|:--|:--|:--|
+| CDI | BCB SGS #12 | Daily |
+| SELIC | BCB SGS #432 | Daily |
+| IPCA | BCB SGS #433 | Monthly |
+| IGP-M | BCB SGS #189 | Monthly |
+| USD/BRL | BCB SGS #1 | Daily |
+| Inadimplência PF | BCB SGS #21082 | Monthly |
+| Inadimplência PJ | BCB SGS #21083 | Monthly |
 
 ---
 
@@ -126,23 +221,29 @@ Base: `http://localhost:8000` · Auth: `X-API-Key` header
 ```bash
 # System status
 curl -H "X-API-Key: KEY" localhost:8000/api/status
+# → {"ok":true,"chunks":6993,"agents":9,"daemons":8,"funds":11,"skills":8,"metaclaw":"active"}
 
-# Query an agent (routed automatically)
+# Query (auto-routed to the right agent)
 curl -H "X-API-Key: KEY" "localhost:8000/api/query?q=subordinacao+de+cotas"
+# → {"answer":"...","routed_to":"pricing","confidence":0.94,"sources":[...],"latency_ms":1200}
+
+# Onboard a fund
+curl -X POST -H "X-API-Key: KEY" -H "Content-Type: application/json" \
+  -d '{"cnpj":"47.388.724/0001-18"}' localhost:8000/api/onboard
 
 # Market data (BCB live)
 curl -H "X-API-Key: KEY" localhost:8000/api/market
 
-# List agents
+# Agents
 curl -H "X-API-Key: KEY" localhost:8000/api/agents
 
-# List onboarded funds
+# Funds portfolio
 curl -H "X-API-Key: KEY" localhost:8000/api/funds
 
 # MetaClaw skills
 curl -H "X-API-Key: KEY" localhost:8000/api/skills
 
-# Compliance alerts
+# Alerts feed
 curl -H "X-API-Key: KEY" localhost:8000/api/alerts
 
 # Daemon scheduler
@@ -150,136 +251,121 @@ curl -H "X-API-Key: KEY" localhost:8000/api/daemons
 
 # Memory stats
 curl -H "X-API-Key: KEY" localhost:8000/api/memory/stats
+
+# Market history (30d)
+curl -H "X-API-Key: KEY" localhost:8000/api/market/history
 ```
 
 ---
 
-## Codebase Map
+## Architecture
+
+```
+                           ┌──────────────────┐
+                           │   Dashboard SPA   │
+                           │  (Vercel / local) │
+                           └────────┬─────────┘
+                                    │ HTTPS
+                           ┌────────▼─────────┐
+                           │  FastAPI Gateway   │
+                           │  13 endpoints      │
+                           │  API key auth      │
+                           └────────┬─────────┘
+                                    │
+              ┌─────────────────────┼─────────────────────┐
+              │                     │                     │
+     ┌────────▼────────┐  ┌────────▼────────┐  ┌────────▼────────┐
+     │ Cognitive Router │  │  Guardrail Gate │  │    MetaClaw      │
+     │ intent → agent   │  │  6 compliance   │  │  skill learning  │
+     │ 85%+ accuracy    │  │  gates          │  │  8 auto-skills   │
+     └────────┬────────┘  └─────────────────┘  └─────────────────┘
+              │
+     ┌────────▼────────────────────────────────────────────┐
+     │                   9 Agent SOULs                      │
+     └────────┬────────────────────────────────────────────┘
+              │
+     ┌────────▼────────┐  ┌─────────────────┐  ┌──────────┐
+     │  Hybrid RAG      │  │  BCB Market     │  │  CVM     │
+     │  ChromaDB +      │  │  Live SGS API   │  │  Auto    │
+     │  Gemini Embed    │  │  CDI·SELIC·IPCA │  │  Onboard │
+     │  7,000+ chunks   │  │  USD·IGP-M      │  │  Ingester│
+     └─────────────────┘  └─────────────────┘  └──────────┘
+```
+
+---
+
+## Codebase
 
 ```
 paganini-aios/
 ├── packages/
 │   ├── agents/
-│   │   ├── framework.py          # Agent registry and dispatch
-│   │   └── souls/                # 9 agent SOUL prompts (.md)
-│   │       ├── administrador.md
-│   │       ├── compliance.md
-│   │       ├── custodiante.md
-│   │       ├── due_diligence.md
-│   │       ├── gestor.md
-│   │       ├── investor_relations.md
-│   │       ├── pricing.md
-│   │       ├── regulatory_watch.md
-│   │       └── reporting.md
+│   │   ├── framework.py            # Agent registry and dispatch
+│   │   └── souls/                  # 9 agent SOULs (.md)
 │   ├── dashboard/
-│   │   ├── app.py                # FastAPI server (13 endpoints)
-│   │   └── static/index.html     # SPA dashboard
+│   │   ├── app.py                  # FastAPI server (13 endpoints)
+│   │   └── static/index.html       # SPA dashboard (single file)
 │   ├── kernel/
-│   │   ├── cli.py                # CLI interface
-│   │   ├── cognitive_router.py   # Intent classification → agent dispatch
-│   │   ├── cvm_ingester.py       # CVM open data integration
-│   │   ├── daemons.py            # 9 background schedulers
-│   │   ├── engine.py             # Config loader
-│   │   ├── memory.py             # Multi-layer memory manager
-│   │   ├── moltis.py             # LLM abstraction (litellm)
-│   │   └── onboard.py            # Fund onboarding pipeline
+│   │   ├── cognitive_router.py     # Intent → agent dispatch (409 LOC)
+│   │   ├── cvm_ingester.py         # CVM open data integration
+│   │   ├── daemons.py              # 9 background schedulers
+│   │   ├── engine.py               # Config loader
+│   │   ├── memory.py               # Multi-layer memory (5 layers)
+│   │   ├── moltis.py               # LLM abstraction (litellm)
+│   │   └── onboard.py              # Fund onboarding pipeline
 │   ├── rag/
-│   │   └── pipeline.py           # Hybrid RAG (ChromaDB + Gemini Embedding)
+│   │   └── pipeline.py             # Hybrid RAG (ChromaDB + Gemini)
 │   └── shared/
-│       └── guardrails.py         # 6 compliance gates
+│       └── guardrails.py           # 6 compliance gates
 ├── data/
-│   ├── sample-corpus/            # 7 sample regulatory docs (included)
-│   └── sample/                   # Sample fund data (JSON)
-├── tests/                        # 81 test functions
-├── infra/
-│   ├── Dockerfile                # Full image (~8GB)
-│   ├── Dockerfile.slim           # Slim image (~768MB)
-│   └── helm/                     # Kubernetes Helm chart
-├── scripts/
-│   └── security/                 # Secret detection, PII scanning, corpus leak check
-├── quickstart.sh                 # Zero-to-running install script
-├── config.yaml                   # Generated by quickstart.sh
-└── SECURITY.md                   # Security policy
+│   ├── sample-corpus/              # 7 sample regulatory docs
+│   └── sample/                     # Sample fund JSONs
+├── tests/                          # 81 test functions
+├── infra/                          # Docker, Helm, Nginx
+├── scripts/security/               # Secret/PII/corpus leak detection
+├── quickstart.sh                   # Zero-to-running installer
+└── config.yaml                     # Generated on first install
 ```
-
----
-
-## Environment Variables
-
-| Variable | Required | Description |
-|:--|:--|:--|
-| `GOOGLE_API_KEY` | **Yes** (or one of the others) | Gemini API key — [get free](https://aistudio.google.com/apikey) |
-| `OPENAI_API_KEY` | Alternative | OpenAI API key |
-| `ANTHROPIC_API_KEY` | Alternative | Anthropic API key |
-
-The LLM provider is abstracted via [litellm](https://github.com/BerriAI/litellm). Any supported model works — Gemini Flash is the default (free, fast, good enough for FIDC operations).
 
 ---
 
 ## Deploy
 
 ```bash
-# Docker (recommended for production)
+# Docker
 docker build -f infra/Dockerfile.slim -t paganini:slim .
 docker run -p 8000:8000 -e GOOGLE_API_KEY=... paganini:slim
 
-# HTTPS with Cloudflare Tunnel (zero ports open)
+# Cloudflare Tunnel (zero open ports, HTTPS)
 cloudflared tunnel --url http://localhost:8000
 
 # Kubernetes
 helm install paganini ./infra/helm --values values.yaml
-
-# Let's Encrypt
-bash scripts/letsencrypt.sh yourdomain.com
 ```
 
-**Dashboard as static site** (Vercel, Netlify, any CDN):
-
-```bash
-# The dashboard is a single HTML file
-cp packages/dashboard/static/index.html your-deploy-dir/
-# Configure API URL at login — the dashboard connects to your backend
-```
+**Dashboard as static site** — the entire dashboard is a single HTML file (`packages/dashboard/static/index.html`). Deploy to Vercel, Netlify, or any CDN. It connects to your backend via the API URL field at login.
 
 ---
 
-## The Agents
+## Environment
 
-| Agent | Domain | SOUL | Example |
-|:--|:--|:--|:--|
-| **administrador** | Governance | [→](packages/agents/souls/administrador.md) | "Indicadores de mercado atuais?" |
-| **compliance** | Regulation | [→](packages/agents/souls/compliance.md) | "Limites de concentração por cedente?" |
-| **custodiante** | Custody | [→](packages/agents/souls/custodiante.md) | "Obrigações na verificação de lastro?" |
-| **due_diligence** | Analysis | [→](packages/agents/souls/due_diligence.md) | "Critérios de elegibilidade para cessão?" |
-| **gestor** | Portfolio | [→](packages/agents/souls/gestor.md) | "Stress test de recebíveis?" |
-| **investor_relations** | IR | [→](packages/agents/souls/investor_relations.md) | "Relatório mensal do fundo?" |
-| **pricing** | Valuation | [→](packages/agents/souls/pricing.md) | "Subordinação sênior e mezanino?" |
-| **regulatory_watch** | Monitoring | [→](packages/agents/souls/regulatory_watch.md) | "Mudanças da CVM 175?" |
-| **reporting** | Reports | [→](packages/agents/souls/reporting.md) | "Relatório diário do fundo?" |
+| Variable | Required | Description |
+|:--|:--|:--|
+| `GOOGLE_API_KEY` | **Yes**¹ | Gemini API — [get free key](https://aistudio.google.com/apikey) |
+| `OPENAI_API_KEY` | Alt | OpenAI API |
+| `ANTHROPIC_API_KEY` | Alt | Anthropic API |
 
-Each SOUL is a `.md` file that defines the agent's expertise, constraints, and reasoning profile. Click the → to read them.
+¹ One LLM key required. Gemini Flash recommended (free, fast). Provider abstracted via [litellm](https://github.com/BerriAI/litellm).
 
 ---
 
-## Guardrail Pipeline
-
-Every response passes through 6 sequential gates:
-
-```
-Query → [Eligibility] → [Concentration] → [Covenant] → [PLD/AML] → [Compliance] → [Risk] → Response
-```
-
-The **PLD/AML gate** blocks adversarial queries — including rephrased, indirect, and multilingual bypass attempts. All blocked queries are logged with full audit trail.
-
----
-
-## Project Stats
+## Stats
 
 | | |
 |:--|:--|
-| Python source files | 59 |
+| Source files | 59 Python |
 | Lines of code | 12,170 |
-| Test functions | 81 |
+| Tests | 81 functions |
 | Agent SOULs | 9 |
 | Compliance gates | 6 |
 | Background daemons | 9 |
@@ -292,8 +378,6 @@ The **PLD/AML gate** blocks adversarial queries — including rephrased, indirec
 
 <div align="center">
 
-**[📖 Visual Documentation](https://paganini-docs.vercel.app)** · **[🎮 Live Demo](https://paganini-demo.vercel.app)** · [Security](SECURITY.md) · [Contributing](CONTRIBUTING.md)
-
-MIT License
+<a href="https://paganini-demo.vercel.app"><b>Live Demo</b></a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="SECURITY.md">Security</a>&nbsp;&nbsp;·&nbsp;&nbsp;<a href="CONTRIBUTING.md">Contributing</a>&nbsp;&nbsp;·&nbsp;&nbsp;MIT License
 
 </div>
