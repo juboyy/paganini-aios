@@ -89,6 +89,20 @@ def create_app(config: dict) -> "FastAPI":  # noqa: F821
     daemons = DaemonRunner(config)
     base_path = Path(config.get("base_path", ".")).resolve()
 
+    # Auto-ingest corpus if ChromaDB is empty
+    try:
+        chunk_count = rag.collection.count()
+        if chunk_count == 0:
+            for corpus_dir in ["data/corpus", "data/sample-corpus"]:
+                corpus_path = base_path / corpus_dir
+                if corpus_path.is_dir() and any(corpus_path.iterdir()):
+                    logger.info("Auto-ingesting corpus from %s...", corpus_dir)
+                    rag.ingest(str(corpus_path))
+                    logger.info("Indexed %d chunks", rag.collection.count())
+                    break
+    except Exception as exc:
+        logger.warning("Auto-ingest failed: %s", exc)
+
     app = FastAPI(
         title="PAGANINI AIOS Dashboard",
         description="Fund operations dashboard — REST API + SPA frontend.",
