@@ -58,4 +58,4 @@ jobs:
       - name: Install and run Bandit
         run: |
           pip install bandit
-          bandit -r packages/ -ll --skip B101,B603,B404 || true
+          bandit -r core/ packs/ -ll --skip B101,B603,B404 || true

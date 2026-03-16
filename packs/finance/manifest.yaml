@@ -1,0 +1,79 @@
+name: finance
+version: 2.0.0
+domain: financial-markets
+description: "AI agents for Brazilian investment fund operations (FIDC, FII, FIP)"
+license: commercial
+requires_core: ">=2.0"
+
+agents:
+  - soul: agents/souls/administrador.md
+    domain: governance
+    tools: [market_data, bcb_indicators]
+  - soul: agents/souls/compliance.md
+    domain: regulation
+    tools: [concentration_check, covenant_monitor]
+  - soul: agents/souls/custodiante.md
+    domain: custody
+    tools: [lastro_verification]
+  - soul: agents/souls/due_diligence.md
+    domain: analysis
+    tools: [eligibility_check, cedente_analysis]
+  - soul: agents/souls/gestor.md
+    domain: portfolio
+    tools: [stress_test, covenant_monitor, subordination]
+  - soul: agents/souls/investor_relations.md
+    domain: ir
+    tools: [report_generation, quota_tracking]
+  - soul: agents/souls/pricing.md
+    domain: valuation
+    tools: [mark_to_market, subordination_analysis]
+  - soul: agents/souls/regulatory_watch.md
+    domain: monitoring
+    tools: [cvm_monitor, regulation_analysis]
+  - soul: agents/souls/reporting.md
+    domain: reports
+    tools: [daily_report, monthly_report]
+
+guardrails:
+  pipeline: guardrails/compliance.py
+  gates:
+    - name: eligibility
+      description: "Validates receivable criteria before cession"
+    - name: concentration
+      description: "Checks limits per cedente, sacado, sector"
+    - name: covenant
+      description: "Validates subordination ratios and guarantee limits"
+    - name: pld_aml
+      description: "Blocks anti-money-laundering evasion attempts"
+    - name: compliance
+      description: "CVM regulation adherence check"
+    - name: risk
+      description: "Portfolio risk assessment gate"
+
+integrations:
+  - name: cvm_ingester
+    module: integrations.cvm
+    description: "CVM Dados Abertos integration"
+  - name: bcb_market
+    module: integrations.morning_report
+    description: "BCB SGS live market data"
+  - name: fund_onboard
+    module: integrations.onboard
+    description: "Zero-touch fund onboarding via CNPJ"
+
+dashboard_panels:
+  - id: funds
+    label: "Portfolio de Fundos"
+    icon: "◈"
+  - id: onboard
+    label: "Onboarding CVM"
+    icon: "⚡"
+  - id: market
+    label: "Mercado BCB"
+    icon: "📈"
+  - id: alerts
+    label: "Alertas"
+    icon: "🔔"
+  - id: skills
+    label: "MetaClaw Skills"
+    icon: "⚡"

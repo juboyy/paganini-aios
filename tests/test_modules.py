@@ -1,7 +1,7 @@
-"""Tests for packages/modules/ — vertical solution configs."""
+"""Tests for packs/finance/modules/ — vertical solution configs."""
 
 import pytest
-from packages.modules import list_modules, load_module, get_module_agents, get_module_guardrails
+from packs.finance.modules import list_modules, load_module, get_module_agents, get_module_guardrails
 
 
 EXPECTED_MODULES = [

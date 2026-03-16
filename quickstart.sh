@@ -60,7 +60,7 @@ command -v git &>/dev/null || fail "git required. Install: sudo apt install git"
 ok "git: $(git --version | head -1)"
 
 # ── Step 4: Get the code ──
-if [ -f "packages/dashboard/app.py" ] && [ -d ".git" ]; then
+if [ -f "core/channels/api.py" ] && [ -d ".git" ]; then
     # Already inside the repo
     info "Running from existing repo, pulling latest..."
     git pull --ff-only 2>/dev/null || true
@@ -112,7 +112,7 @@ if [ -z "$API_KEY" ]; then
 # Paganini AIOS Configuration
 api_key: "$API_KEY"
 data_dir: "runtime/data"
-souls_dir: "packages/agents/souls"
+souls_dir: "packs/finance/agents/souls"
 host: "0.0.0.0"
 port: 8000
 YAML
@@ -133,8 +133,8 @@ fi
 
 if [ -n "$CORPUS_DIR" ]; then
     python3 << PYEOF
-from packages.rag.pipeline import RAGPipeline
-from packages.kernel.engine import load_config
+from core.rag.pipeline import RAGPipeline
+from core.config.engine import load_config
 config = load_config()
 rag = RAGPipeline(config)
 count = rag.collection.count()
@@ -189,7 +189,7 @@ echo -e "${CYAN}  Start the dashboard:${NC}"
 echo ""
 echo "    source .venv/bin/activate"
 echo "    export GOOGLE_API_KEY=AIza..."
-echo "    python3 packages/dashboard/app.py"
+echo "    python3 core/channels/api.py"
 echo ""
 echo "    → http://localhost:8000"
 echo "    → API Key: $API_KEY"

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import json
 
-from packages.kernel import handlers
+from core.runtime import handlers
 
 
 def test_market_data_sync_appends_history(tmp_dir, monkeypatch):

@@ -2,8 +2,7 @@
 from __future__ import annotations
 
 import pytest
-from packages.rag.pipeline import RAGPipeline
-from packages.rag.bm25 import BM25Index
+from core.rag.pipeline import RAGPipeline
 
 
 def test_rag_ingest_chunk_count(sample_config, sample_corpus):

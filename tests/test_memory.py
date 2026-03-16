@@ -1,8 +1,7 @@
 """Tests for MemoryManager and its four memory layers."""
 from __future__ import annotations
 
-import pytest
-from packages.kernel.memory import MemoryManager, SessionMemory
+from core.memory.manager import MemoryManager, SessionMemory
 
 
 def _manager(tmp_dir, fund_id: str = "test-fund") -> MemoryManager:
@@ -48,7 +47,7 @@ def test_promote_episodic_to_semantic(tmp_dir):
         response="A provisão segue IFRS9.",
         confidence=0.95,
     )
-    promoted = mm.promote_episodic_to_semantic()
+    mm.promote_episodic_to_semantic()
     # At least one fact should be in semantic after promotion
     assert mm.semantic.count() >= 1
 

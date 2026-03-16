@@ -1,8 +1,7 @@
 """Tests for GuardrailPipeline — 6-gate hard-stop pipeline."""
 from __future__ import annotations
 
-import pytest
-from packages.shared.guardrails import GuardrailPipeline, GuardrailResult
+from packs.finance.guardrails.compliance import GuardrailPipeline
 
 
 def _pipeline(config: dict) -> GuardrailPipeline:
