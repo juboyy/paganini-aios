@@ -305,6 +305,38 @@ def create_app(config: dict) -> "FastAPI":  # noqa: F821
         if history_context:
             rag_query = f"{history_context}\n\nCurrent question: {q}"
 
+        # ── Greeting & short query handler (all clients benefit) ──
+        _greetings = {"oi","olá","ola","hey","hi","hello","bom dia",
+                      "boa tarde","boa noite","e aí","e ai","fala",
+                      "salve","eae","yo","tudo bem","como vai","opa"}
+        q_clean = q.lower().strip("!?. ")
+        if q_clean in _greetings:
+            greeting_resp = (
+                "Olá! Sou o Paganini — seu assistente de inteligência para fundos de investimento.\n\n"
+                "**O que posso fazer:**\n"
+                "• Consultar regulação (CVM 175, custodiante, compliance)\n"
+                "• Analisar indicadores de mercado (CDI, SELIC, IPCA, câmbio)\n"
+                "• Monitorar covenants e stress tests\n"
+                "• Onboarding de fundos via CNPJ (CVM Dados Abertos)\n\n"
+                "**Exemplos de perguntas:**\n"
+                "• *Quais as obrigações do custodiante de um fundo?*\n"
+                "• *O que é subordinação de cotas?*\n"
+                "• *Quais os indicadores de mercado atuais?*\n"
+                "• *Como funciona o stress test de um fundo?*"
+            )
+            memory.session.add(current_session_id, "user", q, {})
+            memory.session.add(current_session_id, "assistant", greeting_resp, {"confidence": 1.0})
+            return {
+                "answer": greeting_resp,
+                "confidence": 1.0,
+                "sources": [],
+                "fund_id": fund_id,
+                "session_id": current_session_id,
+                "agent": "paganini",
+                "routed_to": "paganini",
+                "latency_ms": 0,
+            }
+
         t0 = time.time()
 
         # ── Cognitive Router: classify and enrich ──
