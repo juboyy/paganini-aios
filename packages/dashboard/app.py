@@ -110,9 +110,9 @@ def create_app(config: dict) -> "FastAPI":  # noqa: F821
                     try:
                         fd = _json.loads(fj.read_text())
                         # Support both flat and nested CVM profile formats
-                        cad = fd.get("cadastro", {})
-                        inf = fd.get("informe_diario", {})
-                        ult = inf.get("ultimo", {})
+                        cad = fd.get("cadastro") or {}
+                        inf = fd.get("informe_diario") or {}
+                        ult = inf.get("ultimo") or {}
                         funds.append({
                             "id": fdir.name,
                             "nome": fd.get("nome") or cad.get("nome", "?"),
@@ -145,7 +145,8 @@ def create_app(config: dict) -> "FastAPI":  # noqa: F821
                 raise HTTPException(status_code=404, detail="Fundo não encontrado na CVM")
             save_fund_profile(profile, ".")
             # Log alert
-            import json as _json, datetime
+            import json as _json
+            import datetime
             alert = {
                 "type": "onboarding", "severity": "info",
                 "title": f"Fundo onboarded: {(profile.get('cadastro',{}).get('nome','') or profile.get('cnpj',''))[:50]}",
@@ -155,8 +156,8 @@ def create_app(config: dict) -> "FastAPI":  # noqa: F821
             Path("runtime/logs").mkdir(parents=True, exist_ok=True)
             with open("runtime/data/alerts.jsonl", "a") as f:
                 f.write(_json.dumps(alert, ensure_ascii=False) + "\n")
-            cad = profile.get("cadastro", {})
-            inf = profile.get("informe_diario", {})
+            cad = profile.get("cadastro") or {}
+            inf = profile.get("informe_diario") or {}
             nome = cad.get("nome") or profile.get("nome") or profile.get("cnpj", "?")
             return {
                 "ok": True,
@@ -164,6 +165,10 @@ def create_app(config: dict) -> "FastAPI":  # noqa: F821
                 "cnpj": cad.get("cnpj") or profile.get("cnpj", "?"),
                 "pl": profile.get("patrimonio_liquido") or inf.get("pl_atual", 0),
                 "cotistas": profile.get("num_cotistas") or inf.get("nr_cotistas", 0),
+                "classe": cad.get("classe") or cad.get("tipo") or "",
+                "administrador": cad.get("administrador") or "",
+                "gestor": cad.get("gestor") or "",
+                "situacao": cad.get("situacao") or "",
             }
         except HTTPException:
             raise

@@ -7,11 +7,14 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://python.org)
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green.svg)](https://fastapi.tiangolo.com)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
-[![Tests](https://img.shields.io/badge/tests-89%20passing-brightgreen.svg)](#)
+[![CI](https://github.com/juboyy/paganini-aios/actions/workflows/ci.yml/badge.svg)](https://github.com/juboyy/paganini-aios/actions/workflows/ci.yml)
+[![Tests](https://img.shields.io/badge/tests-93%20passing-brightgreen.svg)](#)
 [![Docker](https://img.shields.io/badge/docker-ready-blue.svg)](infra/)
 [![Helm](https://img.shields.io/badge/helm-chart-blue.svg)](infra/helm/)
+[![Demo](https://img.shields.io/badge/demo-live-amber.svg)](https://paganini-demo.vercel.app)
+[![Docs](https://img.shields.io/badge/docs-README-blue.svg)](README.md)
 
-**9 specialized AI agents · 6 guardrail gates · 6,993 regulatory chunks indexed**
+**9 specialized AI agents · 6 guardrail gates · 7,044 regulatory chunks · Google Gemini Embedding 2**
 
 </div>
 
@@ -34,7 +37,7 @@ paganini query "What are the custodian's obligations regarding overcollateraliza
 |---|---|
 | **Agents** | 9 specialized SOULs with domain reasoning |
 | **Guardrails** | 6 compliance gates (eligibility, concentration, covenant, AML/PLD, compliance, risk) |
-| **RAG Pipeline** | ChromaDB · 6,993 regulatory chunks indexed |
+| **RAG Pipeline** | ChromaDB · 7,044 regulatory chunks · Google Gemini Embedding 2 |
 | **Dashboard** | FastAPI · 13 REST endpoints · API key auth |
 | **Infra** | Docker (slim 768MB + full 8GB) · Helm chart · Nginx + HTTPS |
 | **Data** | BCB SGS market data (CDI, SELIC, IPCA, IGP-M, USD/BRL) |
@@ -168,7 +171,7 @@ paganini-aios/
 │   └── systemd/            # Daemon unit files
 ├── scripts/
 │   └── letsencrypt.sh      # HTTPS setup
-├── tests/                  # 89 passing tests
+├── tests/                  # 93 passing tests
 ├── quickstart.sh
 └── pyproject.toml
 ```
