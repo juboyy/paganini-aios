@@ -273,6 +273,39 @@ def create_app(config: dict) -> "FastAPI":  # noqa: F821
         except Exception as exc:
             logger.warning("Router enrichment failed (non-fatal): %s", exc)
 
+        # For pure market data queries, answer directly with live data
+        pure_market = any(kw in q.lower() for kw in [
+            "indicador", "cdi", "selic", "ipca", "igpm", "igp-m",
+            "dólar", "dolar", "câmbio", "cambio", "usd", "mercado atual",
+            "inadimplência", "inadimplencia", "dados de mercado",
+            "taxa de juros", "indicadores bcb"
+        ]) and extra_context and "BCB" in extra_context
+
+        if pure_market:
+            # Use LLM to synthesize market data response without RAG
+            try:
+                market_answer = llm_fn(
+                    "Você é um especialista em mercado financeiro brasileiro. "
+                    "Responda sobre os indicadores com os dados fornecidos. "
+                    "Seja preciso, use os valores exatos. Formate de forma clara.",
+                    f"{extra_context}\n\nPergunta: {q}"
+                )
+                memory.record_interaction(q, market_answer, chunks=[], confidence=0.95, agent=routed_agent)
+                memory.session.add(current_session_id, "user", q, {"fund_id": fund_id})
+                memory.session.add(current_session_id, "assistant", market_answer, {"fund_id": fund_id, "confidence": 0.95})
+                return {
+                    "answer": market_answer,
+                    "confidence": 0.95,
+                    "sources": [{"source": "BCB SGS (Banco Central)", "section": "Dados ao vivo", "text": ""}],
+                    "fund_id": fund_id,
+                    "session_id": current_session_id,
+                    "agent": routed_agent,
+                    "routed_to": routed_agent,
+                    "latency_ms": int((time.time() - t0) * 1000),
+                }
+            except Exception as exc:
+                logger.warning("Direct market answer failed: %s", exc)
+
         # Build enriched query
         enriched_query = rag_query
         if extra_context:
