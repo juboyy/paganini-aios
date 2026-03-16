@@ -249,22 +249,14 @@ def cmd_query(text: str = "", **_):
         return
 
     try:
-        api_key = os.environ.get("GOOGLE_API_KEY", "")
-        result = rag.query(
-            text,
-            provider_config={
-                "type": "google",
-                "model": "gemini/gemini-2.5-flash",
-                "api_key": api_key,
-            } if api_key else None,
-        )
+        result = rag.query(text)
     except Exception as e:
         console.print(f"[red]Query failed: {e}[/red]")
         return
 
-    answer = result.get("answer", "No answer.")
-    confidence = result.get("confidence", 0)
-    sources = result.get("sources", [])
+    answer = result.answer if hasattr(result, "answer") else result.get("answer", "No answer.")
+    confidence = result.confidence if hasattr(result, "confidence") else result.get("confidence", 0)
+    sources = result.sources if hasattr(result, "sources") else result.get("sources", [])
 
     # Confidence color
     conf_pct = int(confidence * 100)
@@ -286,9 +278,13 @@ def cmd_query(text: str = "", **_):
             if isinstance(s, dict):
                 name = s.get("source", "doc").split("/")[-1].replace(".md", "")
                 section = s.get("section", "")
-                src_texts.append(f"[dim]📄 {name}[/dim]" + (f" · {section[:40]}" if section else ""))
+            elif hasattr(s, "source"):
+                name = (s.source or "doc").split("/")[-1].replace(".md", "")
+                section = getattr(s, "section", "")
             else:
-                src_texts.append(f"[dim]📄 {s}[/dim]")
+                name = str(s)
+                section = ""
+            src_texts.append(f"[dim]📄 {name}[/dim]" + (f" · {section[:40]}" if section else ""))
         console.print("  ".join(src_texts))
     console.print()
 
