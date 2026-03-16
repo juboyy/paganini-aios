@@ -45,16 +45,24 @@ command -v git &>/dev/null || fail "git required. Install: sudo apt install git"
 ok "git: $(git --version | head -1)"
 
 # ── Clone ──
-INSTALL_DIR="${1:-paganini-aios}"
-if [ -d "$INSTALL_DIR/.git" ]; then
-    info "Repository exists at $INSTALL_DIR, pulling latest..."
-    pushd "$INSTALL_DIR" > /dev/null && git pull && popd > /dev/null
+# ── Clone or detect existing repo ──
+# If running from inside the repo already, skip clone
+if [ -f "packages/dashboard/app.py" ] && [ -d ".git" ]; then
+    info "Running from existing repo, pulling latest..."
+    git pull --ff-only 2>/dev/null || true
+    ok "Repository: $(pwd) ($(git rev-parse --short HEAD))"
 else
-    info "Cloning repository..."
-    git clone https://github.com/juboyy/paganini-aios.git "$INSTALL_DIR"
+    INSTALL_DIR="${1:-paganini-aios}"
+    if [ -d "$INSTALL_DIR/.git" ]; then
+        info "Repository exists at $INSTALL_DIR, pulling latest..."
+        pushd "$INSTALL_DIR" > /dev/null && git pull && popd > /dev/null
+    else
+        info "Cloning repository..."
+        git clone https://github.com/juboyy/paganini-aios.git "$INSTALL_DIR"
+    fi
+    cd "$INSTALL_DIR"
+    ok "Repository: $(pwd) ($(git rev-parse --short HEAD))"
 fi
-cd "$INSTALL_DIR"
-ok "Repository: $(pwd) ($(git rev-parse --short HEAD))"
 
 # ── Virtual environment ──
 if [ ! -d ".venv" ]; then
