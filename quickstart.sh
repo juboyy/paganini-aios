@@ -48,7 +48,7 @@ ok "git: $(git --version | head -1)"
 INSTALL_DIR="${1:-paganini-aios}"
 if [ -d "$INSTALL_DIR/.git" ]; then
     info "Repository exists at $INSTALL_DIR, pulling latest..."
-    cd "$INSTALL_DIR" && git pull && cd ..
+    pushd "$INSTALL_DIR" > /dev/null && git pull && popd > /dev/null
 else
     info "Cloning repository..."
     git clone https://github.com/juboyy/paganini-aios.git "$INSTALL_DIR"
