@@ -157,6 +157,32 @@ class TelegramBot:
             self.send(chat_id, "\n".join(lines))
             return
 
+        # Greetings & casual — don't send to RAG
+        greetings = ["oi", "olá", "ola", "hey", "hi", "hello", "bom dia",
+                     "boa tarde", "boa noite", "e aí", "e ai", "fala",
+                     "salve", "eae", "yo", "tudo bem", "como vai"]
+        if text.lower().strip("!?.") in greetings:
+            self.send(chat_id,
+                "🎻 Olá! Sou o assistente Paganini.\n\n"
+                "Pergunte sobre regulação de fundos, covenants, "
+                "custodia, compliance, stress test, PLD/AML...\n\n"
+                "<b>Exemplos:</b>\n"
+                "• Quais as obrigações do custodiante?\n"
+                "• O que é subordinação de cotas?\n"
+                "• Como funciona o stress test?\n"
+                "• /market — indicadores BCB"
+            )
+            return
+
+        # Short/vague queries — ask for more detail
+        if len(text) < 10 and not text.startswith("/"):
+            self.send(chat_id,
+                "Pode elaborar? Preciso de uma pergunta mais específica "
+                "sobre fundos de investimento para consultar os agentes.\n\n"
+                "<i>Ex: \"Quais as obrigações do custodiante?\"</i>"
+            )
+            return
+
         # Strip /query prefix
         if text.startswith("/query"):
             text = text[6:].strip()
