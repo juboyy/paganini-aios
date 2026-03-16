@@ -1,248 +1,156 @@
 <div align="center">
 
-# 🎻 Paganini AIOS
+# Paganini AIOS
 
-### Autonomous AI Operating System for Investment Fund Management
+### Autonomous Intelligence for Investment Fund Operations
 
-[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://python.org)
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-green.svg)](https://fastapi.tiangolo.com)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 [![CI](https://github.com/juboyy/paganini-aios/actions/workflows/ci.yml/badge.svg)](https://github.com/juboyy/paganini-aios/actions/workflows/ci.yml)
 [![Security](https://github.com/juboyy/paganini-aios/actions/workflows/security.yml/badge.svg)](https://github.com/juboyy/paganini-aios/actions/workflows/security.yml)
-[![Tests](https://img.shields.io/badge/tests-93%20passing-brightgreen.svg)](#)
-[![Docker](https://img.shields.io/badge/docker-ready-blue.svg)](infra/)
-[![Helm](https://img.shields.io/badge/helm-chart-blue.svg)](infra/helm/)
-[![Demo](https://img.shields.io/badge/demo-live-amber.svg)](https://paganini-demo.vercel.app)
-[![Docs](https://img.shields.io/badge/docs-README-blue.svg)](README.md)
-
-**9 specialized AI agents · 6 guardrail gates · 7,044 regulatory chunks · Google Gemini Embedding 2**
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-3776ab.svg)](https://python.org)
+[![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
+[![Demo](https://img.shields.io/badge/demo-live-blue.svg)](https://paganini-demo.vercel.app)
 
 </div>
 
 ---
 
-## Overview
+## The Problem
 
-Paganini AIOS is a production-grade AI operating system for investment fund operations. It combines a multi-agent reasoning layer with a regulatory knowledge base, automated compliance guardrails, and a REST API — all deployable in minutes.
+Brazil's R$ 8.9 trillion fund industry runs on manual processes. Administrators, custodians, and managers spend thousands of hours per year on compliance checks, regulatory monitoring, and operational reporting — work that is repetitive, error-prone, and expensive.
 
-```bash
-paganini onboard auto --cnpj XX.XXX.XXX/0001-XX
-paganini query "What are the custodian's obligations regarding overcollateralization?"
+**Paganini eliminates 80% of this manual work.**
+
+| | Manual | Paganini |
+|---|---|---|
+| **Fund onboarding** | 2–5 days | 30 seconds |
+| **Regulatory query** | Hours (lawyer) | < 3 seconds |
+| **Compliance check** | Monthly audit | Continuous |
+| **Cost per fund** | R$ 15K–50K/mo | R$ 2K–8K/mo |
+
+---
+
+## How It Works
+
+```
+Query → Cognitive Router → Specialized Agent → Guardrails → Response
 ```
 
----
+**9 AI agents**, each with domain expertise (administration, compliance, custody, due diligence, management, investor relations, pricing, regulatory watch, reporting). The Cognitive Router dispatches queries to the right agent with 85%+ accuracy.
 
-## Why Paganini
+**6 compliance gates** validate every response: eligibility, concentration, covenant, PLD/AML, compliance, and risk. Non-compliant queries are blocked automatically — including adversarial attempts.
 
-The Brazilian investment fund industry manages **R$ 8.9 trillion** in assets under a regulatory framework that changes constantly. Fund administrators, custodians, and managers spend thousands of hours per year on manual compliance checks, regulatory monitoring, and operational reporting.
-
-**Paganini replaces 80% of this manual work** with autonomous AI agents that:
-
-- **Onboard funds in seconds** — pull CVM public data, build fund profiles, validate compliance posture
-- **Answer regulatory questions with citations** — "What changed in CVM 175 for FIDCs?" returns sourced, auditable answers
-- **Block non-compliant operations automatically** — PLD/AML, concentration limits, covenant breaches detected in real-time
-- **Learn from operations** — MetaClaw skill engine captures reusable patterns across funds
-
-| Metric | Manual | With Paganini |
-|---|---|---|
-| Fund onboarding | 2–5 days | < 30 seconds |
-| Regulatory query response | Hours (lawyer) | < 3 seconds |
-| Compliance check | Monthly audit | Continuous, real-time |
-| Operational cost per fund | R$ 15K–50K/month | R$ 2K–8K/month |
-
----
-
-## What's Inside
-
-| Layer | Components |
-|---|---|
-| **Agents** | 9 specialized SOULs with domain reasoning |
-| **Guardrails** | 6 compliance gates (eligibility, concentration, covenant, AML/PLD, compliance, risk) |
-| **RAG Pipeline** | ChromaDB · 7,044 regulatory chunks · Google Gemini Embedding 2 |
-| **Dashboard** | FastAPI · 13 REST endpoints · API key auth |
-| **Infra** | Docker (slim 768MB + full 8GB) · Helm chart · Nginx + HTTPS |
-| **Data** | BCB SGS market data (CDI, SELIC, IPCA, IGP-M, USD/BRL) |
-| **Monitoring** | 9 background daemons · JSONL audit log · morning digest |
+**Hybrid RAG** over 7,000+ regulatory chunks (CVM 175, IFRS9, COFIs, FIDC regulations) using Google Gemini embeddings. Answers cite their sources.
 
 ---
 
 ## Quick Start
 
 ```bash
-git clone https://github.com/juboyy/paganini-aios.git
-cd paganini-aios
+git clone https://github.com/juboyy/paganini-aios.git && cd paganini-aios
 bash quickstart.sh
-. export GOOGLE_API_KEY=AIza...
-
-# Auto-onboard a fund (zero data needed)
-paganini onboard auto --cnpj XX.XXX.XXX/0001-XX
-
-# Launch the dashboard
+export GOOGLE_API_KEY=your-key
 paganini dashboard
 ```
 
----
-
-## 9 AI Agents
-
-Each agent has a specialized SOUL — a domain-specific system prompt and reasoning profile:
-
-| Agent | Domain |
-|---|---|
-| `administrador` | Fund administration and governance |
-| `compliance` | Regulatory compliance and reporting |
-| `custodiante` | Custody, settlement, and collateral |
-| `due_diligence` | Asset and counterparty analysis |
-| `gestor` | Portfolio management and allocation |
-| `investor_relations` | Investor reporting and communication |
-| `pricing` | Asset pricing and mark-to-market |
-| `regulatory_watch` | Regulation monitoring and alerts |
-| `reporting` | Report generation and data export |
-
-The **Cognitive Router** dispatches each query to the most relevant agent (80–90% accuracy) based on intent, domain, and context.
-
----
-
-## Guardrail Gates
-
-All queries pass through 6 sequential compliance gates before a response is returned:
-
-1. **Eligibility** — asset eligibility checks
-2. **Concentration** — exposure limits and diversification
-3. **Covenant** — covenant breach detection
-4. **PLD/AML** — anti-money-laundering screening
-5. **Compliance** — regulatory rule enforcement
-6. **Risk** — portfolio risk thresholds
-
----
-
-## CLI Reference
+Zero-touch fund onboarding from CVM public data:
 
 ```bash
-# Core
-paganini init                        # Initialize workspace
-paganini ingest                      # Ingest documents into RAG
-paganini query "..."                 # Query the agent system
-paganini status                      # System status
-paganini doctor                      # Diagnostics
-
-# Dashboard
-paganini dashboard                   # Start FastAPI dashboard
-
-# Onboarding
-paganini onboard auto --cnpj XX...   # Zero-touch fund onboarding
-paganini onboard init                # Manual onboarding wizard
-paganini onboard status              # Check onboarding state
-paganini onboard validate            # Validate onboarding data
-
-# Daemons
-paganini daemons status              # List daemon status
-paganini daemons run <name>          # Run a single daemon
-paganini daemons run-all             # Run all daemons
-
-# Extensions
-paganini modules list                # List available modules
-paganini modules info <name>         # Module details
-paganini pack install <name>         # Install a domain pack
-paganini pack list                   # List installed packs
+paganini onboard auto --cnpj 47.388.724/0001-18
 ```
-
----
-
-## REST API
-
-Base URL: `http://localhost:8000`
-Auth: `X-API-Key: <your-key>` header required on all endpoints.
-
-| Endpoint | Description |
-|---|---|
-| `GET /api/health` | Health check |
-| `GET /api/status` | System status |
-| `GET /api/agents` | List available agents |
-| `POST /api/query` | Query the agent system |
-| `GET /api/reports` | List generated reports |
-| `GET /api/alerts` | Active alerts |
-| `GET /api/market` | Latest market data |
-| `GET /api/market/history` | Historical market data |
-| `GET /api/audit` | Audit log entries |
-| `GET /api/daemons` | Daemon status |
-| `GET /api/daemons/history` | Daemon run history |
-| `GET /api/memory/stats` | RAG memory statistics |
 
 ---
 
 ## Architecture
 
 ```
-paganini-aios/
-├── packages/
-│   ├── agents/
-│   │   └── souls/          # 9 agent SOUL definitions
-│   ├── guardrails.py       # 6-gate compliance pipeline
-│   ├── ontology/           # Domain ontology
-│   └── knowledge_graph/    # Entity relationships
-├── runtime/
-│   ├── engine.py           # Orchestrator kernel
-│   ├── rag.py              # RAG pipeline
-│   └── moltis.py           # Agent runtime
-├── infra/
-│   ├── Dockerfile          # Slim + full images
-│   ├── helm/               # Kubernetes Helm chart
-│   ├── nginx/              # Reverse proxy config
-│   └── systemd/            # Daemon unit files
-├── scripts/
-│   └── letsencrypt.sh      # HTTPS setup
-├── tests/                  # 93 passing tests
-├── quickstart.sh
-└── pyproject.toml
+┌─────────────────────────────────────────────────────────────┐
+│                      REST API (FastAPI)                     │
+│                   13 endpoints · API key auth               │
+├─────────────┬──────────────┬──────────────┬─────────────────┤
+│  Cognitive  │   9 Agent    │  6 Guardrail │    MetaClaw     │
+│   Router    │    SOULs     │    Gates     │  Skill Engine   │
+├─────────────┴──────────────┴──────────────┴─────────────────┤
+│              Hybrid RAG (ChromaDB + Gemini Embedding 2)     │
+│                    7,000+ regulatory chunks                 │
+├─────────────────────────────────────────────────────────────┤
+│  BCB Market Data  │  9 Background Daemons  │  Audit Trail   │
+├─────────────────────────────────────────────────────────────┤
+│            Docker · Helm · systemd · Nginx + HTTPS          │
+└─────────────────────────────────────────────────────────────┘
 ```
 
 ### Key Components
 
-- **`engine.py`** — Main orchestrator: routes queries, invokes agents, runs guardrails
-- **`rag.py`** — RAG pipeline: ChromaDB vector store, chunk retrieval, reranking
-- **`moltis.py`** — Agent runtime: SOUL loading, litellm integration, response formatting
-- **`guardrails.py`** — 6-gate compliance pipeline with structured pass/fail output
+| Component | What it does |
+|---|---|
+| **Cognitive Router** | Intent classification → agent dispatch (85%+ accuracy) |
+| **Agent SOULs** | Domain-specific system prompts with reasoning profiles |
+| **Guardrail Pipeline** | 6 sequential compliance gates (blocks non-compliant responses) |
+| **MetaClaw** | Autonomous skill learning — captures reusable patterns from operations |
+| **RAG Pipeline** | ChromaDB + Gemini embeddings + reranking + source citation |
+| **Market Data** | Live BCB SGS integration (CDI, SELIC, IPCA, IGP-M, USD/BRL) |
+| **CVM Ingester** | Auto-onboarding from CVM public data (cadastro + informe diário) |
 
 ---
 
-## Background Daemons
+## Agents
 
-9 daemon handlers run autonomously on schedule:
+| Agent | Domain | Example Query |
+|---|---|---|
+| `administrador` | Fund governance | "Quais os indicadores de mercado atuais?" |
+| `compliance` | Regulatory compliance | "Limites de concentração por cedente?" |
+| `custodiante` | Custody & collateral | "Obrigações na verificação de lastro?" |
+| `due_diligence` | Asset analysis | "Critérios de elegibilidade para cessão?" |
+| `gestor` | Portfolio management | "Como funciona o stress test de recebíveis?" |
+| `investor_relations` | Investor reporting | "Relatório mensal do fundo?" |
+| `pricing` | Mark-to-market | "Subordinação de cotas sênior e mezanino?" |
+| `regulatory_watch` | Regulation monitoring | "Mudanças da Resolução CVM 175?" |
+| `reporting` | Report generation | "Gerar relatório diário do fundo?" |
 
-| Daemon | Role |
-|---|---|
-| `regulatory_watch` | Monitor for new regulatory publications |
-| `market_data_sync` | Sync CDI, SELIC, IPCA, IGP-M, USD/BRL from BCB SGS |
-| `reconciliation` | Daily position reconciliation |
-| `cedente_monitor` | Originator monitoring |
-| `self_audit` | Internal audit and log review |
-| `morning_report` | Daily digest: market data + covenants + alerts |
-| + 3 more | Configurable via `moltis.yaml` |
+---
+
+## Security
+
+- **Fund-level data isolation** — Fund A data never leaks to Fund B
+- **Cotista-level partitioning** — Individual investor data isolated at query level
+- **PLD/AML gate** — Blocks adversarial attempts to evade anti-money-laundering controls
+- **Audit trail** — Every query logged with timestamp, agent, sources, confidence, gate results
+- **CI security pipeline** — TruffleHog, Bandit SAST, PII detection, corpus leak detection
+
+See [SECURITY.md](SECURITY.md) for the full security policy.
+
+---
+
+## API
+
+Base URL: `http://localhost:8000` · Auth: `X-API-Key` header
+
+| Endpoint | Method | Description |
+|---|---|---|
+| `/api/query?q=...` | GET | Query the agent system |
+| `/api/onboard` | POST | Onboard a fund by CNPJ |
+| `/api/status` | GET | System status (chunks, agents, daemons, funds) |
+| `/api/agents` | GET | List agents with tools and domains |
+| `/api/funds` | GET | Onboarded fund portfolio |
+| `/api/skills` | GET | MetaClaw learned skills |
+| `/api/alerts` | GET | Active compliance alerts |
+| `/api/market` | GET | Live BCB market data |
+| `/api/daemons` | GET | Background daemon status |
+| `/api/memory/stats` | GET | RAG memory layer statistics |
 
 ---
 
 ## Infrastructure
 
-### Docker
-
 ```bash
-# Slim image (~768MB)
-docker build -f infra/Dockerfile.slim -t paganini:slim .
+# Docker
+docker build -f infra/Dockerfile.slim -t paganini:slim .    # ~768MB
+docker build -f infra/Dockerfile -t paganini:full .          # ~8GB
 
-# Full image (~8GB, includes all models)
-docker build -f infra/Dockerfile -t paganini:full .
-```
-
-### Kubernetes (Helm)
-
-```bash
+# Kubernetes
 helm install paganini ./infra/helm --values values.yaml
-```
 
-### HTTPS (Nginx + Let's Encrypt)
-
-```bash
+# HTTPS
 bash scripts/letsencrypt.sh yourdomain.com
 ```
 
@@ -250,42 +158,23 @@ bash scripts/letsencrypt.sh yourdomain.com
 
 ## Project Stats
 
-- **41** Python source files
-- **10,160** lines of code
-- **93** tests passing
-- **150+** commits on `main`
-- **2,300+** regulatory chunks indexed (Google Gemini Embedding 2)
+| Metric | Value |
+|---|---|
+| Python source files | 41 |
+| Lines of code | 10,160 |
+| Tests passing | 93 |
+| Regulatory chunks | 7,000+ |
+| Background daemons | 9 |
+| Pre-commit hooks | 10 |
 
 ---
 
 ## Tech Stack
 
-- **Language:** Python 3.11+
-- **API Framework:** FastAPI
-- **Vector Store:** ChromaDB + Google Gemini Embedding 2 (768d, multilingual)
-- **LLM Routing:** litellm (model-agnostic)
-- **Market Data:** BCB SGS API
-- **Infra:** Docker, Helm, systemd, Nginx
-- **CI:** GitHub Actions + Pre-commit (10 hooks: secrets, PII, corpus content detection)
-- **Skill Learning:** MetaClaw engine — autonomous skill capture and reuse
-
----
-
-## Pre-commit Hooks
-
-10 hooks protect the repository:
-
-```bash
-pre-commit install
-pre-commit run --all-files
-```
-
-Hooks include: secret scanning, PII detection, corpus content validation, and formatting checks.
+**Language:** Python 3.11+ · **API:** FastAPI · **Vector Store:** ChromaDB + Gemini Embedding 2 · **LLM:** litellm (model-agnostic) · **Market Data:** BCB SGS · **Infra:** Docker, Helm, systemd, Nginx · **CI:** GitHub Actions · **Skill Learning:** MetaClaw
 
 ---
 
 ## License
 
-MIT © Paganini AIOS Contributors
-
-See [LICENSE](LICENSE) for details.
+MIT © Paganini AIOS Contributors — [LICENSE](LICENSE)
