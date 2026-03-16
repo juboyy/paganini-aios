@@ -61,7 +61,16 @@ def _get_rag():
     if _rag is None:
         try:
             from packages.rag.pipeline import RAGPipeline
-            _rag = RAGPipeline(str(BASE))
+            from packages.kernel.engine import load_config
+            config = load_config()
+            api_key = os.environ.get("GOOGLE_API_KEY", "")
+            if api_key:
+                config["provider"] = {
+                    "type": "google",
+                    "model": "gemini/gemini-2.5-flash",
+                    "api_key": api_key,
+                }
+            _rag = RAGPipeline(config)
         except Exception:
             _rag = None
     return _rag
@@ -104,7 +113,7 @@ def cmd_status(**_):
     config = load_config()
 
     # Count agents
-    agents_dir = BASE / "agents"
+    agents_dir = BASE / "packages" / "agents" / "souls"
     agent_count = len(list(agents_dir.glob("*.md"))) if agents_dir.exists() else 0
 
     # RAG chunks
@@ -197,7 +206,7 @@ def cmd_agents(**_):
 
     if not agents:
         # Fallback: read SOUL files
-        agents_dir = BASE / "agents"
+        agents_dir = BASE / "packages" / "agents" / "souls"
         if agents_dir.exists():
             agents = [
                 {"name": f.stem.replace("_", " ").title(), "id": f.stem}
