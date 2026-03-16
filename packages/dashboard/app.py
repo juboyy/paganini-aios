@@ -230,8 +230,56 @@ def create_app(config: dict) -> "FastAPI":  # noqa: F821
             rag_query = f"{history_context}\n\nCurrent question: {q}"
 
         t0 = time.time()
+
+        # ── Cognitive Router: classify and enrich ──
+        routed_agent = "rag"
+        extra_context = ""
         try:
-            answer_obj = rag.query(rag_query, llm_fn=llm_fn)
+            from packages.kernel.router import CognitiveRouter
+            router = CognitiveRouter(config)
+            routing = router.route(q)
+            if routing.primary_agent:
+                routed_agent = routing.primary_agent.slug
+
+            # Enrich with market data for market-related queries
+            market_keywords = ["mercado", "indicador", "bcb", "cdi", "selic", "ipca",
+                               "igpm", "igp-m", "dólar", "dolar", "câmbio", "cambio",
+                               "usd", "inadimplência", "inadimplencia", "juros", "taxa"]
+            if any(kw in q.lower() for kw in market_keywords):
+                market_file = Path("runtime/data/market/latest_snapshot.json")
+                if market_file.exists():
+                    import json as _json
+                    mdata = _json.loads(market_file.read_text())
+                    indicators = mdata.get("indicators", {})
+                    lines = ["Dados atuais de mercado (BCB SGS):"]
+                    labels = {"cdi": "CDI", "selic": "SELIC", "ipca": "IPCA",
+                              "igpm": "IGP-M", "cambio_usd": "USD/BRL",
+                              "inad_pf": "Inadimplência PF", "inad_pj": "Inadimplência PJ"}
+                    for k, label in labels.items():
+                        ind = indicators.get(k, {})
+                        v = ind.get("latest_value", "?")
+                        dt = ind.get("latest_date", "?")
+                        unit = "" if k == "cambio_usd" else "%"
+                        lines.append(f"  {label}: {v}{unit} (data: {dt})")
+                    lines.append(f"  Timestamp: {mdata.get('timestamp', '?')}")
+                    extra_context = "\n".join(lines)
+
+            # Enrich with agent SOUL context
+            if routing.primary_agent and hasattr(routing.primary_agent, 'soul_text'):
+                soul_snippet = (routing.primary_agent.soul_text or "")[:300]
+                if soul_snippet:
+                    extra_context += f"\n\nAgente especializado: {routing.primary_agent.name}\n{soul_snippet}"
+
+        except Exception as exc:
+            logger.warning("Router enrichment failed (non-fatal): %s", exc)
+
+        # Build enriched query
+        enriched_query = rag_query
+        if extra_context:
+            enriched_query = f"{extra_context}\n\n---\n\n{rag_query}"
+
+        try:
+            answer_obj = rag.query(enriched_query, llm_fn=llm_fn)
         except Exception as exc:
             logger.error("RAG pipeline error: %s", exc)
             raise HTTPException(status_code=500, detail=str(exc)) from exc
@@ -239,7 +287,7 @@ def create_app(config: dict) -> "FastAPI":  # noqa: F821
         answer = answer_obj.text
         confidence = answer_obj.confidence
         request.state.audit_confidence = confidence
-        request.state.audit_agent_used = getattr(answer_obj, "model", None) or "rag"
+        request.state.audit_agent_used = routed_agent
         chunks = answer_obj.chunks
         sources = [{"source": c.source, "section": c.section, "text": c.text[:200]} for c in chunks]
         latency_ms = int((time.time() - t0) * 1000)
@@ -266,6 +314,9 @@ def create_app(config: dict) -> "FastAPI":  # noqa: F821
             "sources": sources,
             "fund_id": fund_id,
             "session_id": current_session_id,
+            "agent": routed_agent,
+            "routed_to": routed_agent,
+            "latency_ms": latency_ms,
         }
 
     # ----------------------------------------------------------------
