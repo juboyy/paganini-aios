@@ -421,15 +421,15 @@ async function loadChart(){
   const d=await api('/api/market/history?days=30');
   const pts=d.points||[];
 
-  // Generate mock data if no history
-  const data=pts.length?pts:Array.from({length:30},(_,i)=>({
-    date:new Date(Date.now()-((29-i)*86400000)).toISOString().slice(0,10),
-    cdi:14.65+Math.random()*0.5,
-    selic:14.75+Math.random()*0.5,
+  // Use real data if available, mock otherwise
+  const data=pts.length>=5?pts:Array.from({length:30},(_,i)=>({
+    timestamp:new Date(Date.now()-((29-i)*86400000)).toISOString(),
+    indicators:{cdi:{latest_value:String(14.65+Math.random()*0.5)},selic:{latest_value:String(14.75+Math.random()*0.5)}},
   }));
 
-  const cdiVals=data.map(p=>p.cdi||p.CDI||14.9);
-  const selicVals=data.map(p=>p.selic||p.SELIC||15.0);
+  const cdiVals=data.map(p=>{const c=p.indicators?.cdi;return parseFloat(c?.latest_value||c?.value||'14.9')});
+  const selicVals=data.map(p=>{const s=p.indicators?.selic;return parseFloat(s?.latest_value||s?.value||'15.0')});
+  const dates=data.map(p=>(p.timestamp||'').slice(0,10));
   const allVals=[...cdiVals,...selicVals];
   const min=Math.min(...allVals)-0.2,max=Math.max(...allVals)+0.2;
   const pad={t:20,r:50,b:30,l:10};
@@ -460,7 +460,7 @@ async function loadChart(){
   // X labels
   ctx.fillStyle='#6b7280';ctx.font='10px JetBrains Mono';ctx.textAlign='center';
   [0,Math.floor(data.length/2),data.length-1].forEach(i=>{
-    if(data[i]?.date)ctx.fillText(data[i].date.slice(5),x(i),H-6);
+    if(dates[i])ctx.fillText(dates[i].slice(5),x(i),H-6);
   });
 }
 
