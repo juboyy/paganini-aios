@@ -80,7 +80,7 @@ ok "Runtime directories created"
 if [ -d "data/corpus" ] && [ "$(ls data/corpus/ 2>/dev/null | wc -l)" -gt 0 ]; then
     info "Indexing corpus..."
     python3 -c "
-from packages.kernel.rag import RAGPipeline
+from packages.rag.pipeline import RAGPipeline
 from packages.kernel.engine import load_config
 config = load_config()
 rag = RAGPipeline(config)
