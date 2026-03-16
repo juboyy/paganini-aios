@@ -337,7 +337,7 @@ document.getElementById('m-key').addEventListener('keydown',e=>{if(e.key==='Ente
 })();
 
 // ── API ──
-async function api(path){try{const r=await fetch(API+path,{headers:{'X-API-Key':KEY}});if(!r.ok)return{};return await r.json()}catch{return{}}}
+async function api(path){try{const c=new AbortController();const t=setTimeout(()=>c.abort(),45000);const r=await fetch(API+path,{headers:{'X-API-Key':KEY},signal:c.signal});clearTimeout(t);if(!r.ok)return{_err:r.status};return await r.json()}catch(e){return{_err:e.name==='AbortError'?'timeout':e.message}}}
 
 // ── Navigation ──
 document.querySelectorAll('[data-view]').forEach(btn=>{
@@ -478,13 +478,15 @@ async function sendQuery(){
   // User message
   msgs.innerHTML+=`<div class="msg msg-user"><div class="msg-bubble">${esc(q)}</div></div>`;
 
-  // Thinking indicator
+  // Thinking indicator with timer
   const thinkId='think-'+Date.now();
   msgs.innerHTML+=`<div class="msg msg-ai" id="${thinkId}"><div class="thinking-indicator">
     <div class="thinking-dots"><span></span><span></span><span></span></div>
-    <span>analisando query... roteando para agente especializado</span>
+    <span>consultando agentes... <span id="${thinkId}-timer" style="font-family:var(--mono);color:var(--muted)">0s</span></span>
   </div></div>`;
   msgs.scrollTop=msgs.scrollHeight;
+  const thinkTimer=setInterval(()=>{const el=document.getElementById(thinkId+'-timer');if(el)el.textContent=((Date.now()-Date.now()+Math.round((Date.now()-t0_pre)/1000)))+'s'},1000);
+  const t0_pre=Date.now();
 
   const t0=Date.now();
   const params=new URLSearchParams({q});
@@ -495,7 +497,18 @@ async function sendQuery(){
   if(d.session_id&&!blocked){SID=d.session_id;localStorage.setItem('p_sid',SID)}
 
   // Remove thinking
+  clearInterval(thinkTimer);
   document.getElementById(thinkId)?.remove();
+
+  // Handle errors
+  if(d._err){
+    msgs.innerHTML+=`<div class="msg msg-ai"><div class="msg-bubble" style="border-color:var(--red)">
+      <span style="color:var(--red)">Erro: ${d._err==='timeout'?'Timeout (45s) — tente novamente':'Falha na conexão com o servidor'}</span>
+    </div></div>`;
+    msgs.scrollTop=msgs.scrollHeight;
+    document.getElementById('c-btn').disabled=false;
+    return;
+  }
 
   const conf=Math.round((d.confidence||0)*100);
   const confColor=conf>=80?'var(--green)':conf>=60?'var(--amber)':'var(--red)';
