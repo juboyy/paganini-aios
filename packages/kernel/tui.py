@@ -24,6 +24,10 @@ from rich.panel import Panel
 from rich.table import Table
 from rich.text import Text
 
+# Suppress ONNX GPU warning
+import os as _os
+_os.environ.setdefault("ONNXRUNTIME_LOG_SEVERITY", "3")
+
 console = Console()
 
 # ── Paths ──────────────────────────────────────────────────────
@@ -239,6 +243,32 @@ def cmd_query(text: str = "", **_):
     """Query the fund AI."""
     if not text:
         console.print("[red]Usage: query <your question>[/red]")
+        return
+
+    # Greetings — don't send to RAG
+    greetings = ["oi", "olá", "ola", "hey", "hi", "hello", "bom dia",
+                 "boa tarde", "boa noite", "e aí", "e ai", "fala",
+                 "salve", "eae", "yo", "tudo bem", "como vai"]
+    if text.lower().strip("!?.") in greetings:
+        console.print()
+        console.print(Panel(
+            "Sou o assistente Paganini.\n\n"
+            "Pergunte sobre regulação de fundos, covenants, "
+            "custodia, compliance, stress test, PLD/AML...\n\n"
+            "[bold]Exemplos:[/bold]\n"
+            "  • Quais as obrigações do custodiante?\n"
+            "  • O que é subordinação de cotas?\n"
+            "  • Como funciona o stress test?\n"
+            "  • [bold]market[/bold] — indicadores BCB",
+            title="🎻", border_style="#c9a84c",
+        ))
+        console.print()
+        return
+
+    # Short/vague queries
+    if len(text) < 10:
+        console.print("[dim]Preciso de uma pergunta mais específica sobre fundos.[/dim]")
+        console.print("[dim]Ex: [bold]Quais as obrigações do custodiante?[/bold][/dim]")
         return
 
     console.print(f"[dim]⟳ Querying agents...[/dim]")
