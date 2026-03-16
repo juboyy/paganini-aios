@@ -692,6 +692,9 @@ def telegram_cmd(token):
     from packages.kernel.telegram_bot import run_bot
     run_bot(token=token)
 
+
+cli.add_command(serve, "dashboard")
+
 @cli.command("shell")
 def shell_cmd():
     """Interactive terminal UI — query, monitor, manage without a browser."""
