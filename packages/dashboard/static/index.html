@@ -492,7 +492,7 @@ async function sendQuery(){
   const d=await api('/api/query?'+params);
   const elapsed=Date.now()-t0;
 
-  if(d.session_id){SID=d.session_id;localStorage.setItem('p_sid',SID)}
+  if(d.session_id&&!blocked){SID=d.session_id;localStorage.setItem('p_sid',SID)}
 
   // Remove thinking
   document.getElementById(thinkId)?.remove();
@@ -528,14 +528,17 @@ async function sendQuery(){
 
   msgs.innerHTML+=`<div class="msg msg-ai">
     ${bubble}
-    <div class="msg-meta">
+    ${blocked?'':`<div class="msg-meta">
       <span class="msg-agent">🤖 ${agent}</span>
       <span class="msg-conf" style="color:${confColor}">confiança ${conf}%</span>
       <span style="color:var(--muted)">${elapsed}ms</span>
     </div>
-    ${srcHtml}
+    ${srcHtml}`}
   </div>`;
   msgs.scrollTop=msgs.scrollHeight;
+
+  // Reset session after blocked query to prevent context poisoning
+  if(blocked){SID=null;localStorage.removeItem('p_sid')}
 
   // History
   history.unshift({q,t:Date.now()});
