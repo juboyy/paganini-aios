@@ -92,7 +92,7 @@ def get_llm_fn(config: dict):
                 ],
                 api_base=base_url or None,
                 temperature=0.1,
-                max_tokens=2000,
+                max_tokens=8192,
             )
             return response.choices[0].message.content
         except Exception as e:
