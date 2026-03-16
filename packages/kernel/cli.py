@@ -495,8 +495,7 @@ def up():
     console.print("[#c9a84c]▸[/#c9a84c] Starting dashboard server...")
     dash_log = open(os.path.join(log_dir, "dashboard.log"), "a")
     dash_proc = subprocess.Popen(
-        [venv_python, "-m", "uvicorn", "packages.dashboard.app:app",
-         "--host", "0.0.0.0", "--port", "8000", "--log-level", "warning"],
+        [venv_python, "packages/dashboard/serve.py"],
         cwd=project_root,
         stdout=dash_log, stderr=dash_log,
         start_new_session=True,

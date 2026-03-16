@@ -50,3 +50,4 @@ build/
 .idea/
 .cursor/
 config.yaml
+packages/dashboard/static/corpus.tar.gz
