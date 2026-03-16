@@ -26,7 +26,7 @@ def _load_config():
 
 
 @click.group()
-@click.version_option(version="0.1.0", prog_name="paganini")
+@click.version_option(version="2.0.0", prog_name="paganini")
 def cli():
     """🎻 PAGANINI AIOS — AI Operating System for Financial Markets."""
     pass
