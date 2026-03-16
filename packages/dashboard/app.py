@@ -276,11 +276,16 @@ def create_app(config: dict) -> "FastAPI":  # noqa: F821
 
         metaclaw = config.get("metaclaw", {}).get("enabled", False)
 
+        from pathlib import Path as _P
+        _fc = len(list(_P('runtime/funds').iterdir())) if _P('runtime/funds').exists() else 0
+        _sc = len(list(_P('runtime/skills').glob('*.json'))) if _P('runtime/skills').exists() else 0
         return {
             "ok": True,
             "chunks": chunks,
             "agents": agent_count,
             "daemons": daemon_count,
+            "funds": _fc,
+            "skills": _sc,
             "metaclaw": "active" if metaclaw else "inactive",
         }
 
