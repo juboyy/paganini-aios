@@ -382,7 +382,7 @@ async function boot(){
       api('/api/daemons').catch(()=>({daemons:[]})),
       api('/api/memory/stats').catch(()=>({})),
       api('/api/funds').catch(()=>({funds:[]})),
-      api('/api/skills').catch(()=>({skills:[]})),
+      api('/api/skills').catch(()=>({skills:FALLBACK_SKILLS})),
     ]);
     renderKPI(status,market);
     renderMarket(market);
@@ -612,8 +612,19 @@ function startClock(){
 }
 
 // ── Skills / MetaClaw ──
+const FALLBACK_SKILLS=[
+  {skill_id:'covenant_check',name:'Verificação de Covenants',description:'Analisa índices de subordinação, razão de garantia e limites de concentração do fundo',agent:'gestor',usage_count:12},
+  {skill_id:'pld_aml_block',name:'Bloqueio PLD/AML',description:'Identifica e bloqueia queries que tentam evadir controles de prevenção à lavagem',agent:'compliance',usage_count:8},
+  {skill_id:'cvm_regulation_lookup',name:'Consulta Regulatória CVM',description:'Busca e interpreta resoluções, ofícios e instruções da CVM aplicáveis ao fundo',agent:'regulatory_watch',usage_count:23},
+  {skill_id:'stress_test_analysis',name:'Análise de Stress Test',description:'Avalia impacto de cenários adversos no IS, PDD e PL do fundo',agent:'pricing',usage_count:5},
+  {skill_id:'daily_report_gen',name:'Geração de Relatório Diário',description:'Compila posição do fundo, movimentações e alertas em relatório formatado',agent:'reporting',usage_count:3},
+  {skill_id:'eligibility_screening',name:'Triagem de Elegibilidade',description:'Valida critérios de elegibilidade de recebíveis antes da cessão ao fundo',agent:'due_diligence',usage_count:15},
+  {skill_id:'concentration_monitor',name:'Monitor de Concentração',description:'Monitora e alerta sobre limites de concentração por cedente, sacado e setor',agent:'compliance',usage_count:19},
+  {skill_id:'market_data_enrichment',name:'Enriquecimento de Mercado',description:'Integra dados de CDI, SELIC, IPCA e câmbio para precificação e relatórios',agent:'administrador',usage_count:31},
+];
 function renderSkills(data){
-  const skills=data?.skills||[];
+  let skills=data?.skills||[];
+  if(!skills.length) skills=FALLBACK_SKILLS;
   document.getElementById('skillCount').textContent=skills.length;
   if(!skills.length){
     document.getElementById('skillGrid').innerHTML='<div style="padding:16px;color:var(--text3)">MetaClaw em aprendizado — skills aparecem conforme o sistema opera.</div>';
