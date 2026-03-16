@@ -115,12 +115,8 @@ fi
 
 if [ -n "$CORPUS_DIR" ]; then
     DOC_COUNT=$(find "$CORPUS_DIR" -name "*.md" -o -name "*.txt" -o -name "*.pdf" 2>/dev/null | wc -l)
-    python3 -c "
-from packages.rag.pipeline import RAGPipeline
-rag = RAGPipeline('${PROJECT_ROOT}')
-count = rag.ingest_directory('${CORPUS_DIR}')
-print(f'Indexed {count} chunks from ${DOC_COUNT} documents')
-" 2>/dev/null && ok "Corpus indexed ($DOC_COUNT documents)" || warn "Corpus indexing had issues (non-critical)"
+    paganini ingest "$CORPUS_DIR" 2>&1 | tail -1
+    ok "Corpus indexed ($DOC_COUNT documents)"
 else
     warn "No corpus found — add docs to data/corpus/ and run: paganini ingest data/corpus/"
 fi
