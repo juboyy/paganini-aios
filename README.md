@@ -31,6 +31,26 @@ paganini query "What are the custodian's obligations regarding overcollateraliza
 
 ---
 
+## Why Paganini
+
+The Brazilian investment fund industry manages **R$ 8.9 trillion** in assets under a regulatory framework that changes constantly. Fund administrators, custodians, and managers spend thousands of hours per year on manual compliance checks, regulatory monitoring, and operational reporting.
+
+**Paganini replaces 80% of this manual work** with autonomous AI agents that:
+
+- **Onboard funds in seconds** — pull CVM public data, build fund profiles, validate compliance posture
+- **Answer regulatory questions with citations** — "What changed in CVM 175 for FIDCs?" returns sourced, auditable answers
+- **Block non-compliant operations automatically** — PLD/AML, concentration limits, covenant breaches detected in real-time
+- **Learn from operations** — MetaClaw skill engine captures reusable patterns across funds
+
+| Metric | Manual | With Paganini |
+|---|---|---|
+| Fund onboarding | 2–5 days | < 30 seconds |
+| Regulatory query response | Hours (lawyer) | < 3 seconds |
+| Compliance check | Monthly audit | Continuous, real-time |
+| Operational cost per fund | R$ 15K–50K/month | R$ 2K–8K/month |
+
+---
+
 ## What's Inside
 
 | Layer | Components |
@@ -229,11 +249,11 @@ bash scripts/letsencrypt.sh yourdomain.com
 
 ## Project Stats
 
-- **37** Python source files
-- **8,771** lines of code
-- **89** tests passing
-- **24+** commits on `main`
-- **6,993** regulatory chunks indexed in ChromaDB
+- **41** Python source files
+- **10,160** lines of code
+- **93** tests passing
+- **150+** commits on `main`
+- **2,300+** regulatory chunks indexed (Google Gemini Embedding 2)
 
 ---
 
@@ -241,11 +261,12 @@ bash scripts/letsencrypt.sh yourdomain.com
 
 - **Language:** Python 3.11+
 - **API Framework:** FastAPI
-- **Vector Store:** ChromaDB
+- **Vector Store:** ChromaDB + Google Gemini Embedding 2 (768d, multilingual)
 - **LLM Routing:** litellm (model-agnostic)
 - **Market Data:** BCB SGS API
 - **Infra:** Docker, Helm, systemd, Nginx
-- **CI:** Pre-commit (10 hooks: secrets, PII, corpus content detection)
+- **CI:** GitHub Actions + Pre-commit (10 hooks: secrets, PII, corpus content detection)
+- **Skill Learning:** MetaClaw engine — autonomous skill capture and reuse
 
 ---
 
