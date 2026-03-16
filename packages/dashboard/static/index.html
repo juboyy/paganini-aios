@@ -188,6 +188,9 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);line-height:
     <div class="nav-item" data-panel="agents"><span class="nav-icon">⬡</span>Agentes<span class="nav-badge" id="agentCount">—</span></div>
     <div class="nav-item" data-panel="daemons"><span class="nav-icon">↻</span>Daemons<span class="nav-badge" id="daemonCount">—</span></div>
     <div class="nav-item" data-panel="memory"><span class="nav-icon">◎</span>Memória</div>
+    <div class="nav-section">Portfolio</div>
+    <div class="nav-item" data-panel="funds"><span class="nav-icon">◈</span>Fundos<span class="nav-badge" id="fundCount">—</span></div>
+    <div class="nav-item" data-panel="onboard"><span class="nav-icon">+</span>Onboarding</div>
     <div class="nav-section">Dados</div>
     <div class="nav-item" data-panel="market"><span class="nav-icon">₿</span>Mercado</div>
     <div class="nav-item" data-panel="alerts"><span class="nav-icon">!</span>Alertas<span class="nav-badge" id="alertCount">—</span></div>
@@ -255,6 +258,25 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);line-height:
       <div class="alert-feed" id="alertFeedFull"></div>
     </div>
 
+    <!-- FUNDS -->
+    <div class="panel" id="panel-funds">
+      <div class="section-title">Portfolio de Fundos</div>
+      <div class="agent-grid" id="fundGrid"></div>
+    </div>
+
+    <!-- ONBOARD -->
+    <div class="panel" id="panel-onboard">
+      <div class="section-title">Onboarding Automático via CVM</div>
+      <div style="max-width:480px;margin-top:12px">
+        <p style="font-size:12px;color:var(--text2);margin-bottom:16px">Insira o CNPJ do fundo. O Paganini buscará automaticamente os dados cadastrais, patrimônio, cotistas e carteira diretamente da CVM Dados Abertos.</p>
+        <div class="console-input-row">
+          <input class="console-input" id="onboardCnpj" placeholder="CNPJ do Fundo" autocomplete="off">
+          <button class="console-send" id="onboardBtn" onclick="doOnboard()">ONBOARD</button>
+        </div>
+        <div id="onboardResult" style="margin-top:16px"></div>
+      </div>
+    </div>
+
   </main>
 </div>
 
@@ -303,12 +325,13 @@ async function boot(){
   document.getElementById('loginOverlay').classList.add('hidden');
   document.getElementById('mainShell').style.display='grid';
   try{
-    const [status,market,alerts,agents,daemons,mem]=await Promise.all([
+    const [status,market,alerts,agents,daemons,mem,funds]=await Promise.all([
       api('/api/status'),api('/api/market').catch(()=>null),
       api('/api/alerts').catch(()=>({alerts:[]})),
       api('/api/agents').catch(()=>({agents:[]})),
       api('/api/daemons').catch(()=>({daemons:[]})),
       api('/api/memory/stats').catch(()=>({})),
+      api('/api/funds').catch(()=>({funds:[]})),
     ]);
     renderKPI(status,market);
     renderMarket(market);
@@ -316,6 +339,7 @@ async function boot(){
     renderAgents(agents);
     renderDaemons(daemons);
     renderMemory(mem);
+    renderFunds(funds);
   }catch(e){console.error(e)}
   startClock();
 }
@@ -326,6 +350,7 @@ function renderKPI(st,mk){
     {label:'Corpus',value:st.chunks?.toLocaleString()||'—',sub:'chunks indexados'},
     {label:'Agentes',value:st.agents||'—',sub:'especializados'},
     {label:'Daemons',value:st.daemons||'—',sub:'schedulers'},
+    {label:'Fundos',value:document.getElementById('fundCount')?.textContent||'—',sub:'onboarded'},
     {label:'MetaClaw',value:st.metaclaw==='active'?'ON':'OFF',sub:'skill learning'},
   ];
   if(mk?.indicators){
@@ -520,6 +545,57 @@ function startClock(){
   };
   tick();setInterval(tick,1000);
 }
+
+// ── Funds ──
+function renderFunds(data){
+  const funds=data?.funds||[];
+  document.getElementById('fundCount').textContent=funds.length;
+  if(!funds.length){
+    document.getElementById('fundGrid').innerHTML='<div style="padding:16px;color:var(--text3)">Nenhum fundo onboarded. Use o painel Onboarding.</div>';
+    return;
+  }
+  document.getElementById('fundGrid').innerHTML=funds.map(f=>{
+    const pl=f.pl?'R$ '+Number(f.pl).toLocaleString('pt-BR',{maximumFractionDigits:0}):'—';
+    return `<div class="agent-card">
+      <div class="agent-name">${(f.nome||'?').slice(0,35)}</div>
+      <div class="agent-stat" style="margin-top:6px">PL: <b style="color:var(--amber)">${pl}</b></div>
+      <div class="agent-stat">Cotistas: ${f.cotistas||'—'}</div>
+      <div class="agent-stat">Situação: ${f.situacao||'?'}</div>
+      <div class="agent-domains" style="margin-top:8px"><span class="agent-domain">${f.cnpj||''}</span><span class="agent-domain">${f.data_info||''}</span></div>
+    </div>`;
+  }).join('');
+}
+
+// ── Onboard ──
+async function doOnboard(){
+  const cnpj=document.getElementById('onboardCnpj').value.trim();
+  if(!cnpj)return;
+  const res=document.getElementById('onboardResult');
+  const btn=document.getElementById('onboardBtn');
+  btn.disabled=true;btn.textContent='BUSCANDO...';
+  res.innerHTML='<div style="color:var(--text3);font-family:var(--mono);font-size:12px">⟳ Consultando CVM Dados Abertos...</div>';
+  try{
+    const r=await fetch(S.url+'/api/onboard',{method:'POST',headers:{'X-API-Key':S.key,'Content-Type':'application/json'},body:JSON.stringify({cnpj})});
+    const d=await r.json();
+    if(d.ok){
+      const pl=d.pl?'R$ '+Number(d.pl).toLocaleString('pt-BR',{maximumFractionDigits:0}):'—';
+      res.innerHTML=`<div style="border-left:2px solid var(--green);padding:12px;background:var(--green-bg)">
+        <div style="font-family:var(--mono);font-weight:600;color:var(--green)">✓ ONBOARDED</div>
+        <div style="margin-top:8px;font-size:13px"><b>${d.nome||'?'}</b></div>
+        <div style="font-size:12px;color:var(--text2)">CNPJ: ${d.cnpj||cnpj} · PL: ${pl}</div>
+      </div>`;
+      // Refresh funds panel
+      api('/api/funds').then(renderFunds).catch(()=>{});
+      api('/api/alerts').then(renderAlerts).catch(()=>{});
+    }else{
+      res.innerHTML=`<div style="border-left:2px solid var(--red);padding:12px;background:var(--red-bg);color:var(--red)">${d.detail||'Erro ao onboarding'}</div>`;
+    }
+  }catch(e){
+    res.innerHTML=`<div style="border-left:2px solid var(--red);padding:12px;background:var(--red-bg);color:var(--red)">${e.message}</div>`;
+  }
+  btn.disabled=false;btn.textContent='ONBOARD';
+}
+document.getElementById('onboardCnpj').addEventListener('keydown',e=>{if(e.key==='Enter')doOnboard()});
 
 // ── Init ──
 if(getStored()){

@@ -95,6 +95,72 @@ def create_app(config: dict) -> "FastAPI":  # noqa: F821
         version="0.1.0",
     )
 
+    # ----------------------------------------------------------------
+    # GET /api/funds — Onboarded fund portfolio
+    # ----------------------------------------------------------------
+    @app.get("/api/funds", dependencies=[Depends(verify_api_key)])
+    async def list_funds():
+        import json as _json
+        funds_dir = Path("runtime/funds")
+        funds = []
+        if funds_dir.exists():
+            for fdir in sorted(funds_dir.iterdir()):
+                fj = fdir / "fund.json"
+                if fj.exists():
+                    try:
+                        fd = _json.loads(fj.read_text())
+                        funds.append({
+                            "id": fdir.name,
+                            "nome": fd.get("nome", "?"),
+                            "cnpj": fd.get("cnpj", "?"),
+                            "classe": fd.get("classe", "Multimercado"),
+                            "pl": fd.get("patrimonio_liquido", 0),
+                            "cotistas": fd.get("num_cotistas", 0),
+                            "data_info": fd.get("data_informacao", ""),
+                            "situacao": fd.get("situacao", "EM FUNCIONAMENTO NORMAL"),
+                        })
+                    except Exception:
+                        pass
+        return {"funds": funds, "total": len(funds)}
+
+    # ----------------------------------------------------------------
+    # POST /api/onboard — Onboard fund via CNPJ
+    # ----------------------------------------------------------------
+    @app.post("/api/onboard", dependencies=[Depends(verify_api_key)])
+    async def onboard_fund(request: Request):
+        body = await request.json()
+        cnpj = body.get("cnpj", "").replace(".", "").replace("/", "").replace("-", "")
+        if not cnpj or len(cnpj) < 11:
+            raise HTTPException(status_code=400, detail="CNPJ inválido")
+        try:
+            from packages.kernel.cvm_ingester import build_fund_profile, save_fund_profile
+            profile = build_fund_profile(cnpj)
+            if not profile or not profile.get("nome"):
+                raise HTTPException(status_code=404, detail="Fundo não encontrado na CVM")
+            save_fund_profile(profile, ".")
+            # Log alert
+            import json as _json, datetime
+            alert = {
+                "type": "onboarding", "severity": "info",
+                "title": f"Fundo onboarded: {profile['nome'][:50]}",
+                "timestamp": datetime.datetime.now(datetime.timezone.utc).isoformat(),
+                "source": "dashboard"
+            }
+            Path("runtime/logs").mkdir(parents=True, exist_ok=True)
+            with open("runtime/logs/alerts.jsonl", "a") as f:
+                f.write(_json.dumps(alert, ensure_ascii=False) + "\n")
+            return {
+                "ok": True,
+                "nome": profile.get("nome"),
+                "cnpj": profile.get("cnpj"),
+                "pl": profile.get("patrimonio_liquido", 0),
+            }
+        except HTTPException:
+            raise
+        except Exception as exc:
+            raise HTTPException(status_code=500, detail=str(exc))
+
+
     static_dir = Path(__file__).resolve().parent / "static"
     if static_dir.exists():
         app.mount("/static", StaticFiles(directory=static_dir), name="static")
