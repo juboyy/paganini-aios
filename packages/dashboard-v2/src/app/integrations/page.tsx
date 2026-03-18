@@ -203,7 +203,7 @@ export default function IntegrationsPage() {
               alignItems: "center",
               gap: "0.375rem",
               fontFamily: "var(--font-mono)",
-              fontSize: "0.5625rem",
+              fontSize: "0.75rem",
               letterSpacing: "0.1em",
               color: connected ? "var(--accent)" : "hsl(190 100% 60%)",
             }}
@@ -228,12 +228,12 @@ export default function IntegrationsPage() {
         {(meta1 || meta2) && (
           <div style={{ display: "flex", gap: "0.75rem", flexWrap: "wrap" }}>
             {meta1 && (
-              <span className="mono-label" style={{ fontSize: "0.6rem", color: "var(--text-3)" }}>
+              <span className="mono-label" style={{ fontSize: "0.8125rem", color: "var(--text-3)" }}>
                 {meta1}
               </span>
             )}
             {meta2 && (
-              <span className="mono-label" style={{ fontSize: "0.6rem", color: "hsl(190 100% 65%)" }}>
+              <span className="mono-label" style={{ fontSize: "0.8125rem", color: "hsl(190 100% 65%)" }}>
                 {meta2}
               </span>
             )}
@@ -243,7 +243,7 @@ export default function IntegrationsPage() {
         {/* Description */}
         <p
           className="section-help"
-          style={{ fontSize: "0.6875rem", margin: 0, lineHeight: 1.5 }}
+          style={{ fontSize: "0.8125rem", margin: 0, lineHeight: 1.5 }}
         >
           {desc}
         </p>
@@ -256,7 +256,7 @@ export default function IntegrationsPage() {
       <h2
         style={{
           fontFamily: "var(--font-mono)",
-          fontSize: "0.625rem",
+          fontSize: "0.8125rem",
           letterSpacing: "0.18em",
           color: "var(--text-4)",
           margin: "0 0 0.75rem 0",
@@ -308,7 +308,7 @@ export default function IntegrationsPage() {
         {stats.map((s) => (
           <div key={s.label} className="glass-card" style={{ padding: "1.25rem", textAlign: "center" }}>
             <div className="stat-value">{s.value}</div>
-            <div className="mono-label" style={{ marginTop: "0.25rem", fontSize: "0.5625rem" }}>
+            <div className="mono-label" style={{ marginTop: "0.25rem", fontSize: "0.75rem" }}>
               {s.label}
             </div>
           </div>
@@ -414,7 +414,7 @@ export default function IntegrationsPage() {
               <text x="55" y="18" textAnchor="middle" fill="hsl(150 100% 70%)"
                 fontFamily="IBM Plex Mono, monospace" fontSize="11" fontWeight="600">💬 Telegram</text>
               <text x="55" y="34" textAnchor="middle" fill="hsl(190 80% 65%)"
-                fontFamily="IBM Plex Mono, monospace" fontSize="9">💼 Slack</text>
+                fontFamily="IBM Plex Mono, monospace" fontSize="12">💼 Slack</text>
             </g>
 
             {/* Arrow 1 */}
@@ -428,7 +428,7 @@ export default function IntegrationsPage() {
               <text x="47" y="24" textAnchor="middle" fill="var(--accent)"
                 fontFamily="IBM Plex Mono, monospace" fontSize="11" fontWeight="700">OraCLI</text>
               <text x="47" y="40" textAnchor="middle" fill="hsl(150 80% 50%)"
-                fontFamily="IBM Plex Mono, monospace" fontSize="8">ORQUESTRADOR</text>
+                fontFamily="IBM Plex Mono, monospace" fontSize="12">ORQUESTRADOR</text>
             </g>
 
             {/* Arrow 2 */}
@@ -440,13 +440,13 @@ export default function IntegrationsPage() {
               <rect x="0" y="0" width="130" height="90" rx="6"
                 fill="hsl(220 20% 8%)" stroke="hsl(190 100% 50% / 0.3)" strokeWidth="1" />
               <text x="65" y="20" textAnchor="middle" fill="hsl(190 100% 70%)"
-                fontFamily="IBM Plex Mono, monospace" fontSize="9" fontWeight="600">⚡ Codex CLI</text>
+                fontFamily="IBM Plex Mono, monospace" fontSize="12" fontWeight="600">⚡ Codex CLI</text>
               <line x1="10" y1="28" x2="120" y2="28" stroke="hsl(190 100% 50% / 0.15)" strokeWidth="1" />
               <text x="65" y="46" textAnchor="middle" fill="hsl(190 100% 70%)"
-                fontFamily="IBM Plex Mono, monospace" fontSize="9" fontWeight="600">🐙 GitHub</text>
+                fontFamily="IBM Plex Mono, monospace" fontSize="12" fontWeight="600">🐙 GitHub</text>
               <line x1="10" y1="56" x2="120" y2="56" stroke="hsl(190 100% 50% / 0.15)" strokeWidth="1" />
               <text x="65" y="74" textAnchor="middle" fill="hsl(190 100% 70%)"
-                fontFamily="IBM Plex Mono, monospace" fontSize="9" fontWeight="600">🔧 Supabase</text>
+                fontFamily="IBM Plex Mono, monospace" fontSize="12" fontWeight="600">🔧 Supabase</text>
             </g>
 
             {/* Arrow 3 */}
@@ -460,7 +460,7 @@ export default function IntegrationsPage() {
               <text x="45" y="20" textAnchor="middle" fill="hsl(150 100% 70%)"
                 fontFamily="IBM Plex Mono, monospace" fontSize="11" fontWeight="600">📋 Linear</text>
               <text x="45" y="38" textAnchor="middle" fill="hsl(150 60% 50%)"
-                fontFamily="IBM Plex Mono, monospace" fontSize="8">prod gate</text>
+                fontFamily="IBM Plex Mono, monospace" fontSize="12">prod gate</text>
             </g>
 
             {/* Arrow 4 */}
@@ -472,9 +472,9 @@ export default function IntegrationsPage() {
               <rect x="0" y="0" width="80" height="50" rx="6"
                 fill="hsl(40 80% 10%)" stroke="hsl(40 100% 55% / 0.5)" strokeWidth="1" />
               <text x="40" y="20" textAnchor="middle" fill="hsl(40 100% 70%)"
-                fontFamily="IBM Plex Mono, monospace" fontSize="10" fontWeight="600">👤 João</text>
+                fontFamily="IBM Plex Mono, monospace" fontSize="12" fontWeight="600">👤 João</text>
               <text x="40" y="36" textAnchor="middle" fill="hsl(40 80% 55%)"
-                fontFamily="IBM Plex Mono, monospace" fontSize="8">aprovação</text>
+                fontFamily="IBM Plex Mono, monospace" fontSize="12">aprovação</text>
             </g>
 
             {/* Arrow 5 */}
@@ -488,22 +488,22 @@ export default function IntegrationsPage() {
               <text x="55" y="22" textAnchor="middle" fill="var(--accent)"
                 fontFamily="IBM Plex Mono, monospace" fontSize="11" fontWeight="700">▲ Vercel</text>
               <text x="55" y="38" textAnchor="middle" fill="hsl(150 80% 50%)"
-                fontFamily="IBM Plex Mono, monospace" fontSize="8">DEPLOY</text>
+                fontFamily="IBM Plex Mono, monospace" fontSize="12">DEPLOY</text>
             </g>
 
             {/* Labels below */}
             <text x="75" y="155" textAnchor="middle" fill="hsl(150 30% 45%)"
-              fontFamily="IBM Plex Mono, monospace" fontSize="8">entrada</text>
+              fontFamily="IBM Plex Mono, monospace" fontSize="12">entrada</text>
             <text x="222" y="155" textAnchor="middle" fill="hsl(150 30% 45%)"
-              fontFamily="IBM Plex Mono, monospace" fontSize="8">orquestração</text>
+              fontFamily="IBM Plex Mono, monospace" fontSize="12">orquestração</text>
             <text x="380" y="155" textAnchor="middle" fill="hsl(190 30% 45%)"
-              fontFamily="IBM Plex Mono, monospace" fontSize="8">execução</text>
+              fontFamily="IBM Plex Mono, monospace" fontSize="12">execução</text>
             <text x="535" y="155" textAnchor="middle" fill="hsl(150 30% 45%)"
-              fontFamily="IBM Plex Mono, monospace" fontSize="8">gate</text>
+              fontFamily="IBM Plex Mono, monospace" fontSize="12">gate</text>
             <text x="665" y="155" textAnchor="middle" fill="hsl(40 40% 45%)"
-              fontFamily="IBM Plex Mono, monospace" fontSize="8">humano</text>
+              fontFamily="IBM Plex Mono, monospace" fontSize="12">humano</text>
             <text x="805" y="155" textAnchor="middle" fill="hsl(150 30% 45%)"
-              fontFamily="IBM Plex Mono, monospace" fontSize="8">entrega</text>
+              fontFamily="IBM Plex Mono, monospace" fontSize="12">entrega</text>
           </svg>
         </div>
       </div>
@@ -529,7 +529,7 @@ export default function IntegrationsPage() {
                 className="mono-label"
                 style={{
                   minWidth: "3.5rem",
-                  fontSize: "0.625rem",
+                  fontSize: "0.8125rem",
                   color: "var(--accent)",
                   opacity: 0.8,
                 }}
@@ -540,7 +540,7 @@ export default function IntegrationsPage() {
               <span
                 style={{
                   fontFamily: "var(--font-mono)",
-                  fontSize: "0.6875rem",
+                  fontSize: "0.8125rem",
                   fontWeight: 600,
                   color: "var(--text-2)",
                   minWidth: "4.5rem",
@@ -549,14 +549,14 @@ export default function IntegrationsPage() {
                 {e.src}
               </span>
               {/* Arrow */}
-              <span style={{ color: "var(--text-4)", fontSize: "0.6rem" }}>→</span>
+              <span style={{ color: "var(--text-4)", fontSize: "0.8125rem" }}>→</span>
               {/* Destination */}
-              <span className="tag-badge-cyan" style={{ fontSize: "0.5625rem" }}>{e.dest}</span>
+              <span className="tag-badge-cyan" style={{ fontSize: "0.75rem" }}>{e.dest}</span>
               {/* Message */}
               <span
                 style={{
                   fontFamily: "var(--font-mono)",
-                  fontSize: "0.6875rem",
+                  fontSize: "0.8125rem",
                   color: "var(--text-3)",
                   flex: 1,
                   whiteSpace: "nowrap",

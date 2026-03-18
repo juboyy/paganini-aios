@@ -11,11 +11,10 @@ Key formulas:
   allocation_pct = exposure_i / nav
   stress_nav = nav × (1 − weighted_loss_rate_under_scenario)
 """
+
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
-from datetime import datetime
 from typing import Any
 
 logger = logging.getLogger(__name__)
@@ -25,34 +24,34 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 DEFAULT_LIMITS: dict[str, float] = {
-    "max_cedente_pct": 0.15,        # 15% per cedente
-    "max_sacado_pct": 0.10,         # 10% per sacado
-    "max_sector_pct": 0.25,         # 25% per sector
+    "max_cedente_pct": 0.15,  # 15% per cedente
+    "max_sacado_pct": 0.10,  # 10% per sacado
+    "max_sector_pct": 0.25,  # 25% per sector
     "max_maturity_bucket_pct": 0.40,  # 40% in any single maturity bucket
-    "min_liquidity_pct": 0.05,      # 5% min in cash/liquid
+    "min_liquidity_pct": 0.05,  # 5% min in cash/liquid
 }
 
 # Stress test assumptions by scenario
 STRESS_SCENARIOS: dict[str, dict[str, float]] = {
     "base": {
-        "pdd_multiplier": 1.0,       # No change to base PDD
-        "recovery_rate": 0.60,       # 60% recovery on defaults
-        "liquidity_haircut": 0.00,   # No liquidity haircut
+        "pdd_multiplier": 1.0,  # No change to base PDD
+        "recovery_rate": 0.60,  # 60% recovery on defaults
+        "liquidity_haircut": 0.00,  # No liquidity haircut
         "nav_discount": 0.00,
         "description": "Base case — current market conditions.",
     },
     "adverse": {
-        "pdd_multiplier": 2.0,       # PDD doubles
-        "recovery_rate": 0.40,       # Lower recovery
-        "liquidity_haircut": 0.10,   # 10% haircut on liquid assets
-        "nav_discount": 0.05,        # 5% MTM discount
+        "pdd_multiplier": 2.0,  # PDD doubles
+        "recovery_rate": 0.40,  # Lower recovery
+        "liquidity_haircut": 0.10,  # 10% haircut on liquid assets
+        "nav_discount": 0.05,  # 5% MTM discount
         "description": "Adverse scenario — moderate economic stress.",
     },
     "extreme": {
-        "pdd_multiplier": 4.0,       # PDD 4× base
-        "recovery_rate": 0.20,       # Very low recovery
-        "liquidity_haircut": 0.25,   # 25% haircut
-        "nav_discount": 0.15,        # 15% MTM discount
+        "pdd_multiplier": 4.0,  # PDD 4× base
+        "recovery_rate": 0.20,  # Very low recovery
+        "liquidity_haircut": 0.25,  # 25% haircut
+        "nav_discount": 0.15,  # 15% MTM discount
         "description": "Extreme scenario — systemic financial crisis.",
     },
 }
@@ -60,6 +59,7 @@ STRESS_SCENARIOS: dict[str, dict[str, float]] = {
 # ---------------------------------------------------------------------------
 # GestorAgent
 # ---------------------------------------------------------------------------
+
 
 class GestorAgent:
     """
@@ -112,7 +112,9 @@ class GestorAgent:
                 )
             },
             "calculate_portfolio_duration": lambda: {
-                "duration_days": self.calculate_portfolio_duration(context.get("portfolio", []))
+                "duration_days": self.calculate_portfolio_duration(
+                    context.get("portfolio", [])
+                )
             },
             "stress_test": lambda: self.stress_test(
                 context.get("portfolio", []),
@@ -154,15 +156,23 @@ class GestorAgent:
             hhi_indices, total_exposure, allocation_vs_nav.
         """
         if not portfolio:
-            return {"error": "Empty portfolio.", "by_cedente": {}, "by_sacado": {},
-                    "by_sector": {}, "by_maturity": {}}
+            return {
+                "error": "Empty portfolio.",
+                "by_cedente": {},
+                "by_sacado": {},
+                "by_sector": {},
+                "by_maturity": {},
+            }
 
         by_cedente: dict[str, float] = {}
         by_sacado: dict[str, float] = {}
         by_sector: dict[str, float] = {}
         by_maturity: dict[str, float] = {
-            "0-30d": 0.0, "31-90d": 0.0, "91-180d": 0.0,
-            "181-360d": 0.0, ">360d": 0.0,
+            "0-30d": 0.0,
+            "31-90d": 0.0,
+            "91-180d": 0.0,
+            "181-360d": 0.0,
+            ">360d": 0.0,
         }
 
         total_exposure = 0.0
@@ -199,7 +209,11 @@ class GestorAgent:
                 k: {
                     "brl": round(v, 2),
                     "pct_of_nav": round(v / nav * 100, 4) if nav > 0 else 0.0,
-                    "pct_of_portfolio": round(v / total_exposure * 100, 4) if total_exposure > 0 else 0.0,
+                    "pct_of_portfolio": (
+                        round(v / total_exposure * 100, 4)
+                        if total_exposure > 0
+                        else 0.0
+                    ),
                 }
                 for k, v in sorted(d.items(), key=lambda x: -x[1])
             }
@@ -212,7 +226,9 @@ class GestorAgent:
 
         return {
             "total_exposure_brl": round(total_exposure, 2),
-            "allocation_vs_nav_pct": round(total_exposure / nav * 100, 2) if nav > 0 else 0.0,
+            "allocation_vs_nav_pct": (
+                round(total_exposure / nav * 100, 2) if nav > 0 else 0.0
+            ),
             "by_cedente": to_pct_dict(by_cedente),
             "by_sacado": to_pct_dict(by_sacado),
             "by_sector": to_pct_dict(by_sector),
@@ -255,7 +271,7 @@ class GestorAgent:
 
         for dim_key, limit_key, dim_label in dimension_limit_map:
             dim_data = allocation.get(dim_key, {})
-            limit_pct = effective_limits.get(limit_key, 1.0) * 100   # Convert to %
+            limit_pct = effective_limits.get(limit_key, 1.0) * 100  # Convert to %
 
             for name, data in dim_data.items():
                 if isinstance(data, dict):
@@ -265,18 +281,22 @@ class GestorAgent:
 
                 if pct > limit_pct:
                     severity = "CRITICAL" if pct > limit_pct * 1.25 else "WARNING"
-                    violations.append({
-                        "dimension": dim_label,
-                        "name": name,
-                        "current_pct": round(pct, 2),
-                        "limit_pct": round(limit_pct, 2),
-                        "excess_pct": round(pct - limit_pct, 2),
-                        "severity": severity,
-                        "action": f"Reduce {dim_label} '{name}' exposure by R$ equivalent to {pct - limit_pct:.2f}% of NAV.",
-                    })
+                    violations.append(
+                        {
+                            "dimension": dim_label,
+                            "name": name,
+                            "current_pct": round(pct, 2),
+                            "limit_pct": round(limit_pct, 2),
+                            "excess_pct": round(pct - limit_pct, 2),
+                            "severity": severity,
+                            "action": f"Reduce {dim_label} '{name}' exposure by R$ equivalent to {pct - limit_pct:.2f}% of NAV.",
+                        }
+                    )
 
         # Sort by severity then excess
-        violations.sort(key=lambda v: (-1 if v["severity"] == "CRITICAL" else 0, -v["excess_pct"]))
+        violations.sort(
+            key=lambda v: (-1 if v["severity"] == "CRITICAL" else 0, -v["excess_pct"])
+        )
         return violations
 
     def rebalance_portfolio(
@@ -316,7 +336,7 @@ class GestorAgent:
             delta = target_brl - current_brl
 
             if abs(delta) < min_order:
-                continue   # Too small to execute
+                continue  # Too small to execute
 
             # Split large orders
             remaining_delta = delta
@@ -327,20 +347,22 @@ class GestorAgent:
 
                 priority = 1 if abs(delta) / max(current_brl, 1) > 0.20 else 2
 
-                orders.append({
-                    "id": f"ORD-{key[:8].upper().replace(' ', '_')}-{order_seq:02d}",
-                    "name": key,
-                    "direction": direction,
-                    "amount_brl": round(order_amount, 2),
-                    "current_brl": round(current_brl, 2),
-                    "target_brl": round(target_brl, 2),
-                    "total_delta_brl": round(delta, 2),
-                    "priority": priority,
-                    "note": (
-                        f"{'Increase' if direction == 'BUY' else 'Decrease'} "
-                        f"exposure from R$ {current_brl:,.0f} → R$ {target_brl:,.0f}."
-                    ),
-                })
+                orders.append(
+                    {
+                        "id": f"ORD-{key[:8].upper().replace(' ', '_')}-{order_seq:02d}",
+                        "name": key,
+                        "direction": direction,
+                        "amount_brl": round(order_amount, 2),
+                        "current_brl": round(current_brl, 2),
+                        "target_brl": round(target_brl, 2),
+                        "total_delta_brl": round(delta, 2),
+                        "priority": priority,
+                        "note": (
+                            f"{'Increase' if direction == 'BUY' else 'Decrease'} "
+                            f"exposure from R$ {current_brl:,.0f} → R$ {target_brl:,.0f}."
+                        ),
+                    }
+                )
                 remaining_delta -= order_amount if delta > 0 else -order_amount
                 order_seq += 1
 
@@ -378,7 +400,9 @@ class GestorAgent:
             return 0.0
 
         duration = total_weighted / total_value
-        logger.info(f"Portfolio duration: {duration:.2f} days ({duration / 30:.1f} months)")
+        logger.info(
+            f"Portfolio duration: {duration:.2f} days ({duration / 30:.1f} months)"
+        )
         return round(duration, 2)
 
     def stress_test(
@@ -406,7 +430,9 @@ class GestorAgent:
             Dict with scenario assumptions, stressed financials, and risk metrics.
         """
         if scenario not in STRESS_SCENARIOS:
-            raise ValueError(f"Unknown scenario: {scenario!r}. Available: {list(STRESS_SCENARIOS)}")
+            raise ValueError(
+                f"Unknown scenario: {scenario!r}. Available: {list(STRESS_SCENARIOS)}"
+            )
 
         params = STRESS_SCENARIOS[scenario]
 
@@ -427,14 +453,17 @@ class GestorAgent:
 
         # Cash / liquid component (assume 5% of portfolio if not provided)
         liquid_assets = sum(
-            float(r.get("face_value", 0)) for r in portfolio
+            float(r.get("face_value", 0))
+            for r in portfolio
             if r.get("type") in ("cash", "liquid")
         )
         if liquid_assets == 0:
             liquid_assets = total_face_value * 0.05  # Assume 5% liquid
 
         # Stressed PDD
-        stressed_pdd = base_pdd * params["pdd_multiplier"] * (1 - params["recovery_rate"])
+        stressed_pdd = (
+            base_pdd * params["pdd_multiplier"] * (1 - params["recovery_rate"])
+        )
         incremental_pdd = stressed_pdd - base_pdd * (1 - params["recovery_rate"])
 
         # Liquidity haircut
@@ -447,7 +476,9 @@ class GestorAgent:
 
         # Stressed NAV
         stressed_nav = base_nav - incremental_pdd - liquidity_lost - mtm_loss
-        nav_impact_pct = (base_nav - stressed_nav) / base_nav * 100 if base_nav > 0 else 0.0
+        nav_impact_pct = (
+            (base_nav - stressed_nav) / base_nav * 100 if base_nav > 0 else 0.0
+        )
 
         # Sector breakdown under stress
         sector_impacts: dict[str, dict[str, float]] = {}
@@ -455,7 +486,9 @@ class GestorAgent:
             sector = str(rec.get("sector", "geral"))
             fv = float(rec.get("face_value", 0.0))
             pdd_rate = float(rec.get("pdd_rate", 0.03))
-            stressed_loss = fv * pdd_rate * params["pdd_multiplier"] * (1 - params["recovery_rate"])
+            stressed_loss = (
+                fv * pdd_rate * params["pdd_multiplier"] * (1 - params["recovery_rate"])
+            )
             if sector not in sector_impacts:
                 sector_impacts[sector] = {"exposure_brl": 0.0, "stressed_loss_brl": 0.0}
             sector_impacts[sector]["exposure_brl"] += fv
@@ -463,8 +496,12 @@ class GestorAgent:
 
         for sec_data in sector_impacts.values():
             sec_data["loss_rate_pct"] = round(
-                sec_data["stressed_loss_brl"] / sec_data["exposure_brl"] * 100
-                if sec_data["exposure_brl"] > 0 else 0.0, 2
+                (
+                    sec_data["stressed_loss_brl"] / sec_data["exposure_brl"] * 100
+                    if sec_data["exposure_brl"] > 0
+                    else 0.0
+                ),
+                2,
             )
 
         # Subordination sufficiency check
@@ -501,10 +538,13 @@ class GestorAgent:
                 for k, v in sector_impacts.items()
             },
             "risk_assessment": (
-                "LOW" if nav_impact_pct < 5
-                else "MODERATE" if nav_impact_pct < 10
-                else "HIGH" if nav_impact_pct < 20
-                else "CRITICAL"
+                "LOW"
+                if nav_impact_pct < 5
+                else (
+                    "MODERATE"
+                    if nav_impact_pct < 10
+                    else "HIGH" if nav_impact_pct < 20 else "CRITICAL"
+                )
             ),
         }
 
@@ -514,31 +554,73 @@ class GestorAgent:
 # ---------------------------------------------------------------------------
 
 DEMO_PORTFOLIO = [
-    {"face_value": 5_000_000, "cedente": "Alpha Ltda", "sacado": "Walmart BR", "sector": "varejo", "days_to_maturity": 45, "pdd_rate": 0.02},
-    {"face_value": 8_000_000, "cedente": "Beta S.A.", "sacado": "Petrobras", "sector": "energia", "days_to_maturity": 180, "pdd_rate": 0.01},
-    {"face_value": 3_000_000, "cedente": "Gamma ME", "sacado": "Hospital ABC", "sector": "saúde", "days_to_maturity": 90, "pdd_rate": 0.03},
-    {"face_value": 4_000_000, "cedente": "Delta S.A.", "sacado": "Coop Agro", "sector": "agronegócio", "days_to_maturity": 270, "pdd_rate": 0.015},
-    {"face_value": 2_000_000, "cedente": "Alpha Ltda", "sacado": "Atacadão", "sector": "varejo", "days_to_maturity": 30, "pdd_rate": 0.025},
+    {
+        "face_value": 5_000_000,
+        "cedente": "Alpha Ltda",
+        "sacado": "Walmart BR",
+        "sector": "varejo",
+        "days_to_maturity": 45,
+        "pdd_rate": 0.02,
+    },
+    {
+        "face_value": 8_000_000,
+        "cedente": "Beta S.A.",
+        "sacado": "Petrobras",
+        "sector": "energia",
+        "days_to_maturity": 180,
+        "pdd_rate": 0.01,
+    },
+    {
+        "face_value": 3_000_000,
+        "cedente": "Gamma ME",
+        "sacado": "Hospital ABC",
+        "sector": "saúde",
+        "days_to_maturity": 90,
+        "pdd_rate": 0.03,
+    },
+    {
+        "face_value": 4_000_000,
+        "cedente": "Delta S.A.",
+        "sacado": "Coop Agro",
+        "sector": "agronegócio",
+        "days_to_maturity": 270,
+        "pdd_rate": 0.015,
+    },
+    {
+        "face_value": 2_000_000,
+        "cedente": "Alpha Ltda",
+        "sacado": "Atacadão",
+        "sector": "varejo",
+        "days_to_maturity": 30,
+        "pdd_rate": 0.025,
+    },
 ]
 
 DEMO_NAV = 25_000_000.0
 
 if __name__ == "__main__":
     import json
+
     agent = GestorAgent()
 
     allocation = agent.calculate_portfolio_allocation(DEMO_PORTFOLIO, DEMO_NAV)
     print("Allocation:")
-    print(json.dumps({k: v for k, v in allocation.items() if k != "by_cedente"}, indent=2))
+    print(
+        json.dumps({k: v for k, v in allocation.items() if k != "by_cedente"}, indent=2)
+    )
 
     violations = agent.check_concentration_limits(allocation, DEFAULT_LIMITS)
     print(f"\nConcentration violations: {len(violations)}")
     for v in violations:
-        print(f"  [{v['severity']}] {v['dimension']} '{v['name']}': {v['current_pct']:.2f}% > {v['limit_pct']:.2f}%")
+        print(
+            f"  [{v['severity']}] {v['dimension']} '{v['name']}': {v['current_pct']:.2f}% > {v['limit_pct']:.2f}%"
+        )
 
     duration = agent.calculate_portfolio_duration(DEMO_PORTFOLIO)
     print(f"\nPortfolio Duration: {duration:.1f} days ({duration / 30:.1f} months)")
 
     for scen in ("base", "adverse", "extreme"):
         st = agent.stress_test(DEMO_PORTFOLIO, scen)
-        print(f"\nStress [{scen.upper()}]: NAV impact {st['nav_impact_pct']:.2f}% — {st['risk_assessment']}")
+        print(
+            f"\nStress [{scen.upper()}]: NAV impact {st['nav_impact_pct']:.2f}% — {st['risk_assessment']}"
+        )

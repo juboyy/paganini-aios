@@ -19,8 +19,16 @@ from typing import Any, Callable, Optional
 class AgentSOUL:
     """An agent's identity loaded from a SOUL markdown file."""
 
-    def __init__(self, slug: str, name: str, role: str, system_prompt: str,
-                 domains: list[str], tools: list[str], constraints: list[str]):
+    def __init__(
+        self,
+        slug: str,
+        name: str,
+        role: str,
+        system_prompt: str,
+        domains: list[str],
+        tools: list[str],
+        constraints: list[str],
+    ):
         self.slug = slug
         self.name = name
         self.role = role
@@ -64,20 +72,35 @@ class AgentRegistry:
         constraints = []
 
         # Extract name from first heading
-        m = re.search(r'^#\s+(.+)', text, re.MULTILINE)
+        m = re.search(r"^#\s+(.+)", text, re.MULTILINE)
         if m:
             name = m.group(1).strip()
 
         # Extract role from first paragraph after heading
-        m = re.search(r'^#\s+.+\n\n(.+?)(?:\n\n|\n#)', text, re.MULTILINE | re.DOTALL)
+        m = re.search(r"^#\s+.+\n\n(.+?)(?:\n\n|\n#)", text, re.MULTILINE | re.DOTALL)
         if m:
             role = m.group(1).strip()[:200]
 
         # Extract domains (look for domain/expertise keywords)
         domain_patterns = {
             "regulatorio": ["cvm", "regulament", "resolução", "instrução", "normativ"],
-            "contabilidade": ["contabil", "pdd", "cofis", "ifrs", "provisão", "balanço"],
-            "compliance": ["pld", "aml", "coaf", "lavagem", "compliance", "lgpd", "sanç"],
+            "contabilidade": [
+                "contabil",
+                "pdd",
+                "cofis",
+                "ifrs",
+                "provisão",
+                "balanço",
+            ],
+            "compliance": [
+                "pld",
+                "aml",
+                "coaf",
+                "lavagem",
+                "compliance",
+                "lgpd",
+                "sanç",
+            ],
             "risco": ["risco", "concentração", "covenant", "inadimplência", "stress"],
             "custódia": ["custódia", "custodiante", "reconcilia", "lastro", "guarda"],
             "reporting": ["cadoc", "informe", "relatório", "report", "icvm 489"],
@@ -91,27 +114,37 @@ class AgentRegistry:
                 domains.append(domain)
 
         # Extract tools section
-        tools_match = re.search(r'##\s*(?:Ferramentas|Tools|Capacidades)\s*\n(.*?)(?:\n##|\Z)',
-                                text, re.DOTALL | re.IGNORECASE)
+        tools_match = re.search(
+            r"##\s*(?:Ferramentas|Tools|Capacidades)\s*\n(.*?)(?:\n##|\Z)",
+            text,
+            re.DOTALL | re.IGNORECASE,
+        )
         if tools_match:
-            for line in tools_match.group(1).split('\n'):
-                line = line.strip().lstrip('- *')
+            for line in tools_match.group(1).split("\n"):
+                line = line.strip().lstrip("- *")
                 if line and len(line) > 3:
                     tools.append(line[:80])
 
         # Extract constraints
-        constraints_match = re.search(r'##\s*(?:Restrições|Constraints|Limites|Regras)\s*\n(.*?)(?:\n##|\Z)',
-                                      text, re.DOTALL | re.IGNORECASE)
+        constraints_match = re.search(
+            r"##\s*(?:Restrições|Constraints|Limites|Regras)\s*\n(.*?)(?:\n##|\Z)",
+            text,
+            re.DOTALL | re.IGNORECASE,
+        )
         if constraints_match:
-            for line in constraints_match.group(1).split('\n'):
-                line = line.strip().lstrip('- *')
+            for line in constraints_match.group(1).split("\n"):
+                line = line.strip().lstrip("- *")
                 if line and len(line) > 3:
                     constraints.append(line[:120])
 
         return AgentSOUL(
-            slug=slug, name=name, role=role,
-            system_prompt=text, domains=domains,
-            tools=tools, constraints=constraints,
+            slug=slug,
+            name=name,
+            role=role,
+            system_prompt=text,
+            domains=domains,
+            tools=tools,
+            constraints=constraints,
         )
 
     def get(self, slug: str) -> Optional[AgentSOUL]:
@@ -130,24 +163,92 @@ class AgentDispatcher:
 
     # Domain keywords → agent slug mapping
     ROUTING_TABLE = {
-        "administrador": ["cvm 175", "regulamento", "governança", "assembleia", "filing",
-                          "resolução", "normativo", "artigo"],
-        "custodiante": ["custódia", "reconciliação", "lastro", "sobrecolateralização",
-                        "guarda", "registro", "verificação"],
-        "gestor": ["risco", "pdd", "carteira", "concentração", "covenant", "inadimplência",
-                   "portfólio", "diversificação"],
-        "compliance": ["pld", "aml", "coaf", "lavagem", "sanção", "lgpd", "compliance",
-                       "uif", "terrorismo"],
-        "reporting": ["cadoc", "3040", "informe mensal", "relatório", "icvm 489", "cofis",
-                      "demonstração"],
-        "due_diligence": ["due diligence", "kyc", "credit scoring", "judicial", "cedente novo",
-                          "análise", "mídia"],
-        "regulatory_watch": ["nova regulação", "mudança regulatória", "circular", "ofício",
-                             "consulta pública", "anbima", "bacen"],
-        "investor_relations": ["cotista", "investidor", "rendimento", "performance",
-                               "resgate", "aplicação", "comunicação"],
-        "pricing": ["marcação a mercado", "deságio", "taxa", "yield", "curva", "stress test",
-                    "precificação", "mtm"],
+        "administrador": [
+            "cvm 175",
+            "regulamento",
+            "governança",
+            "assembleia",
+            "filing",
+            "resolução",
+            "normativo",
+            "artigo",
+        ],
+        "custodiante": [
+            "custódia",
+            "reconciliação",
+            "lastro",
+            "sobrecolateralização",
+            "guarda",
+            "registro",
+            "verificação",
+        ],
+        "gestor": [
+            "risco",
+            "pdd",
+            "carteira",
+            "concentração",
+            "covenant",
+            "inadimplência",
+            "portfólio",
+            "diversificação",
+        ],
+        "compliance": [
+            "pld",
+            "aml",
+            "coaf",
+            "lavagem",
+            "sanção",
+            "lgpd",
+            "compliance",
+            "uif",
+            "terrorismo",
+        ],
+        "reporting": [
+            "cadoc",
+            "3040",
+            "informe mensal",
+            "relatório",
+            "icvm 489",
+            "cofis",
+            "demonstração",
+        ],
+        "due_diligence": [
+            "due diligence",
+            "kyc",
+            "credit scoring",
+            "judicial",
+            "cedente novo",
+            "análise",
+            "mídia",
+        ],
+        "regulatory_watch": [
+            "nova regulação",
+            "mudança regulatória",
+            "circular",
+            "ofício",
+            "consulta pública",
+            "anbima",
+            "bacen",
+        ],
+        "investor_relations": [
+            "cotista",
+            "investidor",
+            "rendimento",
+            "performance",
+            "resgate",
+            "aplicação",
+            "comunicação",
+        ],
+        "pricing": [
+            "marcação a mercado",
+            "deságio",
+            "taxa",
+            "yield",
+            "curva",
+            "stress test",
+            "precificação",
+            "mtm",
+        ],
     }
 
     def __init__(self, registry: AgentRegistry):
@@ -155,7 +256,7 @@ class AgentDispatcher:
 
     def route(self, query: str) -> tuple[AgentSOUL, float]:
         """Route a query to the best agent.
-        
+
         Returns: (agent, confidence)
         """
         query_lower = query.lower()
@@ -186,7 +287,9 @@ class AgentDispatcher:
 
         return self.registry.list()[0], 0.2
 
-    def route_multi(self, query: str, max_agents: int = 3) -> list[tuple[AgentSOUL, float]]:
+    def route_multi(
+        self, query: str, max_agents: int = 3
+    ) -> list[tuple[AgentSOUL, float]]:
         """Route to multiple agents when query spans domains."""
         query_lower = query.lower()
         scores = {}
@@ -213,9 +316,11 @@ class AgentDispatcher:
 # Execution Trace — Full observability for recursive agent operations
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class ExecutionSpan:
     """A single execution span in the agent trace tree."""
+
     span_id: str = field(default_factory=lambda: uuid.uuid4().hex[:12])
     parent_id: Optional[str] = None
     agent_slug: str = ""
@@ -262,6 +367,7 @@ class ExecutionSpan:
 @dataclass
 class ExecutionContext:
     """Context that flows from parent to child agents during recursive dispatch."""
+
     trace_id: str = field(default_factory=lambda: uuid.uuid4().hex[:16])
     parent_span: Optional[ExecutionSpan] = None
     depth: int = 0
@@ -293,12 +399,16 @@ class ExecutionContext:
 
     def add_context(self, key: str, value: Any) -> None:
         """Add context that child agents can access."""
-        self.accumulated_context.append({
-            "key": key,
-            "value": value,
-            "from_agent": self.parent_span.agent_slug if self.parent_span else "root",
-            "depth": self.depth,
-        })
+        self.accumulated_context.append(
+            {
+                "key": key,
+                "value": value,
+                "from_agent": (
+                    self.parent_span.agent_slug if self.parent_span else "root"
+                ),
+                "depth": self.depth,
+            }
+        )
 
     @property
     def can_recurse(self) -> bool:
@@ -347,13 +457,14 @@ DELEGATION_MAP: dict[str, list[dict]] = {
 # Recursive Dispatcher — Agents spawning agents with context flow
 # ---------------------------------------------------------------------------
 
+
 class RecursiveDispatcher:
     """Orchestrates multi-agent execution with recursive sub-agent spawning.
-    
+
     Unlike the basic AgentDispatcher (single-hop routing), this dispatcher
     allows agents to delegate sub-tasks to other agents, building execution
     trees. Context flows parent → child, and results aggregate child → parent.
-    
+
     This is the core of the AIOS: agents that understand when they need
     help from other specialists, and can spawn them autonomously.
     """
@@ -371,12 +482,12 @@ class RecursiveDispatcher:
         agent_slug: Optional[str] = None,
     ) -> dict:
         """Dispatch a task with recursive sub-agent support.
-        
+
         Args:
             task: The task/query to execute
             context: Execution context (created automatically for root calls)
             agent_slug: Force dispatch to a specific agent (otherwise auto-route)
-        
+
         Returns:
             Dict with result, trace, and metrics
         """
@@ -422,7 +533,9 @@ class RecursiveDispatcher:
                 task_keywords = set(task_lower.split())
                 overlap = reason_keywords & task_keywords
 
-                if len(overlap) >= 2 or any(kw in task_lower for kw in reason_lower.split()[:3]):
+                if len(overlap) >= 2 or any(
+                    kw in task_lower for kw in reason_lower.split()[:3]
+                ):
                     # Spawn sub-agent
                     sub_task = f"[delegated from {agent.slug}] {reason}: {task}"
                     sub_result = self.dispatch(
@@ -430,12 +543,14 @@ class RecursiveDispatcher:
                         context=child_ctx,
                         agent_slug=target_slug,
                     )
-                    sub_results.append({
-                        "from": agent.slug,
-                        "to": target_slug,
-                        "reason": reason,
-                        "result": sub_result,
-                    })
+                    sub_results.append(
+                        {
+                            "from": agent.slug,
+                            "to": target_slug,
+                            "reason": reason,
+                            "result": sub_result,
+                        }
+                    )
                     # Add sub-agent result to context for parent
                     child_ctx.add_context(
                         key=f"sub_result_{target_slug}",
@@ -529,7 +644,5 @@ class RecursiveDispatcher:
             "total_spans": total_spans,
             "max_depth": max_depth,
             "avg_duration_ms": round(avg_duration, 1),
-            "agents_used": list(set(
-                t.agent_slug for t in self._traces
-            )),
+            "agents_used": list(set(t.agent_slug for t in self._traces)),
         }

@@ -11,12 +11,13 @@ Key concepts:
 - Reconciliation: daily cross-check between internal ledger and external registry
 - Settlement: liquidação física/financeira via CETIP/B3
 """
+
 from __future__ import annotations
 
 import hashlib
 import logging
 import uuid
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from typing import Any
 
@@ -26,23 +27,25 @@ logger = logging.getLogger(__name__)
 # Constants
 # ---------------------------------------------------------------------------
 
-MIN_OVERCOLLATERALISATION = 1.05      # 105% coverage
-SETTLEMENT_DAYS = 2                    # D+2 standard (CETIP/B3)
+MIN_OVERCOLLATERALISATION = 1.05  # 105% coverage
+SETTLEMENT_DAYS = 2  # D+2 standard (CETIP/B3)
 REGISTRY_SOURCES = ["CETIP", "B3", "CRI_CRA_REGISTRY", "SERASA_EXPERIAN"]
 
 # ---------------------------------------------------------------------------
 # Data structures
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class ReconciliationResult:
     """Outcome of portfolio reconciliation between internal and external sources."""
+
     date: str
     internal_count: int
     external_count: int
     matched: int
-    missing_internal: list[str]      # IDs in external but not internal
-    missing_external: list[str]      # IDs in internal but not external
+    missing_internal: list[str]  # IDs in external but not internal
+    missing_external: list[str]  # IDs in internal but not external
     value_mismatches: list[dict[str, Any]]  # Same ID but different values
     is_clean: bool
     summary: str
@@ -55,6 +58,7 @@ class ReconciliationResult:
 # CustodiaAgent
 # ---------------------------------------------------------------------------
 
+
 class CustodiaAgent:
     """
     Custódia (Custody) agent for FIDC receivables.
@@ -64,7 +68,7 @@ class CustodiaAgent:
     """
 
     def __init__(self):
-        self._registry: dict[str, dict[str, Any]] = {}   # In-memory custody ledger
+        self._registry: dict[str, dict[str, Any]] = {}  # In-memory custody ledger
 
     # ------------------------------------------------------------------
     # Public interface
@@ -88,7 +92,9 @@ class CustodiaAgent:
             Serialisable result dict.
         """
         action_map = {
-            "register_title": lambda: self.register_title(context.get("receivable", context)),
+            "register_title": lambda: self.register_title(
+                context.get("receivable", context)
+            ),
             "verify_collateral": lambda: self.verify_collateral(
                 context.get("receivable_id", ""),
                 context.get("registry_data", {}),
@@ -155,7 +161,9 @@ class CustodiaAgent:
 
         # Generate deterministic custody ID from content hash
         content_key = f"{receivable['cedente']}:{receivable['sacado']}:{receivable['due_date']}:{face_value}"
-        custody_id = "CUS-" + hashlib.sha256(content_key.encode()).hexdigest()[:12].upper()
+        custody_id = (
+            "CUS-" + hashlib.sha256(content_key.encode()).hexdigest()[:12].upper()
+        )
 
         now = datetime.utcnow()
         entry = {
@@ -218,8 +226,12 @@ class CustodiaAgent:
         if entry is None:
             # Try by receivable_id field
             entry = next(
-                (e for e in self._registry.values() if e.get("receivable_id") == receivable_id),
-                None
+                (
+                    e
+                    for e in self._registry.values()
+                    if e.get("receivable_id") == receivable_id
+                ),
+                None,
             )
         if entry is None:
             return {
@@ -243,18 +255,27 @@ class CustodiaAgent:
             if field_name == "face_value":
                 internal_f = float(internal_val or 0)
                 external_f = float(external_val or 0)
-                tolerance = max(internal_f * 0.001, 0.01)   # 0.1% or R$ 0.01
+                tolerance = max(internal_f * 0.001, 0.01)  # 0.1% or R$ 0.01
                 matches = abs(internal_f - external_f) <= tolerance
             else:
-                matches = str(internal_val).strip().upper() == str(external_val).strip().upper()
+                matches = (
+                    str(internal_val).strip().upper()
+                    == str(external_val).strip().upper()
+                )
 
             if not matches:
-                discrepancies.append({
-                    "field": field_name,
-                    "internal": internal_val,
-                    "external": external_val,
-                    "severity": "HIGH" if field_name in ("face_value", "cedente") else "MEDIUM",
-                })
+                discrepancies.append(
+                    {
+                        "field": field_name,
+                        "internal": internal_val,
+                        "external": external_val,
+                        "severity": (
+                            "HIGH"
+                            if field_name in ("face_value", "cedente")
+                            else "MEDIUM"
+                        ),
+                    }
+                )
             else:
                 matched += 1
 
@@ -340,8 +361,12 @@ class CustodiaAgent:
         internal_ids = set(internal_map)
         external_ids = set(external_map)
 
-        missing_external = sorted(internal_ids - external_ids)  # In internal, not external
-        missing_internal = sorted(external_ids - internal_ids)  # In external, not internal
+        missing_external = sorted(
+            internal_ids - external_ids
+        )  # In internal, not external
+        missing_internal = sorted(
+            external_ids - internal_ids
+        )  # In external, not internal
         common = internal_ids & external_ids
 
         value_mismatches: list[dict[str, Any]] = []
@@ -353,13 +378,19 @@ class CustodiaAgent:
             tolerance = max(int_val * 0.001, 0.01)
 
             if abs(int_val - ext_val) > tolerance:
-                value_mismatches.append({
-                    "id": rid,
-                    "internal_face_value": int_val,
-                    "external_face_value": ext_val,
-                    "difference": round(ext_val - int_val, 2),
-                    "pct_diff": round((ext_val - int_val) / int_val * 100, 2) if int_val else 0,
-                })
+                value_mismatches.append(
+                    {
+                        "id": rid,
+                        "internal_face_value": int_val,
+                        "external_face_value": ext_val,
+                        "difference": round(ext_val - int_val, 2),
+                        "pct_diff": (
+                            round((ext_val - int_val) / int_val * 100, 2)
+                            if int_val
+                            else 0
+                        ),
+                    }
+                )
             else:
                 matched += 1
 
@@ -371,13 +402,21 @@ class CustodiaAgent:
 
         issues = []
         if missing_external:
-            issues.append(f"{len(missing_external)} record(s) in internal but not external.")
+            issues.append(
+                f"{len(missing_external)} record(s) in internal but not external."
+            )
         if missing_internal:
-            issues.append(f"{len(missing_internal)} record(s) in external but not internal.")
+            issues.append(
+                f"{len(missing_internal)} record(s) in external but not internal."
+            )
         if value_mismatches:
             issues.append(f"{len(value_mismatches)} value mismatch(es).")
 
-        summary = "CLEAN — all records reconciled." if is_clean else "ISSUES: " + " | ".join(issues)
+        summary = (
+            "CLEAN — all records reconciled."
+            if is_clean
+            else "ISSUES: " + " | ".join(issues)
+        )
 
         return ReconciliationResult(
             date=today,
@@ -441,13 +480,17 @@ class CustodiaAgent:
             self._registry[custody_id]["status"] = "SETTLED"
             self._registry[custody_id]["settlement_date"] = payment_date
 
-        settlement_id = "SET-" + hashlib.md5(
-            f"{custody_id}:{payment_amount}:{payment_date}".encode()
-        ).hexdigest()[:10].upper()
+        settlement_id = (
+            "SET-"
+            + hashlib.md5(f"{custody_id}:{payment_amount}:{payment_date}".encode())
+            .hexdigest()[:10]
+            .upper()
+        )
 
         # D+2 value date
         value_date = (
-            datetime.strptime(payment_date, "%Y-%m-%d") + timedelta(days=SETTLEMENT_DAYS)
+            datetime.strptime(payment_date, "%Y-%m-%d")
+            + timedelta(days=SETTLEMENT_DAYS)
         ).strftime("%Y-%m-%d")
 
         return {
@@ -463,7 +506,8 @@ class CustodiaAgent:
             "payment_date": payment_date,
             "value_date": value_date,
             "note": (
-                "Full settlement." if settlement_status == "SETTLED_FULL"
+                "Full settlement."
+                if settlement_status == "SETTLED_FULL"
                 else f"Residual of R$ {residual:+,.2f} ({residual_pct:+.2f}%). Review required."
             ),
         }
@@ -487,7 +531,11 @@ class CustodiaAgent:
 
         # Maturity bucketing
         buckets: dict[str, float] = {
-            "0-30d": 0.0, "31-90d": 0.0, "91-180d": 0.0, "181-360d": 0.0, ">360d": 0.0
+            "0-30d": 0.0,
+            "31-90d": 0.0,
+            "91-180d": 0.0,
+            "181-360d": 0.0,
+            ">360d": 0.0,
         }
         for r in active:
             days = int(r.get("days_to_maturity", 0))
@@ -532,15 +580,15 @@ class CustodiaAgent:
         for bucket, value in buckets.items():
             pct = value / total_face_value * 100 if total_face_value else 0
             b = bar(value, total_face_value)
-            lines.append(
-                f"    {bucket:<10} {b}  {fmt_brl(value)}  ({pct:5.1f}%)"
-            )
+            lines.append(f"    {bucket:<10} {b}  {fmt_brl(value)}  ({pct:5.1f}%)")
 
         overcoll = self.calculate_overcollateralization(
             total_face_value,
-            total_face_value * 0.95   # Simplified: assume 95% quota coverage
+            total_face_value * 0.95,  # Simplified: assume 95% quota coverage
         )
-        overcoll_status = "✓ OK" if overcoll >= MIN_OVERCOLLATERALISATION else "✗ BREACH"
+        overcoll_status = (
+            "✓ OK" if overcoll >= MIN_OVERCOLLATERALISATION else "✗ BREACH"
+        )
 
         lines += [
             "",
@@ -559,21 +607,36 @@ class CustodiaAgent:
 
 DEMO_RECEIVABLES = [
     {
-        "id": "rec_001", "face_value": 250_000.0, "cedente": "12.345.678/0001-99",
-        "sacado": "98.765.432/0001-11", "due_date": "2026-06-30",
-        "type": "duplicata_mercantil", "status": "ACTIVE", "days_to_maturity": 104,
+        "id": "rec_001",
+        "face_value": 250_000.0,
+        "cedente": "12.345.678/0001-99",
+        "sacado": "98.765.432/0001-11",
+        "due_date": "2026-06-30",
+        "type": "duplicata_mercantil",
+        "status": "ACTIVE",
+        "days_to_maturity": 104,
         "verified": True,
     },
     {
-        "id": "rec_002", "face_value": 180_000.0, "cedente": "22.222.222/0001-22",
-        "sacado": "33.333.333/0001-33", "due_date": "2026-04-15",
-        "type": "ccb", "status": "ACTIVE", "days_to_maturity": 28,
+        "id": "rec_002",
+        "face_value": 180_000.0,
+        "cedente": "22.222.222/0001-22",
+        "sacado": "33.333.333/0001-33",
+        "due_date": "2026-04-15",
+        "type": "ccb",
+        "status": "ACTIVE",
+        "days_to_maturity": 28,
         "verified": True,
     },
     {
-        "id": "rec_003", "face_value": 500_000.0, "cedente": "44.444.444/0001-44",
-        "sacado": "55.555.555/0001-55", "due_date": "2026-12-31",
-        "type": "cce", "status": "ACTIVE", "days_to_maturity": 288,
+        "id": "rec_003",
+        "face_value": 500_000.0,
+        "cedente": "44.444.444/0001-44",
+        "sacado": "55.555.555/0001-55",
+        "due_date": "2026-12-31",
+        "type": "cce",
+        "status": "ACTIVE",
+        "days_to_maturity": 288,
         "verified": False,
     },
 ]

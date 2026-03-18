@@ -4,10 +4,11 @@ Orchestrator Agent — the brain of the Paganini AIOS.
 Decomposes complex tasks into sub-tasks, coordinates multi-agent execution,
 aggregates results, and resolves conflicts.
 """
+
 from __future__ import annotations
 
-import uuid
 import logging
+import uuid
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
@@ -18,6 +19,7 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 # Data structures
 # ---------------------------------------------------------------------------
+
 
 class AgentType(str, Enum):
     ADMINISTRADOR = "administrador"
@@ -275,24 +277,73 @@ FLOWS: dict[str, dict] = {
 # ---------------------------------------------------------------------------
 
 TASK_PATTERNS: list[dict[str, Any]] = [
-    {"keywords": ["comprar", "purchase", "adquirir", "receivable"], "agent": AgentType.COMPLIANCE, "action": "run_pipeline"},
-    {"keywords": ["nav", "patrimônio", "cota", "quota"], "agent": AgentType.ADMINISTRADOR, "action": "calculate_nav"},
-    {"keywords": ["pricing", "preço", "mtm", "mark"], "agent": AgentType.PRICING, "action": "mark_to_market"},
-    {"keywords": ["pdd", "provisão", "aging"], "agent": AgentType.PRICING, "action": "calculate_pdd_aging"},
-    {"keywords": ["custódia", "custody", "título", "title"], "agent": AgentType.CUSTODIA, "action": "register_title"},
-    {"keywords": ["due diligence", "cedente", "onboard", "cnpj"], "agent": AgentType.DUE_DILIGENCE, "action": "run_onboarding_pipeline"},
-    {"keywords": ["carteira", "portfolio", "allocation", "alocação"], "agent": AgentType.GESTOR, "action": "calculate_portfolio_allocation"},
-    {"keywords": ["stress", "cenário", "risco"], "agent": AgentType.GESTOR, "action": "stress_test"},
-    {"keywords": ["relatório", "report", "diário"], "agent": AgentType.ADMINISTRADOR, "action": "generate_daily_report"},
-    {"keywords": ["concentração", "concentration", "limite"], "agent": AgentType.COMPLIANCE, "action": "check_concentration"},
-    {"keywords": ["covenant", "liquidez", "inadimplência"], "agent": AgentType.COMPLIANCE, "action": "check_covenant"},
-    {"keywords": ["pep", "aml", "pld", "sanção"], "agent": AgentType.COMPLIANCE, "action": "check_pld_aml"},
+    {
+        "keywords": ["comprar", "purchase", "adquirir", "receivable"],
+        "agent": AgentType.COMPLIANCE,
+        "action": "run_pipeline",
+    },
+    {
+        "keywords": ["nav", "patrimônio", "cota", "quota"],
+        "agent": AgentType.ADMINISTRADOR,
+        "action": "calculate_nav",
+    },
+    {
+        "keywords": ["pricing", "preço", "mtm", "mark"],
+        "agent": AgentType.PRICING,
+        "action": "mark_to_market",
+    },
+    {
+        "keywords": ["pdd", "provisão", "aging"],
+        "agent": AgentType.PRICING,
+        "action": "calculate_pdd_aging",
+    },
+    {
+        "keywords": ["custódia", "custody", "título", "title"],
+        "agent": AgentType.CUSTODIA,
+        "action": "register_title",
+    },
+    {
+        "keywords": ["due diligence", "cedente", "onboard", "cnpj"],
+        "agent": AgentType.DUE_DILIGENCE,
+        "action": "run_onboarding_pipeline",
+    },
+    {
+        "keywords": ["carteira", "portfolio", "allocation", "alocação"],
+        "agent": AgentType.GESTOR,
+        "action": "calculate_portfolio_allocation",
+    },
+    {
+        "keywords": ["stress", "cenário", "risco"],
+        "agent": AgentType.GESTOR,
+        "action": "stress_test",
+    },
+    {
+        "keywords": ["relatório", "report", "diário"],
+        "agent": AgentType.ADMINISTRADOR,
+        "action": "generate_daily_report",
+    },
+    {
+        "keywords": ["concentração", "concentration", "limite"],
+        "agent": AgentType.COMPLIANCE,
+        "action": "check_concentration",
+    },
+    {
+        "keywords": ["covenant", "liquidez", "inadimplência"],
+        "agent": AgentType.COMPLIANCE,
+        "action": "check_covenant",
+    },
+    {
+        "keywords": ["pep", "aml", "pld", "sanção"],
+        "agent": AgentType.COMPLIANCE,
+        "action": "check_pld_aml",
+    },
 ]
 
 
 # ---------------------------------------------------------------------------
 # OrchestratorAgent
 # ---------------------------------------------------------------------------
+
 
 class OrchestratorAgent:
     """
@@ -361,7 +412,12 @@ class OrchestratorAgent:
         return {
             "type": "decomposed",
             "sub_tasks": [
-                {"id": st.id, "name": st.name, "agent": st.agent.value, "action": st.action}
+                {
+                    "id": st.id,
+                    "name": st.name,
+                    "agent": st.agent.value,
+                    "action": st.action,
+                }
                 for st in sub_tasks
             ],
             "aggregated": aggregated,
@@ -431,7 +487,9 @@ class OrchestratorAgent:
             FlowResult with step statuses and aggregated output.
         """
         if flow_name not in self.flows:
-            raise ValueError(f"Unknown flow: {flow_name!r}. Available: {list(self.flows)}")
+            raise ValueError(
+                f"Unknown flow: {flow_name!r}. Available: {list(self.flows)}"
+            )
 
         flow_def = self.flows[flow_name]
         start_ts = datetime.utcnow()
@@ -459,7 +517,10 @@ class OrchestratorAgent:
             else:
                 # Simulate execution (in production: dispatch to agent)
                 st.status = TaskStatus.COMPLETED
-                st.result = {"step": step["name"], "params_received": list(params.keys())}
+                st.result = {
+                    "step": step["name"],
+                    "params_received": list(params.keys()),
+                }
                 completed_ids.add(step["id"])
 
                 results.append(
@@ -528,9 +589,17 @@ class OrchestratorAgent:
             # Confidence-weighted merge: higher confidence wins on key collision
             for key, value in result.data.items():
                 if key not in merged_data:
-                    merged_data[key] = {"value": value, "confidence": result.confidence, "source": agent_key}
+                    merged_data[key] = {
+                        "value": value,
+                        "confidence": result.confidence,
+                        "source": agent_key,
+                    }
                 elif result.confidence > merged_data[key]["confidence"]:
-                    merged_data[key] = {"value": value, "confidence": result.confidence, "source": agent_key}
+                    merged_data[key] = {
+                        "value": value,
+                        "confidence": result.confidence,
+                        "source": agent_key,
+                    }
 
         completed = sum(1 for r in results if r.status == TaskStatus.COMPLETED)
         failed = sum(1 for r in results if r.status == TaskStatus.FAILED)
@@ -589,7 +658,10 @@ class OrchestratorAgent:
                 conflict = {
                     "type": "approve_reject_conflict",
                     "key": key,
-                    "entries": [{"value": str(v), "agent": a, "confidence": c} for v, c, a in entries],
+                    "entries": [
+                        {"value": str(v), "agent": a, "confidence": c}
+                        for v, c, a in entries
+                    ],
                     "resolution": "REJECT",  # Conservative: reject wins
                     "reason": "Safety-first: conflicting APPROVE/REJECT → REJECT until human review.",
                 }
@@ -607,15 +679,24 @@ class OrchestratorAgent:
 
             if numeric_entries and len(numeric_entries) == len(entries):
                 total_weight = sum(c for _, c, _ in numeric_entries)
-                weighted_avg = sum(v * c for v, c, _ in numeric_entries) / total_weight if total_weight else 0
+                weighted_avg = (
+                    sum(v * c for v, c, _ in numeric_entries) / total_weight
+                    if total_weight
+                    else 0
+                )
                 max_val = max(v for v, _, _ in numeric_entries)
                 min_val = min(v for v, _, _ in numeric_entries)
-                discrepancy_pct = ((max_val - min_val) / max_val * 100) if max_val else 0
+                discrepancy_pct = (
+                    ((max_val - min_val) / max_val * 100) if max_val else 0
+                )
 
                 conflict = {
                     "type": "numeric_discrepancy",
                     "key": key,
-                    "entries": [{"value": v, "agent": a, "confidence": c} for v, c, a in numeric_entries],
+                    "entries": [
+                        {"value": v, "agent": a, "confidence": c}
+                        for v, c, a in numeric_entries
+                    ],
                     "discrepancy_pct": round(discrepancy_pct, 4),
                     "resolution": round(weighted_avg, 6),
                     "requires_human_review": discrepancy_pct > 0.1,
@@ -629,7 +710,10 @@ class OrchestratorAgent:
                 conflict = {
                     "type": "value_conflict",
                     "key": key,
-                    "entries": [{"value": str(v), "agent": a, "confidence": c} for v, c, a in entries],
+                    "entries": [
+                        {"value": str(v), "agent": a, "confidence": c}
+                        for v, c, a in entries
+                    ],
                     "resolution": str(best[0]),
                     "reason": f"Highest-confidence source wins: {best[2]} (confidence={best[1]:.2f}).",
                 }

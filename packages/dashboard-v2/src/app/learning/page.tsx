@@ -278,7 +278,7 @@ export default function LearningPage() {
                         <span
                           style={{
                             fontFamily: "var(--font-mono)",
-                            fontSize: "0.6875rem",
+                            fontSize: "0.8125rem",
                             padding: "2px 8px",
                             borderRadius: "var(--radius)",
                             background: config.bg,
@@ -295,14 +295,14 @@ export default function LearningPage() {
                       <div style={{ fontSize: "0.8125rem", color: "var(--text-3)", marginBottom: "0.5rem" }}>
                         {skill.description}
                       </div>
-                      <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--text-4)" }}>
+                      <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: "var(--text-4)" }}>
                         Descoberto em {skill.discovered}
                       </div>
                     </div>
 
                     {/* Progressão da Pontuação */}
                     <div style={{ minWidth: "280px" }}>
-                      <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--text-4)", marginBottom: "6px" }}>
+                      <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: "var(--text-4)", marginBottom: "6px" }}>
                         EVOLUÇÃO DA PONTUAÇÃO
                       </div>
                       <div className="flex items-end gap-1" style={{ height: "40px" }}>
@@ -325,7 +325,7 @@ export default function LearningPage() {
                           />
                         ))}
                       </div>
-                      <div className="flex justify-between" style={{ fontFamily: "var(--font-mono)", fontSize: "0.625rem", color: "var(--text-4)", marginTop: "2px" }}>
+                      <div className="flex justify-between" style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: "var(--text-4)", marginTop: "2px" }}>
                         <span>{skill.scores[0]}</span>
                         <span style={{ color: maxScore >= 0.8 ? "var(--accent)" : "var(--cyan)", fontWeight: 600 }}>
                           {maxScore}
@@ -368,7 +368,7 @@ export default function LearningPage() {
                 return (
                   <g key={v}>
                     <line x1="50" y1={y} x2="580" y2={y} stroke="hsl(150 30% 15%)" strokeWidth="0.5" />
-                    <text x="40" y={y + 4} textAnchor="end" fill="hsl(220 10% 32%)" fontSize="10" fontFamily="var(--font-mono)">
+                    <text x="40" y={y + 4} textAnchor="end" fill="hsl(220 10% 32%)" fontSize="12" fontFamily="var(--font-mono)">
                       {(v * 100).toFixed(0)}%
                     </text>
                   </g>
@@ -507,7 +507,7 @@ export default function LearningPage() {
               <span style={{ fontFamily: "var(--font-display)", fontSize: "1rem", fontWeight: 600, color: "var(--text-1)" }}>
                 MetaClawProxy — Motor de Evolução de Skills
               </span>
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--text-4)" }}>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: "var(--text-4)" }}>
                 packages/kernel/metaclaw.py · 186 LOC
               </span>
             </div>
@@ -599,11 +599,11 @@ export default function LearningPage() {
           {/* Real Skill Files */}
           <div className="glass-card p-5">
             <div className="flex items-center gap-2 mb-3">
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", padding: "2px 8px", borderRadius: "var(--radius)", background: "hsl(45 100% 50% / 0.08)", color: "hsl(45 100% 50%)", border: "1px solid hsl(45 100% 50% / 0.25)" }}>RUNTIME</span>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", padding: "2px 8px", borderRadius: "var(--radius)", background: "hsl(45 100% 50% / 0.08)", color: "hsl(45 100% 50%)", border: "1px solid hsl(45 100% 50% / 0.25)" }}>RUNTIME</span>
               <span style={{ fontFamily: "var(--font-display)", fontSize: "1rem", fontWeight: 600, color: "var(--text-1)" }}>
                 Skills em Produção — runtime/skills/
               </span>
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--text-4)" }}>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: "var(--text-4)" }}>
                 8 skills ativas
               </span>
             </div>
@@ -625,7 +625,7 @@ export default function LearningPage() {
                   <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: "var(--accent)", fontWeight: 600 }}>
                     {skill.name}
                   </div>
-                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--text-4)", marginTop: 2 }}>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: "var(--text-4)", marginTop: 2 }}>
                     {skill.id}.json · agente: {skill.agent} · {skill.uses} usos
                     {skill.conf && <span style={{ color: "#22d3ee" }}> · confiança: {(skill.conf * 100).toFixed(0)}%</span>}
                   </div>
@@ -644,7 +644,7 @@ export default function LearningPage() {
               <span style={{ fontFamily: "var(--font-display)", fontSize: "1rem", fontWeight: 600, color: "var(--text-1)" }}>
                 Cognitive Router — Despacho Inteligente
               </span>
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--text-4)" }}>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: "var(--text-4)" }}>
                 packages/kernel/router.py · 409 LOC
               </span>
             </div>
@@ -697,11 +697,11 @@ export default function LearningPage() {
           {/* Guardrails */}
           <div className="glass-card p-5">
             <div className="flex items-center gap-2 mb-3">
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", padding: "2px 8px", borderRadius: "var(--radius)", background: "hsl(0 80% 50% / 0.08)", color: "hsl(0 80% 60%)", border: "1px solid hsl(0 80% 50% / 0.25)" }}>GUARDRAILS</span>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", padding: "2px 8px", borderRadius: "var(--radius)", background: "hsl(0 80% 50% / 0.08)", color: "hsl(0 80% 60%)", border: "1px solid hsl(0 80% 50% / 0.25)" }}>GUARDRAILS</span>
               <span style={{ fontFamily: "var(--font-display)", fontSize: "1rem", fontWeight: 600, color: "var(--text-1)" }}>
                 6 Gates de Segurança
               </span>
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--text-4)" }}>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: "var(--text-4)" }}>
                 packages/shared/guardrails.py · 264 LOC
               </span>
             </div>
@@ -789,7 +789,7 @@ class PLDAMLGate:
                         <span
                           style={{
                             fontFamily: "var(--font-mono)",
-                            fontSize: "0.6875rem",
+                            fontSize: "0.8125rem",
                             padding: "2px 8px",
                             borderRadius: "var(--radius)",
                             background: config.bg,

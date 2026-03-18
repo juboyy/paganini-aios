@@ -7,30 +7,32 @@ entity resolution, and graph traversal — all without external dependencies.
 
 from __future__ import annotations
 
+import hashlib
 import re
 import uuid
-import hashlib
 from dataclasses import dataclass, field
-from datetime import datetime
 from typing import Optional
-
 
 # ---------------------------------------------------------------------------
 # Dataclasses
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class Entity:
     """A named entity extracted from a financial document."""
+
     id: str
-    entity_type: str          # COMPANY | PERSON | REGULATION | OBLIGATION | FUND | AMOUNT | DATE | CNPJ
-    value: str                # Canonical surface form
-    normalized: str           # Normalised key (uppercase, stripped)
-    cnpj: Optional[str]       # CNPJ if applicable
-    source_doc: str           # Source document identifier
-    span_start: int           # Character offset start
-    span_end: int             # Character offset end
-    confidence: float         # [0, 1]
+    entity_type: (
+        str  # COMPANY | PERSON | REGULATION | OBLIGATION | FUND | AMOUNT | DATE | CNPJ
+    )
+    value: str  # Canonical surface form
+    normalized: str  # Normalised key (uppercase, stripped)
+    cnpj: Optional[str]  # CNPJ if applicable
+    source_doc: str  # Source document identifier
+    span_start: int  # Character offset start
+    span_end: int  # Character offset end
+    confidence: float  # [0, 1]
     metadata: dict = field(default_factory=dict)
 
     def __hash__(self):
@@ -43,18 +45,22 @@ class Entity:
 @dataclass
 class Relationship:
     """A directed relationship between two entities."""
+
     id: str
-    source_id: str            # Entity.id of subject
-    target_id: str            # Entity.id of object
-    relation_type: str        # administers | regulates | owes | guarantees | controls | reports_to
+    source_id: str  # Entity.id of subject
+    target_id: str  # Entity.id of object
+    relation_type: (
+        str  # administers | regulates | owes | guarantees | controls | reports_to
+    )
     confidence: float
-    evidence: str             # Text snippet supporting inference
+    evidence: str  # Text snippet supporting inference
     metadata: dict = field(default_factory=dict)
 
 
 @dataclass
 class IngestResult:
     """Result of document ingestion pipeline."""
+
     document_id: str
     source: str
     entities_extracted: int
@@ -70,6 +76,7 @@ class IngestResult:
 # ---------------------------------------------------------------------------
 # Main class
 # ---------------------------------------------------------------------------
+
 
 class KnowledgeGraphAgent:
     """
@@ -98,37 +105,62 @@ class KnowledgeGraphAgent:
             re.compile(r"\b\d{2}[.\s]?\d{3}[.\s]?\d{3}[/\s]?\d{4}[-\s]?\d{2}\b"),
         ],
         "AMOUNT": [
-            re.compile(r"R\$\s*[\d.,]+(?:\s*(?:mil(?:hões|hão)?|bilh(?:ões|ão)?))?", re.IGNORECASE),
+            re.compile(
+                r"R\$\s*[\d.,]+(?:\s*(?:mil(?:hões|hão)?|bilh(?:ões|ão)?))?",
+                re.IGNORECASE,
+            ),
             re.compile(r"\b[\d]{1,3}(?:\.\d{3})*,\d{2}\b"),
         ],
         "DATE": [
             re.compile(r"\b\d{1,2}/\d{1,2}/\d{2,4}\b"),
-            re.compile(r"\b\d{1,2}\s+de\s+(?:janeiro|fevereiro|março|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\s+de\s+\d{4}\b", re.IGNORECASE),
+            re.compile(
+                r"\b\d{1,2}\s+de\s+(?:janeiro|fevereiro|março|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)\s+de\s+\d{4}\b",
+                re.IGNORECASE,
+            ),
         ],
         "REGULATION": [
-            re.compile(r"\bCVM\s+(?:Instrução|Resolução|Deliberação|Ofício|Circular)\s+[Nn]?[º°]?\s*\d+(?:[/-]\d+)?", re.IGNORECASE),
+            re.compile(
+                r"\bCVM\s+(?:Instrução|Resolução|Deliberação|Ofício|Circular)\s+[Nn]?[º°]?\s*\d+(?:[/-]\d+)?",
+                re.IGNORECASE,
+            ),
             re.compile(r"\bResolução\s+CVM\s+[Nn]?[º°]?\s*\d+", re.IGNORECASE),
-            re.compile(r"\bBACEN\s+(?:Resolução|Circular|Carta-Circular)\s+[Nn]?[º°]?\s*\d+", re.IGNORECASE),
+            re.compile(
+                r"\bBACEN\s+(?:Resolução|Circular|Carta-Circular)\s+[Nn]?[º°]?\s*\d+",
+                re.IGNORECASE,
+            ),
             re.compile(r"\bANBIMA\s+(?:Código|Deliberação)\s+\S+", re.IGNORECASE),
-            re.compile(r"\bLei\s+(?:Complementar\s+)?[Nn]?[º°]?\s*\d{4,5}(?:/\d{2,4})?", re.IGNORECASE),
+            re.compile(
+                r"\bLei\s+(?:Complementar\s+)?[Nn]?[º°]?\s*\d{4,5}(?:/\d{2,4})?",
+                re.IGNORECASE,
+            ),
             re.compile(r"\bINSTRUÇÃO\s+CVM\s+\d+", re.IGNORECASE),
         ],
         "FUND": [
             re.compile(r"\bFIDC\s+[\w\s-]{2,40}", re.IGNORECASE),
-            re.compile(r"Fundo\s+de\s+Investimento\s+em\s+Direitos\s+Credit[oó]rios\s+[\w\s-]{2,40}", re.IGNORECASE),
+            re.compile(
+                r"Fundo\s+de\s+Investimento\s+em\s+Direitos\s+Credit[oó]rios\s+[\w\s-]{2,40}",
+                re.IGNORECASE,
+            ),
             re.compile(r"Fundo\s+de\s+Investimento\s+[\w\s-]{2,30}", re.IGNORECASE),
         ],
         "COMPANY": [
-            re.compile(r"\b[A-ZÁÀÂÃÉÊÍÓÔÕÚÇ][a-záàâãéêíóôõúç]+(?:\s+[A-ZÁÀÂÃÉÊÍÓÔÕÚÇ&][a-záàâãéêíóôõúçA-Z&]{1,})*\s+(?:S\.A\.|S/A|Ltda\.?|LTDA\.?|EIRELI|ME|EPP|S\.A\.|S\.C\.A\.|CIA|Cia\.)\b"),
+            re.compile(
+                r"\b[A-ZÁÀÂÃÉÊÍÓÔÕÚÇ][a-záàâãéêíóôõúç]+(?:\s+[A-ZÁÀÂÃÉÊÍÓÔÕÚÇ&][a-záàâãéêíóôõúçA-Z&]{1,})*\s+(?:S\.A\.|S/A|Ltda\.?|LTDA\.?|EIRELI|ME|EPP|S\.A\.|S\.C\.A\.|CIA|Cia\.)\b"
+            ),
         ],
         "PERSON": [
             # CPF pattern
             re.compile(r"\b\d{3}[.\s]?\d{3}[.\s]?\d{3}[-\s]?\d{2}\b"),
             # Common name patterns for Brazilian names (simplified)
-            re.compile(r"\b(?:Sr\.|Sra\.|Dr\.|Dra\.)\s+[A-ZÁÀÂÃÉÊÍÓÔÕÚÇ][a-záàâãéêíóôõúç]+(?:\s+[A-ZÁÀÂÃÉÊÍÓÔÕÚÇ][a-záàâãéêíóôõúç]+){1,4}\b"),
+            re.compile(
+                r"\b(?:Sr\.|Sra\.|Dr\.|Dra\.)\s+[A-ZÁÀÂÃÉÊÍÓÔÕÚÇ][a-záàâãéêíóôõúç]+(?:\s+[A-ZÁÀÂÃÉÊÍÓÔÕÚÇ][a-záàâãéêíóôõúç]+){1,4}\b"
+            ),
         ],
         "OBLIGATION": [
-            re.compile(r"\b(?:obrigação|dívida|débito|crédito|nota promiss[oó]ria|CRI|CRA|debenture|debênture)\b", re.IGNORECASE),
+            re.compile(
+                r"\b(?:obrigação|dívida|débito|crédito|nota promiss[oó]ria|CRI|CRA|debenture|debênture)\b",
+                re.IGNORECASE,
+            ),
             re.compile(r"\bcovenant\b", re.IGNORECASE),
             re.compile(r"\bratio\s+de\s+\w+", re.IGNORECASE),
         ],
@@ -136,17 +168,17 @@ class KnowledgeGraphAgent:
 
     # Relationship trigger words
     _RELATION_TRIGGERS: dict[str, list[str]] = {
-        "administers":  ["administra", "administrado por", "gestora", "gestor"],
-        "regulates":    ["regulamenta", "regulado por", "supervisiona", "fiscaliza"],
-        "owes":         ["deve", "devedor", "inadimplente", "sacado"],
-        "guarantees":   ["garante", "garantia", "fiador", "avalista"],
-        "controls":     ["controla", "controlador", "acionista majoritário", "sócio"],
-        "reports_to":   ["reporta", "informa", "prestação de contas", "cedente"],
+        "administers": ["administra", "administrado por", "gestora", "gestor"],
+        "regulates": ["regulamenta", "regulado por", "supervisiona", "fiscaliza"],
+        "owes": ["deve", "devedor", "inadimplente", "sacado"],
+        "guarantees": ["garante", "garantia", "fiador", "avalista"],
+        "controls": ["controla", "controlador", "acionista majoritário", "sócio"],
+        "reports_to": ["reporta", "informa", "prestação de contas", "cedente"],
     }
 
     def __init__(self):
         # In-memory graph
-        self._entities: dict[str, Entity] = {}          # id → Entity
+        self._entities: dict[str, Entity] = {}  # id → Entity
         self._relationships: dict[str, Relationship] = {}  # id → Relationship
         # Index: normalized_value → Entity.id  (for dedup)
         self._entity_index: dict[str, str] = {}
@@ -173,8 +205,8 @@ class KnowledgeGraphAgent:
         """
         ingest_results = []
         for chunk in chunks:
-            text     = chunk.get("text", "")
-            source   = chunk.get("source", "unknown")
+            text = chunk.get("text", "")
+            source = chunk.get("source", "unknown")
             metadata = chunk.get("metadata", {})
             if text.strip():
                 res = self.ingest_document(text, source, metadata)
@@ -182,7 +214,9 @@ class KnowledgeGraphAgent:
 
         # Demo: ingest sample if no chunks
         if not chunks:
-            res = self.ingest_document(DEMO_DOCUMENT, "demo_cvm_circular", {"type": "regulatory"})
+            res = self.ingest_document(
+                DEMO_DOCUMENT, "demo_cvm_circular", {"type": "regulatory"}
+            )
             ingest_results.append(res)
 
         stats = self.get_graph_stats()
@@ -228,7 +262,11 @@ class KnowledgeGraphAgent:
                         continue
 
                     normalized = re.sub(r"\s+", " ", value).upper().strip()
-                    cnpj = self._extract_cnpj_from_value(value) if entity_type in ("CNPJ", "COMPANY") else None
+                    cnpj = (
+                        self._extract_cnpj_from_value(value)
+                        if entity_type in ("CNPJ", "COMPANY")
+                        else None
+                    )
 
                     eid = str(uuid.uuid4())
                     entity = Entity(
@@ -257,19 +295,21 @@ class KnowledgeGraphAgent:
     def _confidence_for_type(self, entity_type: str) -> float:
         """Rule-based confidence by entity type."""
         return {
-            "CNPJ":       0.98,
+            "CNPJ": 0.98,
             "REGULATION": 0.95,
-            "FUND":       0.90,
-            "AMOUNT":     0.92,
-            "DATE":       0.90,
-            "COMPANY":    0.80,
-            "PERSON":     0.75,
+            "FUND": 0.90,
+            "AMOUNT": 0.92,
+            "DATE": 0.90,
+            "COMPANY": 0.80,
+            "PERSON": 0.75,
             "OBLIGATION": 0.70,
         }.get(entity_type, 0.60)
 
     def _deduplicate_spans(self, entities: list[Entity]) -> list[Entity]:
         """Remove overlapping spans; keep longest match."""
-        sorted_ents = sorted(entities, key=lambda e: (e.span_start, -(e.span_end - e.span_start)))
+        sorted_ents = sorted(
+            entities, key=lambda e: (e.span_start, -(e.span_end - e.span_start))
+        )
         result: list[Entity] = []
         last_end = -1
         for e in sorted_ents:
@@ -310,9 +350,12 @@ class KnowledgeGraphAgent:
 
         for source, ents in by_source.items():
             for i, e1 in enumerate(ents):
-                for e2 in ents[i + 1:]:
+                for e2 in ents[i + 1 :]:
                     # Only relate substantive entity types
-                    if e1.entity_type in ("AMOUNT", "DATE") and e2.entity_type in ("AMOUNT", "DATE"):
+                    if e1.entity_type in ("AMOUNT", "DATE") and e2.entity_type in (
+                        "AMOUNT",
+                        "DATE",
+                    ):
                         continue
 
                     span_gap = abs(e1.span_start - e2.span_start)
@@ -382,10 +425,11 @@ class KnowledgeGraphAgent:
             IngestResult dataclass
         """
         import time
+
         t0 = time.perf_counter()
 
         doc_type = metadata.get("type", "regulatory")
-        doc_id   = hashlib.sha256(f"{source}:{text[:100]}".encode()).hexdigest()[:12]
+        doc_id = hashlib.sha256(f"{source}:{text[:100]}".encode()).hexdigest()[:12]
         errors: list[str] = []
 
         # 1. Extract
@@ -401,11 +445,11 @@ class KnowledgeGraphAgent:
             ent.source_doc = source
             ent.metadata.update(metadata)
             if ent.normalized not in self._entity_index:
-                self._entities[ent.id]           = ent
+                self._entities[ent.id] = ent
                 self._entity_index[ent.normalized] = ent.id
                 if ent.cnpj:
                     self._cnpj_index[ent.cnpj] = ent.id
-                self._adjacency[ent.id]          = []
+                self._adjacency[ent.id] = []
                 new_entities += 1
 
         # 4. Build relationships on resolved entities
@@ -466,7 +510,8 @@ class KnowledgeGraphAgent:
 
         # Find seed entities
         seeds = [
-            e for e in self._entities.values()
+            e
+            for e in self._entities.values()
             if query_norm in e.normalized or e.normalized in query_norm
         ]
 
@@ -494,24 +539,34 @@ class KnowledgeGraphAgent:
                 if rid in self._relationships
             ]
 
-            result.append({
-                "entity": {
-                    "id": entity.id,
-                    "type": entity.entity_type,
-                    "value": entity.value,
-                    "cnpj": entity.cnpj,
-                },
-                "relationships": [
-                    {
-                        "type": r.relation_type,
-                        "source": self._entities[r.source_id].value if r.source_id in self._entities else r.source_id,
-                        "target": self._entities[r.target_id].value if r.target_id in self._entities else r.target_id,
-                        "confidence": r.confidence,
-                    }
-                    for r in connected_rels
-                ],
-                "hops_from_seed": hops,
-            })
+            result.append(
+                {
+                    "entity": {
+                        "id": entity.id,
+                        "type": entity.entity_type,
+                        "value": entity.value,
+                        "cnpj": entity.cnpj,
+                    },
+                    "relationships": [
+                        {
+                            "type": r.relation_type,
+                            "source": (
+                                self._entities[r.source_id].value
+                                if r.source_id in self._entities
+                                else r.source_id
+                            ),
+                            "target": (
+                                self._entities[r.target_id].value
+                                if r.target_id in self._entities
+                                else r.target_id
+                            ),
+                            "confidence": r.confidence,
+                        }
+                        for r in connected_rels
+                    ],
+                    "hops_from_seed": hops,
+                }
+            )
 
             # Enqueue neighbors
             for rel in connected_rels:
@@ -551,7 +606,7 @@ class KnowledgeGraphAgent:
             # 1. Check CNPJ match vs graph
             if ent.cnpj and ent.cnpj in self._cnpj_index:
                 existing_id = self._cnpj_index[ent.cnpj]
-                existing    = self._entities[existing_id]
+                existing = self._entities[existing_id]
                 # Update confidence if new match is higher
                 if ent.confidence > existing.confidence:
                     existing.confidence = ent.confidence
@@ -604,7 +659,7 @@ class KnowledgeGraphAgent:
         if not tokens_a or not tokens_b:
             return 0.0
         intersection = tokens_a & tokens_b
-        union        = tokens_a | tokens_b
+        union = tokens_a | tokens_b
         return len(intersection) / len(union)
 
     # ------------------------------------------------------------------ #

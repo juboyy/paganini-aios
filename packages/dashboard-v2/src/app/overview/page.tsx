@@ -73,7 +73,7 @@ export default function OverviewPage() {
     { value: "116×", label: "Eficiência vs equipe humana", sub: "R$ 12K → R$ 103/mês" },
     { value: "91.2%", label: "Precisão do RAG", sub: "otimizado pelo AutoResearch" },
     { value: "87.3%", label: "Cobertura de testes", sub: "gerados automaticamente" },
-    { value: "57.625", label: "Linhas de código geradas", sub: "59 módulos Python + 20 TSX" },
+    { value: "1.97M", label: "Linhas de código geradas", sub: "Revenue-OS + Paganini + Workspace" },
     { value: "98.3%", label: "Taxa de sucesso", sub: "execuções do pipeline" },
     { value: "$0.003", label: "Custo por linha de código", sub: "gerada pelos agentes" },
   ];
@@ -176,7 +176,7 @@ export default function OverviewPage() {
       <h2
         style={{
           fontFamily: "var(--font-mono)",
-          fontSize: "0.625rem",
+          fontSize: "0.8125rem",
           letterSpacing: "0.18em",
           color: "var(--text-4)",
           margin: "0 0 0.75rem 0",
@@ -276,7 +276,7 @@ export default function OverviewPage() {
                 </div>
                 <div
                   className="mono-label"
-                  style={{ marginTop: "0.25rem", fontSize: "0.6rem", color: "var(--text-3)" }}
+                  style={{ marginTop: "0.25rem", fontSize: "0.8125rem", color: "var(--text-3)" }}
                 >
                   {c.label}
                 </div>
@@ -346,7 +346,7 @@ export default function OverviewPage() {
                 <div
                   className="mono-label"
                   style={{
-                    fontSize: "0.5rem",
+                    fontSize: "0.75rem",
                     color: s.color,
                     marginBottom: "0.5rem",
                     letterSpacing: "0.2em",
@@ -422,7 +422,7 @@ export default function OverviewPage() {
               >
                 {m.label}
               </div>
-              <div className="mono-label" style={{ fontSize: "0.5625rem", color: "var(--text-4)" }}>
+              <div className="mono-label" style={{ fontSize: "0.75rem", color: "var(--text-4)" }}>
                 {m.sub}
               </div>
             </div>
@@ -454,7 +454,7 @@ export default function OverviewPage() {
               <span
                 className="mono-label"
                 style={{
-                  fontSize: "0.625rem",
+                  fontSize: "0.8125rem",
                   color: l.color,
                   letterSpacing: "0.16em",
                   minWidth: "7rem",
@@ -476,7 +476,7 @@ export default function OverviewPage() {
               <span
                 style={{
                   fontFamily: "var(--font-mono)",
-                  fontSize: "0.6875rem",
+                  fontSize: "0.8125rem",
                   color: "var(--text-3)",
                 }}
               >
@@ -526,7 +526,7 @@ export default function OverviewPage() {
             <span
               style={{
                 fontFamily: "var(--font-mono)",
-                fontSize: "0.625rem",
+                fontSize: "0.8125rem",
                 color: "var(--text-4)",
                 marginLeft: "0.5rem",
                 letterSpacing: "0.1em",
@@ -568,7 +568,7 @@ export default function OverviewPage() {
               <div
                 className="mono-label"
                 style={{
-                  fontSize: "0.5625rem",
+                  fontSize: "0.75rem",
                   color: r.color,
                   marginBottom: "0.375rem",
                   letterSpacing: "0.18em",

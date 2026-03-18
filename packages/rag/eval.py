@@ -6,15 +6,13 @@ It measures ground truth. pipeline.py changes; eval.py stays fixed.
 
 import json
 import time
-from pathlib import Path
-from typing import Optional
 
 from packages.rag.pipeline import RAGPipeline
 
 
 def load_eval_set(path: str = "eval_questions.jsonl") -> list[dict]:
     """Load gold Q&A pairs.
-    
+
     Format: {"question": "...", "expected": "...", "sources": ["file1.md"], "category": "regulatorio"}
     """
     entries = []
@@ -26,7 +24,9 @@ def load_eval_set(path: str = "eval_questions.jsonl") -> list[dict]:
     return entries
 
 
-def precision_at_k(retrieved_sources: list[str], expected_sources: list[str], k: int = 5) -> float:
+def precision_at_k(
+    retrieved_sources: list[str], expected_sources: list[str], k: int = 5
+) -> float:
     """How many of the top-k retrieved sources are in the expected set."""
     if not expected_sources:
         return 1.0  # No expected sources = any retrieval is fine
@@ -39,13 +39,15 @@ def recall(retrieved_sources: list[str], expected_sources: list[str]) -> float:
     """How many expected sources were found anywhere in retrieved."""
     if not expected_sources:
         return 1.0
-    hits = sum(1 for exp in expected_sources if any(exp in s for s in retrieved_sources))
+    hits = sum(
+        1 for exp in expected_sources if any(exp in s for s in retrieved_sources)
+    )
     return hits / len(expected_sources)
 
 
 def answer_contains_key_facts(answer_text: str, expected_text: str) -> float:
     """Simple keyword overlap score between answer and expected.
-    
+
     Not a substitute for LLM-as-judge, but a fast automated check.
     """
     if not expected_text:
@@ -53,9 +55,44 @@ def answer_contains_key_facts(answer_text: str, expected_text: str) -> float:
     expected_words = set(expected_text.lower().split())
     answer_words = set(answer_text.lower().split())
     # Remove stop words
-    stop = {"o", "a", "de", "do", "da", "em", "no", "na", "que", "é", "e", "para", "por",
-            "com", "um", "uma", "os", "as", "dos", "das", "se", "ou", "ao", "à", "são",
-            "the", "of", "in", "and", "to", "is", "for", "on", "with", "a", "an"}
+    stop = {
+        "o",
+        "a",
+        "de",
+        "do",
+        "da",
+        "em",
+        "no",
+        "na",
+        "que",
+        "é",
+        "e",
+        "para",
+        "por",
+        "com",
+        "um",
+        "uma",
+        "os",
+        "as",
+        "dos",
+        "das",
+        "se",
+        "ou",
+        "ao",
+        "à",
+        "são",
+        "the",
+        "of",
+        "in",
+        "and",
+        "to",
+        "is",
+        "for",
+        "on",
+        "with",
+        "a",
+        "an",
+    }
     expected_words -= stop
     answer_words -= stop
     if not expected_words:
@@ -64,15 +101,19 @@ def answer_contains_key_facts(answer_text: str, expected_text: str) -> float:
     return overlap / len(expected_words)
 
 
-def run_eval(pipeline: RAGPipeline, eval_path: str = "eval_questions.jsonl",
-             llm_fn=None, top_k: int = 5) -> dict:
+def run_eval(
+    pipeline: RAGPipeline,
+    eval_path: str = "eval_questions.jsonl",
+    llm_fn=None,
+    top_k: int = 5,
+) -> dict:
     """Run full evaluation suite.
-    
+
     Returns metrics dict with per-question and aggregate scores.
     """
     eval_set = load_eval_set(eval_path)
     results = []
-    
+
     for entry in eval_set:
         question = entry["question"]
         expected = entry.get("expected", "")
@@ -95,21 +136,25 @@ def run_eval(pipeline: RAGPipeline, eval_path: str = "eval_questions.jsonl",
 
         elapsed = (time.time() - t0) * 1000
 
-        results.append({
-            "question": question,
-            "category": category,
-            "precision_at_k": p_at_k,
-            "recall": rec,
-            "answer_score": answer_score,
-            "latency_ms": elapsed,
-            "chunks_found": len(chunks),
-            "top_source": retrieved_sources[0] if retrieved_sources else "",
-            "top_score": chunks[0].score if chunks else 0,
-        })
+        results.append(
+            {
+                "question": question,
+                "category": category,
+                "precision_at_k": p_at_k,
+                "recall": rec,
+                "answer_score": answer_score,
+                "latency_ms": elapsed,
+                "chunks_found": len(chunks),
+                "top_source": retrieved_sources[0] if retrieved_sources else "",
+                "top_score": chunks[0].score if chunks else 0,
+            }
+        )
 
     # Aggregate
     n = len(results)
-    avg = lambda key: sum(r[key] for r in results) / n if n else 0
+
+    def avg(key):
+        return sum(r[key] for r in results) / n if n else 0
 
     metrics = {
         "total_questions": n,
@@ -129,7 +174,9 @@ def run_eval(pipeline: RAGPipeline, eval_path: str = "eval_questions.jsonl",
         cn = len(cat_results)
         metrics["by_category"][cat] = {
             "count": cn,
-            "precision_at_k": round(sum(r["precision_at_k"] for r in cat_results) / cn, 4),
+            "precision_at_k": round(
+                sum(r["precision_at_k"] for r in cat_results) / cn, 4
+            ),
             "recall": round(sum(r["recall"] for r in cat_results) / cn, 4),
             "answer_score": round(sum(r["answer_score"] for r in cat_results) / cn, 4),
         }
@@ -140,7 +187,7 @@ def run_eval(pipeline: RAGPipeline, eval_path: str = "eval_questions.jsonl",
 def print_report(metrics: dict):
     """Print a human-readable eval report."""
     print(f"\n{'='*60}")
-    print(f"  PAGANINI RAG Evaluation Report")
+    print("  PAGANINI RAG Evaluation Report")
     print(f"{'='*60}")
     print(f"  Questions:       {metrics['total_questions']}")
     print(f"  Precision@5:     {metrics['avg_precision_at_k']:.2%}")
@@ -153,16 +200,26 @@ def print_report(metrics: dict):
         print(f"\n  {'Category':<20} {'P@5':>6} {'Recall':>8} {'Answer':>8} {'N':>4}")
         print(f"  {'-'*46}")
         for cat, vals in sorted(metrics["by_category"].items()):
-            print(f"  {cat:<20} {vals['precision_at_k']:>5.0%} {vals['recall']:>7.0%} "
-                  f"{vals['answer_score']:>7.0%} {vals['count']:>4}")
+            print(
+                f"  {cat:<20} {vals['precision_at_k']:>5.0%} {vals['recall']:>7.0%} "
+                f"{vals['answer_score']:>7.0%} {vals['count']:>4}"
+            )
 
     print(f"{'='*60}\n")
 
 
 if __name__ == "__main__":
     import sys
-    config = {"data_dir": "runtime/data", "rag": {
-        "chunk_size": 384, "chunk_overlap": 64, "respect_headers": True, "top_k": 5}}
+
+    config = {
+        "data_dir": "runtime/data",
+        "rag": {
+            "chunk_size": 384,
+            "chunk_overlap": 64,
+            "respect_headers": True,
+            "top_k": 5,
+        },
+    }
     pipeline = RAGPipeline(config)
 
     if pipeline.collection.count() == 0:
@@ -176,4 +233,4 @@ if __name__ == "__main__":
     # Save results
     with open("eval_results.json", "w") as f:
         json.dump(metrics, f, indent=2, ensure_ascii=False)
-    print(f"Results saved to eval_results.json")
+    print("Results saved to eval_results.json")

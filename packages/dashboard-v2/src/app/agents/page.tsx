@@ -43,7 +43,7 @@ function ModelBadge({ model }: { model: string }) {
     <span
       style={{
         fontFamily: "var(--font-mono)",
-        fontSize: "0.4375rem",
+        fontSize: "0.75rem",
         padding: "2px 8px",
         borderRadius: "var(--radius)",
         background: bg,
@@ -112,7 +112,7 @@ function CodeAgentCard({ agent, featured }: { agent: CodeAgent; featured?: boole
             <div
               style={{
                 fontFamily: "var(--font-mono)",
-                fontSize: "0.5625rem",
+                fontSize: "0.75rem",
                 color: "var(--text-4)",
                 marginTop: 2,
                 letterSpacing: "0.06em",
@@ -130,7 +130,7 @@ function CodeAgentCard({ agent, featured }: { agent: CodeAgent; featured?: boole
               />
               <span
                 style={{
-                  fontFamily: "var(--font-mono)", fontSize: "0.5rem",
+                  fontFamily: "var(--font-mono)", fontSize: "0.75rem",
                   color: "var(--accent)", letterSpacing: "0.12em",
                 }}
               >
@@ -150,7 +150,7 @@ function CodeAgentCard({ agent, featured }: { agent: CodeAgent; featured?: boole
           listStyle: "none",
           display: "flex",
           flexDirection: "column",
-          gap: 4,
+          gap: 6,
         }}
       >
         {agent.responsibilities.map((r, i) => (
@@ -158,10 +158,10 @@ function CodeAgentCard({ agent, featured }: { agent: CodeAgent; featured?: boole
             key={i}
             style={{
               fontFamily: "var(--font-mono)",
-              fontSize: "0.625rem",
+              fontSize: "0.875rem",
               color: "var(--text-3)",
               display: "flex",
-              gap: 6,
+              gap: 8,
               lineHeight: 1.5,
             }}
           >
@@ -174,7 +174,7 @@ function CodeAgentCard({ agent, featured }: { agent: CodeAgent; featured?: boole
       {/* Skills */}
       <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
         {agent.skills.map((s) => (
-          <span key={s} className="tag-badge-cyan" style={{ fontSize: "0.4375rem" }}>
+          <span key={s} className="tag-badge-cyan" style={{ fontSize: "0.75rem" }}>
             {s}
           </span>
         ))}
@@ -196,8 +196,8 @@ function PipelineDiagram() {
     { emoji: "📝", label: "Docs", role: "document", color: "hsl(190 100% 60%)" },
   ];
 
-  const nodeW = 76;
-  const nodeH = 72;
+  const nodeW = 84;
+  const nodeH = 88;
   const gap = 18;
   const totalW = nodes.length * nodeW + (nodes.length - 1) * gap;
   const svgW = totalW + 40;
@@ -207,7 +207,7 @@ function PipelineDiagram() {
     <div style={{ overflowX: "auto" }}>
       <svg
         viewBox={`0 0 ${svgW} ${svgH}`}
-        style={{ display: "block", margin: "0 auto", maxWidth: "100%", minWidth: 480 }}
+        style={{ display: "block", margin: "0 auto", maxWidth: "100%", minWidth: 520 }}
       >
         <defs>
           <marker id="pipe-arr" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
@@ -239,7 +239,7 @@ function PipelineDiagram() {
           );
         })}
 
-        {/* Nodes */}
+        {/* Nodes — using foreignObject for legible text */}
         {nodes.map((node, i) => {
           const x = 20 + i * (nodeW + gap);
           const y = 20;
@@ -253,23 +253,41 @@ function PipelineDiagram() {
                 strokeWidth="1.2"
                 filter="url(#node-glow)"
               />
-              <text x={x + nodeW / 2} y={y + 22} textAnchor="middle" style={{ fontSize: "1.25rem" }}>
+              {/* Emoji via text — larger */}
+              <text x={x + nodeW / 2} y={y + 26} textAnchor="middle" style={{ fontSize: "1.375rem" }}>
                 {node.emoji}
               </text>
-              <text
-                x={x + nodeW / 2} y={y + 42}
-                textAnchor="middle"
-                style={{ fontFamily: "var(--font-mono)", fontSize: "0.4375rem", fill: "hsl(0 0% 80%)", fontWeight: 700 }}
-              >
-                {node.label}
-              </text>
-              <text
-                x={x + nodeW / 2} y={y + 55}
-                textAnchor="middle"
-                style={{ fontFamily: "var(--font-mono)", fontSize: "0.375rem", fill: node.color, letterSpacing: "0.06em" }}
-              >
-                {node.role}
-              </text>
+              {/* Label via foreignObject for full font control */}
+              <foreignObject x={x + 2} y={y + 38} width={nodeW - 4} height={28}>
+                <div
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "0.8125rem",
+                    fontWeight: 700,
+                    color: "hsl(0 0% 85%)",
+                    textAlign: "center",
+                    lineHeight: 1.2,
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {node.label}
+                </div>
+              </foreignObject>
+              <foreignObject x={x + 2} y={y + 62} width={nodeW - 4} height={20}>
+                <div
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "0.75rem",
+                    color: node.color,
+                    textAlign: "center",
+                    letterSpacing: "0.06em",
+                  }}
+                >
+                  {node.role}
+                </div>
+              </foreignObject>
             </g>
           );
         })}
@@ -420,9 +438,7 @@ function ModelChart() {
                   filter={isHov ? `url(#seg-glow-${i})` : undefined}
                   style={{
                     cursor: "pointer",
-                    transition: "opacity 0.2s, d 0.2s",
-                    strokeDashoffset: mounted ? 0 : 300,
-                    strokeDasharray: 300,
+                    transition: "opacity 0.2s",
                   }}
                   onMouseEnter={() => setHoveredSegment(i)}
                   onMouseLeave={() => setHoveredSegment(null)}
@@ -435,7 +451,7 @@ function ModelChart() {
               textAnchor="middle"
               style={{
                 fontFamily: "var(--font-mono)",
-                fontSize: "0.625rem",
+                fontSize: "0.75rem",
                 fontWeight: 900,
                 fill: hoveredSegment !== null ? segments[hoveredSegment].color : "var(--text-1)",
                 transition: "fill 0.2s",
@@ -445,11 +461,11 @@ function ModelChart() {
               {hoveredSegment !== null ? `${segments[hoveredSegment].agents} AGT` : "12 AGENTES"}
             </text>
             <text
-              x={cx} y={cy + 8}
+              x={cx} y={cy + 10}
               textAnchor="middle"
               style={{
                 fontFamily: "var(--font-mono)",
-                fontSize: "0.3125rem",
+                fontSize: "0.75rem",
                 fill: "var(--text-4)",
                 letterSpacing: "0.1em",
               }}
@@ -474,10 +490,10 @@ function ModelChart() {
               }}
             >
               <div style={{ width: 8, height: 8, borderRadius: 2, background: seg.color, flexShrink: 0 }} />
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.4375rem", color: seg.color, flex: 1, letterSpacing: "0.04em" }}>
-                {seg.name.length > 18 ? seg.name.slice(0, 18) + "…" : seg.name}
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: seg.color, flex: 1, letterSpacing: "0.04em" }}>
+                {seg.name.length > 22 ? seg.name.slice(0, 22) + "…" : seg.name}
               </span>
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", color: "var(--text-3)", fontWeight: 700 }}>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: "var(--text-3)", fontWeight: 700 }}>
                 {seg.agents}
               </span>
             </div>
@@ -527,14 +543,14 @@ function ModelChart() {
                 <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem", marginBottom: "0.25rem" }}>
                   <span style={{ fontSize: "1rem" }}>{m.emoji}</span>
                   <span style={{
-                    fontFamily: "var(--font-mono)", fontSize: "0.625rem",
+                    fontFamily: "var(--font-mono)", fontSize: "0.8125rem",
                     color: m.color, fontWeight: 700, letterSpacing: "-0.01em",
                   }}>
                     {m.name}
                   </span>
                 </div>
                 <div style={{
-                  fontFamily: "var(--font-mono)", fontSize: "0.4375rem",
+                  fontFamily: "var(--font-mono)", fontSize: "0.75rem",
                   color: "var(--text-4)", letterSpacing: "0.06em", marginBottom: "0.75rem",
                 }}>
                   {m.provider} · {m.tagline}
@@ -550,10 +566,10 @@ function ModelChart() {
                     { key: "Uso",         val: m.uso },
                   ].map(row => (
                     <>
-                      <span key={`k-${row.key}`} style={{ fontFamily: "var(--font-mono)", fontSize: "0.375rem", color: "var(--text-4)", letterSpacing: "0.06em", whiteSpace: "nowrap" }}>
+                      <span key={`k-${row.key}`} style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-4)", letterSpacing: "0.06em", whiteSpace: "nowrap" }}>
                         {row.key}:
                       </span>
-                      <span key={`v-${row.key}`} style={{ fontFamily: "var(--font-mono)", fontSize: "0.4375rem", color: "var(--text-2)", lineHeight: 1.4 }}>
+                      <span key={`v-${row.key}`} style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: "var(--text-2)", lineHeight: 1.4 }}>
                         {row.val}
                       </span>
                     </>
@@ -576,7 +592,7 @@ function ModelChart() {
                     }} />
                   </div>
                   <span style={{
-                    fontFamily: "var(--font-mono)", fontSize: "0.4375rem",
+                    fontFamily: "var(--font-mono)", fontSize: "0.75rem",
                     color: m.color, fontWeight: 700, minWidth: 120, letterSpacing: "0.04em",
                   }}>
                     {pct}% dos agentes
@@ -594,7 +610,7 @@ function ModelChart() {
         paddingTop: "0.75rem",
         borderTop: "1px solid var(--border)",
       }}>
-        <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.4375rem", color: "var(--text-4)", letterSpacing: "0.08em", alignSelf: "center", marginRight: 4 }}>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-4)", letterSpacing: "0.08em", alignSelf: "center", marginRight: 4 }}>
           PROVEDORES:
         </span>
         {providers.map(p => (
@@ -605,10 +621,10 @@ function ModelChart() {
             borderRadius: "var(--radius)",
           }}>
             <div style={{ width: 6, height: 6, borderRadius: "50%", background: p.color }} />
-            <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.4375rem", color: p.color, letterSpacing: "0.05em" }}>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: p.color, letterSpacing: "0.05em" }}>
               {p.label}
             </span>
-            <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.4375rem", color: "var(--text-3)" }}>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-3)" }}>
               {p.agents} {p.agents === 1 ? "agente" : "agentes"} ({p.pct}%)
             </span>
           </div>
@@ -631,7 +647,7 @@ function TierLabel({ label, sub }: { label: string; sub?: string }) {
       <div style={{ textAlign: "center" }}>
         <span
           style={{
-            fontFamily: "var(--font-mono)", fontSize: "0.5625rem",
+            fontFamily: "var(--font-mono)", fontSize: "0.875rem",
             letterSpacing: "0.18em", color: "var(--accent)",
             padding: "4px 14px", border: "1px solid hsl(150 100% 50% / 0.3)",
             borderRadius: "var(--radius)", background: "hsl(150 100% 50% / 0.06)",
@@ -641,7 +657,7 @@ function TierLabel({ label, sub }: { label: string; sub?: string }) {
           {label}
         </span>
         {sub && (
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.4375rem", color: "var(--text-4)", marginTop: 4, letterSpacing: "0.12em" }}>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-4)", marginTop: 4, letterSpacing: "0.12em" }}>
             {sub}
           </div>
         )}
@@ -870,9 +886,9 @@ export default function AgentsPage() {
         <div className="mono-label" style={{ marginBottom: "0.75rem" }}>MÉTRICAS DA FÁBRICA</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem" }}>
           {[
-            { label: "Linhas de Código Geradas", value: "57,625", color: "var(--accent)", icon: "📦" },
-            { label: "Commits Gerados", value: "256", color: "hsl(190 100% 60%)", icon: "🔀" },
-            { label: "Dias de Operação", value: "6", color: "hsl(270 80% 70%)", icon: "🚀" },
+            { label: "LOC Geradas (3 semanas)", value: "1.97M", color: "var(--accent)", icon: "📦" },
+            { label: "Commits Gerados", value: "470+", color: "hsl(190 100% 60%)", icon: "🔀" },
+            { label: "Arquivos Produzidos", value: "2.847", color: "hsl(270 80% 70%)", icon: "🚀" },
             { label: "Taxa de Sucesso", value: "98.3%", color: "hsl(150 100% 55%)", icon: "✅" },
           ].map((s) => (
             <div key={s.label} className="glass-card" style={{ padding: "1.5rem", textAlign: "center" }}>
@@ -880,7 +896,7 @@ export default function AgentsPage() {
               <div className="stat-value" style={{ fontSize: "2rem", color: s.color }}>{s.value}</div>
               <div
                 style={{
-                  fontFamily: "var(--font-mono)", fontSize: "0.5625rem",
+                  fontFamily: "var(--font-mono)", fontSize: "0.75rem",
                   color: "var(--text-4)", marginTop: "0.5rem", letterSpacing: "0.1em",
                 }}
               >
@@ -932,7 +948,7 @@ export default function AgentsPage() {
           <div style={{ flex: 1, height: 1, background: "linear-gradient(90deg, hsl(45 100% 60% / 0.3), transparent)" }} />
           <span
             style={{
-              fontFamily: "var(--font-mono)", fontSize: "0.5625rem",
+              fontFamily: "var(--font-mono)", fontSize: "0.875rem",
               letterSpacing: "0.18em", color: "hsl(45 100% 60%)",
               padding: "4px 14px", border: "1px solid hsl(45 100% 60% / 0.3)",
               borderRadius: "var(--radius)", background: "hsl(45 100% 60% / 0.06)",
@@ -956,24 +972,24 @@ export default function AgentsPage() {
             </div>
           </div>
 
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: "0.625rem" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(200px, 1fr))", gap: "0.625rem" }}>
             {FIDC_AGENTS.map((a) => (
               <div
                 key={a.name}
                 style={{
                   display: "flex", alignItems: "center", gap: "0.625rem",
-                  padding: "0.625rem 0.875rem",
+                  padding: "0.75rem 0.875rem",
                   background: "hsl(45 100% 60% / 0.04)",
                   border: "1px solid hsl(45 100% 60% / 0.15)",
                   borderRadius: "var(--radius)",
                 }}
               >
-                <span style={{ fontSize: "1.125rem" }}>{a.emoji}</span>
+                <span style={{ fontSize: "1.25rem" }}>{a.emoji}</span>
                 <div>
-                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--text-2)", fontWeight: 700 }}>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: "var(--text-2)", fontWeight: 700 }}>
                     {a.name}
                   </div>
-                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.4375rem", color: "hsl(45 100% 60% / 0.7)", letterSpacing: "0.06em" }}>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "hsl(45 100% 60% / 0.7)", letterSpacing: "0.06em" }}>
                     {a.domain}
                   </div>
                 </div>
@@ -993,7 +1009,7 @@ export default function AgentsPage() {
         <div
           style={{
             marginTop: "1rem", paddingTop: "1rem", borderTop: "1px solid var(--border)",
-            fontFamily: "var(--font-mono)", fontSize: "0.5625rem",
+            fontFamily: "var(--font-mono)", fontSize: "0.8125rem",
             color: "var(--text-4)", letterSpacing: "0.08em",
           }}
         >

@@ -11,11 +11,11 @@ Gates (in order):
 
 Reference: CVM Resolução 175/22 and BACEN Circular 3978/20 (PLD/AML).
 """
+
 from __future__ import annotations
 
 import hashlib
 import logging
-import re
 from dataclasses import dataclass, field
 from datetime import datetime
 from enum import Enum
@@ -29,8 +29,8 @@ logger = logging.getLogger(__name__)
 
 ALLOWED_RECEIVABLE_TYPES = {
     "duplicata_mercantil",
-    "cce",                       # Cédula de Crédito Empresarial
-    "ccb",                       # Cédula de Crédito Bancário
+    "cce",  # Cédula de Crédito Empresarial
+    "ccb",  # Cédula de Crédito Bancário
     "debênture",
     "cheque",
     "nota_promissoria",
@@ -39,35 +39,56 @@ ALLOWED_RECEIVABLE_TYPES = {
     "recebível_imobiliário",
 }
 
-MIN_RATING = "BB-"               # Minimum acceptable internal rating
-RATING_ORDER = ["D", "C", "CC", "CCC-", "CCC", "CCC+", "B-", "B", "B+",
-                 "BB-", "BB", "BB+", "BBB-", "BBB", "BBB+", "A-", "A", "A+",
-                 "AA-", "AA", "AA+", "AAA"]
+MIN_RATING = "BB-"  # Minimum acceptable internal rating
+RATING_ORDER = [
+    "D",
+    "C",
+    "CC",
+    "CCC-",
+    "CCC",
+    "CCC+",
+    "B-",
+    "B",
+    "B+",
+    "BB-",
+    "BB",
+    "BB+",
+    "BBB-",
+    "BBB",
+    "BBB+",
+    "A-",
+    "A",
+    "A+",
+    "AA-",
+    "AA",
+    "AA+",
+    "AAA",
+]
 
-MAX_MATURITY_DAYS = 720          # 24 months max
+MAX_MATURITY_DAYS = 720  # 24 months max
 
 # Concentration limits (as fraction of PL / NAV)
-MAX_CEDENTE_CONCENTRATION = 0.15    # 15% per cedente
-MAX_SACADO_CONCENTRATION = 0.10     # 10% per sacado
-MAX_SECTOR_CONCENTRATION = 0.25     # 25% per sector
+MAX_CEDENTE_CONCENTRATION = 0.15  # 15% per cedente
+MAX_SACADO_CONCENTRATION = 0.10  # 10% per sacado
+MAX_SECTOR_CONCENTRATION = 0.25  # 25% per sector
 
 # Covenant thresholds
 MIN_LIQUIDITY_RATIO = 1.5
-MIN_SUBORDINATION_RATIO = 0.25      # 25%
-MAX_DELINQUENCY_RATE = 0.05         # 5%
+MIN_SUBORDINATION_RATIO = 0.25  # 25%
+MAX_DELINQUENCY_RATE = 0.05  # 5%
 
 # Risk thresholds
-MAX_EXPECTED_LOSS_RATE = 0.08       # 8% of operation face value
-MAX_STRESS_NAV_IMPACT = 0.10        # 10% NAV degradation under stress
+MAX_EXPECTED_LOSS_RATE = 0.08  # 8% of operation face value
+MAX_STRESS_NAV_IMPACT = 0.10  # 10% NAV degradation under stress
 
 # PLD/AML — structuring detection
-STRUCTURING_THRESHOLD_BRL = 10_000   # Amounts split below this are suspect
-HIGH_VALUE_THRESHOLD_BRL = 50_000    # Operations above this need enhanced DD
+STRUCTURING_THRESHOLD_BRL = 10_000  # Amounts split below this are suspect
+HIGH_VALUE_THRESHOLD_BRL = 50_000  # Operations above this need enhanced DD
 
 # Simplified mock sanctions list (in production: OFAC, TCU, CEIS, Coaf)
 _SANCTIONS_LIST: set[str] = {
-    "00.000.000/0001-00",   # Placeholder CNPJ
-    "111.111.111-11",       # Placeholder CPF
+    "00.000.000/0001-00",  # Placeholder CNPJ
+    "111.111.111-11",  # Placeholder CPF
 }
 
 _PEP_LIST: set[str] = {
@@ -79,6 +100,7 @@ _PEP_LIST: set[str] = {
 # ---------------------------------------------------------------------------
 # Data structures
 # ---------------------------------------------------------------------------
+
 
 class GateStatus(str, Enum):
     APPROVED = "APPROVED"
@@ -92,7 +114,7 @@ class GateResult:
     gate: str
     status: GateStatus
     checks: list[dict[str, Any]] = field(default_factory=list)
-    score: float = 1.0              # 0.0 (worst) – 1.0 (best)
+    score: float = 1.0  # 0.0 (worst) – 1.0 (best)
     details: str = ""
     timestamp: str = field(default_factory=lambda: datetime.utcnow().isoformat())
 
@@ -112,7 +134,7 @@ class PipelineResult:
     operation_id: str
     overall_status: GateStatus
     gate_results: list[GateResult]
-    stopped_at: str | None = None   # Gate name where pipeline stopped on REJECT
+    stopped_at: str | None = None  # Gate name where pipeline stopped on REJECT
     score: float = 1.0
     timestamp: str = field(default_factory=lambda: datetime.utcnow().isoformat())
 
@@ -131,6 +153,7 @@ class PipelineResult:
 # Helper
 # ---------------------------------------------------------------------------
 
+
 def _rating_rank(rating: str) -> int:
     """Return numeric rank for a rating string (higher = better)."""
     try:
@@ -142,6 +165,7 @@ def _rating_rank(rating: str) -> int:
 # ---------------------------------------------------------------------------
 # ComplianceAgent
 # ---------------------------------------------------------------------------
+
 
 class ComplianceAgent:
     """
@@ -178,12 +202,18 @@ class ComplianceAgent:
             Serialisable gate or pipeline result.
         """
         action_map = {
-            "check_eligibility": lambda: self.check_eligibility(context.get("receivable", context)).to_dict(),
+            "check_eligibility": lambda: self.check_eligibility(
+                context.get("receivable", context)
+            ).to_dict(),
             "check_concentration": lambda: self.check_concentration(
                 context.get("portfolio", {}), context.get("new_op", context)
             ).to_dict(),
-            "check_covenant": lambda: self.check_covenant(context.get("fund_state", context)).to_dict(),
-            "check_pld_aml": lambda: self.check_pld_aml(context.get("entity", context)).to_dict(),
+            "check_covenant": lambda: self.check_covenant(
+                context.get("fund_state", context)
+            ).to_dict(),
+            "check_pld_aml": lambda: self.check_pld_aml(
+                context.get("entity", context)
+            ).to_dict(),
             "check_compliance": lambda: self.check_compliance(
                 context.get("operation", context), context.get("regulatory_context", [])
             ).to_dict(),
@@ -231,45 +261,53 @@ class ComplianceAgent:
 
         # Check 1: type
         type_ok = rec_type in self.allowed_types
-        checks.append({
-            "name": "receivable_type",
-            "value": rec_type,
-            "expected": f"one of {sorted(self.allowed_types)}",
-            "passed": type_ok,
-        })
+        checks.append(
+            {
+                "name": "receivable_type",
+                "value": rec_type,
+                "expected": f"one of {sorted(self.allowed_types)}",
+                "passed": type_ok,
+            }
+        )
         if not type_ok:
             failures += 1
 
         # Check 2: maturity
         maturity_ok = maturity_days <= self.max_maturity_days
-        checks.append({
-            "name": "maturity_days",
-            "value": maturity_days,
-            "expected": f"<= {self.max_maturity_days}",
-            "passed": maturity_ok,
-        })
+        checks.append(
+            {
+                "name": "maturity_days",
+                "value": maturity_days,
+                "expected": f"<= {self.max_maturity_days}",
+                "passed": maturity_ok,
+            }
+        )
         if not maturity_ok:
             failures += 1
 
         # Check 3: rating
         rating_ok = _rating_rank(rating) >= _rating_rank(self.min_rating)
-        checks.append({
-            "name": "credit_rating",
-            "value": rating,
-            "expected": f">= {self.min_rating}",
-            "passed": rating_ok,
-        })
+        checks.append(
+            {
+                "name": "credit_rating",
+                "value": rating,
+                "expected": f">= {self.min_rating}",
+                "passed": rating_ok,
+            }
+        )
         if not rating_ok:
             failures += 1
 
         # Check 4: positive amount
         amount_ok = face_value > 0
-        checks.append({
-            "name": "face_value_positive",
-            "value": face_value,
-            "expected": "> 0",
-            "passed": amount_ok,
-        })
+        checks.append(
+            {
+                "name": "face_value_positive",
+                "value": face_value,
+                "expected": "> 0",
+                "passed": amount_ok,
+            }
+        )
         if not amount_ok:
             failures += 1
 
@@ -325,15 +363,17 @@ class ComplianceAgent:
         cedente_current = float(by_cedente.get(cedente, 0.0))
         cedente_post = (cedente_current + face_value) / nav if nav > 0 else 1.0
         cedente_ok = cedente_post <= MAX_CEDENTE_CONCENTRATION
-        checks.append({
-            "name": "cedente_concentration",
-            "cedente": cedente,
-            "current_brl": cedente_current,
-            "new_brl": face_value,
-            "post_pct": round(cedente_post * 100, 2),
-            "limit_pct": MAX_CEDENTE_CONCENTRATION * 100,
-            "passed": cedente_ok,
-        })
+        checks.append(
+            {
+                "name": "cedente_concentration",
+                "cedente": cedente,
+                "current_brl": cedente_current,
+                "new_brl": face_value,
+                "post_pct": round(cedente_post * 100, 2),
+                "limit_pct": MAX_CEDENTE_CONCENTRATION * 100,
+                "passed": cedente_ok,
+            }
+        )
         if not cedente_ok:
             failures += 1
 
@@ -341,15 +381,17 @@ class ComplianceAgent:
         sacado_current = float(by_sacado.get(sacado, 0.0))
         sacado_post = (sacado_current + face_value) / nav if nav > 0 else 1.0
         sacado_ok = sacado_post <= MAX_SACADO_CONCENTRATION
-        checks.append({
-            "name": "sacado_concentration",
-            "sacado": sacado,
-            "current_brl": sacado_current,
-            "new_brl": face_value,
-            "post_pct": round(sacado_post * 100, 2),
-            "limit_pct": MAX_SACADO_CONCENTRATION * 100,
-            "passed": sacado_ok,
-        })
+        checks.append(
+            {
+                "name": "sacado_concentration",
+                "sacado": sacado,
+                "current_brl": sacado_current,
+                "new_brl": face_value,
+                "post_pct": round(sacado_post * 100, 2),
+                "limit_pct": MAX_SACADO_CONCENTRATION * 100,
+                "passed": sacado_ok,
+            }
+        )
         if not sacado_ok:
             failures += 1
 
@@ -357,15 +399,17 @@ class ComplianceAgent:
         sector_current = float(by_sector.get(sector, 0.0))
         sector_post = (sector_current + face_value) / nav if nav > 0 else 1.0
         sector_ok = sector_post <= MAX_SECTOR_CONCENTRATION
-        checks.append({
-            "name": "sector_concentration",
-            "sector": sector,
-            "current_brl": sector_current,
-            "new_brl": face_value,
-            "post_pct": round(sector_post * 100, 2),
-            "limit_pct": MAX_SECTOR_CONCENTRATION * 100,
-            "passed": sector_ok,
-        })
+        checks.append(
+            {
+                "name": "sector_concentration",
+                "sector": sector,
+                "current_brl": sector_current,
+                "new_brl": face_value,
+                "post_pct": round(sector_post * 100, 2),
+                "limit_pct": MAX_SECTOR_CONCENTRATION * 100,
+                "passed": sector_ok,
+            }
+        )
         if not sector_ok:
             failures += 1
 
@@ -374,7 +418,9 @@ class ComplianceAgent:
             post = chk["post_pct"] / 100
             lim = chk["limit_pct"] / 100
             if post > 0.80 * lim and chk["passed"]:
-                chk["warning"] = f"Approaching limit ({chk['post_pct']:.1f}% / {chk['limit_pct']:.0f}%)"
+                chk["warning"] = (
+                    f"Approaching limit ({chk['post_pct']:.1f}% / {chk['limit_pct']:.0f}%)"
+                )
                 warnings += 1
 
         if failures > 0:
@@ -425,44 +471,54 @@ class ComplianceAgent:
         total_portfolio = float(fund_state.get("total_portfolio", 1.0))
 
         # Liquidity
-        liquidity_ratio = liquid_assets / short_term_liab if short_term_liab > 0 else 999.0
+        liquidity_ratio = (
+            liquid_assets / short_term_liab if short_term_liab > 0 else 999.0
+        )
         liq_ok = liquidity_ratio >= MIN_LIQUIDITY_RATIO
-        checks.append({
-            "name": "liquidity_ratio",
-            "value": round(liquidity_ratio, 4),
-            "threshold": MIN_LIQUIDITY_RATIO,
-            "passed": liq_ok,
-            "liquid_assets": liquid_assets,
-            "short_term_liabilities": short_term_liab,
-        })
+        checks.append(
+            {
+                "name": "liquidity_ratio",
+                "value": round(liquidity_ratio, 4),
+                "threshold": MIN_LIQUIDITY_RATIO,
+                "passed": liq_ok,
+                "liquid_assets": liquid_assets,
+                "short_term_liabilities": short_term_liab,
+            }
+        )
         if not liq_ok:
             failures += 1
 
         # Subordination
         sub_ratio = sub_nav / total_nav if total_nav > 0 else 0.0
         sub_ok = sub_ratio >= MIN_SUBORDINATION_RATIO
-        checks.append({
-            "name": "subordination_ratio",
-            "value": round(sub_ratio, 4),
-            "threshold": MIN_SUBORDINATION_RATIO,
-            "passed": sub_ok,
-            "sub_nav": sub_nav,
-            "total_nav": total_nav,
-        })
+        checks.append(
+            {
+                "name": "subordination_ratio",
+                "value": round(sub_ratio, 4),
+                "threshold": MIN_SUBORDINATION_RATIO,
+                "passed": sub_ok,
+                "sub_nav": sub_nav,
+                "total_nav": total_nav,
+            }
+        )
         if not sub_ok:
             failures += 1
 
         # Delinquency (inadimplência)
-        delinquency_rate = overdue_amount / total_portfolio if total_portfolio > 0 else 0.0
+        delinquency_rate = (
+            overdue_amount / total_portfolio if total_portfolio > 0 else 0.0
+        )
         deliq_ok = delinquency_rate <= MAX_DELINQUENCY_RATE
-        checks.append({
-            "name": "delinquency_rate",
-            "value": round(delinquency_rate, 4),
-            "threshold": MAX_DELINQUENCY_RATE,
-            "passed": deliq_ok,
-            "overdue_amount": overdue_amount,
-            "total_portfolio": total_portfolio,
-        })
+        checks.append(
+            {
+                "name": "delinquency_rate",
+                "value": round(delinquency_rate, 4),
+                "threshold": MAX_DELINQUENCY_RATE,
+                "passed": deliq_ok,
+                "overdue_amount": overdue_amount,
+                "total_portfolio": total_portfolio,
+            }
+        )
         if not deliq_ok:
             failures += 1
 
@@ -513,57 +569,78 @@ class ComplianceAgent:
         in_sanctions = cnpj in _SANCTIONS_LIST or any(
             name_part in _SANCTIONS_LIST for name_part in [name]
         )
-        checks.append({
-            "name": "sanctions_list",
-            "entity": cnpj or name,
-            "passed": not in_sanctions,
-            "sources_checked": ["CEIS", "TCU", "Coaf (mock)"],
-        })
+        checks.append(
+            {
+                "name": "sanctions_list",
+                "entity": cnpj or name,
+                "passed": not in_sanctions,
+                "sources_checked": ["CEIS", "TCU", "Coaf (mock)"],
+            }
+        )
         if in_sanctions:
             failures += 1
 
         # 2. PEP check
         pep_hits = [n for n in pep_names if n in _PEP_LIST]
         is_pep = bool(pep_hits)
-        checks.append({
-            "name": "pep_check",
-            "pep_names_screened": pep_names,
-            "hits": pep_hits,
-            "passed": not is_pep,
-            "note": "PEP requires enhanced due diligence — operation allowed with EDD." if is_pep else "",
-        })
+        checks.append(
+            {
+                "name": "pep_check",
+                "pep_names_screened": pep_names,
+                "hits": pep_hits,
+                "passed": not is_pep,
+                "note": (
+                    "PEP requires enhanced due diligence — operation allowed with EDD."
+                    if is_pep
+                    else ""
+                ),
+            }
+        )
         if is_pep:
             warnings += 1  # PEP ≠ automatic reject; requires EDD
 
         # 3. Unusual transaction pattern
         if historical_avg > 0 and current_amount > 0:
             ratio = current_amount / historical_avg
-            unusual = ratio > 5.0   # Current op is 5× the historical average
-            checks.append({
-                "name": "unusual_pattern",
-                "current_amount": current_amount,
-                "historical_avg": historical_avg,
-                "ratio": round(ratio, 2),
-                "threshold": 5.0,
-                "passed": not unusual,
-            })
+            unusual = ratio > 5.0  # Current op is 5× the historical average
+            checks.append(
+                {
+                    "name": "unusual_pattern",
+                    "current_amount": current_amount,
+                    "historical_avg": historical_avg,
+                    "ratio": round(ratio, 2),
+                    "threshold": 5.0,
+                    "passed": not unusual,
+                }
+            )
             if unusual:
                 warnings += 1
         else:
-            checks.append({"name": "unusual_pattern", "passed": True, "note": "Insufficient history."})
+            checks.append(
+                {
+                    "name": "unusual_pattern",
+                    "passed": True,
+                    "note": "Insufficient history.",
+                }
+            )
 
         # 4. Structuring detection (smurfing)
         # Flag if multiple recent transactions just below the threshold
-        sub_threshold = [t for t in recent_transactions
-                         if 0 < float(t.get("amount", 0)) < STRUCTURING_THRESHOLD_BRL]
+        sub_threshold = [
+            t
+            for t in recent_transactions
+            if 0 < float(t.get("amount", 0)) < STRUCTURING_THRESHOLD_BRL
+        ]
         structuring_suspected = len(sub_threshold) >= 3
-        checks.append({
-            "name": "structuring_detection",
-            "sub_threshold_transactions": len(sub_threshold),
-            "threshold_brl": STRUCTURING_THRESHOLD_BRL,
-            "passed": not structuring_suspected,
-            "transactions_reviewed": len(recent_transactions),
-        })
+        checks.append(
+            {
+                "name": "structuring_detection",
+                "sub_threshold_transactions": len(sub_threshold),
+                "threshold_brl": STRUCTURING_THRESHOLD_BRL,
+                "passed": not structuring_suspected,
+                "transactions_reviewed": len(recent_transactions),
+            }
+        )
         if structuring_suspected:
             failures += 1
 
@@ -620,44 +697,52 @@ class ComplianceAgent:
         disclosure_done = operation.get("disclosure_done", True)
 
         # 1. Fund regulation allows this type
-        checks.append({
-            "name": "fund_regulation_allows",
-            "type": op_type,
-            "allowed": fund_allows,
-            "passed": bool(fund_allows),
-        })
+        checks.append(
+            {
+                "name": "fund_regulation_allows",
+                "type": op_type,
+                "allowed": fund_allows,
+                "passed": bool(fund_allows),
+            }
+        )
         if not fund_allows:
             failures += 1
 
         # 2. CVM 175 — large operation disclosure
         requires_disclosure = amount >= 1_000_000
         disclosure_ok = not requires_disclosure or disclosure_done
-        checks.append({
-            "name": "cvm175_disclosure",
-            "amount": amount,
-            "requires_disclosure": requires_disclosure,
-            "disclosure_done": disclosure_done,
-            "passed": disclosure_ok,
-        })
+        checks.append(
+            {
+                "name": "cvm175_disclosure",
+                "amount": amount,
+                "requires_disclosure": requires_disclosure,
+                "disclosure_done": disclosure_done,
+                "passed": disclosure_ok,
+            }
+        )
         if not disclosure_ok:
             warnings += 1
 
         # 3. Related-party restriction (Art. 42 CVM 175)
         # Related-party ops require 100% quota-holder approval
-        related_party_cleared = operation.get("related_party_approval", not related_party)
-        checks.append({
-            "name": "related_party_check",
-            "is_related_party": related_party,
-            "approval_obtained": related_party_cleared,
-            "passed": related_party_cleared,
-            "rule": "CVM 175, Art. 42 — relacionadas requerem aprovação unânime.",
-        })
+        related_party_cleared = operation.get(
+            "related_party_approval", not related_party
+        )
+        checks.append(
+            {
+                "name": "related_party_check",
+                "is_related_party": related_party,
+                "approval_obtained": related_party_cleared,
+                "passed": related_party_cleared,
+                "rule": "CVM 175, Art. 42 — relacionadas requerem aprovação unânime.",
+            }
+        )
         if not related_party_cleared:
             failures += 1
 
         # 4. Regulatory context rules (from RAG)
         rag_violations = 0
-        for rule in regulatory_context[:5]:   # Cap to 5 for performance
+        for rule in regulatory_context[:5]:  # Cap to 5 for performance
             rule_name = rule.get("name", "unknown")
             rule_passed = rule.get("compliant", True)
             checks.append({"name": f"rag_rule_{rule_name}", "passed": rule_passed})
@@ -723,56 +808,87 @@ class ComplianceAgent:
 
         # PD by rating (annualised, simplified BACEN curves)
         PD_BY_RATING: dict[str, float] = {
-            "AAA": 0.0001, "AA+": 0.0002, "AA": 0.0003, "AA-": 0.0005,
-            "A+": 0.0008, "A": 0.001, "A-": 0.0015,
-            "BBB+": 0.003, "BBB": 0.005, "BBB-": 0.008,
-            "BB+": 0.015, "BB": 0.025, "BB-": 0.04,
-            "B+": 0.07, "B": 0.10, "B-": 0.15,
-            "CCC+": 0.25, "CCC": 0.35, "CCC-": 0.50,
-            "CC": 0.70, "C": 0.85, "D": 1.00,
+            "AAA": 0.0001,
+            "AA+": 0.0002,
+            "AA": 0.0003,
+            "AA-": 0.0005,
+            "A+": 0.0008,
+            "A": 0.001,
+            "A-": 0.0015,
+            "BBB+": 0.003,
+            "BBB": 0.005,
+            "BBB-": 0.008,
+            "BB+": 0.015,
+            "BB": 0.025,
+            "BB-": 0.04,
+            "B+": 0.07,
+            "B": 0.10,
+            "B-": 0.15,
+            "CCC+": 0.25,
+            "CCC": 0.35,
+            "CCC-": 0.50,
+            "CC": 0.70,
+            "C": 0.85,
+            "D": 1.00,
         }
         # LGD by sector (simplified)
         LGD_BY_SECTOR: dict[str, float] = {
-            "agronegócio": 0.35, "varejo": 0.55, "saúde": 0.40,
-            "educação": 0.45, "construção": 0.50, "tecnologia": 0.45,
-            "energia": 0.35, "financeiro": 0.30, "geral": 0.50,
+            "agronegócio": 0.35,
+            "varejo": 0.55,
+            "saúde": 0.40,
+            "educação": 0.45,
+            "construção": 0.50,
+            "tecnologia": 0.45,
+            "energia": 0.35,
+            "financeiro": 0.30,
+            "geral": 0.50,
         }
 
         pd = float(operation.get("pd_override", PD_BY_RATING.get(rating.upper(), 0.10)))
-        lgd = float(operation.get("lgd_override", LGD_BY_SECTOR.get(sector.lower(), 0.50)))
+        lgd = float(
+            operation.get("lgd_override", LGD_BY_SECTOR.get(sector.lower(), 0.50))
+        )
         ead = face_value
 
         expected_loss = pd * lgd * ead
         expected_loss_rate = expected_loss / face_value if face_value > 0 else 0.0
 
         el_ok = expected_loss_rate <= MAX_EXPECTED_LOSS_RATE
-        checks.append({
-            "name": "expected_loss",
-            "pd": round(pd, 4),
-            "lgd": round(lgd, 4),
-            "ead": ead,
-            "expected_loss_brl": round(expected_loss, 2),
-            "expected_loss_rate": round(expected_loss_rate, 4),
-            "limit": MAX_EXPECTED_LOSS_RATE,
-            "passed": el_ok,
-        })
+        checks.append(
+            {
+                "name": "expected_loss",
+                "pd": round(pd, 4),
+                "lgd": round(lgd, 4),
+                "ead": ead,
+                "expected_loss_brl": round(expected_loss, 2),
+                "expected_loss_rate": round(expected_loss_rate, 4),
+                "limit": MAX_EXPECTED_LOSS_RATE,
+                "passed": el_ok,
+            }
+        )
         if not el_ok:
             failures += 1
 
         # Concentration risk score (Herfindahl-Hirschman index proxy)
         sector_concentrations = portfolio.get("sector_concentrations", {})
         sector_conc = float(sector_concentrations.get(sector, 0.0))
-        new_sector_conc = (sector_conc + face_value) / (total_receivables + face_value) if (total_receivables + face_value) > 0 else 0
-        hhi_contribution = new_sector_conc ** 2
+        new_sector_conc = (
+            (sector_conc + face_value) / (total_receivables + face_value)
+            if (total_receivables + face_value) > 0
+            else 0
+        )
+        hhi_contribution = new_sector_conc**2
         hhi_ok = new_sector_conc <= MAX_SECTOR_CONCENTRATION
-        checks.append({
-            "name": "concentration_risk",
-            "sector": sector,
-            "post_concentration": round(new_sector_conc, 4),
-            "hhi_contribution": round(hhi_contribution, 6),
-            "limit": MAX_SECTOR_CONCENTRATION,
-            "passed": hhi_ok,
-        })
+        checks.append(
+            {
+                "name": "concentration_risk",
+                "sector": sector,
+                "post_concentration": round(new_sector_conc, 4),
+                "hhi_contribution": round(hhi_contribution, 6),
+                "limit": MAX_SECTOR_CONCENTRATION,
+                "passed": hhi_ok,
+            }
+        )
         if not hhi_ok:
             warnings += 1
 
@@ -780,13 +896,15 @@ class ComplianceAgent:
         stress_loss = min(pd * 3, 1.0) * 0.90 * ead
         stress_nav_impact = stress_loss / nav if nav > 0 else 0.0
         stress_ok = stress_nav_impact <= MAX_STRESS_NAV_IMPACT
-        checks.append({
-            "name": "stress_nav_impact",
-            "stress_loss_brl": round(stress_loss, 2),
-            "nav_impact_pct": round(stress_nav_impact * 100, 2),
-            "limit_pct": MAX_STRESS_NAV_IMPACT * 100,
-            "passed": stress_ok,
-        })
+        checks.append(
+            {
+                "name": "stress_nav_impact",
+                "stress_loss_brl": round(stress_loss, 2),
+                "nav_impact_pct": round(stress_nav_impact * 100, 2),
+                "limit_pct": MAX_STRESS_NAV_IMPACT * 100,
+                "passed": stress_ok,
+            }
+        )
         if not stress_ok:
             warnings += 1
 
@@ -797,7 +915,9 @@ class ComplianceAgent:
         else:
             status = GateStatus.APPROVED
 
-        score = max(0.0, 1.0 - expected_loss_rate - (failures * 0.3) - (warnings * 0.05))
+        score = max(
+            0.0, 1.0 - expected_loss_rate - (failures * 0.3) - (warnings * 0.05)
+        )
 
         return GateResult(
             gate="risk",
@@ -830,16 +950,21 @@ class ComplianceAgent:
         Returns:
             PipelineResult with all gate results and overall status.
         """
-        operation_id = operation.get("id", hashlib.md5(str(operation).encode()).hexdigest()[:8])
+        operation_id = operation.get(
+            "id", hashlib.md5(str(operation).encode()).hexdigest()[:8]
+        )
 
         gate_funcs = [
             ("eligibility", lambda: self.check_eligibility(operation)),
             ("concentration", lambda: self.check_concentration(portfolio, operation)),
             ("covenant", lambda: self.check_covenant(fund_state)),
             ("pld_aml", lambda: self.check_pld_aml(operation.get("entity", operation))),
-            ("compliance", lambda: self.check_compliance(
-                operation, operation.get("regulatory_context", [])
-            )),
+            (
+                "compliance",
+                lambda: self.check_compliance(
+                    operation, operation.get("regulatory_context", [])
+                ),
+            ),
             ("risk", lambda: self.check_risk(operation, portfolio)),
         ]
 
@@ -857,7 +982,10 @@ class ComplianceAgent:
                 overall_status = GateStatus.REJECTED
                 stopped_at = gate_name
                 break
-            elif result.status == GateStatus.WARNING and overall_status == GateStatus.APPROVED:
+            elif (
+                result.status == GateStatus.WARNING
+                and overall_status == GateStatus.APPROVED
+            ):
                 overall_status = GateStatus.WARNING
 
         return PipelineResult(
@@ -925,4 +1053,5 @@ if __name__ == "__main__":
     agent = ComplianceAgent()
     result = agent.run_pipeline(DEMO_OPERATION, DEMO_PORTFOLIO, DEMO_FUND_STATE)
     import json
+
     print(json.dumps(result.to_dict(), indent=2, ensure_ascii=False))

@@ -8,14 +8,13 @@ All output is Markdown unless noted.
 
 from __future__ import annotations
 
-import math
-from datetime import datetime, date
-from typing import Any, Optional
-
+from datetime import datetime
+from typing import Any
 
 # ---------------------------------------------------------------------------
 # Main class
 # ---------------------------------------------------------------------------
+
 
 class ReportingAgent:
     """
@@ -37,15 +36,15 @@ class ReportingAgent:
     # Constants                                                            #
     # ------------------------------------------------------------------ #
 
-    CDI_ANNUAL: float = 0.1375      # 13.75% CDI benchmark (early 2026)
+    CDI_ANNUAL: float = 0.1375  # 13.75% CDI benchmark (early 2026)
     FUND_NAME_DEFAULT: str = "FIDC Paganini Multissetorial"
 
     # Filing types per CVM Resolução 175
     FILING_TYPES = {
-        "informe_mensal":      "Informe Mensal de Fundos de Investimento",
-        "demonstracao":        "Demonstração de Desempenho",
+        "informe_mensal": "Informe Mensal de Fundos de Investimento",
+        "demonstracao": "Demonstração de Desempenho",
         "relatorio_trimestral": "Relatório Trimestral de Gestão",
-        "informe_anual":       "Informe Anual",
+        "informe_anual": "Informe Anual",
     }
 
     # ------------------------------------------------------------------ #
@@ -65,12 +64,14 @@ class ReportingAgent:
             dict with status, reports (dict of report types), summary
         """
         fund_data = context.get("fund_data", DEMO_FUND_DATA)
-        compiled  = self.compile_data({"main": fund_data, "chunks": chunks})
+        compiled = self.compile_data({"main": fund_data, "chunks": chunks})
 
         reports: dict[str, str] = {}
-        reports["monthly"]        = self.generate_monthly_report(compiled)
-        reports["cvm_mensal"]     = self.generate_cvm_filing(compiled, "informe_mensal")
-        reports["investor_letter"] = self.generate_investor_letter(compiled, self._current_period())
+        reports["monthly"] = self.generate_monthly_report(compiled)
+        reports["cvm_mensal"] = self.generate_cvm_filing(compiled, "informe_mensal")
+        reports["investor_letter"] = self.generate_investor_letter(
+            compiled, self._current_period()
+        )
         if compiled.get("cedentes"):
             cedente = compiled["cedentes"][0]
             reports["cedente_0"] = self.generate_cedente_report(cedente, compiled)
@@ -109,93 +110,93 @@ class ReportingAgent:
         Returns:
             Markdown string
         """
-        now      = datetime.utcnow()
-        period   = fund_data.get("period", now.strftime("%B/%Y"))
-        fname    = fund_data.get("fund_name", self.FUND_NAME_DEFAULT)
-        cnpj     = fund_data.get("cnpj", "00.000.000/0001-00")
-        admin    = fund_data.get("administrator", "Paganini Gestora S.A.")
-        gestor   = fund_data.get("gestor", "Paganini Capital Ltda.")
+        now = datetime.utcnow()
+        period = fund_data.get("period", now.strftime("%B/%Y"))
+        fname = fund_data.get("fund_name", self.FUND_NAME_DEFAULT)
+        cnpj = fund_data.get("cnpj", "00.000.000/0001-00")
+        admin = fund_data.get("administrator", "Paganini Gestora S.A.")
+        gestor = fund_data.get("gestor", "Paganini Capital Ltda.")
         custodia = fund_data.get("custodia", "Banco XYZ S.A.")
 
-        nav              = fund_data.get("nav", 0.0)
-        quotas_senior    = fund_data.get("quotas_senior", 0.0)
-        quotas_sub       = fund_data.get("quotas_sub", 0.0)
-        quota_value      = fund_data.get("quota_value", 0.0)
+        nav = fund_data.get("nav", 0.0)
+        quotas_senior = fund_data.get("quotas_senior", 0.0)
+        quotas_sub = fund_data.get("quotas_sub", 0.0)
+        quota_value = fund_data.get("quota_value", 0.0)
         total_receivables = fund_data.get("total_receivables", 0.0)
-        pdd              = fund_data.get("pdd", 0.0)
-        pdd_pct          = (pdd / total_receivables * 100) if total_receivables else 0
+        pdd = fund_data.get("pdd", 0.0)
+        pdd_pct = (pdd / total_receivables * 100) if total_receivables else 0
         subordination_pct = fund_data.get("subordination_pct", 0.0)
-        cash             = fund_data.get("cash", 0.0)
-        mtd_return       = fund_data.get("mtd_return", 0.0)
-        cdi_mtd          = fund_data.get("cdi_mtd", self.CDI_ANNUAL / 12)
-        rating           = fund_data.get("rating", "A")
-        liquidity_ratio  = fund_data.get("liquidity_ratio", 0.0)
+        cash = fund_data.get("cash", 0.0)
+        mtd_return = fund_data.get("mtd_return", 0.0)
+        cdi_mtd = fund_data.get("cdi_mtd", self.CDI_ANNUAL / 12)
+        rating = fund_data.get("rating", "A")
+        liquidity_ratio = fund_data.get("liquidity_ratio", 0.0)
 
-        aging            = fund_data.get("aging", DEMO_AGING)
-        covenants        = fund_data.get("covenants", DEMO_COVENANTS)
-        compliance       = fund_data.get("compliance", {})
+        aging = fund_data.get("aging", DEMO_AGING)
+        covenants = fund_data.get("covenants", DEMO_COVENANTS)
+        compliance = fund_data.get("compliance", {})
 
         lines = [
             f"# {fname}",
             f"## Relatório Mensal — {period}",
-            f"",
-            f"| Campo | Valor |",
-            f"|-------|-------|",
+            "",
+            "| Campo | Valor |",
+            "|-------|-------|",
             f"| CNPJ | {cnpj} |",
             f"| Administrador | {admin} |",
             f"| Gestor | {gestor} |",
             f"| Custodiante | {custodia} |",
             f"| Competência | {period} |",
             f"| Data do relatório | {now.strftime('%d/%m/%Y')} |",
-            f"",
-            f"---",
-            f"## 1. Patrimônio Líquido (PL)",
-            f"",
-            f"| Métrica | Valor |",
-            f"|---------|-------|",
+            "",
+            "---",
+            "## 1. Patrimônio Líquido (PL)",
+            "",
+            "| Métrica | Valor |",
+            "|---------|-------|",
             f"| PL Total | {self.format_brl(nav)} |",
             f"| Recebíveis Totais | {self.format_brl(total_receivables)} |",
             f"| PDD | {self.format_brl(pdd)} ({pdd_pct:.2f}% da carteira) |",
             f"| Caixa Disponível | {self.format_brl(cash)} |",
             f"| Subordinação | {subordination_pct:.2f}% do PL |",
-            f"",
-            f"---",
-            f"## 2. Cotas",
-            f"",
-            f"| Tipo | Quantidade | Valor Unitário | Total |",
-            f"|------|-----------|----------------|-------|",
+            "",
+            "---",
+            "## 2. Cotas",
+            "",
+            "| Tipo | Quantidade | Valor Unitário | Total |",
+            "|------|-----------|----------------|-------|",
             f"| Sênior | {quotas_senior:,.0f} | {self.format_brl(quota_value)} | {self.format_brl(quotas_senior * quota_value)} |",
             f"| Subordinada | {quotas_sub:,.0f} | — | {self.format_brl(fund_data.get('subordination_value', 0))} |",
-            f"",
-            f"---",
-            f"## 3. Rentabilidade",
-            f"",
-            f"| Período | Fundo | CDI | % CDI |",
-            f"|---------|-------|-----|-------|",
+            "",
+            "---",
+            "## 3. Rentabilidade",
+            "",
+            "| Período | Fundo | CDI | % CDI |",
+            "|---------|-------|-----|-------|",
             f"| Mês | {mtd_return*100:.4f}% | {cdi_mtd*100:.4f}% | {(mtd_return/cdi_mtd*100) if cdi_mtd else 0:.1f}% |",
-            f"",
-            f"---",
-            f"## 4. Carteira — Aging Schedule",
-            f"",
-            f"| Faixa | Valor | % Carteira | PDD |",
-            f"|-------|-------|-----------|-----|",
+            "",
+            "---",
+            "## 4. Carteira — Aging Schedule",
+            "",
+            "| Faixa | Valor | % Carteira | PDD |",
+            "|-------|-------|-----------|-----|",
         ]
 
         for bucket in aging:
             bucket_val = bucket.get("value", 0)
-            pct        = (bucket_val / total_receivables * 100) if total_receivables else 0
+            pct = (bucket_val / total_receivables * 100) if total_receivables else 0
             lines.append(
                 f"| {bucket.get('range', '')} | {self.format_brl(bucket_val)} | "
                 f"{pct:.1f}% | {self.format_brl(bucket.get('pdd', 0))} |"
             )
 
         lines += [
-            f"",
-            f"---",
-            f"## 5. Covenants",
-            f"",
-            f"| Covenant | Limite | Atual | Status |",
-            f"|----------|--------|-------|--------|",
+            "",
+            "---",
+            "## 5. Covenants",
+            "",
+            "| Covenant | Limite | Atual | Status |",
+            "|----------|--------|-------|--------|",
         ]
 
         for cov in covenants:
@@ -206,33 +207,35 @@ class ReportingAgent:
             )
 
         lines += [
-            f"",
-            f"---",
-            f"## 6. Indicadores de Risco",
-            f"",
-            f"| Indicador | Valor |",
-            f"|-----------|-------|",
+            "",
+            "---",
+            "## 6. Indicadores de Risco",
+            "",
+            "| Indicador | Valor |",
+            "|-----------|-------|",
             f"| Rating | {rating} |",
             f"| Índice de Liquidez | {liquidity_ratio:.2f}x |",
             f"| PDD / Carteira | {pdd_pct:.2f}% |",
-            f"",
-            f"---",
-            f"## 7. Compliance",
-            f"",
+            "",
+            "---",
+            "## 7. Compliance",
+            "",
         ]
 
         comp_status = compliance.get("status", "OK")
-        lines.append(f"**Status:** {'✅ Em Conformidade' if comp_status == 'OK' else '❌ Pendências Identificadas'}")
+        lines.append(
+            f"**Status:** {'✅ Em Conformidade' if comp_status == 'OK' else '❌ Pendências Identificadas'}"
+        )
         if compliance.get("findings"):
             lines.append("\n**Pendências:**")
             for item in compliance["findings"]:
                 lines.append(f"- {item}")
 
         lines += [
-            f"",
-            f"---",
-            f"*Relatório gerado automaticamente pelo sistema Paganini AIOS.*",
-            f"*Este documento é confidencial e destinado exclusivamente aos cotistas e reguladores.*",
+            "",
+            "---",
+            "*Relatório gerado automaticamente pelo sistema Paganini AIOS.*",
+            "*Este documento é confidencial e destinado exclusivamente aos cotistas e reguladores.*",
         ]
 
         return "\n".join(lines)
@@ -259,69 +262,69 @@ class ReportingAgent:
             Markdown string formatted as regulatory filing
         """
         filing_name = self.FILING_TYPES.get(filing_type, filing_type)
-        now         = datetime.utcnow()
-        fname       = fund_data.get("fund_name", self.FUND_NAME_DEFAULT)
-        cnpj        = fund_data.get("cnpj", "00.000.000/0001-00")
-        nav         = fund_data.get("nav", 0.0)
-        total_rec   = fund_data.get("total_receivables", 0.0)
-        pdd         = fund_data.get("pdd", 0.0)
-        cash        = fund_data.get("cash", 0.0)
-        mtd         = fund_data.get("mtd_return", 0.0)
-        quotas_s    = fund_data.get("quotas_senior", 0.0)
-        q_val       = fund_data.get("quota_value", 0.0)
+        now = datetime.utcnow()
+        fname = fund_data.get("fund_name", self.FUND_NAME_DEFAULT)
+        cnpj = fund_data.get("cnpj", "00.000.000/0001-00")
+        nav = fund_data.get("nav", 0.0)
+        total_rec = fund_data.get("total_receivables", 0.0)
+        pdd = fund_data.get("pdd", 0.0)
+        cash = fund_data.get("cash", 0.0)
+        mtd = fund_data.get("mtd_return", 0.0)
+        quotas_s = fund_data.get("quotas_senior", 0.0)
+        q_val = fund_data.get("quota_value", 0.0)
 
         lines = [
             f"# {filing_name}",
             f"## {fname} — CNPJ: {cnpj}",
-            f"",
+            "",
             f"**Data de Referência:** {now.strftime('%d/%m/%Y')}",
             f"**Competência:** {now.strftime('%m/%Y')}",
-            f"**Versão:** 1",
-            f"**Tipo de Fundo:** FIDC — Fundo de Investimento em Direitos Creditórios",
-            f"**Regulamentação:** CVM Resolução Nº 175, de 23/12/2022",
-            f"",
-            f"---",
-            f"### I — Patrimônio Líquido",
-            f"",
-            f"```",
+            "**Versão:** 1",
+            "**Tipo de Fundo:** FIDC — Fundo de Investimento em Direitos Creditórios",
+            "**Regulamentação:** CVM Resolução Nº 175, de 23/12/2022",
+            "",
+            "---",
+            "### I — Patrimônio Líquido",
+            "",
+            "```",
             f"Patrimônio Líquido Total:   {self.format_brl(nav)}",
             f"Direitos Creditórios:       {self.format_brl(total_rec)}",
             f"PDD (Provisão DD):          {self.format_brl(pdd)}",
             f"Caixa e Equivalentes:       {self.format_brl(cash)}",
             f"Outros Ativos:              {self.format_brl(nav - total_rec - cash + pdd)}",
-            f"```",
-            f"",
-            f"---",
-            f"### II — Cotas em Circulação",
-            f"",
-            f"```",
+            "```",
+            "",
+            "---",
+            "### II — Cotas em Circulação",
+            "",
+            "```",
             f"Cotas Sênior em Circulação: {quotas_s:>15,.0f} cotas",
             f"Valor da Cota Sênior:       {self.format_brl(q_val)}",
-            f"```",
-            f"",
-            f"---",
-            f"### III — Rentabilidade no Período",
-            f"",
-            f"```",
+            "```",
+            "",
+            "---",
+            "### III — Rentabilidade no Período",
+            "",
+            "```",
             f"Rentabilidade Mês:          {mtd*100:.6f}%",
             f"CDI Mês (referência):       {self.CDI_ANNUAL/12*100:.6f}%",
             f"% do CDI:                   {(mtd/(self.CDI_ANNUAL/12)*100) if self.CDI_ANNUAL/12 else 0:.2f}%",
-            f"```",
-            f"",
-            f"---",
-            f"### IV — Cedentes e Sacados",
-            f"",
+            "```",
+            "",
+            "---",
+            "### IV — Cedentes e Sacados",
+            "",
         ]
 
         cedentes = fund_data.get("cedentes", [])
         if cedentes:
             lines += [
-                f"| Cedente | CNPJ | Valor | % Carteira |",
-                f"|---------|------|-------|-----------|",
+                "| Cedente | CNPJ | Valor | % Carteira |",
+                "|---------|------|-------|-----------|",
             ]
             for ced in cedentes[:10]:
                 c_val = ced.get("total_value", 0)
-                pct   = (c_val / total_rec * 100) if total_rec else 0
+                pct = (c_val / total_rec * 100) if total_rec else 0
                 lines.append(
                     f"| {ced.get('name', '')} | {ced.get('cnpj', '')} | "
                     f"{self.format_brl(c_val)} | {pct:.2f}% |"
@@ -330,19 +333,19 @@ class ReportingAgent:
             lines.append("*Informação de cedentes não disponível neste relatório.*")
 
         lines += [
-            f"",
-            f"---",
-            f"### V — Declarações",
-            f"",
-            f"O Administrador declara que as informações contidas neste documento são verdadeiras,",
-            f"completas e elaboradas em conformidade com a legislação e regulamentação vigentes,",
-            f"em especial a Resolução CVM Nº 175/2022 e as normas da ANBIMA.",
-            f"",
+            "",
+            "---",
+            "### V — Declarações",
+            "",
+            "O Administrador declara que as informações contidas neste documento são verdadeiras,",
+            "completas e elaboradas em conformidade com a legislação e regulamentação vigentes,",
+            "em especial a Resolução CVM Nº 175/2022 e as normas da ANBIMA.",
+            "",
             f"**Administrador:** {fund_data.get('administrator', admin_default())}",
             f"**Data:** {now.strftime('%d/%m/%Y')}",
-            f"",
-            f"---",
-            f"*Documento gerado eletronicamente — Paganini AIOS*",
+            "",
+            "---",
+            "*Documento gerado eletronicamente — Paganini AIOS*",
         ]
 
         return "\n".join(lines)
@@ -362,55 +365,55 @@ class ReportingAgent:
         Returns:
             Markdown string
         """
-        now       = datetime.utcnow()
-        c_name    = cedente_data.get("name", "Cedente Desconhecido")
-        c_cnpj    = cedente_data.get("cnpj", "00.000.000/0001-00")
-        c_value   = cedente_data.get("total_value", 0.0)
-        c_pdd     = cedente_data.get("pdd", 0.0)
-        c_pd      = cedente_data.get("pd", 0.0)
-        c_lgd     = cedente_data.get("lgd", 0.0)
-        c_aging   = cedente_data.get("aging", [])
+        now = datetime.utcnow()
+        c_name = cedente_data.get("name", "Cedente Desconhecido")
+        c_cnpj = cedente_data.get("cnpj", "00.000.000/0001-00")
+        c_value = cedente_data.get("total_value", 0.0)
+        c_pdd = cedente_data.get("pdd", 0.0)
+        c_pd = cedente_data.get("pd", 0.0)
+        c_lgd = cedente_data.get("lgd", 0.0)
+        c_aging = cedente_data.get("aging", [])
         total_nav = portfolio_data.get("nav", 1.0)
-        conc_pct  = (c_value / total_nav * 100) if total_nav else 0
-        el        = c_pd * c_lgd * c_value
+        conc_pct = (c_value / total_nav * 100) if total_nav else 0
+        el = c_pd * c_lgd * c_value
         rating_label = _pd_to_rating(c_pd)
 
         lines = [
-            f"# Relatório de Cedente",
+            "# Relatório de Cedente",
             f"## {c_name}",
-            f"",
+            "",
             f"**CNPJ:** {c_cnpj}",
             f"**Data:** {now.strftime('%d/%m/%Y')}",
-            f"",
-            f"---",
-            f"### Posição na Carteira",
-            f"",
-            f"| Métrica | Valor |",
-            f"|---------|-------|",
+            "",
+            "---",
+            "### Posição na Carteira",
+            "",
+            "| Métrica | Valor |",
+            "|---------|-------|",
             f"| Saldo Devedor | {self.format_brl(c_value)} |",
             f"| % do PL do Fundo | {conc_pct:.2f}% |",
             f"| PDD Alocada | {self.format_brl(c_pdd)} |",
             f"| PDD / Saldo | {(c_pdd/c_value*100) if c_value else 0:.2f}% |",
-            f"",
-            f"---",
-            f"### Qualidade de Crédito",
-            f"",
-            f"| Métrica | Valor |",
-            f"|---------|-------|",
+            "",
+            "---",
+            "### Qualidade de Crédito",
+            "",
+            "| Métrica | Valor |",
+            "|---------|-------|",
             f"| PD (Probabilidade de Default) | {c_pd*100:.2f}% |",
             f"| LGD (Loss Given Default) | {c_lgd*100:.2f}% |",
             f"| Perda Esperada (EL) | {self.format_brl(el)} |",
             f"| Rating Interno | {rating_label} |",
-            f"",
-            f"---",
+            "",
+            "---",
             f"### Aging Schedule — {c_name}",
-            f"",
-            f"| Faixa de Atraso | Valor | % do Total | PDD |",
-            f"|-----------------|-------|-----------|-----|",
+            "",
+            "| Faixa de Atraso | Valor | % do Total | PDD |",
+            "|-----------------|-------|-----------|-----|",
         ]
 
         for bucket in c_aging:
-            bv  = bucket.get("value", 0)
+            bv = bucket.get("value", 0)
             pct = (bv / c_value * 100) if c_value else 0
             lines.append(
                 f"| {bucket.get('range', '')} | {self.format_brl(bv)} | "
@@ -418,9 +421,9 @@ class ReportingAgent:
             )
 
         lines += [
-            f"",
-            f"---",
-            f"*Relatório confidencial — Paganini AIOS*",
+            "",
+            "---",
+            "*Relatório confidencial — Paganini AIOS*",
         ]
 
         return "\n".join(lines)
@@ -440,76 +443,79 @@ class ReportingAgent:
         Returns:
             Markdown string
         """
-        fname    = fund_data.get("fund_name", self.FUND_NAME_DEFAULT)
-        nav      = fund_data.get("nav", 0.0)
-        mtd      = fund_data.get("mtd_return", 0.0)
-        ytd      = fund_data.get("ytd_return", 0.0)
-        cdi_mtd  = self.CDI_ANNUAL / 12
-        pct_cdi  = (mtd / cdi_mtd * 100) if cdi_mtd else 0
-        rating   = fund_data.get("rating", "A")
+        fname = fund_data.get("fund_name", self.FUND_NAME_DEFAULT)
+        nav = fund_data.get("nav", 0.0)
+        mtd = fund_data.get("mtd_return", 0.0)
+        ytd = fund_data.get("ytd_return", 0.0)
+        cdi_mtd = self.CDI_ANNUAL / 12
+        pct_cdi = (mtd / cdi_mtd * 100) if cdi_mtd else 0
+        rating = fund_data.get("rating", "A")
         strategy = fund_data.get("strategy", "multissetorial de recebíveis comerciais")
-        outlook  = fund_data.get("outlook", (
-            "A carteira apresenta boa diversificação setorial e os indicadores de "
-            "inadimplência permanecem dentro dos limites dos covenants. "
-            "O fundo continua gerando retornos acima do CDI."
-        ))
+        outlook = fund_data.get(
+            "outlook",
+            (
+                "A carteira apresenta boa diversificação setorial e os indicadores de "
+                "inadimplência permanecem dentro dos limites dos covenants. "
+                "O fundo continua gerando retornos acima do CDI."
+            ),
+        )
 
         now = datetime.utcnow()
 
         lines = [
             f"# Carta ao Cotista — {period}",
             f"## {fname}",
-            f"",
+            "",
             f"**Data:** {now.strftime('%d de %B de %Y')}",
-            f"",
-            f"Prezados Cotistas,",
-            f"",
+            "",
+            "Prezados Cotistas,",
+            "",
             f"É com satisfação que apresentamos o relatório de desempenho referente ao período de {period}.",
-            f"",
-            f"---",
-            f"### Destaques do Período",
-            f"",
+            "",
+            "---",
+            "### Destaques do Período",
+            "",
             f"O **{fname}**, fundo {strategy}, encerrou o mês de {period} com "
             f"patrimônio líquido de **{self.format_brl(nav)}**.",
-            f"",
+            "",
             f"A rentabilidade no mês foi de **{mtd*100:.4f}%**, equivalente a "
             f"**{pct_cdi:.1f}% do CDI** (CDI do período: {cdi_mtd*100:.4f}%).",
-            f"",
+            "",
             f"No acumulado do ano, o fundo rentabilizou **{ytd*100:.4f}%**.",
-            f"",
-            f"---",
-            f"### Análise da Carteira",
-            f"",
+            "",
+            "---",
+            "### Análise da Carteira",
+            "",
             f"{outlook}",
-            f"",
-            f"---",
-            f"### Indicadores-Chave",
-            f"",
-            f"| Indicador | Valor |",
-            f"|-----------|-------|",
+            "",
+            "---",
+            "### Indicadores-Chave",
+            "",
+            "| Indicador | Valor |",
+            "|-----------|-------|",
             f"| PL | {self.format_brl(nav)} |",
             f"| Rentabilidade Mês | {mtd*100:.4f}% |",
             f"| % CDI (mês) | {pct_cdi:.1f}% |",
             f"| Rentabilidade YTD | {ytd*100:.4f}% |",
             f"| Rating | {rating} |",
-            f"",
-            f"---",
-            f"### Perspectivas",
-            f"",
-            f"Para os próximos meses, a equipe de gestão permanece focada na qualidade da "
-            f"originação, monitoramento ativo dos covenants e manutenção da liquidez do fundo "
-            f"em patamares adequados às obrigações com cotistas.",
-            f"",
-            f"Agradecemos pela confiança depositada.",
-            f"",
-            f"Atenciosamente,",
-            f"",
+            "",
+            "---",
+            "### Perspectivas",
+            "",
+            "Para os próximos meses, a equipe de gestão permanece focada na qualidade da "
+            "originação, monitoramento ativo dos covenants e manutenção da liquidez do fundo "
+            "em patamares adequados às obrigações com cotistas.",
+            "",
+            "Agradecemos pela confiança depositada.",
+            "",
+            "Atenciosamente,",
+            "",
             f"**Equipe de Gestão — {fname}**",
-            f"",
-            f"---",
-            f"*Esta carta é de caráter informativo e não constitui oferta de investimento. "
-            f"Rentabilidade passada não é garantia de rentabilidade futura.*",
-            f"*Regulamentação: CVM Resolução Nº 175/2022 | ANBIMA Código de Melhores Práticas.*",
+            "",
+            "---",
+            "*Esta carta é de caráter informativo e não constitui oferta de investimento. "
+            "Rentabilidade passada não é garantia de rentabilidade futura.*",
+            "*Regulamentação: CVM Resolução Nº 175/2022 | ANBIMA Código de Melhores Práticas.*",
         ]
 
         return "\n".join(lines)
@@ -550,15 +556,20 @@ class ReportingAgent:
 
         compliance_data = sources.get("compliance", {})
         if compliance_data:
-            compiled.setdefault("compliance", {
-                "status": compliance_data.get("status", "OK"),
-                "findings": compliance_data.get("findings", []),
-            })
+            compiled.setdefault(
+                "compliance",
+                {
+                    "status": compliance_data.get("status", "OK"),
+                    "findings": compliance_data.get("findings", []),
+                },
+            )
 
         pricing_data = sources.get("pricing", {})
         if pricing_data:
-            compiled.setdefault("pdd",              pricing_data.get("pdd"))
-            compiled.setdefault("total_receivables", pricing_data.get("total_receivables"))
+            compiled.setdefault("pdd", pricing_data.get("pdd"))
+            compiled.setdefault(
+                "total_receivables", pricing_data.get("total_receivables")
+            )
 
         # Chunks: extract any fund-level overrides
         for chunk in sources.get("chunks", []):
@@ -601,11 +612,11 @@ class ReportingAgent:
             Formatted string
         """
         negative = value < 0
-        abs_val  = abs(value)
+        abs_val = abs(value)
 
         # Split into integer and cents
         cents_total = round(abs_val * 100)
-        cents       = cents_total % 100
+        cents = cents_total % 100
         integer_part = cents_total // 100
 
         # Format integer part with thousand separators (dots in BR)
@@ -620,8 +631,18 @@ class ReportingAgent:
 
     def _current_period(self) -> str:
         months = [
-            "janeiro", "fevereiro", "março", "abril", "maio", "junho",
-            "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"
+            "janeiro",
+            "fevereiro",
+            "março",
+            "abril",
+            "maio",
+            "junho",
+            "julho",
+            "agosto",
+            "setembro",
+            "outubro",
+            "novembro",
+            "dezembro",
         ]
         now = datetime.utcnow()
         return f"{months[now.month-1]}/{now.year}"
@@ -630,9 +651,18 @@ class ReportingAgent:
 def admin_default() -> str:
     return "Paganini Gestora S.A."
 
+
 def _pd_to_rating(pd: float) -> str:
     score = max(0, min(100, 100 - pd * 500))
-    thresholds = [(95, "AAA"), (85, "AA"), (75, "A"), (65, "BBB"), (55, "BB"), (45, "B"), (0, "CCC")]
+    thresholds = [
+        (95, "AAA"),
+        (85, "AA"),
+        (75, "A"),
+        (65, "BBB"),
+        (55, "BB"),
+        (45, "B"),
+        (0, "CCC"),
+    ]
     for t, r in thresholds:
         if score >= t:
             return r
@@ -644,59 +674,73 @@ def _pd_to_rating(pd: float) -> str:
 # ---------------------------------------------------------------------------
 
 DEMO_AGING = [
-    {"range": "A vencer",      "value": 2_000_000.0, "pdd":       0.0},
-    {"range": "1–30 dias",     "value":   300_000.0, "pdd":   9_000.0},
-    {"range": "31–60 dias",    "value":   200_000.0, "pdd":  20_000.0},
-    {"range": "61–90 dias",    "value":   150_000.0, "pdd":  37_500.0},
-    {"range": "91–180 dias",   "value":   100_000.0, "pdd":  50_000.0},
-    {"range": "> 180 dias",    "value":    50_000.0, "pdd":  50_000.0},
+    {"range": "A vencer", "value": 2_000_000.0, "pdd": 0.0},
+    {"range": "1–30 dias", "value": 300_000.0, "pdd": 9_000.0},
+    {"range": "31–60 dias", "value": 200_000.0, "pdd": 20_000.0},
+    {"range": "61–90 dias", "value": 150_000.0, "pdd": 37_500.0},
+    {"range": "91–180 dias", "value": 100_000.0, "pdd": 50_000.0},
+    {"range": "> 180 dias", "value": 50_000.0, "pdd": 50_000.0},
 ]
 
 DEMO_COVENANTS = [
-    {"name": "Subordinação Mínima", "limit": "≥ 15%",   "actual": "18.5%",  "ok": True},
-    {"name": "Índice de PDD",       "limit": "≤ 8%",    "actual": "5.9%",   "ok": True},
-    {"name": "Liquidez Mínima",     "limit": "≥ 1.0x",  "actual": "2.3x",   "ok": True},
-    {"name": "Concentração Máx.",   "limit": "≤ 25%",   "actual": "22.1%",  "ok": True},
-    {"name": "Rating Mínimo",       "limit": "≥ BBB",   "actual": "A",      "ok": True},
+    {"name": "Subordinação Mínima", "limit": "≥ 15%", "actual": "18.5%", "ok": True},
+    {"name": "Índice de PDD", "limit": "≤ 8%", "actual": "5.9%", "ok": True},
+    {"name": "Liquidez Mínima", "limit": "≥ 1.0x", "actual": "2.3x", "ok": True},
+    {"name": "Concentração Máx.", "limit": "≤ 25%", "actual": "22.1%", "ok": True},
+    {"name": "Rating Mínimo", "limit": "≥ BBB", "actual": "A", "ok": True},
 ]
 
 DEMO_FUND_DATA = {
-    "fund_name":          "FIDC Paganini Multissetorial",
-    "cnpj":               "12.345.678/0001-90",
-    "administrator":      "Paganini Gestora S.A.",
-    "gestor":             "Paganini Capital Ltda.",
-    "custodia":           "Banco ABC S.A.",
-    "nav":                3_000_000.0,
-    "total_receivables":  2_800_000.0,
-    "pdd":                165_000.0,
-    "cash":               500_000.0,
-    "quotas_senior":      10_000.0,
-    "quotas_sub":          2_000.0,
-    "quota_value":           270.0,
+    "fund_name": "FIDC Paganini Multissetorial",
+    "cnpj": "12.345.678/0001-90",
+    "administrator": "Paganini Gestora S.A.",
+    "gestor": "Paganini Capital Ltda.",
+    "custodia": "Banco ABC S.A.",
+    "nav": 3_000_000.0,
+    "total_receivables": 2_800_000.0,
+    "pdd": 165_000.0,
+    "cash": 500_000.0,
+    "quotas_senior": 10_000.0,
+    "quotas_sub": 2_000.0,
+    "quota_value": 270.0,
     "subordination_value": 540_000.0,
-    "subordination_pct":    18.0,
-    "mtd_return":           0.011832,
-    "ytd_return":           0.034521,
-    "cdi_mtd":              0.010833,
-    "rating":              "A",
-    "liquidity_ratio":      2.3,
-    "strategy":            "multissetorial de recebíveis comerciais",
+    "subordination_pct": 18.0,
+    "mtd_return": 0.011832,
+    "ytd_return": 0.034521,
+    "cdi_mtd": 0.010833,
+    "rating": "A",
+    "liquidity_ratio": 2.3,
+    "strategy": "multissetorial de recebíveis comerciais",
     "outlook": (
         "A carteira apresenta boa diversificação setorial com exposição a varejo, "
         "agronegócio e distribuição. Os indicadores de inadimplência estão abaixo "
         "dos limites dos covenants e a subordinação mínima é respeitada."
     ),
-    "aging":    DEMO_AGING,
+    "aging": DEMO_AGING,
     "covenants": DEMO_COVENANTS,
     "compliance": {"status": "OK", "findings": []},
     "cedentes": [
-        {"name": "Empresa Alpha S.A.",      "cnpj": "11.222.333/0001-44", "total_value": 700_000.0,
-         "pd": 0.02, "lgd": 0.40, "pdd": 5_600.0,
-         "aging": [{"range": "A vencer", "value": 700_000.0, "pdd": 0}]},
-        {"name": "Agro Theta Cooperativa",  "cnpj": "55.666.777/0001-88", "total_value": 1_000_000.0,
-         "pd": 0.015, "lgd": 0.35, "pdd": 5_250.0,
-         "aging": [{"range": "A vencer", "value": 950_000.0, "pdd": 0},
-                   {"range": "1–30 dias", "value": 50_000.0, "pdd": 1_500.0}]},
+        {
+            "name": "Empresa Alpha S.A.",
+            "cnpj": "11.222.333/0001-44",
+            "total_value": 700_000.0,
+            "pd": 0.02,
+            "lgd": 0.40,
+            "pdd": 5_600.0,
+            "aging": [{"range": "A vencer", "value": 700_000.0, "pdd": 0}],
+        },
+        {
+            "name": "Agro Theta Cooperativa",
+            "cnpj": "55.666.777/0001-88",
+            "total_value": 1_000_000.0,
+            "pd": 0.015,
+            "lgd": 0.35,
+            "pdd": 5_250.0,
+            "aging": [
+                {"range": "A vencer", "value": 950_000.0, "pdd": 0},
+                {"range": "1–30 dias", "value": 50_000.0, "pdd": 1_500.0},
+            ],
+        },
     ],
 }
 

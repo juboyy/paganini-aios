@@ -16,8 +16,8 @@ jobs:
           python-version: '3.12'
       - run: pip install ruff black isort
       - run: ruff check packages/
-      - run: black --check packages/
-      - run: isort --check packages/
+      - run: black --check --target-version py312 packages/
+      - run: isort --check --profile black packages/
 
   security:
     runs-on: ubuntu-latest

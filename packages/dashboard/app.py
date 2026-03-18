@@ -33,6 +33,7 @@ except ImportError:  # pragma: no cover
     FastAPI = None  # type: ignore[assignment, misc]
 
 if not _FASTAPI_AVAILABLE:  # pragma: no cover
+
     def create_app(config: dict) -> Any:  # noqa: ANN401
         raise RuntimeError(
             "FastAPI and Uvicorn are required to run the PAGANINI dashboard.\n"
@@ -45,6 +46,7 @@ if not _FASTAPI_AVAILABLE:  # pragma: no cover
 # ---------------------------------------------------------------------------
 
 if _FASTAPI_AVAILABLE:
+
     class ReportRequest(BaseModel):
         template_id: str
         fund_id: str
@@ -339,6 +341,7 @@ _DASHBOARD_HTML = """<!DOCTYPE html>
 # App factory
 # ---------------------------------------------------------------------------
 
+
 def create_app(config: dict) -> "FastAPI":  # noqa: F821
     """Create and configure the PAGANINI dashboard FastAPI application.
 
@@ -479,17 +482,26 @@ def create_app(config: dict) -> "FastAPI":  # noqa: F821
     async def guardrails_status() -> dict:
         """Return the enable/disable status of each guardrail gate."""
         gate_names = [
-            "eligibility", "concentration", "covenant",
-            "pld_aml", "compliance", "risk_assessment",
+            "eligibility",
+            "concentration",
+            "covenant",
+            "pld_aml",
+            "compliance",
+            "risk_assessment",
         ]
         gates = []
         for name in gate_names:
             enabled = guardrails.gates_enabled.get(name, False)
-            gates.append({
-                "gate": name,
-                "status": "active" if enabled else "disabled",
-            })
-        return {"gates": gates, "summary": f"{sum(1 for g in gates if g['status'] == 'active')}/{len(gates)} active"}
+            gates.append(
+                {
+                    "gate": name,
+                    "status": "active" if enabled else "disabled",
+                }
+            )
+        return {
+            "gates": gates,
+            "summary": f"{sum(1 for g in gates if g['status'] == 'active')}/{len(gates)} active",
+        }
 
     @app.get("/api/agents")
     async def agents() -> dict:
@@ -527,7 +539,9 @@ def create_app(config: dict) -> "FastAPI":  # noqa: F821
     ) -> dict:
         q = q.strip()
         if not q:
-            raise HTTPException(status_code=400, detail="Query parameter 'q' cannot be empty.")
+            raise HTTPException(
+                status_code=400, detail="Query parameter 'q' cannot be empty."
+            )
         if len(q) > 1200:
             raise HTTPException(
                 status_code=413,
@@ -550,10 +564,15 @@ def create_app(config: dict) -> "FastAPI":  # noqa: F821
 
         answer = rag_answer.text
         confidence = rag_answer.confidence
-        sources = [{"source": c.source, "section": c.section, "score": c.score} for c in rag_answer.chunks]
+        sources = [
+            {"source": c.source, "section": c.section, "score": c.score}
+            for c in rag_answer.chunks
+        ]
 
         # Guardrail post-check (full context: response + confidence)
-        post_guard = guardrails.check(query=q, response=answer, chunks=rag_answer.chunks, confidence=confidence)
+        post_guard = guardrails.check(
+            query=q, response=answer, chunks=rag_answer.chunks, confidence=confidence
+        )
         if not post_guard.passed:
             raise HTTPException(
                 status_code=403,
@@ -593,9 +612,7 @@ def create_app(config: dict) -> "FastAPI":  # noqa: F821
     @app.get("/api/reports")
     async def list_reports() -> dict:
         return {
-            "templates": [
-                {"id": k, "name": v} for k, v in REPORT_TEMPLATES.items()
-            ]
+            "templates": [{"id": k, "name": v} for k, v in REPORT_TEMPLATES.items()]
         }
 
     # ----------------------------------------------------------------
@@ -608,7 +625,7 @@ def create_app(config: dict) -> "FastAPI":  # noqa: F821
             raise HTTPException(
                 status_code=400,
                 detail=f"Unknown template '{request.template_id}'. "
-                       f"Valid: {list(REPORT_TEMPLATES.keys())}",
+                f"Valid: {list(REPORT_TEMPLATES.keys())}",
             )
         template_name = REPORT_TEMPLATES[request.template_id]
         prompt = (
@@ -619,7 +636,9 @@ def create_app(config: dict) -> "FastAPI":  # noqa: F821
         try:
             rag_answer = rag.query(prompt, llm_fn=llm_fn)
         except Exception as exc:
-            raise HTTPException(status_code=500, detail="Report generation failed.") from exc
+            raise HTTPException(
+                status_code=500, detail="Report generation failed."
+            ) from exc
 
         return {
             "template_id": request.template_id,
@@ -627,7 +646,9 @@ def create_app(config: dict) -> "FastAPI":  # noqa: F821
             "fund_id": request.fund_id,
             "content": rag_answer.text,
             "confidence": rag_answer.confidence,
-            "sources": [{"source": c.source, "section": c.section} for c in rag_answer.chunks],
+            "sources": [
+                {"source": c.source, "section": c.section} for c in rag_answer.chunks
+            ],
         }
 
     # ----------------------------------------------------------------
@@ -647,7 +668,9 @@ def create_app(config: dict) -> "FastAPI":  # noqa: F821
     # ----------------------------------------------------------------
 
     @app.exception_handler(Exception)
-    async def generic_exception_handler(request: Any, exc: Exception) -> JSONResponse:  # noqa: ANN401
+    async def generic_exception_handler(
+        request: Any, exc: Exception
+    ) -> JSONResponse:  # noqa: ANN401
         logger.error("Unhandled exception: %s", exc, exc_info=True)
         return JSONResponse(
             status_code=500,

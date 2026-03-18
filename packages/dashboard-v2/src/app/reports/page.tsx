@@ -148,14 +148,14 @@ function ReportTerminal() {
             <div key={c} style={{ width: 10, height: 10, borderRadius: "50%", background: c }} />
           ))}
         </div>
-        <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--text-4)", letterSpacing: "0.08em", marginLeft: "0.5rem" }}>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-4)", letterSpacing: "0.08em", marginLeft: "0.5rem" }}>
           paganini — bash
         </span>
         <div style={{ marginLeft: "auto" }}>
           <button
             onClick={() => setVisibleLines(0)}
             style={{
-              fontFamily: "var(--font-mono)", fontSize: "0.5rem",
+              fontFamily: "var(--font-mono)", fontSize: "0.75rem",
               color: "var(--text-4)", background: "transparent",
               border: "1px solid var(--border)", borderRadius: "3px",
               padding: "2px 8px", cursor: "pointer", letterSpacing: "0.08em",
@@ -176,7 +176,7 @@ function ReportTerminal() {
           return (
             <div
               key={i}
-              style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color, lineHeight: 1.7, whiteSpace: "pre" }}
+              style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color, lineHeight: 1.7, whiteSpace: "pre" }}
             >
               {line.text || "\u00a0"}
             </div>
@@ -257,7 +257,7 @@ export default function ReportsPage() {
                   </div>
                   <span
                     style={{
-                      fontFamily: "var(--font-mono)", fontSize: "0.5rem",
+                      fontFamily: "var(--font-mono)", fontSize: "0.75rem",
                       padding: "3px 8px", borderRadius: "var(--radius)",
                       background: freq.bg, color: freq.color, border: `1px solid ${freq.border}`,
                       letterSpacing: "0.08em", whiteSpace: "nowrap",
@@ -268,7 +268,7 @@ export default function ReportsPage() {
                 </div>
 
                 {/* Description */}
-                <p style={{ fontSize: "0.6875rem", color: "var(--text-3)", lineHeight: 1.5, margin: "0 0 0.875rem" }}>
+                <p style={{ fontSize: "0.8125rem", color: "var(--text-3)", lineHeight: 1.5, margin: "0 0 0.875rem" }}>
                   {report.desc}
                 </p>
 
@@ -281,13 +281,13 @@ export default function ReportsPage() {
                 >
                   <div>
                     <div className="mono-label" style={{ fontSize: "0.4375rem", marginBottom: 2 }}>ÚLTIMO GERADO</div>
-                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--text-3)" }}>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-3)" }}>
                       {report.lastGen}
                     </div>
                   </div>
                   <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
                     <span style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--accent)", boxShadow: "0 0 6px var(--accent)", display: "inline-block" }} />
-                    <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", color: "var(--accent)", letterSpacing: "0.1em" }}>
+                    <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--accent)", letterSpacing: "0.1em" }}>
                       PRONTO
                     </span>
                   </span>
@@ -313,7 +313,7 @@ export default function ReportsPage() {
         </div>
         <div className="glass-card" style={{ overflow: "hidden" }}>
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "var(--font-mono)", fontSize: "0.6875rem" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "var(--font-mono)", fontSize: "0.8125rem" }}>
               <thead>
                 <tr style={{ borderBottom: "1px solid var(--border)" }}>
                   {["TIPO", "DATA", "FUNDO", "STATUS", "ARQUIVO"].map((h) => (
@@ -321,7 +321,7 @@ export default function ReportsPage() {
                       key={h}
                       style={{
                         textAlign: "left", padding: "0.75rem 1rem",
-                        color: "var(--text-4)", fontSize: "0.5625rem",
+                        color: "var(--text-4)", fontSize: "0.75rem",
                         letterSpacing: "0.1em", fontWeight: 500,
                       }}
                     >
@@ -347,14 +347,14 @@ export default function ReportsPage() {
                     <td style={{ padding: "0.75rem 1rem" }}>
                       <span style={{ display: "inline-flex", alignItems: "center", gap: 5 }}>
                         <span style={{ width: 5, height: 5, borderRadius: "50%", background: "var(--accent)", boxShadow: "0 0 6px var(--accent)", display: "inline-block" }} />
-                        <span style={{ color: "var(--accent)", fontSize: "0.5625rem", letterSpacing: "0.1em" }}>ENTREGUE</span>
+                        <span style={{ color: "var(--accent)", fontSize: "0.75rem", letterSpacing: "0.1em" }}>ENTREGUE</span>
                       </span>
                     </td>
                     <td style={{ padding: "0.75rem 1rem" }}>
                       <a
                         href="#"
                         style={{
-                          fontFamily: "var(--font-mono)", fontSize: "0.5625rem",
+                          fontFamily: "var(--font-mono)", fontSize: "0.75rem",
                           color: "hsl(180 100% 55%)", textDecoration: "none",
                           border: "1px solid hsl(180 100% 50% / 0.3)",
                           background: "hsl(180 100% 50% / 0.07)",

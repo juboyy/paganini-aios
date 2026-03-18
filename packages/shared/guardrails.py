@@ -4,7 +4,6 @@ Every RAG response passes through these gates BEFORE delivery.
 First BLOCK kills the operation. No override without human + justification.
 """
 
-import re
 from dataclasses import dataclass
 from typing import Optional
 
@@ -31,7 +30,7 @@ class GuardrailResult:
 
 class GuardrailPipeline:
     """6-gate hard-stop pipeline for FIDC compliance.
-    
+
     Gates execute in sequence. First BLOCK kills the operation.
     Gates: Eligibility → Concentration → Covenant → PLD/AML → Compliance → Risk
     """
@@ -47,7 +46,9 @@ class GuardrailPipeline:
             "risk_assessment": gc.get("risk_assessment", True),
         }
 
-    def check(self, query: str, response: str, chunks: list, confidence: float) -> GuardrailResult:
+    def check(
+        self, query: str, response: str, chunks: list, confidence: float
+    ) -> GuardrailResult:
         """Run all enabled gates on a response."""
         gates = []
 
@@ -69,7 +70,9 @@ class GuardrailPipeline:
         if self.gates_enabled.get("risk_assessment"):
             gates.append(self._gate_risk(response, confidence))
 
-        blocked = next((g for g in gates if not g.passed and g.severity == "block"), None)
+        blocked = next(
+            (g for g in gates if not g.passed and g.severity == "block"), None
+        )
 
         return GuardrailResult(
             passed=blocked is None,
@@ -90,9 +93,10 @@ class GuardrailPipeline:
         for phrase in dangerous:
             if phrase in response.lower():
                 return GateResult(
-                    gate="eligibility", passed=False,
+                    gate="eligibility",
+                    passed=False,
                     reason=f"Recomendação perigosa detectada: '{phrase}'",
-                    severity="block"
+                    severity="block",
                 )
         return GateResult(gate="eligibility", passed=True)
 
@@ -110,14 +114,16 @@ class GuardrailPipeline:
                 # Exception: if discussing mono-cedente FIDCs (legitimate)
                 if "mono-cedente" in response_lower or "monocedente" in response_lower:
                     return GateResult(
-                        gate="concentration", passed=True,
+                        gate="concentration",
+                        passed=True,
                         reason="Concentração 100% mencionada no contexto de FIDC mono-cedente (permitido)",
-                        severity="info"
+                        severity="info",
                     )
                 return GateResult(
-                    gate="concentration", passed=False,
+                    gate="concentration",
+                    passed=False,
                     reason=f"Sugestão de ignorar limites de concentração: '{phrase}'",
-                    severity="block"
+                    severity="block",
                 )
         return GateResult(gate="concentration", passed=True)
 
@@ -132,51 +138,63 @@ class GuardrailPipeline:
         for phrase in dangerous:
             if phrase in response.lower():
                 return GateResult(
-                    gate="covenant", passed=False,
+                    gate="covenant",
+                    passed=False,
                     reason=f"Sugestão de descumprir covenant: '{phrase}'",
-                    severity="block"
+                    severity="block",
                 )
         return GateResult(gate="covenant", passed=True)
 
     def _gate_pld_aml(self, query: str, response: str) -> GateResult:
         """Gate 4: PLD/AML compliance — block responses that facilitate money laundering."""
         dangerous_query = [
-            "como evitar pld", "como burlar coaf", "esconder transação",
-            "lavar dinheiro", "ocultar origem",
+            "como evitar pld",
+            "como burlar coaf",
+            "esconder transação",
+            "lavar dinheiro",
+            "ocultar origem",
         ]
         dangerous_response = [
-            "para evitar detecção", "sem comunicar ao coaf",
-            "fracionar para ficar abaixo", "ocultar beneficiário",
+            "para evitar detecção",
+            "sem comunicar ao coaf",
+            "fracionar para ficar abaixo",
+            "ocultar beneficiário",
         ]
         for phrase in dangerous_query:
             if phrase in query.lower():
                 return GateResult(
-                    gate="pld_aml", passed=False,
+                    gate="pld_aml",
+                    passed=False,
                     reason="Query tenta facilitar evasão de PLD/AML",
-                    severity="block"
+                    severity="block",
                 )
         for phrase in dangerous_response:
             if phrase in response.lower():
                 return GateResult(
-                    gate="pld_aml", passed=False,
+                    gate="pld_aml",
+                    passed=False,
                     reason=f"Resposta contém orientação de evasão: '{phrase}'",
-                    severity="block"
+                    severity="block",
                 )
         return GateResult(gate="pld_aml", passed=True)
 
-    def _gate_compliance(self, response: str, chunks: list, confidence: float) -> GateResult:
+    def _gate_compliance(
+        self, response: str, chunks: list, confidence: float
+    ) -> GateResult:
         """Gate 5: General compliance — ensure response is grounded in corpus."""
         if confidence < 0.3:
             return GateResult(
-                gate="compliance", passed=False,
+                gate="compliance",
+                passed=False,
                 reason=f"Confiança muito baixa ({confidence:.0%}). Resposta pode não ser baseada no corpus.",
-                severity="warning"
+                severity="warning",
             )
         if not chunks:
             return GateResult(
-                gate="compliance", passed=False,
+                gate="compliance",
+                passed=False,
                 reason="Nenhuma fonte encontrada no corpus. Resposta pode ser alucinação.",
-                severity="block"
+                severity="block",
             )
         return GateResult(gate="compliance", passed=True)
 
@@ -192,8 +210,9 @@ class GuardrailPipeline:
         for phrase in high_risk:
             if phrase in response.lower():
                 return GateResult(
-                    gate="risk_assessment", passed=False,
+                    gate="risk_assessment",
+                    passed=False,
                     reason=f"Avaliação de risco irresponsável: '{phrase}'",
-                    severity="block"
+                    severity="block",
                 )
         return GateResult(gate="risk_assessment", passed=True)

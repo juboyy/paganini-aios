@@ -7,10 +7,10 @@ A 'pack' is a domain knowledge bundle containing:
 - Guardrail rules
 - Report templates
 """
+
 from __future__ import annotations
 
 import json
-import shutil
 from pathlib import Path
 from typing import Optional
 
@@ -26,14 +26,34 @@ PACK_REGISTRY = {
     "fidc-professional": {
         "name": "FIDC Professional",
         "description": "Full regulatory coverage — 9 agents, 12 skills, reporting",
-        "agents": ["administrador", "custodiante", "gestor", "compliance", "reporting", "due_diligence", "regulatory_watch", "investor_relations", "pricing"],
+        "agents": [
+            "administrador",
+            "custodiante",
+            "gestor",
+            "compliance",
+            "reporting",
+            "due_diligence",
+            "regulatory_watch",
+            "investor_relations",
+            "pricing",
+        ],
         "price": "R$8K/month",
         "tier": "professional",
     },
     "fidc-enterprise": {
         "name": "FIDC Enterprise",
         "description": "Everything + SLA + custom agents and skills",
-        "agents": ["administrador", "custodiante", "gestor", "compliance", "reporting", "due_diligence", "regulatory_watch", "investor_relations", "pricing"],
+        "agents": [
+            "administrador",
+            "custodiante",
+            "gestor",
+            "compliance",
+            "reporting",
+            "due_diligence",
+            "regulatory_watch",
+            "investor_relations",
+            "pricing",
+        ],
         "price": "R$25K/month",
         "tier": "enterprise",
     },
@@ -58,18 +78,26 @@ class PackManager:
 
     def install(self, pack_id: str) -> dict:
         if pack_id not in PACK_REGISTRY:
-            return {"status": "error", "message": f"Pack '{pack_id}' not found. Available: {', '.join(PACK_REGISTRY.keys())}"}
+            return {
+                "status": "error",
+                "message": f"Pack '{pack_id}' not found. Available: {', '.join(PACK_REGISTRY.keys())}",
+            }
 
         pack = PACK_REGISTRY[pack_id]
 
         # Check if already installed
         installed = self.list_installed()
         if any(p["id"] == pack_id for p in installed):
-            return {"status": "already_installed", "message": f"Pack '{pack_id}' already installed"}
+            return {
+                "status": "already_installed",
+                "message": f"Pack '{pack_id}' already installed",
+            }
 
         # "Install" = register the pack and activate its agents
         installed.append({"id": pack_id, **pack})
-        self.installed_file.write_text(json.dumps(installed, indent=2, ensure_ascii=False))
+        self.installed_file.write_text(
+            json.dumps(installed, indent=2, ensure_ascii=False)
+        )
 
         return {
             "status": "ok",
@@ -83,7 +111,9 @@ class PackManager:
         new_installed = [p for p in installed if p["id"] != pack_id]
         if len(new_installed) == len(installed):
             return {"status": "error", "message": f"Pack '{pack_id}' not installed"}
-        self.installed_file.write_text(json.dumps(new_installed, indent=2, ensure_ascii=False))
+        self.installed_file.write_text(
+            json.dumps(new_installed, indent=2, ensure_ascii=False)
+        )
         return {"status": "ok", "message": f"Pack '{pack_id}' uninstalled"}
 
     def info(self, pack_id: str) -> Optional[dict]:

@@ -1,17 +1,9 @@
 from __future__ import annotations
 
 import re
-import uuid
 from pathlib import Path
 
-from .schema import (
-    Entity,
-    EntityType,
-    KnowledgeGraph,
-    Relation,
-    RelationType,
-)
-
+from .schema import Entity, EntityType, KnowledgeGraph, Relation, RelationType
 
 # ---------------------------------------------------------------------------
 # Regex patterns for entity extraction
@@ -37,7 +29,10 @@ _PATTERNS: list[tuple[EntityType, list[re.Pattern]]] = [
             re.compile(r"FIDC\s+ESG\b", re.IGNORECASE),
             re.compile(r"FIDC\s+Padronizado", re.IGNORECASE),
             re.compile(r"FIDC\s+N[ã a]o[-\s]Padronizado", re.IGNORECASE),
-            re.compile(r"Fundo\s+de\s+Investimento\s+em\s+Direitos\s+Credit[oó]rios", re.IGNORECASE),
+            re.compile(
+                r"Fundo\s+de\s+Investimento\s+em\s+Direitos\s+Credit[oó]rios",
+                re.IGNORECASE,
+            ),
             re.compile(r"\bFIDC\b", re.IGNORECASE),
         ],
     ),
@@ -186,13 +181,15 @@ class OntologyBuilder:
         for section in sections:
             # Find which entities appear in this section
             present: list[Entity] = [
-                e for e in entities if e.name.lower() in section.lower()
+                e
+                for e in entities
+                if e.name.lower() in section.lower()
                 or (e.attributes.get("raw_match", "").lower() in section.lower())
             ]
 
             # Pair every entity in the section with every other
             for i, src in enumerate(present):
-                for tgt in present[i + 1:]:
+                for tgt in present[i + 1 :]:
                     if src.id == tgt.id:
                         continue
 

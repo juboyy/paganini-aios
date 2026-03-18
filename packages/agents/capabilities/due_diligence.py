@@ -21,6 +21,7 @@ Risk levels:
   score >= 30  → alto
   score <  30  → critico
 """
+
 from __future__ import annotations
 
 import logging
@@ -67,7 +68,7 @@ SECTOR_RISK: dict[str, float] = {
 
 # Minimum financial ratios for "acceptable" rating
 MIN_CURRENT_RATIO = 1.2
-MIN_REVENUE_GROWTH = -0.10   # Up to -10% is still acceptable
+MIN_REVENUE_GROWTH = -0.10  # Up to -10% is still acceptable
 
 # Mock PEP database (in production: government datasets, Receita Federal)
 PEP_DATABASE: dict[str, dict[str, Any]] = {
@@ -98,6 +99,7 @@ PEP_DATABASE: dict[str, dict[str, Any]] = {
 # Data structures
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class CedenteScore:
     cnpj: str
@@ -115,7 +117,9 @@ class CedenteScore:
             "company_name": self.company_name,
             "overall_score": round(self.overall_score, 2),
             "risk_level": self.risk_level,
-            "criteria_scores": {k: round(v, 2) for k, v in self.criteria_scores.items()},
+            "criteria_scores": {
+                k: round(v, 2) for k, v in self.criteria_scores.items()
+            },
             "criteria_details": self.criteria_details,
             "recommendation": self.recommendation,
             "timestamp": self.timestamp,
@@ -126,7 +130,7 @@ class CedenteScore:
 class OnboardingResult:
     cnpj: str
     company_name: str
-    status: str                  # APPROVED | REJECTED | PENDING_EDD
+    status: str  # APPROVED | REJECTED | PENDING_EDD
     cedente_score: CedenteScore | None
     checks: list[dict[str, Any]]
     blockers: list[str]
@@ -139,7 +143,9 @@ class OnboardingResult:
             "cnpj": self.cnpj,
             "company_name": self.company_name,
             "status": self.status,
-            "cedente_score": self.cedente_score.to_dict() if self.cedente_score else None,
+            "cedente_score": (
+                self.cedente_score.to_dict() if self.cedente_score else None
+            ),
             "checks": self.checks,
             "blockers": self.blockers,
             "warnings": self.warnings,
@@ -151,6 +157,7 @@ class OnboardingResult:
 # ---------------------------------------------------------------------------
 # DueDiligenceAgent
 # ---------------------------------------------------------------------------
+
 
 class DueDiligenceAgent:
     """
@@ -190,9 +197,7 @@ class DueDiligenceAgent:
                 "cnpj": context.get("cnpj", ""),
                 "valid": self.validate_cnpj(str(context.get("cnpj", ""))),
             },
-            "check_pep": lambda: {
-                "hits": self.check_pep(context.get("names", []))
-            },
+            "check_pep": lambda: {"hits": self.check_pep(context.get("names", []))},
             "analyze_financials": lambda: self.analyze_financials(
                 context.get("balance_sheet", context)
             ),
@@ -232,7 +237,7 @@ class DueDiligenceAgent:
         Returns:
             True if valid, False otherwise.
         """
-        digits = re.sub(r'\D', '', cnpj)
+        digits = re.sub(r"\D", "", cnpj)
 
         if len(digits) != 14:
             return False
@@ -280,17 +285,19 @@ class DueDiligenceAgent:
                 overlap = name_tokens & pep_tokens
                 match_score = len(overlap) / max(len(pep_tokens), 1)
 
-                if match_score >= 0.6:   # 60%+ token overlap
-                    hits.append({
-                        "queried_name": name,
-                        "matched_pep": pep_name,
-                        "match_score": round(match_score, 2),
-                        "role": pep_data["role"],
-                        "jurisdiction": pep_data["jurisdiction"],
-                        "pep_since": pep_data["since"],
-                        "risk_level": pep_data["risk"],
-                        "action_required": "Enhanced Due Diligence (EDD) mandatory.",
-                    })
+                if match_score >= 0.6:  # 60%+ token overlap
+                    hits.append(
+                        {
+                            "queried_name": name,
+                            "matched_pep": pep_name,
+                            "match_score": round(match_score, 2),
+                            "role": pep_data["role"],
+                            "jurisdiction": pep_data["jurisdiction"],
+                            "pep_since": pep_data["since"],
+                            "risk_level": pep_data["risk"],
+                            "action_required": "Enhanced Due Diligence (EDD) mandatory.",
+                        }
+                    )
         return hits
 
     def analyze_financials(self, balance_sheet: dict[str, Any]) -> dict[str, Any]:
@@ -334,20 +341,50 @@ class DueDiligenceAgent:
         debt_to_equity = safe_div(total_debt, equity)
         gross_margin = safe_div(revenue - cogs, revenue)
         ebitda_margin = safe_div(ebitda, revenue)
-        revenue_growth = safe_div(revenue - revenue_prior, revenue_prior) if revenue_prior else 0.0
+        revenue_growth = (
+            safe_div(revenue - revenue_prior, revenue_prior) if revenue_prior else 0.0
+        )
         net_profit_margin = safe_div(net_income, revenue)
         asset_turnover = safe_div(revenue, total_assets)
 
         # Benchmarks and status
         benchmarks = {
-            "current_ratio": {"value": current_ratio, "min": 1.2, "ok": current_ratio >= 1.2},
+            "current_ratio": {
+                "value": current_ratio,
+                "min": 1.2,
+                "ok": current_ratio >= 1.2,
+            },
             "quick_ratio": {"value": quick_ratio, "min": 0.8, "ok": quick_ratio >= 0.8},
-            "debt_to_equity": {"value": debt_to_equity, "max": 2.5, "ok": debt_to_equity <= 2.5},
-            "gross_margin": {"value": gross_margin, "min": 0.10, "ok": gross_margin >= 0.10},
-            "ebitda_margin": {"value": ebitda_margin, "min": 0.05, "ok": ebitda_margin >= 0.05},
-            "revenue_growth": {"value": revenue_growth, "min": MIN_REVENUE_GROWTH, "ok": revenue_growth >= MIN_REVENUE_GROWTH},
-            "net_profit_margin": {"value": net_profit_margin, "min": 0.02, "ok": net_profit_margin >= 0.02},
-            "asset_turnover": {"value": asset_turnover, "min": 0.30, "ok": asset_turnover >= 0.30},
+            "debt_to_equity": {
+                "value": debt_to_equity,
+                "max": 2.5,
+                "ok": debt_to_equity <= 2.5,
+            },
+            "gross_margin": {
+                "value": gross_margin,
+                "min": 0.10,
+                "ok": gross_margin >= 0.10,
+            },
+            "ebitda_margin": {
+                "value": ebitda_margin,
+                "min": 0.05,
+                "ok": ebitda_margin >= 0.05,
+            },
+            "revenue_growth": {
+                "value": revenue_growth,
+                "min": MIN_REVENUE_GROWTH,
+                "ok": revenue_growth >= MIN_REVENUE_GROWTH,
+            },
+            "net_profit_margin": {
+                "value": net_profit_margin,
+                "min": 0.02,
+                "ok": net_profit_margin >= 0.02,
+            },
+            "asset_turnover": {
+                "value": asset_turnover,
+                "min": 0.30,
+                "ok": asset_turnover >= 0.30,
+            },
         }
 
         passing = sum(1 for v in benchmarks.values() if v["ok"])
@@ -357,10 +394,9 @@ class DueDiligenceAgent:
             "ratios": benchmarks,
             "health_score": round(health_score, 1),
             "health_grade": (
-                "A" if health_score >= 80
-                else "B" if health_score >= 60
-                else "C" if health_score >= 40
-                else "D"
+                "A"
+                if health_score >= 80
+                else "B" if health_score >= 60 else "C" if health_score >= 40 else "D"
             ),
             "passing_checks": passing,
             "total_checks": len(benchmarks),
@@ -429,11 +465,16 @@ class DueDiligenceAgent:
         else:
             hj_score = 10.0
         criteria_scores["historico_judicial"] = hj_score
-        criteria_details["historico_judicial"] = {"lawsuit_count": lawsuit_count, "raw_score": hj_score}
+        criteria_details["historico_judicial"] = {
+            "lawsuit_count": lawsuit_count,
+            "raw_score": hj_score,
+        }
 
         # 4. pep_sanctions
         pep_hits = self.check_pep(key_people) if key_people else []
-        high_risk_pep = [h for h in pep_hits if h.get("risk_level") in ("HIGH", "VERY_HIGH")]
+        high_risk_pep = [
+            h for h in pep_hits if h.get("risk_level") in ("HIGH", "VERY_HIGH")
+        ]
         if high_risk_pep:
             ps_score = 0.0
         elif pep_hits:
@@ -441,13 +482,20 @@ class DueDiligenceAgent:
         else:
             ps_score = 100.0
         criteria_scores["pep_sanctions"] = ps_score
-        criteria_details["pep_sanctions"] = {"pep_hits": pep_hits, "raw_score": ps_score}
+        criteria_details["pep_sanctions"] = {
+            "pep_hits": pep_hits,
+            "raw_score": ps_score,
+        }
 
         # 5. setor_atuacao
         sector_mult = SECTOR_RISK.get(sector, 0.60)
         sa_score = sector_mult * 100
         criteria_scores["setor_atuacao"] = sa_score
-        criteria_details["setor_atuacao"] = {"sector": sector, "risk_multiplier": sector_mult, "raw_score": sa_score}
+        criteria_details["setor_atuacao"] = {
+            "sector": sector,
+            "risk_multiplier": sector_mult,
+            "raw_score": sa_score,
+        }
 
         # Weighted aggregate
         overall = sum(
@@ -466,11 +514,17 @@ class DueDiligenceAgent:
         if overall >= 70:
             recommendation = "APROVADO — baixo risco, crédito padrão."
         elif overall >= 50:
-            recommendation = "APROVADO COM RESSALVAS — diligência adicional recomendada."
+            recommendation = (
+                "APROVADO COM RESSALVAS — diligência adicional recomendada."
+            )
         elif overall >= 30:
-            recommendation = "PENDING_EDD — due diligence aprimorada obrigatória antes da aprovação."
+            recommendation = (
+                "PENDING_EDD — due diligence aprimorada obrigatória antes da aprovação."
+            )
         else:
-            recommendation = "REJEITADO — risco crítico. Não onboar sem aprovação do comitê."
+            recommendation = (
+                "REJEITADO — risco crítico. Não onboar sem aprovação do comitê."
+            )
 
         return CedenteScore(
             cnpj=cnpj,
@@ -519,18 +573,26 @@ class DueDiligenceAgent:
         # Step 2: PEP screening
         key_people = company_data.get("key_people_names", [])
         pep_hits = self.check_pep(key_people)
-        high_risk_hits = [h for h in pep_hits if h.get("risk_level") in ("HIGH", "VERY_HIGH")]
-        checks.append({
-            "step": "pep_screening",
-            "screened": len(key_people),
-            "hits": len(pep_hits),
-            "high_risk_hits": len(high_risk_hits),
-            "passed": len(high_risk_hits) == 0,
-        })
+        high_risk_hits = [
+            h for h in pep_hits if h.get("risk_level") in ("HIGH", "VERY_HIGH")
+        ]
+        checks.append(
+            {
+                "step": "pep_screening",
+                "screened": len(key_people),
+                "hits": len(pep_hits),
+                "high_risk_hits": len(high_risk_hits),
+                "passed": len(high_risk_hits) == 0,
+            }
+        )
         if high_risk_hits:
-            blockers.append(f"{len(high_risk_hits)} PEP de alto risco detectado(s). EDD obrigatório.")
+            blockers.append(
+                f"{len(high_risk_hits)} PEP de alto risco detectado(s). EDD obrigatório."
+            )
         elif pep_hits:
-            warnings_list.append(f"{len(pep_hits)} PEP detectado(s). Monitoramento contínuo recomendado.")
+            warnings_list.append(
+                f"{len(pep_hits)} PEP detectado(s). Monitoramento contínuo recomendado."
+            )
 
         # Step 3: Financial analysis
         balance_sheet = company_data.get("balance_sheet", {})
@@ -538,27 +600,41 @@ class DueDiligenceAgent:
         if balance_sheet:
             fin_result = self.analyze_financials(balance_sheet)
             fin_ok = fin_result.get("health_score", 0) >= 40
-            checks.append({
-                "step": "financial_analysis",
-                "health_score": fin_result.get("health_score"),
-                "health_grade": fin_result.get("health_grade"),
-                "passed": fin_ok,
-            })
+            checks.append(
+                {
+                    "step": "financial_analysis",
+                    "health_score": fin_result.get("health_score"),
+                    "health_grade": fin_result.get("health_grade"),
+                    "passed": fin_ok,
+                }
+            )
             if not fin_ok:
-                warnings_list.append(f"Saúde financeira abaixo do limiar (score: {fin_result.get('health_score'):.1f}).")
+                warnings_list.append(
+                    f"Saúde financeira abaixo do limiar (score: {fin_result.get('health_score'):.1f})."
+                )
         else:
-            checks.append({"step": "financial_analysis", "passed": None, "note": "Balance sheet not provided."})
+            checks.append(
+                {
+                    "step": "financial_analysis",
+                    "passed": None,
+                    "note": "Balance sheet not provided.",
+                }
+            )
 
         # Step 4: Cedente scoring
         score_obj = self.score_cedente(cnpj, company_data)
-        checks.append({
-            "step": "cedente_scoring",
-            "overall_score": score_obj.overall_score,
-            "risk_level": score_obj.risk_level,
-            "passed": score_obj.overall_score >= 30,
-        })
+        checks.append(
+            {
+                "step": "cedente_scoring",
+                "overall_score": score_obj.overall_score,
+                "risk_level": score_obj.risk_level,
+                "passed": score_obj.overall_score >= 30,
+            }
+        )
         if score_obj.overall_score < 30:
-            blockers.append(f"Score crítico ({score_obj.overall_score:.1f}). Operação bloqueada.")
+            blockers.append(
+                f"Score crítico ({score_obj.overall_score:.1f}). Operação bloqueada."
+            )
 
         # Step 5: Credit limit suggestion
         # Base: % of annual revenue; adjusted by score
@@ -569,7 +645,7 @@ class DueDiligenceAgent:
             credit_pct = 0.10 + (0.15 * score_factor)
             credit_limit = revenue * credit_pct
         elif score_obj.overall_score >= 30:
-            credit_limit = 500_000.0   # Conservative floor
+            credit_limit = 500_000.0  # Conservative floor
         else:
             credit_limit = 0.0
 
@@ -601,7 +677,7 @@ class DueDiligenceAgent:
 
 DEMO_COMPANY = {
     "company_name": "Indústria Beta S.A.",
-    "cnpj": "11.222.333/0001-81",   # Will fail validation (illustrative)
+    "cnpj": "11.222.333/0001-81",  # Will fail validation (illustrative)
     "years_in_business": 8,
     "sector": "manufatura",
     "lawsuit_count": 1,
@@ -633,5 +709,6 @@ if __name__ == "__main__":
 
     result = agent.run_onboarding_pipeline(DEMO_VALID_CNPJ, DEMO_COMPANY)
     import json
+
     print("\nOnboarding Result:")
     print(json.dumps(result.to_dict(), indent=2, ensure_ascii=False))

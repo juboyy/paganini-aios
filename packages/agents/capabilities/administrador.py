@@ -9,10 +9,11 @@ Key formula:
     quota_price = NAV / total_quotas
     subordination_ratio = sub_nav / (senior_nav + sub_nav)
 """
+
 from __future__ import annotations
 
 import logging
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import datetime
 from typing import Any
 
@@ -23,11 +24,11 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 # Maximum admin fee per year (annualised, in decimal)
-MAX_ADMIN_FEE_ANNUAL = 0.02          # 2% a.a.
-MAX_CUSTODY_FEE_ANNUAL = 0.005       # 0.5% a.a.
+MAX_ADMIN_FEE_ANNUAL = 0.02  # 2% a.a.
+MAX_CUSTODY_FEE_ANNUAL = 0.005  # 0.5% a.a.
 
 # Minimum subordination ratio for senior quotas (CVM 175)
-MIN_SUBORDINATION_RATIO = 0.20       # 20%
+MIN_SUBORDINATION_RATIO = 0.20  # 20%
 
 # Day-count for fee accrual (Brazilian 252-business-day convention)
 BUSINESS_DAYS_YEAR = 252
@@ -36,9 +37,11 @@ BUSINESS_DAYS_YEAR = 252
 # Data structures
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class NavResult:
     """Full NAV breakdown for a FIDC."""
+
     date: str
     receivables_gross: float
     pdd_provision: float
@@ -67,6 +70,7 @@ class NavResult:
 # ---------------------------------------------------------------------------
 # AdministradorAgent
 # ---------------------------------------------------------------------------
+
 
 class AdministradorAgent:
     """
@@ -155,8 +159,12 @@ class AdministradorAgent:
         total_quotas_senior = float(portfolio.get("total_quotas_senior", 1.0))
         total_quotas_sub = float(portfolio.get("total_quotas_sub", 1.0))
         accrual_days = int(portfolio.get("accrual_days", 1))
-        admin_fee_rate = float(portfolio.get("admin_fee_override", self.admin_fee_annual))
-        custody_fee_rate = float(portfolio.get("custody_fee_override", self.custody_fee_annual))
+        admin_fee_rate = float(
+            portfolio.get("admin_fee_override", self.admin_fee_annual)
+        )
+        custody_fee_rate = float(
+            portfolio.get("custody_fee_override", self.custody_fee_annual)
+        )
 
         receivables_net = receivables_gross - pdd_provision
         total_assets = receivables_net + cash + other_assets
@@ -164,8 +172,12 @@ class AdministradorAgent:
         # Pro-rata fee accrual: (1 + annual)^(days/252) − 1
         # Applied to the gross NAV base
         nav_base = total_assets - liabilities
-        admin_daily_factor = (1 + admin_fee_rate) ** (accrual_days / self.business_days_year) - 1
-        custody_daily_factor = (1 + custody_fee_rate) ** (accrual_days / self.business_days_year) - 1
+        admin_daily_factor = (1 + admin_fee_rate) ** (
+            accrual_days / self.business_days_year
+        ) - 1
+        custody_daily_factor = (1 + custody_fee_rate) ** (
+            accrual_days / self.business_days_year
+        ) - 1
 
         admin_fees_accrued = nav_base * admin_daily_factor
         custody_fees_accrued = nav_base * custody_daily_factor
@@ -272,7 +284,9 @@ class AdministradorAgent:
         if amount <= 0:
             raise ValueError(f"Issuance amount must be positive, got {amount}")
         if quota_class not in ("senior", "subordinada"):
-            raise ValueError(f"quota_class must be 'senior' or 'subordinada', got {quota_class!r}")
+            raise ValueError(
+                f"quota_class must be 'senior' or 'subordinada', got {quota_class!r}"
+            )
 
         # Quota price before issuance (NAV known from current_nav argument)
         # Assume total_quotas = current_nav / 1000 for demo (1000 BRL par)
@@ -382,7 +396,7 @@ class AdministradorAgent:
 
         lines = [
             "=" * 70,
-            f"  PAGANINI FIDC — INFORME DIÁRIO DE NAV",
+            "  PAGANINI FIDC — INFORME DIÁRIO DE NAV",
             f"  Data de Referência: {date}",
             "=" * 70,
             "",
@@ -460,13 +474,13 @@ class AdministradorAgent:
 
 DEMO_PORTFOLIO = {
     "receivables_gross": 95_000_000.00,
-    "pdd_provision": 2_850_000.00,   # ~3% PDD
+    "pdd_provision": 2_850_000.00,  # ~3% PDD
     "cash": 4_200_000.00,
     "other_assets": 800_000.00,
     "liabilities": 500_000.00,
     "senior_nav": 78_400_000.00,
     "sub_nav": 17_800_000.00,
-    "total_quotas_senior": 78_400.0,   # par BRL 1,000
+    "total_quotas_senior": 78_400.0,  # par BRL 1,000
     "total_quotas_sub": 17_800.0,
     "accrual_days": 1,
 }

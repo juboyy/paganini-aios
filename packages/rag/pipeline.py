@@ -1,21 +1,20 @@
 """PAGANINI RAG Pipeline — Modular, swappable retrieval system."""
 
 import hashlib
-import json
-import os
 import re
 from pathlib import Path
-from typing import Optional
 
 import chromadb
-import yaml
 
 from packages.rag.bm25 import BM25Index
 
 
 class Chunk:
     """A chunk of text from a document."""
-    def __init__(self, text: str, source: str, section: str = "", metadata: dict = None):
+
+    def __init__(
+        self, text: str, source: str, section: str = "", metadata: dict = None
+    ):
         self.text = text
         self.source = source
         self.section = section
@@ -28,8 +27,16 @@ class Chunk:
 
 class Answer:
     """A RAG answer with sources."""
-    def __init__(self, text: str, chunks: list[Chunk], confidence: float = 0.0,
-                 model: str = "", latency_ms: float = 0, cost: float = 0):
+
+    def __init__(
+        self,
+        text: str,
+        chunks: list[Chunk],
+        confidence: float = 0.0,
+        model: str = "",
+        latency_ms: float = 0,
+        cost: float = 0,
+    ):
         self.text = text
         self.chunks = chunks
         self.confidence = confidence
@@ -40,7 +47,7 @@ class Answer:
 
 class RAGPipeline:
     """Hybrid RAG pipeline — modular and configurable.
-    
+
     Designed to be optimized by AutoResearch (program.md + eval.py loop).
     Every parameter is exposed and tunable.
     """
@@ -70,8 +77,7 @@ class RAGPipeline:
         chroma_path = str(self.data_dir / "chroma")
         self.chroma = chromadb.PersistentClient(path=chroma_path)
         self.collection = self.chroma.get_or_create_collection(
-            name="corpus",
-            metadata={"hnsw:space": "cosine"}
+            name="corpus", metadata={"hnsw:space": "cosine"}
         )
 
         # === BM25 (sparse retrieval) ===
@@ -79,7 +85,7 @@ class RAGPipeline:
 
     def ingest(self, corpus_dir: str) -> dict:
         """Ingest markdown files from corpus directory.
-        
+
         Returns stats about the ingestion.
         """
         corpus_path = Path(corpus_dir)
@@ -112,26 +118,30 @@ class RAGPipeline:
             stats["files"] += 1
 
             for idx, chunk in enumerate(chunks):
-                chunk_id = hashlib.md5(f"{chunk.source}:{chunk.section}:{idx}:{chunk.text[:200]}".encode()).hexdigest()
+                chunk_id = hashlib.md5(
+                    f"{chunk.source}:{chunk.section}:{idx}:{chunk.text[:200]}".encode()
+                ).hexdigest()
                 batch_ids.append(chunk_id)
                 batch_docs.append(chunk.text)
-                batch_metas.append({
-                    "source": chunk.source,
-                    "section": chunk.section,
-                    **chunk.metadata
-                })
+                batch_metas.append(
+                    {"source": chunk.source, "section": chunk.section, **chunk.metadata}
+                )
                 stats["chunks"] += 1
                 stats["total_chars"] += len(chunk.text)
 
                 # Batch upsert every 100 chunks
                 if len(batch_ids) >= 100:
-                    self.collection.upsert(ids=batch_ids, documents=batch_docs, metadatas=batch_metas)
+                    self.collection.upsert(
+                        ids=batch_ids, documents=batch_docs, metadatas=batch_metas
+                    )
                     self.bm25.index(batch_docs, batch_ids, batch_metas)
                     batch_ids, batch_docs, batch_metas = [], [], []
 
         # Final batch
         if batch_ids:
-            self.collection.upsert(ids=batch_ids, documents=batch_docs, metadatas=batch_metas)
+            self.collection.upsert(
+                ids=batch_ids, documents=batch_docs, metadatas=batch_metas
+            )
             self.bm25.index(batch_docs, batch_ids, batch_metas)
 
         return stats
@@ -147,7 +157,7 @@ class RAGPipeline:
         dense_results = self.collection.query(
             query_texts=[query],
             n_results=min(k * 2, self.collection.count()),
-            include=["documents", "metadatas", "distances"]
+            include=["documents", "metadatas", "distances"],
         )
         dense_hits: dict[str, dict] = {}
         for i, doc in enumerate(dense_results["documents"][0]):
@@ -157,7 +167,7 @@ class RAGPipeline:
             dense_hits[doc_id] = {
                 "text": doc,
                 "meta": meta,
-                "dense_rank": i,           # 0-indexed rank
+                "dense_rank": i,  # 0-indexed rank
                 "dense_score": 1 - distance,
             }
 
@@ -220,13 +230,17 @@ class RAGPipeline:
             min_score = min(c.score for c in chunks)
             score_range = max_score - min_score if max_score > min_score else 1.0
             for c in chunks:
-                c.score = 0.5 + 0.5 * ((c.score - min_score) / score_range) if score_range > 0 else 0.75
+                c.score = (
+                    0.5 + 0.5 * ((c.score - min_score) / score_range)
+                    if score_range > 0
+                    else 0.75
+                )
 
         return chunks
 
     def query(self, question: str, llm_fn=None) -> Answer:
         """Full RAG: retrieve + generate answer.
-        
+
         llm_fn: callable that takes (system_prompt, user_prompt) → response text
         """
         chunks = self.retrieve(question)
@@ -234,7 +248,8 @@ class RAGPipeline:
         if not chunks:
             return Answer(
                 text="Nenhum documento encontrado no corpus. Execute `paganini ingest` primeiro.",
-                chunks=[], confidence=0.0
+                chunks=[],
+                confidence=0.0,
             )
 
         # Build context from chunks
@@ -265,6 +280,7 @@ Responda citando as fontes relevantes."""
 
         if llm_fn:
             import time
+
             start = time.time()
             response_text = llm_fn(system_prompt, user_prompt)
             latency = (time.time() - start) * 1000
@@ -277,14 +293,14 @@ Responda citando as fontes relevantes."""
                 text=response_text,
                 chunks=chunks,
                 confidence=confidence,
-                latency_ms=latency
+                latency_ms=latency,
             )
         else:
             # No LLM — return context only
             return Answer(
                 text=f"[RAG sem LLM] Top {len(chunks)} chunks encontrados:\n\n{context}",
                 chunks=chunks,
-                confidence=0.5
+                confidence=0.5,
             )
 
     def _chunk_document(self, text: str, source: str) -> list[Chunk]:
@@ -297,18 +313,18 @@ Responda citando as fontes relevantes."""
     def _chunk_by_headers(self, text: str, source: str) -> list[Chunk]:
         """Split by markdown headers, then chunk large sections."""
         chunks = []
-        sections = re.split(r'\n(?=#{1,4}\s)', text)
+        sections = re.split(r"\n(?=#{1,4}\s)", text)
 
         for section in sections:
-            lines = section.strip().split('\n')
+            lines = section.strip().split("\n")
             if not lines:
                 continue
 
             # Extract section title
             title = ""
-            if lines[0].startswith('#'):
-                title = lines[0].lstrip('#').strip()
-                content = '\n'.join(lines[1:]).strip()
+            if lines[0].startswith("#"):
+                title = lines[0].lstrip("#").strip()
+                content = "\n".join(lines[1:]).strip()
             else:
                 content = section.strip()
 
@@ -320,21 +336,29 @@ Responda citando as fontes relevantes."""
                 chunks.append(Chunk(text=content, source=source, section=title))
             else:
                 # Split large sections into overlapping chunks
-                sub_chunks = self._split_text(content, self.chunk_size * 4, self.chunk_overlap * 4)
+                sub_chunks = self._split_text(
+                    content, self.chunk_size * 4, self.chunk_overlap * 4
+                )
                 for i, sub in enumerate(sub_chunks):
-                    chunks.append(Chunk(
-                        text=sub,
-                        source=source,
-                        section=f"{title} (parte {i+1})" if title else f"parte {i+1}"
-                    ))
+                    chunks.append(
+                        Chunk(
+                            text=sub,
+                            source=source,
+                            section=(
+                                f"{title} (parte {i+1})" if title else f"parte {i+1}"
+                            ),
+                        )
+                    )
 
         return chunks
 
     def _chunk_fixed(self, text: str, source: str) -> list[Chunk]:
         """Fixed-size chunking with overlap."""
         sub_chunks = self._split_text(text, self.chunk_size * 4, self.chunk_overlap * 4)
-        return [Chunk(text=c, source=source, section=f"chunk {i+1}")
-                for i, c in enumerate(sub_chunks)]
+        return [
+            Chunk(text=c, source=source, section=f"chunk {i+1}")
+            for i, c in enumerate(sub_chunks)
+        ]
 
     def _split_text(self, text: str, size: int, overlap: int) -> list[str]:
         """Split text into overlapping chunks."""

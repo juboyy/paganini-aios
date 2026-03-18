@@ -111,7 +111,7 @@ function GateBarChart() {
         return (
           <>
             <line x1={0} y1={y} x2={chartW} y2={y} stroke="hsl(0 84% 60% / 0.5)" strokeWidth={1} strokeDasharray="4 3" />
-            <text x={chartW - 2} y={y - 4} textAnchor="end" style={{ fontSize: "0.5rem", fill: "hsl(0 84% 60% / 0.8)", fontFamily: "var(--font-mono)" }}>
+            <text x={chartW - 2} y={y - 4} textAnchor="end" style={{ fontSize: "0.75rem", fill: "hsl(0 84% 60% / 0.8)", fontFamily: "var(--font-mono)" }}>
               SLA 95%
             </text>
           </>
@@ -137,7 +137,7 @@ function GateBarChart() {
               x={x + barW / 2}
               y={y - 4}
               textAnchor="middle"
-              style={{ fontSize: "0.5rem", fill: "var(--accent)", fontFamily: "var(--font-mono)" }}
+              style={{ fontSize: "0.75rem", fill: "var(--accent)", fontFamily: "var(--font-mono)" }}
             >
               {gate.passRate}%
             </text>
@@ -158,7 +158,7 @@ export default function GuardrailsPage() {
     <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
       {/* Cabeçalho */}
       <div>
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "0.25rem" }}>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "0.25rem" }}>
           PAGANINI AIOS · CAMADA DE SEGURANÇA
         </div>
         <h1 style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--text-1)", margin: 0 }}>
@@ -176,18 +176,18 @@ export default function GuardrailsPage() {
           { label: "FALSO POSITIVO", value: `${falsePositive}%`, sub: "média do setor 2,1%", color: "var(--cyan)" },
         ].map((s) => (
           <div key={s.label} className="glass-card" style={{ padding: "1rem 1.25rem" }}>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "0.25rem" }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "0.25rem" }}>
               {s.label}
             </div>
             <div style={{ fontSize: "1.875rem", fontWeight: 700, color: s.color, fontFamily: "var(--font-mono)", lineHeight: 1 }}>{s.value}</div>
-            <div style={{ fontSize: "0.6875rem", color: "var(--text-4)", marginTop: "0.25rem" }}>{s.sub}</div>
+            <div style={{ fontSize: "0.8125rem", color: "var(--text-4)", marginTop: "0.25rem" }}>{s.sub}</div>
           </div>
         ))}
       </div>
 
       {/* Visualização do Pipeline */}
       <div className="glass-card" style={{ padding: "1.5rem" }}>
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "1.25rem" }}>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "1.25rem" }}>
           VISUALIZAÇÃO DO PIPELINE · OPERAÇÃO → 6 GATES → VEREDICTO
         </div>
 
@@ -200,7 +200,7 @@ export default function GuardrailsPage() {
               border: "1px solid var(--border)",
               borderRadius: "var(--radius)",
               fontFamily: "var(--font-mono)",
-              fontSize: "0.625rem",
+              fontSize: "0.8125rem",
               color: "var(--text-3)",
               background: "rgba(0,0,0,0.5)",
               display: "flex",
@@ -224,7 +224,7 @@ export default function GuardrailsPage() {
                   border: "1px solid hsl(150 100% 50% / 0.25)",
                   borderRadius: "var(--radius)",
                   fontFamily: "var(--font-mono)",
-                  fontSize: "0.5625rem",
+                  fontSize: "0.75rem",
                   color: "var(--accent)",
                   letterSpacing: "0.08em",
                   display: "flex",
@@ -252,7 +252,7 @@ export default function GuardrailsPage() {
                 border: "1px solid var(--accent)",
                 borderRadius: "var(--radius)",
                 fontFamily: "var(--font-mono)",
-                fontSize: "0.6875rem",
+                fontSize: "0.8125rem",
                 color: "var(--accent)",
                 fontWeight: 700,
                 letterSpacing: "0.1em",
@@ -275,7 +275,7 @@ export default function GuardrailsPage() {
                 border: "1px solid hsl(0 84% 60% / 0.5)",
                 borderRadius: "var(--radius)",
                 fontFamily: "var(--font-mono)",
-                fontSize: "0.6875rem",
+                fontSize: "0.8125rem",
                 color: "hsl(0 84% 60%)",
                 fontWeight: 700,
                 letterSpacing: "0.1em",
@@ -300,23 +300,23 @@ export default function GuardrailsPage() {
                 }}
               >
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.5rem" }}>
-                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.625rem", color: "var(--accent)", fontWeight: 700, letterSpacing: "0.1em" }}>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: "var(--accent)", fontWeight: 700, letterSpacing: "0.1em" }}>
                     {gate.id}
                   </div>
-                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", color: "var(--text-4)" }}>{gate.lastCheck}</div>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-4)" }}>{gate.lastCheck}</div>
                 </div>
-                <div style={{ fontSize: "0.6875rem", color: "var(--text-2)", fontWeight: 600, marginBottom: "0.5rem" }}>{gate.name}</div>
+                <div style={{ fontSize: "0.8125rem", color: "var(--text-2)", fontWeight: 600, marginBottom: "0.5rem" }}>{gate.name}</div>
                 <div style={{ display: "flex", flexDirection: "column", gap: "2px", marginBottom: "0.75rem" }}>
                   {gate.checks.map((c) => (
                     <div key={c} style={{ display: "flex", gap: "6px", alignItems: "flex-start" }}>
-                      <span style={{ color: "var(--accent)", fontSize: "0.5625rem", flexShrink: 0, marginTop: "1px" }}>·</span>
-                      <span style={{ fontSize: "0.5625rem", color: "var(--text-3)", lineHeight: 1.5 }}>{c}</span>
+                      <span style={{ color: "var(--accent)", fontSize: "0.75rem", flexShrink: 0, marginTop: "1px" }}>·</span>
+                      <span style={{ fontSize: "0.75rem", color: "var(--text-3)", lineHeight: 1.5 }}>{c}</span>
                     </div>
                   ))}
                 </div>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "4px" }}>
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", color: "var(--text-4)", letterSpacing: "0.1em" }}>TAXA DE APROVAÇÃO</span>
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.625rem", color: "var(--accent)" }}>{gate.passRate}%</span>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-4)", letterSpacing: "0.1em" }}>TAXA DE APROVAÇÃO</span>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: "var(--accent)" }}>{gate.passRate}%</span>
                 </div>
                 <ProgressBar value={gate.passRate} />
               </div>
@@ -333,10 +333,10 @@ export default function GuardrailsPage() {
                 <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.4375rem", letterSpacing: "0.1em", color: "hsl(0 84% 60% / 0.7)", marginBottom: "4px" }}>
                   EXEMPLO DE REJEIÇÃO
                 </div>
-                <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", color: "hsl(0 84% 60%)", marginBottom: "3px" }}>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "hsl(0 84% 60%)", marginBottom: "3px" }}>
                   agente:{gate.rejectExample.agent}
                 </div>
-                <div style={{ fontSize: "0.5625rem", color: "var(--text-3)", lineHeight: 1.5 }}>{gate.rejectExample.reason}</div>
+                <div style={{ fontSize: "0.75rem", color: "var(--text-3)", lineHeight: 1.5 }}>{gate.rejectExample.reason}</div>
               </div>
             </div>
           ))}
@@ -345,7 +345,7 @@ export default function GuardrailsPage() {
 
       {/* Gráfico de Desempenho dos Gates */}
       <div className="glass-card" style={{ padding: "1.5rem" }}>
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "1rem" }}>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "1rem" }}>
           DESEMPENHO DOS GATES · TAXA DE APROVAÇÃO POR GATE (% · LIMIAR SLA 95%)
         </div>
         <GateBarChart />
@@ -355,7 +355,7 @@ export default function GuardrailsPage() {
       <div className="glass-card" style={{ padding: "1.5rem" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem" }}>
           <div>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "2px" }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "2px" }}>
               PROTEÇÃO ADVERSARIAL
             </div>
             <div style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--text-1)" }}>15 padrões bloqueados nesta sessão</div>
@@ -367,7 +367,7 @@ export default function GuardrailsPage() {
               border: "1px solid hsl(0 84% 60% / 0.3)",
               borderRadius: "var(--radius)",
               fontFamily: "var(--font-mono)",
-              fontSize: "0.5625rem",
+              fontSize: "0.75rem",
               color: "hsl(0 84% 60%)",
             }}
           >
@@ -396,7 +396,7 @@ export default function GuardrailsPage() {
                   border: "1px solid hsl(0 84% 60% / 0.3)",
                   borderRadius: "var(--radius)",
                   fontFamily: "var(--font-mono)",
-                  fontSize: "0.5625rem",
+                  fontSize: "0.75rem",
                   color: "hsl(0 84% 60%)",
                   minWidth: 20,
                   textAlign: "center",
@@ -404,11 +404,11 @@ export default function GuardrailsPage() {
               >
                 {b.count}×
               </span>
-              <span style={{ fontSize: "0.6875rem", fontWeight: 600, color: "var(--text-2)", minWidth: 160, flexShrink: 0 }}>{b.pattern}</span>
+              <span style={{ fontSize: "0.8125rem", fontWeight: 600, color: "var(--text-2)", minWidth: 160, flexShrink: 0 }}>{b.pattern}</span>
               <span
                 style={{
                   fontFamily: "var(--font-mono)",
-                  fontSize: "0.5625rem",
+                  fontSize: "0.75rem",
                   color: "var(--text-4)",
                   flex: 1,
                   overflow: "hidden",
@@ -420,7 +420,7 @@ export default function GuardrailsPage() {
               >
                 {b.example}
               </span>
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", color: "var(--text-4)", flexShrink: 0 }}>[REDIGIDO]</span>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-4)", flexShrink: 0 }}>[REDIGIDO]</span>
             </div>
           ))}
         </div>
@@ -428,11 +428,11 @@ export default function GuardrailsPage() {
 
       {/* Log de Verificações Recentes */}
       <div className="glass-card" style={{ padding: "1.5rem" }}>
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "1rem" }}>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "1rem" }}>
           LOG DE VERIFICAÇÕES RECENTES · AO VIVO
         </div>
         <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "var(--font-mono)", fontSize: "0.6875rem" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "var(--font-mono)", fontSize: "0.8125rem" }}>
             <thead>
               <tr style={{ borderBottom: "1px solid var(--border)" }}>
                 {["HORA", "AGENTE", "GATE", "RESULTADO", "MOTIVO"].map((h) => (
@@ -442,7 +442,7 @@ export default function GuardrailsPage() {
                       textAlign: "left",
                       padding: "0.5rem 0.75rem",
                       color: "var(--text-4)",
-                      fontSize: "0.5625rem",
+                      fontSize: "0.75rem",
                       letterSpacing: "0.1em",
                       fontWeight: 500,
                     }}
@@ -469,7 +469,7 @@ export default function GuardrailsPage() {
                       style={{
                         padding: "2px 8px",
                         borderRadius: "var(--radius)",
-                        fontSize: "0.5625rem",
+                        fontSize: "0.75rem",
                         fontWeight: 700,
                         letterSpacing: "0.08em",
                         background: row.result === "PASS" ? "hsl(150 100% 50% / 0.1)" : "hsl(0 84% 60% / 0.15)",
@@ -484,7 +484,7 @@ export default function GuardrailsPage() {
                     style={{
                       padding: "0.5rem 0.75rem",
                       color: row.result === "REJECT" ? "hsl(0 84% 60% / 0.8)" : "var(--text-3)",
-                      fontSize: "0.5625rem",
+                      fontSize: "0.75rem",
                       maxWidth: 300,
                       overflow: "hidden",
                       textOverflow: "ellipsis",

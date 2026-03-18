@@ -9,27 +9,26 @@ from __future__ import annotations
 import json
 import re
 import time
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Optional
 
 from packages.agents.framework import AgentDispatcher, AgentRegistry, AgentSOUL
-
 
 # ---------------------------------------------------------------------------
 # Dataclasses
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class QueryClassification:
     """Result of cognitive analysis on a query."""
 
-    complexity: str                  # simple | moderate | complex | expert
-    domains: list[str]               # detected knowledge domains
-    intent: str                      # factual | analytical | procedural | comparative | creative
-    confidence_estimate: float       # 0-1 — how confident we expect the answer to be
-    multi_agent: bool                # needs collaboration between agents
-    reasoning: str                   # why this classification
+    complexity: str  # simple | moderate | complex | expert
+    domains: list[str]  # detected knowledge domains
+    intent: str  # factual | analytical | procedural | comparative | creative
+    confidence_estimate: float  # 0-1 — how confident we expect the answer to be
+    multi_agent: bool  # needs collaboration between agents
+    reasoning: str  # why this classification
 
 
 @dataclass
@@ -39,8 +38,8 @@ class RoutingDecision:
     primary_agent: AgentSOUL
     supporting_agents: list[AgentSOUL]
     classification: QueryClassification
-    context_layers: list[str]        # "rag" | "memory" | "knowledge_graph" | "metaclaw"
-    suggested_top_k: int             # number of RAG chunks to retrieve
+    context_layers: list[str]  # "rag" | "memory" | "knowledge_graph" | "metaclaw"
+    suggested_top_k: int  # number of RAG chunks to retrieve
 
 
 # ---------------------------------------------------------------------------
@@ -49,30 +48,72 @@ class RoutingDecision:
 
 _INTENT_PATTERNS: dict[str, list[str]] = {
     "factual": [
-        r"\bo que [eé]\b", r"\bquem [eé]\b", r"\bonde [eé]\b", r"\bquando [eé]\b",
-        r"\bdefin[ia]\b", r"\bconceito\b", r"\bsignifica\b", r"\bwhat is\b",
-        r"\bwhat are\b", r"\bdefine\b",
+        r"\bo que [eé]\b",
+        r"\bquem [eé]\b",
+        r"\bonde [eé]\b",
+        r"\bquando [eé]\b",
+        r"\bdefin[ia]\b",
+        r"\bconceito\b",
+        r"\bsignifica\b",
+        r"\bwhat is\b",
+        r"\bwhat are\b",
+        r"\bdefine\b",
     ],
     "comparative": [
-        r"\bcompare\b", r"\bcompar[ae]\b", r"\bdiferença entre\b", r"\bvs\.?\b",
-        r"\bversus\b", r"\bmelhor que\b", r"\bpior que\b", r"\bdistinção\b",
-        r"\bdiferencias\b", r"\bcontrast\b",
+        r"\bcompare\b",
+        r"\bcompar[ae]\b",
+        r"\bdiferença entre\b",
+        r"\bvs\.?\b",
+        r"\bversus\b",
+        r"\bmelhor que\b",
+        r"\bpior que\b",
+        r"\bdistinção\b",
+        r"\bdiferencias\b",
+        r"\bcontrast\b",
     ],
     "procedural": [
-        r"\bcomo funciona\b", r"\bcomo fazer\b", r"\bcomo [ae]\b", r"\bpassos\b",
-        r"\bprocedimento\b", r"\bfluxo\b", r"\bpasso a passo\b", r"\bhow to\b",
-        r"\bhow does\b", r"\bprocess\b", r"\bsteps\b",
+        r"\bcomo funciona\b",
+        r"\bcomo fazer\b",
+        r"\bcomo [ae]\b",
+        r"\bpassos\b",
+        r"\bprocedimento\b",
+        r"\bfluxo\b",
+        r"\bpasso a passo\b",
+        r"\bhow to\b",
+        r"\bhow does\b",
+        r"\bprocess\b",
+        r"\bsteps\b",
     ],
     "analytical": [
-        r"\banalise\b", r"\banalisa\b", r"\bavalie\b", r"\bimpacto\b", r"\brisco\b",
-        r"\bimplicaç\w+\b", r"\bconsequência\b", r"\bexplique\b", r"\bpor que\b",
-        r"\banalyze\b", r"\banalyse\b", r"\bassess\b", r"\bevaluate\b", r"\bwhy\b",
-        r"calcul[ae]", r"\bstress test\b", r"\bprojet[ao]\b",
+        r"\banalise\b",
+        r"\banalisa\b",
+        r"\bavalie\b",
+        r"\bimpacto\b",
+        r"\brisco\b",
+        r"\bimplicaç\w+\b",
+        r"\bconsequência\b",
+        r"\bexplique\b",
+        r"\bpor que\b",
+        r"\banalyze\b",
+        r"\banalyse\b",
+        r"\bassess\b",
+        r"\bevaluate\b",
+        r"\bwhy\b",
+        r"calcul[ae]",
+        r"\bstress test\b",
+        r"\bprojet[ao]\b",
     ],
     "creative": [
-        r"\bproponha\b", r"\bsugira\b", r"\bcrie\b", r"\bdesenvol\w+\b",
-        r"\bapresente um\b", r"\bgenerate\b", r"\bpropose\b", r"\bdesign\b",
-        r"\bcreate\b", r"\bdraft\b",
+        r"\bproponha\b",
+        r"\bsugira\b",
+        r"\bcrie\b",
+        r"\bdesenvol\w+\b",
+        r"\bapresente um\b",
+        r"\bgenerate\b",
+        r"\bpropose\b",
+        r"\bdesign\b",
+        r"\bcreate\b",
+        r"\bdraft\b",
     ],
 }
 
@@ -81,22 +122,25 @@ _INTENT_PATTERNS: dict[str, list[str]] = {
 # ---------------------------------------------------------------------------
 
 _COMPLEXITY_SIGNALS = {
-    "sub_questions":  re.compile(r"[?；;]"),
-    "comparison":     re.compile(r"(vs|versus|compare|diferen[çc]a|contrast)", re.I),
-    "calculation":    re.compile(
+    "sub_questions": re.compile(r"[?；;]"),
+    "comparison": re.compile(r"(vs|versus|compare|diferen[çc]a|contrast)", re.I),
+    "calculation": re.compile(
         r"(calcul[ae]|soma|total|percentual|porcentagem|taxa|yield|mtm|pdd|deságio|"
-        r"stress test|calculate|compute|quantif)", re.I
+        r"stress test|calculate|compute|quantif)",
+        re.I,
     ),
-    "temporal":       re.compile(
+    "temporal": re.compile(
         r"(histórico|evolução|tendência|período|prazo|vencimento|timeline|over time|"
-        r"forecast|projeção|série temporal)", re.I
+        r"forecast|projeção|série temporal)",
+        re.I,
     ),
-    "multi_domain":   None,  # determined at runtime from domain count
+    "multi_domain": None,  # determined at runtime from domain count
 }
 
 # ---------------------------------------------------------------------------
 # CognitiveRouter
 # ---------------------------------------------------------------------------
+
 
 class CognitiveRouter:
     """Meta-cognition layer that classifies queries and makes routing decisions."""
@@ -106,18 +150,18 @@ class CognitiveRouter:
 
     # Context layer thresholds
     _CONTEXT_RULES = {
-        "rag":           lambda c: True,                    # always pull RAG
-        "memory":        lambda c: c.complexity in ("complex", "expert"),
+        "rag": lambda c: True,  # always pull RAG
+        "memory": lambda c: c.complexity in ("complex", "expert"),
         "knowledge_graph": lambda c: len(c.domains) >= 2,
-        "metaclaw":      lambda c: c.complexity == "expert" or c.multi_agent,
+        "metaclaw": lambda c: c.complexity == "expert" or c.multi_agent,
     }
 
     # suggested_top_k per complexity
     _TOP_K_MAP = {
-        "simple":   4,
+        "simple": 4,
         "moderate": 8,
-        "complex":  12,
-        "expert":   20,
+        "complex": 12,
+        "expert": 20,
     }
 
     def __init__(self, config: dict):
@@ -159,7 +203,9 @@ class CognitiveRouter:
         multi_agent = len(domains) >= 2 or complexity in ("complex", "expert")
 
         # 5. Confidence estimate
-        confidence_estimate = self._estimate_confidence(domains, complexity, query_lower)
+        confidence_estimate = self._estimate_confidence(
+            domains, complexity, query_lower
+        )
 
         # 6. Reasoning narrative
         reasoning = (
@@ -191,7 +237,9 @@ class CognitiveRouter:
         if classification.multi_agent:
             candidates = self.dispatcher.route_multi(query, max_agents=4)
             for agent, _conf in candidates:
-                if agent and agent.slug != (primary_agent.slug if primary_agent else None):
+                if agent and agent.slug != (
+                    primary_agent.slug if primary_agent else None
+                ):
                     supporting_agents.append(agent)
 
         # Context layers
@@ -254,13 +302,15 @@ class CognitiveRouter:
         patterns = []
         for domain, confidences in self._patterns.items():
             if confidences:
-                patterns.append({
-                    "domain": domain,
-                    "sample_count": len(confidences),
-                    "avg_confidence": round(sum(confidences) / len(confidences), 3),
-                    "min_confidence": round(min(confidences), 3),
-                    "max_confidence": round(max(confidences), 3),
-                })
+                patterns.append(
+                    {
+                        "domain": domain,
+                        "sample_count": len(confidences),
+                        "avg_confidence": round(sum(confidences) / len(confidences), 3),
+                        "min_confidence": round(min(confidences), 3),
+                        "max_confidence": round(max(confidences), 3),
+                    }
+                )
         return sorted(patterns, key=lambda p: p["avg_confidence"], reverse=True)
 
     # ------------------------------------------------------------------
@@ -290,7 +340,9 @@ class CognitiveRouter:
 
         return max(scores, key=scores.get)
 
-    def _score_complexity(self, query_lower: str, domains: list[str]) -> tuple[str, str]:
+    def _score_complexity(
+        self, query_lower: str, domains: list[str]
+    ) -> tuple[str, str]:
         """Score complexity and return (level, reasoning_str)."""
         score = 0
         signals = []
@@ -362,7 +414,12 @@ class CognitiveRouter:
         conf -= domain_penalty
 
         # Complexity penalty
-        complexity_penalty = {"simple": 0.0, "moderate": 0.05, "complex": 0.12, "expert": 0.20}
+        complexity_penalty = {
+            "simple": 0.0,
+            "moderate": 0.05,
+            "complex": 0.12,
+            "expert": 0.20,
+        }
         conf -= complexity_penalty.get(complexity, 0.0)
 
         # Specificity bonus: presence of specific regulatory codes / numbers

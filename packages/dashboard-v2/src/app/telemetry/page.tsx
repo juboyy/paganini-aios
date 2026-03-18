@@ -89,7 +89,7 @@ export default function TelemetryPage() {
       {/* ── Header ── */}
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: "0.75rem" }}>
         <div>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "0.25rem" }}>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "0.25rem" }}>
             PAGANINI AIOS · MÉTRICAS DE DEV
           </div>
           <h1 style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--text-1)", margin: 0 }}>
@@ -139,14 +139,14 @@ export default function TelemetryPage() {
           },
         ].map((s, i) => (
           <div key={i} className="glass-card" style={{ padding: "1.25rem" }}>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "0.5rem" }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "0.5rem" }}>
               {s.label}
             </div>
             <div className="stat-value" style={{ fontSize: "2.25rem", fontWeight: 700, color: s.color, lineHeight: 1, fontFamily: "var(--font-mono)" }}>
               {s.value}
             </div>
-            <div style={{ fontSize: "0.6875rem", color: "var(--text-3)", marginTop: "0.25rem" }}>{s.sub}</div>
-            <div style={{ fontSize: "0.625rem", color: s.color, marginTop: "0.5rem", fontFamily: "var(--font-mono)" }}>{s.extra}</div>
+            <div style={{ fontSize: "0.8125rem", color: "var(--text-3)", marginTop: "0.25rem" }}>{s.sub}</div>
+            <div style={{ fontSize: "0.8125rem", color: s.color, marginTop: "0.5rem", fontFamily: "var(--font-mono)" }}>{s.extra}</div>
           </div>
         ))}
       </div>
@@ -155,14 +155,14 @@ export default function TelemetryPage() {
       <div className="glass-card" style={{ padding: "1.25rem" }}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.75rem", flexWrap: "wrap", gap: "0.5rem" }}>
           <div>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "0.25rem" }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "0.25rem" }}>
               GERAÇÃO DE CÓDIGO — ÚLTIMAS 24H
             </div>
             <div style={{ color: "var(--text-1)", fontWeight: 600, fontSize: "0.875rem" }}>Linhas de Código por Hora</div>
           </div>
           <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
-            <span className="mono-label" style={{ fontSize: "0.6875rem", color: "var(--text-3)", fontFamily: "var(--font-mono)" }}>
-              Total: <span style={{ color: "var(--accent)" }}>57.6K LOC</span>
+            <span className="mono-label" style={{ fontSize: "0.8125rem", color: "var(--text-3)", fontFamily: "var(--font-mono)" }}>
+              Total: <span style={{ color: "var(--accent)" }}>1.97M LOC</span>
             </span>
             <span className="tag-badge">26 AGENTES</span>
           </div>
@@ -186,7 +186,7 @@ export default function TelemetryPage() {
           {[0.25, 0.5, 0.75, 1].map(f => (
             <text key={f}
               x={4} y={H_LOC - f * H_LOC * 0.88 - H_LOC * 0.06 - 4}
-              fontSize="8" fill="rgba(255,255,255,0.2)"
+              fontSize="12" fill="rgba(255,255,255,0.2)"
             >
               {Math.round(locMax * f / 100) * 100}
             </text>
@@ -200,13 +200,13 @@ export default function TelemetryPage() {
           <rect x={(14 / 23) * W_LOC + 4} y={H_LOC * 0.06} width={90} height={16} rx={1}
             fill="rgba(0,255,128,0.12)" stroke="rgba(0,255,128,0.3)" strokeWidth="0.5" />
           <text x={(14 / 23) * W_LOC + 8} y={H_LOC * 0.06 + 11}
-            fontSize="8" fill="hsl(150 100% 50%)" fontFamily="IBM Plex Mono">
+            fontSize="12" fill="hsl(150 100% 50%)" fontFamily="IBM Plex Mono">
             PICO: 1.450 LOC/h
           </text>
           {/* Hour labels */}
           {[0, 6, 12, 18, 23].map(h => (
             <text key={h} x={(h / 23) * W_LOC} y={H_LOC - 2}
-              fontSize="8" fill="rgba(255,255,255,0.2)" textAnchor="middle">{h}h</text>
+              fontSize="12" fill="rgba(255,255,255,0.2)" textAnchor="middle">{h}h</text>
           ))}
         </svg>
         <div style={{ display: "flex", justifyContent: "space-between", marginTop: "4px" }}>
@@ -218,15 +218,15 @@ export default function TelemetryPage() {
 
       {/* ── Tabela de Performance por Agente ── */}
       <div className="glass-card" style={{ padding: "1.25rem" }}>
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "1rem" }}>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "1rem" }}>
           PERFORMANCE POR AGENTE · {AGENTS.length} AGENTES · ORDENADO POR LOC DESC
         </div>
         <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "var(--font-mono)", fontSize: "0.6875rem" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "var(--font-mono)", fontSize: "0.8125rem" }}>
             <thead>
               <tr style={{ borderBottom: "1px solid var(--border)" }}>
                 {["AGENTE", "LOC GERADAS", "TESTES ESCRITOS", "PRs", "LATÊNCIA", "CUSTO"].map(h => (
-                  <th key={h} style={{ textAlign: "left", padding: "0.5rem 0.75rem", color: "var(--text-4)", fontSize: "0.5625rem", letterSpacing: "0.12em", fontWeight: 500 }}>
+                  <th key={h} style={{ textAlign: "left", padding: "0.5rem 0.75rem", color: "var(--text-4)", fontSize: "0.75rem", letterSpacing: "0.12em", fontWeight: 500 }}>
                     {h}
                   </th>
                 ))}
@@ -272,16 +272,16 @@ export default function TelemetryPage() {
 
         {/* Breakdown */}
         <div className="glass-card" style={{ padding: "1.25rem" }}>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "1rem" }}>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "1rem" }}>
             BREAKDOWN DE CUSTOS — HOJE ${totalCost.toFixed(2)}
           </div>
           {COST_BREAKDOWN.map((s, i) => (
             <div key={i} style={{ marginBottom: "0.875rem" }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
-                <span style={{ fontSize: "0.625rem", color: "var(--text-2)", fontFamily: "var(--font-mono)" }}>{s.label}</span>
+                <span style={{ fontSize: "0.8125rem", color: "var(--text-2)", fontFamily: "var(--font-mono)" }}>{s.label}</span>
                 <div style={{ display: "flex", gap: "8px" }}>
-                  <span style={{ fontSize: "0.625rem", color: s.color, fontWeight: 600, fontFamily: "var(--font-mono)" }}>{s.pct}%</span>
-                  <span style={{ fontSize: "0.625rem", color: "var(--text-3)", fontFamily: "var(--font-mono)" }}>
+                  <span style={{ fontSize: "0.8125rem", color: s.color, fontWeight: 600, fontFamily: "var(--font-mono)" }}>{s.pct}%</span>
+                  <span style={{ fontSize: "0.8125rem", color: "var(--text-3)", fontFamily: "var(--font-mono)" }}>
                     ${(totalCost * s.pct / 100).toFixed(2)}
                   </span>
                 </div>
@@ -306,10 +306,10 @@ export default function TelemetryPage() {
 
         {/* Tendência 30d */}
         <div className="glass-card" style={{ padding: "1.25rem" }}>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "0.25rem" }}>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "0.25rem" }}>
             TENDÊNCIA DE CUSTO — 30 DIAS
           </div>
-          <div style={{ fontSize: "0.6875rem", color: "var(--text-2)", marginBottom: "0.75rem", fontFamily: "var(--font-mono)" }}>
+          <div style={{ fontSize: "0.8125rem", color: "var(--text-2)", marginBottom: "0.75rem", fontFamily: "var(--font-mono)" }}>
             Otimização contínua via RTK + autoaprendizado
           </div>
           <svg viewBox={`0 0 ${W_COST} ${H_COST}`} style={{ width: "100%", height: H_COST, display: "block" }}>
@@ -327,8 +327,8 @@ export default function TelemetryPage() {
             <path d={costFill} fill="url(#costTrendGrad)" />
             <polyline points={costPoints} fill="none" stroke="hsl(150 100% 50%)" strokeWidth="2" strokeLinejoin="round" />
             {/* Labels extremos */}
-            <text x={4} y={24} fontSize="9" fill="#f59e0b" fontFamily="IBM Plex Mono">$8.20</text>
-            <text x={W_COST - 40} y={H_COST * 0.9} fontSize="9" fill="hsl(150 100% 50%)" fontFamily="IBM Plex Mono">$3.00</text>
+            <text x={4} y={24} fontSize="12" fill="#f59e0b" fontFamily="IBM Plex Mono">$8.20</text>
+            <text x={W_COST - 40} y={H_COST * 0.9} fontSize="12" fill="hsl(150 100% 50%)" fontFamily="IBM Plex Mono">$3.00</text>
           </svg>
           <div style={{ display: "flex", justifyContent: "space-between", marginTop: "6px" }}>
             <span style={{ fontSize: "9px", color: "var(--text-3)", fontFamily: "var(--font-mono)" }}>Mar 1</span>
@@ -352,35 +352,35 @@ export default function TelemetryPage() {
           border: "1px solid hsl(150 100% 50% / 0.2)",
         }}
       >
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "1rem" }}>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "1rem" }}>
           ANÁLISE DE ROI — EQUIPE HUMANA VS PAGANINI AIOS
         </div>
         <div style={{ display: "grid", gridTemplateColumns: "1fr auto 1fr auto", gap: "1rem", alignItems: "center" }} className="roi-grid">
           {/* Humano */}
           <div style={{ padding: "1rem", border: "1px solid rgba(239,68,68,0.2)", borderRadius: "var(--radius)", background: "rgba(239,68,68,0.04)" }}>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "#ef4444", marginBottom: "0.5rem" }}>👤 EQUIPE HUMANA</div>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "#ef4444", marginBottom: "0.5rem" }}>👤 EQUIPE HUMANA</div>
             <div style={{ fontSize: "1.75rem", fontWeight: 700, color: "#ef4444", fontFamily: "var(--font-mono)", lineHeight: 1 }}>R$ 12K</div>
-            <div style={{ fontSize: "0.625rem", color: "var(--text-3)", fontFamily: "var(--font-mono)", marginTop: "4px" }}>por mês</div>
+            <div style={{ fontSize: "0.8125rem", color: "var(--text-3)", fontFamily: "var(--font-mono)", marginTop: "4px" }}>por mês</div>
             <div style={{ marginTop: "0.75rem", display: "flex", flexDirection: "column", gap: "3px" }}>
               {["5 analistas sênior", "~500 LOC/semana", "10–15 tarefas/dia", "SLA: horário comercial"].map((l, i) => (
-                <div key={i} style={{ fontSize: "0.5625rem", color: "var(--text-3)", fontFamily: "var(--font-mono)" }}>· {l}</div>
+                <div key={i} style={{ fontSize: "0.75rem", color: "var(--text-3)", fontFamily: "var(--font-mono)" }}>· {l}</div>
               ))}
             </div>
           </div>
 
           {/* VS */}
           <div style={{ textAlign: "center", padding: "0 0.5rem" }}>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.625rem", color: "var(--text-4)" }}>VS</div>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: "var(--text-4)" }}>VS</div>
           </div>
 
           {/* AIOS */}
           <div style={{ padding: "1rem", border: "1px solid hsl(150 100% 50% / 0.2)", borderRadius: "var(--radius)", background: "hsl(150 100% 50% / 0.05)" }}>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--accent)", marginBottom: "0.5rem" }}>🤖 PAGANINI AIOS</div>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--accent)", marginBottom: "0.5rem" }}>🤖 PAGANINI AIOS</div>
             <div style={{ fontSize: "1.75rem", fontWeight: 700, color: "var(--accent)", fontFamily: "var(--font-mono)", lineHeight: 1 }}>R$ 103</div>
-            <div style={{ fontSize: "0.625rem", color: "var(--text-3)", fontFamily: "var(--font-mono)", marginTop: "4px" }}>por mês</div>
+            <div style={{ fontSize: "0.8125rem", color: "var(--text-3)", fontFamily: "var(--font-mono)", marginTop: "4px" }}>por mês</div>
             <div style={{ marginTop: "0.75rem", display: "flex", flexDirection: "column", gap: "3px" }}>
               {["14 agentes especializados", "~12.4K LOC/dia", "147 tarefas/dia", "SLA: 24/7 ininterrupto"].map((l, i) => (
-                <div key={i} style={{ fontSize: "0.5625rem", color: "var(--text-2)", fontFamily: "var(--font-mono)" }}>· {l}</div>
+                <div key={i} style={{ fontSize: "0.75rem", color: "var(--text-2)", fontFamily: "var(--font-mono)" }}>· {l}</div>
               ))}
             </div>
           </div>
@@ -394,11 +394,11 @@ export default function TelemetryPage() {
               borderRadius: "var(--radius)",
               boxShadow: "0 0 24px hsl(150 100% 50% / 0.2)",
             }}>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--text-4)", marginBottom: "0.25rem" }}>ROI</div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-4)", marginBottom: "0.25rem" }}>ROI</div>
               <div style={{ fontSize: "2.5rem", fontWeight: 800, color: "var(--accent)", fontFamily: "var(--font-mono)", lineHeight: 1, textShadow: "0 0 20px hsl(150 100% 50% / 0.5)" }}>
                 116×
               </div>
-              <div style={{ fontSize: "0.5625rem", color: "var(--text-3)", fontFamily: "var(--font-mono)", marginTop: "4px" }}>
+              <div style={{ fontSize: "0.75rem", color: "var(--text-3)", fontFamily: "var(--font-mono)", marginTop: "4px" }}>
                 mais barato<br />+ 25× mais produtivo
               </div>
             </div>

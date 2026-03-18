@@ -145,7 +145,9 @@ class SlackIRBot:
         self.memory: MemoryManager = MemoryManager(config)
         self.llm_fn = get_llm_fn(config)
 
-        logger.info("SlackIRBot initialised (token=%s…)", self.bot_token[:8] or "MISSING")
+        logger.info(
+            "SlackIRBot initialised (token=%s…)", self.bot_token[:8] or "MISSING"
+        )
 
     # ------------------------------------------------------------------
     # Signature verification
@@ -217,7 +219,9 @@ class SlackIRBot:
         sources: list[str] = rag_result.get("sources", [])
 
         # 3. Guardrail post-check on answer
-        post_check = self.guardrails.check(answer, context={"fund_id": fund_id, "role": "output"})
+        post_check = self.guardrails.check(
+            answer, context={"fund_id": fund_id, "role": "output"}
+        )
         guardrail_status = "passed" if not post_check.get("warned") else "warned"
 
         # 4. Persist to memory
@@ -394,9 +398,7 @@ class SlackIRBot:
                     payload = json.loads(raw_body)
                 except json.JSONDecodeError:
                     # Fallback: try form-encoded (slash commands)
-                    payload = {
-                        k: v[0] for k, v in parse_qs(raw_body.decode()).items()
-                    }
+                    payload = {k: v[0] for k, v in parse_qs(raw_body.decode()).items()}
 
                 # URL verification challenge
                 if payload.get("type") == "url_verification":

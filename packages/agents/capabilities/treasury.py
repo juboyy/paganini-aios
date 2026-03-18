@@ -8,30 +8,31 @@ All monetary values in BRL.
 
 from __future__ import annotations
 
-import math
 import statistics
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from datetime import date, timedelta
 from typing import Optional
-
 
 # ---------------------------------------------------------------------------
 # Dataclasses
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class DailyBalance:
     """Single day in the cash-flow projection."""
-    date: str           # ISO date YYYY-MM-DD
-    inflows: float      # Receivable maturities + other inflows
-    outflows: float     # Redemptions + fees + expenses
-    net: float          # inflows - outflows
-    cumulative: float   # running balance
+
+    date: str  # ISO date YYYY-MM-DD
+    inflows: float  # Receivable maturities + other inflows
+    outflows: float  # Redemptions + fees + expenses
+    net: float  # inflows - outflows
+    cumulative: float  # running balance
 
 
 @dataclass
 class CashFlowProjection:
     """90-day (or custom horizon) cash-flow projection result."""
+
     horizon_days: int
     opening_balance: float
     closing_balance: float
@@ -41,26 +42,28 @@ class CashFlowProjection:
     total_inflows: float
     total_outflows: float
     daily_balances: list[DailyBalance]
-    liquidity_warning: bool       # True if min_balance < 0
+    liquidity_warning: bool  # True if min_balance < 0
     days_below_zero: int
-    reserve_coverage_days: int    # how many days of outflows are covered
+    reserve_coverage_days: int  # how many days of outflows are covered
 
 
 @dataclass
 class ReconciliationItem:
     """A single reconciliation finding."""
+
     internal_id: Optional[str]
     bank_id: Optional[str]
     amount_internal: float
     amount_bank: float
     discrepancy: float
-    status: str         # "matched" | "internal_only" | "bank_only" | "amount_mismatch"
+    status: str  # "matched" | "internal_only" | "bank_only" | "amount_mismatch"
     description: str
 
 
 @dataclass
 class ReconciliationResult:
     """Bank statement reconciliation result."""
+
     total_internal: float
     total_bank: float
     total_discrepancy: float
@@ -69,13 +72,14 @@ class ReconciliationResult:
     unmatched_bank: int
     amount_mismatches: int
     items: list[ReconciliationItem]
-    reconciled: bool    # True if discrepancy < tolerance
+    reconciled: bool  # True if discrepancy < tolerance
     tolerance: float
 
 
 # ---------------------------------------------------------------------------
 # Main class
 # ---------------------------------------------------------------------------
+
 
 class TreasuryAgent:
     """
@@ -100,8 +104,8 @@ class TreasuryAgent:
     MIN_LIQUIDITY_RATIO: float = 1.0
 
     # Redemption policies
-    REDEMPTION_APPROVE_THRESHOLD: float = 0.50   # approve if cash covers 50%+
-    REDEMPTION_PARTIAL_THRESHOLD: float = 0.20   # partial if cash covers 20–50%
+    REDEMPTION_APPROVE_THRESHOLD: float = 0.50  # approve if cash covers 50%+
+    REDEMPTION_PARTIAL_THRESHOLD: float = 0.20  # partial if cash covers 20–50%
 
     # ------------------------------------------------------------------ #
     # Core entry point                                                     #
@@ -119,9 +123,9 @@ class TreasuryAgent:
         Returns:
             dict with status, results, summary
         """
-        portfolio  = context.get("portfolio", DEMO_PORTFOLIO)
-        cash       = context.get("cash", 500_000.0)
-        nav        = context.get("nav", 3_000_000.0)
+        portfolio = context.get("portfolio", DEMO_PORTFOLIO)
+        cash = context.get("cash", 500_000.0)
+        nav = context.get("nav", 3_000_000.0)
         obligations = context.get("short_term_obligations", 200_000.0)
 
         results: dict = {}
@@ -139,7 +143,9 @@ class TreasuryAgent:
         )
 
         results["redemption_test"] = self.process_redemption_request(
-            amount=100_000.0, cash=cash, nav=nav,
+            amount=100_000.0,
+            cash=cash,
+            nav=nav,
             liquidity_ratio=results["liquidity_ratio"],
         )
 
@@ -180,10 +186,10 @@ class TreasuryAgent:
         Returns:
             CashFlowProjection dataclass
         """
-        opening_balance = sum(
-            r.get("caixa_inicial", 0) for r in portfolio
-            if "caixa_inicial" in r
-        ) or 500_000.0  # default demo opening cash
+        opening_balance = (
+            sum(r.get("caixa_inicial", 0) for r in portfolio if "caixa_inicial" in r)
+            or 500_000.0
+        )  # default demo opening cash
 
         nav = sum(r.get("valor_presente", 0) for r in portfolio)
         daily_fee = nav * self.DEFAULT_MANAGEMENT_FEE_ANNUAL / 252
@@ -201,7 +207,9 @@ class TreasuryAgent:
         redemption_schedule: dict[int, float] = {}
         for redemption in [r for r in portfolio if "redemption_day" in r]:
             day = redemption["redemption_day"]
-            redemption_schedule[day] = redemption_schedule.get(day, 0) + redemption.get("amount", 0)
+            redemption_schedule[day] = redemption_schedule.get(day, 0) + redemption.get(
+                "amount", 0
+            )
 
         today = date.today()
         running_balance = opening_balance
@@ -217,23 +225,25 @@ class TreasuryAgent:
             total_inflow = receivable_maturity + cdi_income
 
             # Outflows
-            fee_outflow    = daily_fee
+            fee_outflow = daily_fee
             redemption_out = redemption_schedule.get(d, 0)
             # Operational expenses: 0.02% of NAV daily (admin, custodian, auditor)
-            operational    = nav * 0.0002 / 252
+            operational = nav * 0.0002 / 252
 
             total_outflow = fee_outflow + redemption_out + operational
 
             net = total_inflow - total_outflow
             running_balance += net
 
-            daily_balances.append(DailyBalance(
-                date=current_date.isoformat(),
-                inflows=round(total_inflow, 2),
-                outflows=round(total_outflow, 2),
-                net=round(net, 2),
-                cumulative=round(running_balance, 2),
-            ))
+            daily_balances.append(
+                DailyBalance(
+                    date=current_date.isoformat(),
+                    inflows=round(total_inflow, 2),
+                    outflows=round(total_outflow, 2),
+                    net=round(net, 2),
+                    cumulative=round(running_balance, 2),
+                )
+            )
 
             if running_balance < 0:
                 days_below_zero += 1
@@ -242,14 +252,16 @@ class TreasuryAgent:
         min_balance = min(balances)
         avg_balance = statistics.mean(balances)
         max_balance = max(balances)
-        closing     = daily_balances[-1].cumulative
+        closing = daily_balances[-1].cumulative
 
-        total_in  = sum(b.inflows  for b in daily_balances)
+        total_in = sum(b.inflows for b in daily_balances)
         total_out = sum(b.outflows for b in daily_balances)
 
         # Reserve coverage: how many days of avg daily outflow does cash cover?
         avg_daily_outflow = total_out / horizon_days if horizon_days > 0 else 1
-        reserve_days = int(opening_balance / avg_daily_outflow) if avg_daily_outflow > 0 else 9999
+        reserve_days = (
+            int(opening_balance / avg_daily_outflow) if avg_daily_outflow > 0 else 9999
+        )
 
         return CashFlowProjection(
             horizon_days=horizon_days,
@@ -319,8 +331,10 @@ class TreasuryAgent:
             raise ValueError("nav must be positive")
 
         reserve_required = nav * min_reserve_pct
-        shortfall        = max(0.0, reserve_required - cash)
-        coverage_pct     = (cash / reserve_required * 100) if reserve_required > 0 else 100.0
+        shortfall = max(0.0, reserve_required - cash)
+        coverage_pct = (
+            (cash / reserve_required * 100) if reserve_required > 0 else 100.0
+        )
 
         return {
             "adequate": cash >= reserve_required,
@@ -331,7 +345,8 @@ class TreasuryAgent:
             "shortfall": round(shortfall, 2),
             "coverage_pct": round(coverage_pct, 2),
             "recommendation": (
-                "Reserve adequate" if cash >= reserve_required
+                "Reserve adequate"
+                if cash >= reserve_required
                 else f"Increase cash by R$ {shortfall:,.2f} to meet minimum reserve"
             ),
         }
@@ -402,7 +417,8 @@ class TreasuryAgent:
             "nav_impact_pct": round(nav_impact / nav * 100, 4) if nav else 0,
             "risk_level": risk_level,
             "recommendation": (
-                "Portfolio nearly immunised" if abs(gap) < 0.25
+                "Portfolio nearly immunised"
+                if abs(gap) < 0.25
                 else "Consider hedging duration gap with DI futures or swaps"
             ),
         }
@@ -460,28 +476,28 @@ class TreasuryAgent:
         if cash >= amount:
             decision = "APPROVE"
             approved = amount
-            reason   = "Full liquidity available."
+            reason = "Full liquidity available."
         elif cash >= amount * self.REDEMPTION_APPROVE_THRESHOLD:
             decision = "PARTIAL"
             approved = round(cash * self.REDEMPTION_APPROVE_THRESHOLD, 2)
-            reason   = (
+            reason = (
                 f"Partial approval: {self.REDEMPTION_APPROVE_THRESHOLD*100:.0f}% of requested "
                 f"amount due to liquidity constraints."
             )
         elif cash >= amount * self.REDEMPTION_PARTIAL_THRESHOLD:
             decision = "PARTIAL"
             approved = round(cash * self.REDEMPTION_PARTIAL_THRESHOLD, 2)
-            reason   = (
+            reason = (
                 f"Minimal partial approval: {self.REDEMPTION_PARTIAL_THRESHOLD*100:.0f}% of "
                 f"requested amount. Consider queuing remainder."
             )
         else:
             decision = "DENY"
             approved = 0.0
-            reason   = f"Insufficient cash (R$ {cash:,.2f}) to cover minimum redemption threshold."
+            reason = f"Insufficient cash (R$ {cash:,.2f}) to cover minimum redemption threshold."
 
         if capped:
-            reason = f"[CAPPED to 10% NAV] " + reason
+            reason = "[CAPPED to 10% NAV] " + reason
 
         post_cash = cash - approved
         return {
@@ -527,9 +543,9 @@ class TreasuryAgent:
         matched_bank_ids: set[str] = set()
 
         for int_tx in internal:
-            int_id   = int_tx.get("id", "")
+            int_id = int_tx.get("id", "")
             int_date = int_tx.get("date", "")
-            int_amt  = float(int_tx.get("amount", 0))
+            int_amt = float(int_tx.get("amount", 0))
             int_desc = int_tx.get("description", "")
 
             # Find matching bank transaction
@@ -538,7 +554,7 @@ class TreasuryAgent:
                 if bank_tx.get("id") in matched_bank_ids:
                     continue
                 b_date = bank_tx.get("date", "")
-                b_amt  = float(bank_tx.get("amount", 0))
+                b_amt = float(bank_tx.get("amount", 0))
                 if b_date == int_date and abs(abs(b_amt) - abs(int_amt)) <= TOLERANCE:
                     best_match = bank_tx
                     break
@@ -547,48 +563,56 @@ class TreasuryAgent:
                 matched_bank_ids.add(best_match.get("id", ""))
                 b_amt = float(best_match.get("amount", 0))
                 discrepancy = round(abs(b_amt) - abs(int_amt), 4)
-                status = "matched" if abs(discrepancy) <= TOLERANCE else "amount_mismatch"
-                items.append(ReconciliationItem(
-                    internal_id=int_id,
-                    bank_id=best_match.get("id"),
-                    amount_internal=round(int_amt, 2),
-                    amount_bank=round(b_amt, 2),
-                    discrepancy=discrepancy,
-                    status=status,
-                    description=int_desc,
-                ))
+                status = (
+                    "matched" if abs(discrepancy) <= TOLERANCE else "amount_mismatch"
+                )
+                items.append(
+                    ReconciliationItem(
+                        internal_id=int_id,
+                        bank_id=best_match.get("id"),
+                        amount_internal=round(int_amt, 2),
+                        amount_bank=round(b_amt, 2),
+                        discrepancy=discrepancy,
+                        status=status,
+                        description=int_desc,
+                    )
+                )
             else:
-                items.append(ReconciliationItem(
-                    internal_id=int_id,
-                    bank_id=None,
-                    amount_internal=round(int_amt, 2),
-                    amount_bank=0.0,
-                    discrepancy=round(int_amt, 2),
-                    status="internal_only",
-                    description=int_desc,
-                ))
+                items.append(
+                    ReconciliationItem(
+                        internal_id=int_id,
+                        bank_id=None,
+                        amount_internal=round(int_amt, 2),
+                        amount_bank=0.0,
+                        discrepancy=round(int_amt, 2),
+                        status="internal_only",
+                        description=int_desc,
+                    )
+                )
 
         # Bank-only transactions
         for bank_tx in bank:
             if bank_tx.get("id") not in matched_bank_ids:
                 b_amt = float(bank_tx.get("amount", 0))
-                items.append(ReconciliationItem(
-                    internal_id=None,
-                    bank_id=bank_tx.get("id"),
-                    amount_internal=0.0,
-                    amount_bank=round(b_amt, 2),
-                    discrepancy=round(-b_amt, 2),
-                    status="bank_only",
-                    description=bank_tx.get("description", ""),
-                ))
+                items.append(
+                    ReconciliationItem(
+                        internal_id=None,
+                        bank_id=bank_tx.get("id"),
+                        amount_internal=0.0,
+                        amount_bank=round(b_amt, 2),
+                        discrepancy=round(-b_amt, 2),
+                        status="bank_only",
+                        description=bank_tx.get("description", ""),
+                    )
+                )
 
-        total_internal    = sum(abs(i.amount_internal) for i in items if i.internal_id)
-        total_bank        = sum(abs(i.amount_bank)     for i in items if i.bank_id)
+        total_internal = sum(abs(i.amount_internal) for i in items if i.internal_id)
+        total_bank = sum(abs(i.amount_bank) for i in items if i.bank_id)
         total_discrepancy = round(abs(total_bank - total_internal), 2)
-        matched_count     = sum(1 for i in items if i.status == "matched")
-        unmatched_int     = sum(1 for i in items if i.status == "internal_only")
-        unmatched_bank    = sum(1 for i in items if i.status == "bank_only")
-        mismatches        = sum(1 for i in items if i.status == "amount_mismatch")
+        matched_count = sum(1 for i in items if i.status == "matched")
+        unmatched_int = sum(1 for i in items if i.status == "internal_only")
+        unmatched_bank = sum(1 for i in items if i.status == "bank_only")
+        mismatches = sum(1 for i in items if i.status == "amount_mismatch")
 
         return ReconciliationResult(
             total_internal=round(total_internal, 2),
@@ -617,19 +641,69 @@ DEMO_PORTFOLIO: list[dict] = [
 ]
 
 DEMO_INTERNAL_TRANSACTIONS = [
-    {"id": "INT-001", "date": "2026-03-01", "amount": 50_000.00, "description": "Recebimento Alpha"},
-    {"id": "INT-002", "date": "2026-03-05", "amount": -10_000.00, "description": "Taxa administração"},
-    {"id": "INT-003", "date": "2026-03-10", "amount": 120_000.00, "description": "Recebimento Beta"},
-    {"id": "INT-004", "date": "2026-03-15", "amount": -5_000.00, "description": "Custódia"},
-    {"id": "INT-005", "date": "2026-03-20", "amount": 75_000.00, "description": "Recebimento Gamma"},
+    {
+        "id": "INT-001",
+        "date": "2026-03-01",
+        "amount": 50_000.00,
+        "description": "Recebimento Alpha",
+    },
+    {
+        "id": "INT-002",
+        "date": "2026-03-05",
+        "amount": -10_000.00,
+        "description": "Taxa administração",
+    },
+    {
+        "id": "INT-003",
+        "date": "2026-03-10",
+        "amount": 120_000.00,
+        "description": "Recebimento Beta",
+    },
+    {
+        "id": "INT-004",
+        "date": "2026-03-15",
+        "amount": -5_000.00,
+        "description": "Custódia",
+    },
+    {
+        "id": "INT-005",
+        "date": "2026-03-20",
+        "amount": 75_000.00,
+        "description": "Recebimento Gamma",
+    },
 ]
 
 DEMO_BANK_TRANSACTIONS = [
-    {"id": "BNK-001", "date": "2026-03-01", "amount": 50_000.00, "description": "TED recebida"},
-    {"id": "BNK-002", "date": "2026-03-05", "amount": -10_000.00, "description": "Débito taxa"},
-    {"id": "BNK-003", "date": "2026-03-10", "amount": 119_998.50, "description": "TED recebida"},  # mismatch
-    {"id": "BNK-004", "date": "2026-03-15", "amount": -5_000.00, "description": "Débito custódia"},
-    {"id": "BNK-006", "date": "2026-03-25", "amount": -2_500.00, "description": "Tarifa bancária"},  # bank-only
+    {
+        "id": "BNK-001",
+        "date": "2026-03-01",
+        "amount": 50_000.00,
+        "description": "TED recebida",
+    },
+    {
+        "id": "BNK-002",
+        "date": "2026-03-05",
+        "amount": -10_000.00,
+        "description": "Débito taxa",
+    },
+    {
+        "id": "BNK-003",
+        "date": "2026-03-10",
+        "amount": 119_998.50,
+        "description": "TED recebida",
+    },  # mismatch
+    {
+        "id": "BNK-004",
+        "date": "2026-03-15",
+        "amount": -5_000.00,
+        "description": "Débito custódia",
+    },
+    {
+        "id": "BNK-006",
+        "date": "2026-03-25",
+        "amount": -2_500.00,
+        "description": "Tarifa bancária",
+    },  # bank-only
 ]
 
 
@@ -643,14 +717,22 @@ if __name__ == "__main__":
     print("=== TREASURY AGENT DEMO ===")
     print(f"Summary: {result['summary']}")
     proj = result["results"]["cash_flow_projection"]
-    print(f"\nCash flow (90d): opening R$ {proj.opening_balance:,.2f} → closing R$ {proj.closing_balance:,.2f}")
-    print(f"Min balance: R$ {proj.min_balance:,.2f} | Days below zero: {proj.days_below_zero}")
+    print(
+        f"\nCash flow (90d): opening R$ {proj.opening_balance:,.2f} → closing R$ {proj.closing_balance:,.2f}"
+    )
+    print(
+        f"Min balance: R$ {proj.min_balance:,.2f} | Days below zero: {proj.days_below_zero}"
+    )
     print(f"Reserve coverage: {proj.reserve_coverage_days} days")
     ra = result["results"]["reserve_adequacy"]
-    print(f"\nReserve: {'✓ OK' if ra['adequate'] else '✗ INSUFICIENTE'} | Coverage: {ra['coverage_pct']:.1f}%")
+    print(
+        f"\nReserve: {'✓ OK' if ra['adequate'] else '✗ INSUFICIENTE'} | Coverage: {ra['coverage_pct']:.1f}%"
+    )
     rd = result["results"]["redemption_test"]
     print(f"\nRedemption test: {rd['decision']} — {rd['reason']}")
     rec = result["results"]["reconciliation"]
     print(f"\nReconciliation: {'✓ OK' if rec.reconciled else '✗ DIVERGÊNCIAS'}")
-    print(f"  Matched: {rec.matched_count} | Internal-only: {rec.unmatched_internal} | Bank-only: {rec.unmatched_bank}")
+    print(
+        f"  Matched: {rec.matched_count} | Internal-only: {rec.unmatched_internal} | Bank-only: {rec.unmatched_bank}"
+    )
     print(f"  Discrepancy: R$ {rec.total_discrepancy:,.2f}")

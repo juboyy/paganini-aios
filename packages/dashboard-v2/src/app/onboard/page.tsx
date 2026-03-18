@@ -92,7 +92,7 @@ function TerminalMockup() {
         </div>
         <span
           style={{
-            fontFamily: "var(--font-mono)", fontSize: "0.5625rem",
+            fontFamily: "var(--font-mono)", fontSize: "0.75rem",
             color: "var(--text-4)", letterSpacing: "0.08em", marginLeft: "0.5rem",
           }}
         >
@@ -102,7 +102,7 @@ function TerminalMockup() {
           <button
             onClick={() => setVisibleLines(0)}
             style={{
-              fontFamily: "var(--font-mono)", fontSize: "0.5rem",
+              fontFamily: "var(--font-mono)", fontSize: "0.75rem",
               color: "var(--text-4)", background: "transparent",
               border: "1px solid var(--border)", borderRadius: "3px",
               padding: "2px 8px", cursor: "pointer", letterSpacing: "0.08em",
@@ -127,7 +127,7 @@ function TerminalMockup() {
             <div
               key={i}
               style={{
-                fontFamily: "var(--font-mono)", fontSize: "0.6875rem",
+                fontFamily: "var(--font-mono)", fontSize: "0.8125rem",
                 color, lineHeight: 1.7, whiteSpace: "pre",
               }}
             >
@@ -190,7 +190,7 @@ export default function OnboardPage() {
               color: "hsl(150 100% 60%)",
               borderColor: "hsl(150 100% 50% / 0.4)",
               padding: "5px 14px",
-              fontSize: "0.6875rem",
+              fontSize: "0.8125rem",
             }}
           >
             ZERO-TOUCH
@@ -199,7 +199,7 @@ export default function OnboardPage() {
             className="tag-badge-cyan"
             style={{
               padding: "5px 14px",
-              fontSize: "0.6875rem",
+              fontSize: "0.8125rem",
             }}
           >
             CVM INTEGRADA
@@ -258,7 +258,7 @@ export default function OnboardPage() {
                 <div style={{ fontSize: "2rem", marginBottom: "0.75rem" }}>{item.icon}</div>
                 <div
                   style={{
-                    fontFamily: "var(--font-mono)", fontSize: "0.5rem",
+                    fontFamily: "var(--font-mono)", fontSize: "0.75rem",
                     color: "var(--text-4)", letterSpacing: "0.16em", marginBottom: "0.25rem",
                   }}
                 >
@@ -273,7 +273,7 @@ export default function OnboardPage() {
                 >
                   {item.title}
                 </div>
-                <p className="section-help" style={{ margin: 0, fontSize: "0.6875rem" }}>
+                <p className="section-help" style={{ margin: 0, fontSize: "0.8125rem" }}>
                   {item.desc}
                 </p>
               </div>
@@ -297,7 +297,7 @@ export default function OnboardPage() {
         </div>
         <div className="glass-card" style={{ overflow: "hidden" }}>
           <div style={{ overflowX: "auto" }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "var(--font-mono)", fontSize: "0.6875rem" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "var(--font-mono)", fontSize: "0.8125rem" }}>
               <thead>
                 <tr style={{ borderBottom: "1px solid var(--border)" }}>
                   {["FUNDO", "TIPO", "PL", "AGENTES", "ÚLTIMA ATIVIDADE", "STATUS"].map((h) => (
@@ -305,7 +305,7 @@ export default function OnboardPage() {
                       key={h}
                       style={{
                         textAlign: "left", padding: "0.75rem 1rem",
-                        color: "var(--text-4)", fontSize: "0.5625rem",
+                        color: "var(--text-4)", fontSize: "0.75rem",
                         letterSpacing: "0.1em", fontWeight: 500,
                       }}
                     >
@@ -341,7 +341,7 @@ export default function OnboardPage() {
                             display: "inline-block",
                           }}
                         />
-                        <span style={{ color: "var(--accent)", fontSize: "0.5625rem", letterSpacing: "0.1em" }}>
+                        <span style={{ color: "var(--accent)", fontSize: "0.75rem", letterSpacing: "0.1em" }}>
                           ATIVO
                         </span>
                       </span>

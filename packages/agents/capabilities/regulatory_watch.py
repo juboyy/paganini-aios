@@ -16,50 +16,54 @@ Brazilian regulatory framework:
 from __future__ import annotations
 
 import hashlib
-import re
-from dataclasses import dataclass, field
-from datetime import datetime, date, timedelta
+from dataclasses import dataclass
+from datetime import date, datetime, timedelta
 from typing import Optional
-
 
 # ---------------------------------------------------------------------------
 # Dataclasses
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class Publication:
     """A regulatory publication from CVM or BACEN."""
+
     id: str
-    source: str                  # "CVM" | "BACEN" | "ANBIMA" | "CMN"
-    reference: str               # e.g. "Resolução CVM Nº 212"
+    source: str  # "CVM" | "BACEN" | "ANBIMA" | "CMN"
+    reference: str  # e.g. "Resolução CVM Nº 212"
     title: str
     summary: str
-    published_date: str          # ISO date
-    effective_date: str          # ISO date (when it comes into force)
+    published_date: str  # ISO date
+    effective_date: str  # ISO date (when it comes into force)
     url: str
-    topics: list[str]            # e.g. ["FIDC", "PLD", "risco_credito"]
-    impact_level: str            # "high" | "medium" | "low" | "none" (set after assessment)
-    full_text_snippet: str       # First 500 chars of text
+    topics: list[str]  # e.g. ["FIDC", "PLD", "risco_credito"]
+    impact_level: str  # "high" | "medium" | "low" | "none" (set after assessment)
+    full_text_snippet: str  # First 500 chars of text
 
 
 @dataclass
 class ImpactAssessment:
     """Impact assessment of a regulatory publication on a specific fund."""
+
     publication_id: str
     fund_type: str
-    impact_level: str            # "high" | "medium" | "low" | "none"
-    impact_score: int            # 0–100
-    affected_areas: list[str]    # e.g. ["PDD", "concentracao", "relatorio"]
+    impact_level: str  # "high" | "medium" | "low" | "none"
+    impact_score: int  # 0–100
+    affected_areas: list[str]  # e.g. ["PDD", "concentracao", "relatorio"]
     rationale: str
     action_required: bool
     recommended_actions: list[str]
-    deadline: Optional[str]      # ISO date for compliance deadline
-    regulatory_risk: str         # "ENFORCEMENT_RISK" | "AUDIT_RISK" | "REPORTING_RISK" | "NONE"
+    deadline: Optional[str]  # ISO date for compliance deadline
+    regulatory_risk: (
+        str  # "ENFORCEMENT_RISK" | "AUDIT_RISK" | "REPORTING_RISK" | "NONE"
+    )
 
 
 # ---------------------------------------------------------------------------
 # Main class
 # ---------------------------------------------------------------------------
+
 
 class RegulatoryWatchAgent:
     """
@@ -83,107 +87,148 @@ class RegulatoryWatchAgent:
     # Applicable regulations catalogue for FIDCs
     APPLICABLE_REGULATIONS: list[dict] = [
         {
-            "id":          "CVM-175",
-            "reference":   "Resolução CVM Nº 175, de 23/12/2022",
-            "authority":   "CVM",
-            "title":       "Norma Geral sobre Fundos de Investimento",
+            "id": "CVM-175",
+            "reference": "Resolução CVM Nº 175, de 23/12/2022",
+            "authority": "CVM",
+            "title": "Norma Geral sobre Fundos de Investimento",
             "description": "Regulamenta a constituição, o funcionamento e a divulgação de informações dos fundos de investimento, incluindo FIDC.",
-            "effective":   "2023-04-01",
-            "topics":      ["FIDC", "constituicao", "divulgacao", "relatorio_mensal", "cota"],
-            "mandatory":   True,
-            "url":         "https://www.gov.br/cvm/resolucao175",
+            "effective": "2023-04-01",
+            "topics": [
+                "FIDC",
+                "constituicao",
+                "divulgacao",
+                "relatorio_mensal",
+                "cota",
+            ],
+            "mandatory": True,
+            "url": "https://www.gov.br/cvm/resolucao175",
         },
         {
-            "id":          "BACEN-3978",
-            "reference":   "Resolução BACEN Nº 3.978, de 23/01/2020",
-            "authority":   "BACEN",
-            "title":       "Política de Prevenção à Lavagem de Dinheiro e ao Financiamento do Terrorismo (PLD/FT)",
+            "id": "BACEN-3978",
+            "reference": "Resolução BACEN Nº 3.978, de 23/01/2020",
+            "authority": "BACEN",
+            "title": "Política de Prevenção à Lavagem de Dinheiro e ao Financiamento do Terrorismo (PLD/FT)",
             "description": "Dispõe sobre a política de PLD/FT para instituições autorizadas a funcionar pelo BACEN e administradores de valores mobiliários.",
-            "effective":   "2021-01-01",
-            "topics":      ["PLD", "FT", "KYC", "monitoramento", "cedente"],
-            "mandatory":   True,
-            "url":         "https://www.bcb.gov.br/resolucao3978",
+            "effective": "2021-01-01",
+            "topics": ["PLD", "FT", "KYC", "monitoramento", "cedente"],
+            "mandatory": True,
+            "url": "https://www.bcb.gov.br/resolucao3978",
         },
         {
-            "id":          "BACEN-4966",
-            "reference":   "Resolução BACEN Nº 4.966, de 25/11/2021",
-            "authority":   "BACEN",
-            "title":       "Critérios de Classificação de Ativos e Constituição de Provisões",
+            "id": "BACEN-4966",
+            "reference": "Resolução BACEN Nº 4.966, de 25/11/2021",
+            "authority": "BACEN",
+            "title": "Critérios de Classificação de Ativos e Constituição de Provisões",
             "description": "Estabelece critérios para classificação de operações de crédito e constituição de provisão para perdas esperadas (IFRS 9 adaptado).",
-            "effective":   "2025-01-01",
-            "topics":      ["PDD", "provisao", "risco_credito", "IFRS9", "inadimplencia"],
-            "mandatory":   True,
-            "url":         "https://www.bcb.gov.br/resolucao4966",
+            "effective": "2025-01-01",
+            "topics": ["PDD", "provisao", "risco_credito", "IFRS9", "inadimplencia"],
+            "mandatory": True,
+            "url": "https://www.bcb.gov.br/resolucao4966",
         },
         {
-            "id":          "CMN-4557",
-            "reference":   "Resolução CMN Nº 4.557, de 23/02/2017",
-            "authority":   "CMN",
-            "title":       "Gerenciamento de Riscos e Política de Divulgação",
+            "id": "CMN-4557",
+            "reference": "Resolução CMN Nº 4.557, de 23/02/2017",
+            "authority": "CMN",
+            "title": "Gerenciamento de Riscos e Política de Divulgação",
             "description": "Dispõe sobre a estrutura de gerenciamento de riscos e a política de divulgação de informações.",
-            "effective":   "2017-07-01",
-            "topics":      ["gestao_risco", "concentracao", "liquidez", "operacional"],
-            "mandatory":   True,
-            "url":         "https://www.bcb.gov.br/cmn4557",
+            "effective": "2017-07-01",
+            "topics": ["gestao_risco", "concentracao", "liquidez", "operacional"],
+            "mandatory": True,
+            "url": "https://www.bcb.gov.br/cmn4557",
         },
         {
-            "id":          "CVM-356",
-            "reference":   "CVM Instrução Nº 356, de 17/12/2001 (revogada por CVM 175)",
-            "authority":   "CVM",
-            "title":       "Regulamentação de FIDC (revogada)",
+            "id": "CVM-356",
+            "reference": "CVM Instrução Nº 356, de 17/12/2001 (revogada por CVM 175)",
+            "authority": "CVM",
+            "title": "Regulamentação de FIDC (revogada)",
             "description": "Regulamentação original de FIDC — revogada pela Resolução CVM 175/2022. Algumas cláusulas de fundos antigos ainda podem fazer referência a esta instrução.",
-            "effective":   "2002-01-01",
-            "topics":      ["FIDC", "historico", "legado"],
-            "mandatory":   False,
-            "url":         "https://www.gov.br/cvm/instrucao356",
+            "effective": "2002-01-01",
+            "topics": ["FIDC", "historico", "legado"],
+            "mandatory": False,
+            "url": "https://www.gov.br/cvm/instrucao356",
         },
         {
-            "id":          "LEI-14430",
-            "reference":   "Lei Nº 14.430, de 03/08/2022",
-            "authority":   "Congresso Nacional",
-            "title":       "Modernização dos Fundos de Investimento em Direitos Creditórios",
+            "id": "LEI-14430",
+            "reference": "Lei Nº 14.430, de 03/08/2022",
+            "authority": "Congresso Nacional",
+            "title": "Modernização dos Fundos de Investimento em Direitos Creditórios",
             "description": "Cria o FIDC de condomínio aberto e simplifica requisitos para FIDC destinados a investidores qualificados.",
-            "effective":   "2022-08-03",
-            "topics":      ["FIDC", "condominio_aberto", "investidor_qualificado", "modernizacao"],
-            "mandatory":   True,
-            "url":         "https://www.planalto.gov.br/lei14430",
+            "effective": "2022-08-03",
+            "topics": [
+                "FIDC",
+                "condominio_aberto",
+                "investidor_qualificado",
+                "modernizacao",
+            ],
+            "mandatory": True,
+            "url": "https://www.planalto.gov.br/lei14430",
         },
         {
-            "id":          "ANBIMA-FIDC",
-            "reference":   "ANBIMA Código de Administração de Recursos de Terceiros",
-            "authority":   "ANBIMA",
-            "title":       "Código de Melhores Práticas para Gestão de Recursos de Terceiros",
+            "id": "ANBIMA-FIDC",
+            "reference": "ANBIMA Código de Administração de Recursos de Terceiros",
+            "authority": "ANBIMA",
+            "title": "Código de Melhores Práticas para Gestão de Recursos de Terceiros",
             "description": "Estabelece padrões de conduta e melhores práticas para gestores e administradores de fundos, incluindo FIDC.",
-            "effective":   "2023-01-01",
-            "topics":      ["boas_praticas", "compliance", "divulgacao", "gestor"],
-            "mandatory":   False,  # voluntary but strongly encouraged
-            "url":         "https://www.anbima.com.br/codigos",
+            "effective": "2023-01-01",
+            "topics": ["boas_praticas", "compliance", "divulgacao", "gestor"],
+            "mandatory": False,  # voluntary but strongly encouraged
+            "url": "https://www.anbima.com.br/codigos",
         },
         {
-            "id":          "BACEN-CADOC",
-            "reference":   "BACEN CADOC 3040 — Demonstrativo de Risco de Mercado",
-            "authority":   "BACEN",
-            "title":       "Sistema CADOC — Documento 3040",
+            "id": "BACEN-CADOC",
+            "reference": "BACEN CADOC 3040 — Demonstrativo de Risco de Mercado",
+            "authority": "BACEN",
+            "title": "Sistema CADOC — Documento 3040",
             "description": "Obrigação de reporte mensal do risco de mercado por instituições financeiras autorizadas.",
-            "effective":   "2006-01-01",
-            "topics":      ["risco_mercado", "reporte", "CADOC", "mensal"],
-            "mandatory":   True,
-            "url":         "https://www.bcb.gov.br/cadoc3040",
+            "effective": "2006-01-01",
+            "topics": ["risco_mercado", "reporte", "CADOC", "mensal"],
+            "mandatory": True,
+            "url": "https://www.bcb.gov.br/cadoc3040",
         },
     ]
 
     # Compliance calendar: (month, day, filing type, description, days_notice)
     FILING_DEADLINES: list[dict] = [
         # CVM monthly — by 15th of following month
-        {"name": "Informe Mensal CVM (Res. 175)",     "type": "cvm_mensal",     "day_of_month": 15, "recurring": "monthly",   "days_before_alert": 7},
+        {
+            "name": "Informe Mensal CVM (Res. 175)",
+            "type": "cvm_mensal",
+            "day_of_month": 15,
+            "recurring": "monthly",
+            "days_before_alert": 7,
+        },
         # CVM quarterly report — 45 days after quarter end
-        {"name": "Relatório Trimestral de Gestão",    "type": "cvm_trimestral", "months": [1, 4, 7, 10], "day_of_month": 15, "days_before_alert": 15},
+        {
+            "name": "Relatório Trimestral de Gestão",
+            "type": "cvm_trimestral",
+            "months": [1, 4, 7, 10],
+            "day_of_month": 15,
+            "days_before_alert": 15,
+        },
         # BACEN CADOC 3040 — 15th business day of following month
-        {"name": "BACEN CADOC 3040",                  "type": "bacen_cadoc",    "day_of_month": 20, "recurring": "monthly",   "days_before_alert": 10},
+        {
+            "name": "BACEN CADOC 3040",
+            "type": "bacen_cadoc",
+            "day_of_month": 20,
+            "recurring": "monthly",
+            "days_before_alert": 10,
+        },
         # Annual meeting / Assembléia
-        {"name": "Assembléia Geral Ordinária (AGO)",  "type": "ago",            "months": [3], "day_of_month": 31, "days_before_alert": 30},
+        {
+            "name": "Assembléia Geral Ordinária (AGO)",
+            "type": "ago",
+            "months": [3],
+            "day_of_month": 31,
+            "days_before_alert": 30,
+        },
         # Annual report
-        {"name": "Informe Anual CVM",                 "type": "cvm_anual",      "months": [3], "day_of_month": 31, "days_before_alert": 30},
+        {
+            "name": "Informe Anual CVM",
+            "type": "cvm_anual",
+            "months": [3],
+            "day_of_month": 31,
+            "days_before_alert": 30,
+        },
     ]
 
     def __init__(self):
@@ -208,18 +253,25 @@ class RegulatoryWatchAgent:
             dict with status, publications, assessments, calendar, alerts, summary
         """
         fund_profile = context.get("fund_profile", DEMO_FUND_PROFILE)
-        current_date = context.get("current_date", datetime.utcnow().strftime("%Y-%m-%d"))
+        current_date = context.get(
+            "current_date", datetime.utcnow().strftime("%Y-%m-%d")
+        )
 
         # 1. Fetch new publications
-        cvm_pubs   = self.check_cvm_publications()
+        cvm_pubs = self.check_cvm_publications()
         bacen_pubs = self.check_bacen_publications()
-        all_pubs   = cvm_pubs + bacen_pubs
+        all_pubs = cvm_pubs + bacen_pubs
 
         # 2. Assess impact
         assessments = []
         for pub in all_pubs:
             impact = self.assess_impact(
-                {"id": pub.id, "topics": pub.topics, "reference": pub.reference, "title": pub.title},
+                {
+                    "id": pub.id,
+                    "topics": pub.topics,
+                    "reference": pub.reference,
+                    "title": pub.title,
+                },
                 fund_profile,
             )
             assessments.append({"publication": pub, "impact": impact})
@@ -232,13 +284,19 @@ class RegulatoryWatchAgent:
         for entry in assessments:
             if entry["impact"].impact_level in ("high", "medium"):
                 alert = self.generate_regulatory_alert(
-                    {"id": entry["publication"].id, "reference": entry["publication"].reference,
-                     "title": entry["publication"].title, "summary": entry["publication"].summary},
-                    {"impact_level": entry["impact"].impact_level,
-                     "affected_areas": entry["impact"].affected_areas,
-                     "rationale": entry["impact"].rationale,
-                     "recommended_actions": entry["impact"].recommended_actions,
-                     "deadline": entry["impact"].deadline},
+                    {
+                        "id": entry["publication"].id,
+                        "reference": entry["publication"].reference,
+                        "title": entry["publication"].title,
+                        "summary": entry["publication"].summary,
+                    },
+                    {
+                        "impact_level": entry["impact"].impact_level,
+                        "affected_areas": entry["impact"].affected_areas,
+                        "rationale": entry["impact"].rationale,
+                        "recommended_actions": entry["impact"].recommended_actions,
+                        "deadline": entry["impact"].deadline,
+                    },
                 )
                 alerts.append(alert)
 
@@ -332,30 +390,30 @@ class RegulatoryWatchAgent:
         Returns:
             ImpactAssessment dataclass
         """
-        score         = 0
+        score = 0
         affected_areas: list[str] = []
-        actions: list[str]        = []
+        actions: list[str] = []
         rationale_parts: list[str] = []
 
-        pub_topics  = set(publication.get("topics", []))
+        pub_topics = set(publication.get("topics", []))
         fund_topics = set(fund_profile.get("activities", []))
-        fund_type   = fund_profile.get("type", "fidc").lower()
+        fund_type = fund_profile.get("type", "fidc").lower()
 
         # Topic overlap
         TOPIC_WEIGHTS = {
-            "FIDC":          30,
-            "PDD":           25,
-            "provisao":      25,
+            "FIDC": 30,
+            "PDD": 25,
+            "provisao": 25,
             "risco_credito": 20,
-            "concentracao":  20,
-            "liquidez":      20,
-            "PLD":           20,
+            "concentracao": 20,
+            "liquidez": 20,
+            "PLD": 20,
             "relatorio_mensal": 15,
-            "cedente":       15,
-            "cota":          10,
-            "IFRS9":         20,
-            "CADOC":         15,
-            "divulgacao":    10,
+            "cedente": 15,
+            "cota": 10,
+            "IFRS9": 20,
+            "CADOC": 15,
+            "divulgacao": 10,
         }
 
         for topic in pub_topics:
@@ -371,7 +429,9 @@ class RegulatoryWatchAgent:
             rationale_parts.append("publication explicitly targets FIDC fund type")
 
         # BACEN compliance for administrators authorised by BACEN
-        if publication.get("source", "") == "BACEN" and fund_profile.get("bacen_authorised", True):
+        if publication.get("source", "") == "BACEN" and fund_profile.get(
+            "bacen_authorised", True
+        ):
             score += 15
             rationale_parts.append("fund administrator is BACEN-authorised entity")
 
@@ -437,7 +497,7 @@ class RegulatoryWatchAgent:
         Returns:
             List of deadline dicts, sorted by due date ascending
         """
-        today  = date.fromisoformat(current_date)
+        today = date.fromisoformat(current_date)
         cutoff = today + timedelta(days=90)
         upcoming: list[dict] = []
 
@@ -455,14 +515,20 @@ class RegulatoryWatchAgent:
                     due = date(y, m, dom)
                     if today <= due <= cutoff:
                         days_until = (due - today).days
-                        upcoming.append({
-                            "name":          filing["name"],
-                            "type":          filing["type"],
-                            "due_date":      due.isoformat(),
-                            "days_until":    days_until,
-                            "urgency":       "URGENT" if days_until <= filing.get("days_before_alert", 7) else "NORMAL",
-                            "days_notice":   filing.get("days_before_alert", 7),
-                        })
+                        upcoming.append(
+                            {
+                                "name": filing["name"],
+                                "type": filing["type"],
+                                "due_date": due.isoformat(),
+                                "days_until": days_until,
+                                "urgency": (
+                                    "URGENT"
+                                    if days_until <= filing.get("days_before_alert", 7)
+                                    else "NORMAL"
+                                ),
+                                "days_notice": filing.get("days_before_alert", 7),
+                            }
+                        )
 
             # Specific months
             elif "months" in filing:
@@ -474,14 +540,20 @@ class RegulatoryWatchAgent:
                         due = date(y + 1, m, dom)
                     if today <= due <= cutoff:
                         days_until = (due - today).days
-                        upcoming.append({
-                            "name":        filing["name"],
-                            "type":        filing["type"],
-                            "due_date":    due.isoformat(),
-                            "days_until":  days_until,
-                            "urgency":     "URGENT" if days_until <= filing.get("days_before_alert", 15) else "NORMAL",
-                            "days_notice": filing.get("days_before_alert", 15),
-                        })
+                        upcoming.append(
+                            {
+                                "name": filing["name"],
+                                "type": filing["type"],
+                                "due_date": due.isoformat(),
+                                "days_until": days_until,
+                                "urgency": (
+                                    "URGENT"
+                                    if days_until <= filing.get("days_before_alert", 15)
+                                    else "NORMAL"
+                                ),
+                                "days_notice": filing.get("days_before_alert", 15),
+                            }
+                        )
 
         return sorted(upcoming, key=lambda x: x["due_date"])
 
@@ -505,17 +577,19 @@ class RegulatoryWatchAgent:
         Returns:
             Formatted Markdown alert string
         """
-        now     = datetime.utcnow().strftime("%d/%m/%Y %H:%M UTC")
-        ref     = publication.get("reference", "")
-        title   = publication.get("title", "")
+        now = datetime.utcnow().strftime("%d/%m/%Y %H:%M UTC")
+        ref = publication.get("reference", "")
+        title = publication.get("title", "")
         summary = publication.get("summary", "")
-        level   = impact.get("impact_level", "low").upper()
-        areas   = impact.get("affected_areas", [])
+        level = impact.get("impact_level", "low").upper()
+        areas = impact.get("affected_areas", [])
         actions = impact.get("recommended_actions", [])
         deadline = impact.get("deadline", "N/D")
         rationale = impact.get("rationale", "")
 
-        icon = {"HIGH": "🔴", "MEDIUM": "🟡", "LOW": "🟢", "NONE": "⚪"}.get(level, "⚪")
+        icon = {"HIGH": "🔴", "MEDIUM": "🟡", "LOW": "🟢", "NONE": "⚪"}.get(
+            level, "⚪"
+        )
 
         action_lines = "\n".join(f"  {i+1}. {a}" for i, a in enumerate(actions))
 
@@ -574,8 +648,11 @@ class RegulatoryWatchAgent:
             # All regulations in our catalogue apply to FIDC
             return [r for r in self.APPLICABLE_REGULATIONS if r.get("mandatory", False)]
         # For other fund types, return only general regulations
-        return [r for r in self.APPLICABLE_REGULATIONS
-                if "FIDC" not in r.get("topics", []) and r.get("mandatory", False)]
+        return [
+            r
+            for r in self.APPLICABLE_REGULATIONS
+            if "FIDC" not in r.get("topics", []) and r.get("mandatory", False)
+        ]
 
     # ------------------------------------------------------------------ #
     # Helpers                                                              #
@@ -595,8 +672,14 @@ class RegulatoryWatchAgent:
                     "entrega do informe mensal a partir de 01/07/2026."
                 ),
                 "published_date": "2026-01-15",
-                "effective_date":  "2026-07-01",
-                "topics": ["FIDC", "divulgacao", "cota", "relatorio_mensal", "condominio_aberto"],
+                "effective_date": "2026-07-01",
+                "topics": [
+                    "FIDC",
+                    "divulgacao",
+                    "cota",
+                    "relatorio_mensal",
+                    "condominio_aberto",
+                ],
                 "url": "https://www.gov.br/cvm/resolucao212",
             },
             {
@@ -610,7 +693,7 @@ class RegulatoryWatchAgent:
                     "classificados como multissetoriais."
                 ),
                 "published_date": "2026-02-10",
-                "effective_date":  "2026-02-10",
+                "effective_date": "2026-02-10",
                 "topics": ["FIDC", "concentracao", "cedente", "risco_credito"],
                 "url": "https://www.gov.br/cvm/oficio03-2026",
             },
@@ -624,8 +707,15 @@ class RegulatoryWatchAgent:
                     "ao IFRS 9 (perda esperada). Vigência: 01/01/2027."
                 ),
                 "published_date": "2026-02-20",
-                "effective_date":  "2027-01-01",
-                "topics": ["PDD", "provisao", "FIDC", "IFRS9", "risco_credito", "inadimplencia"],
+                "effective_date": "2027-01-01",
+                "topics": [
+                    "PDD",
+                    "provisao",
+                    "FIDC",
+                    "IFRS9",
+                    "risco_credito",
+                    "inadimplencia",
+                ],
                 "url": "https://www.bcb.gov.br/resolucao5089",
             },
             {
@@ -638,7 +728,7 @@ class RegulatoryWatchAgent:
                     "de R$ 10 milhões, em linha com a Resolução BACEN 3.978/2020."
                 ),
                 "published_date": "2026-03-01",
-                "effective_date":  "2026-03-01",
+                "effective_date": "2026-03-01",
                 "topics": ["PLD", "KYC", "cedente", "FIDC", "FT", "due_diligence"],
                 "url": "https://www.bcb.gov.br/notatecnica18-2026",
             },
@@ -651,8 +741,15 @@ class RegulatoryWatchAgent:
                     "concentração por setor, aging da carteira e indicadores de liquidez."
                 ),
                 "published_date": "2026-03-05",
-                "effective_date":  "2026-06-01",
-                "topics": ["FIDC", "relatorio_mensal", "divulgacao", "concentracao", "liquidez", "aging"],
+                "effective_date": "2026-06-01",
+                "topics": [
+                    "FIDC",
+                    "relatorio_mensal",
+                    "divulgacao",
+                    "concentracao",
+                    "liquidez",
+                    "aging",
+                ],
                 "url": "https://www.gov.br/cvm/deliberacao975",
             },
         ]
@@ -678,10 +775,11 @@ class RegulatoryWatchAgent:
 # Utility functions
 # ---------------------------------------------------------------------------
 
+
 def _add_business_days(start: date, days: int) -> date:
     """Add `days` business days (Mon–Fri) to `start`."""
     current = start
-    added   = 0
+    added = 0
     while added < days:
         current += timedelta(days=1)
         if current.weekday() < 5:  # Mon=0 … Fri=4
@@ -701,16 +799,25 @@ def _days_in_month(month: int, year: int) -> int:
 # ---------------------------------------------------------------------------
 
 DEMO_FUND_PROFILE = {
-    "type":             "fidc",
-    "name":             "FIDC Paganini Multissetorial",
-    "cnpj":             "12.345.678/0001-90",
+    "type": "fidc",
+    "name": "FIDC Paganini Multissetorial",
+    "cnpj": "12.345.678/0001-90",
     "bacen_authorised": True,
     "activities": [
-        "FIDC", "cedente", "risco_credito", "PDD", "provisao", "concentracao",
-        "liquidez", "relatorio_mensal", "divulgacao", "PLD", "KYC",
+        "FIDC",
+        "cedente",
+        "risco_credito",
+        "PDD",
+        "provisao",
+        "concentracao",
+        "liquidez",
+        "relatorio_mensal",
+        "divulgacao",
+        "PLD",
+        "KYC",
     ],
-    "size_brl":         3_000_000.0,
-    "investor_type":    "qualificado",
+    "size_brl": 3_000_000.0,
+    "investor_type": "qualificado",
 }
 
 
@@ -727,15 +834,19 @@ if __name__ == "__main__":
 
     print("\n--- Assessments ---")
     for entry in result["assessments"]:
-        pub    = entry["publication"]
+        pub = entry["publication"]
         impact = entry["impact"]
-        icon   = {"high": "🔴", "medium": "🟡", "low": "🟢", "none": "⚪"}.get(impact.impact_level, "⚪")
+        icon = {"high": "🔴", "medium": "🟡", "low": "🟢", "none": "⚪"}.get(
+            impact.impact_level, "⚪"
+        )
         print(f"  {icon} [{impact.impact_level.upper():6}] {pub.reference[:60]}")
 
     print("\n--- Compliance Calendar (next 90 days) ---")
     for item in result["calendar"][:5]:
         urgency_icon = "⚠️" if item["urgency"] == "URGENT" else "📅"
-        print(f"  {urgency_icon} {item['due_date']} ({item['days_until']}d) — {item['name']}")
+        print(
+            f"  {urgency_icon} {item['due_date']} ({item['days_until']}d) — {item['name']}"
+        )
 
     print("\n--- Applicable Regulations ---")
     for reg in result["applicable_regulations"]:

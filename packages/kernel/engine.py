@@ -1,9 +1,7 @@
 """PAGANINI Kernel — Config, LLM integration, and core engine."""
 
-import json
 import os
 from pathlib import Path
-from typing import Optional
 
 import yaml
 
@@ -93,7 +91,7 @@ def get_llm_fn(config: dict):
                 model=model,
                 messages=[
                     {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt}
+                    {"role": "user", "content": user_prompt},
                 ],
                 api_base=base_url or None,
                 temperature=0.1,
@@ -121,10 +119,12 @@ def _resolve_env_vars(obj):
     """Recursively resolve ${VAR} references in config values."""
     if isinstance(obj, str):
         import re
+
         def replacer(match):
             var = match.group(1)
             return os.environ.get(var, match.group(0))
-        return re.sub(r'\$\{(\w+)\}', replacer, obj)
+
+        return re.sub(r"\$\{(\w+)\}", replacer, obj)
     elif isinstance(obj, dict):
         return {k: _resolve_env_vars(v) for k, v in obj.items()}
     elif isinstance(obj, list):

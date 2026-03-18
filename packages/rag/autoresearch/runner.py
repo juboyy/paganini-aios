@@ -5,6 +5,7 @@ runs eval.py, keeps improvements, reverts regressions.
 
 Gate Token: GATE-2026-03-14T224026:4ccad14402ba
 """
+
 from __future__ import annotations
 
 import argparse
@@ -16,14 +17,12 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
-import yaml
-
 # ---------------------------------------------------------------------------
 # Paths
 # ---------------------------------------------------------------------------
 WORKSPACE = Path(__file__).resolve().parents[4]  # workspace root
-RAG_DIR = Path(__file__).resolve().parents[1]    # packages/rag/
-AR_DIR = Path(__file__).resolve().parent         # packages/rag/autoresearch/
+RAG_DIR = Path(__file__).resolve().parents[1]  # packages/rag/
+AR_DIR = Path(__file__).resolve().parent  # packages/rag/autoresearch/
 
 PROGRAM_MD = AR_DIR / "program.md"
 EXPERIMENTS_JSONL = AR_DIR / "experiments.jsonl"
@@ -54,22 +53,29 @@ DEFAULT_PARAMS: dict[str, Any] = {
 }
 
 PARAM_CONSTRAINTS: dict[str, dict] = {
-    "chunk_size":        {"type": int,   "min": 128,  "max": 1024},
-    "chunk_overlap":     {"type": int,   "min": 0,    "max": 256},
-    "chunk_strategy":    {"type": str,   "choices": ["fixed", "sentence", "semantic"]},
-    "respect_headers":   {"type": bool},
-    "embedding_model":   {"type": str,   "choices": ["text-embedding-3-small", "text-embedding-3-large", "text-embedding-ada-002"]},
-    "embedding_dims":    {"type": int,   "choices": [256, 512, 1024, 1536]},
-    "dense_weight":      {"type": float, "min": 0.0,  "max": 1.0},
-    "sparse_weight":     {"type": float, "min": 0.0,  "max": 1.0},
-    "graph_weight":      {"type": float, "min": 0.0,  "max": 1.0},
-    "fusion_method":     {"type": str,   "choices": ["rrf", "linear"]},
-    "rrf_k":             {"type": int,   "min": 10,   "max": 100},
-    "reranker":          {"type": str,   "choices": ["none", "cross-encoder"]},
-    "top_k":             {"type": int,   "min": 3,    "max": 20},
-    "context_assembly":  {"type": str,   "choices": ["ranked", "mmr", "clustered"]},
-    "query_expansion":   {"type": bool},
-    "meta_prompt":       {"type": str},
+    "chunk_size": {"type": int, "min": 128, "max": 1024},
+    "chunk_overlap": {"type": int, "min": 0, "max": 256},
+    "chunk_strategy": {"type": str, "choices": ["fixed", "sentence", "semantic"]},
+    "respect_headers": {"type": bool},
+    "embedding_model": {
+        "type": str,
+        "choices": [
+            "text-embedding-3-small",
+            "text-embedding-3-large",
+            "text-embedding-ada-002",
+        ],
+    },
+    "embedding_dims": {"type": int, "choices": [256, 512, 1024, 1536]},
+    "dense_weight": {"type": float, "min": 0.0, "max": 1.0},
+    "sparse_weight": {"type": float, "min": 0.0, "max": 1.0},
+    "graph_weight": {"type": float, "min": 0.0, "max": 1.0},
+    "fusion_method": {"type": str, "choices": ["rrf", "linear"]},
+    "rrf_k": {"type": int, "min": 10, "max": 100},
+    "reranker": {"type": str, "choices": ["none", "cross-encoder"]},
+    "top_k": {"type": int, "min": 3, "max": 20},
+    "context_assembly": {"type": str, "choices": ["ranked", "mmr", "clustered"]},
+    "query_expansion": {"type": bool},
+    "meta_prompt": {"type": str},
 }
 
 
@@ -120,16 +126,18 @@ def read_current_params() -> dict[str, Any]:
 
     # We extract defaults from the rag_cfg.get("key", default) calls
     import re
+
     pattern = re.compile(
         r'self\.(\w+)\s*=\s*(?:rag_cfg|config)\.get\(["\'](\w+)["\'],\s*(.+?)\)',
         re.MULTILINE,
     )
     for match in pattern.finditer(source):
-        attr, key, raw_default = match.group(1), match.group(2), match.group(3).strip()
+        _attr, key, raw_default = match.group(1), match.group(2), match.group(3).strip()
         if key in params:
             try:
                 # Evaluate the literal safely
                 import ast
+
                 params[key] = ast.literal_eval(raw_default)
             except Exception:
                 pass  # Keep default if we can't parse
@@ -207,8 +215,11 @@ def build_llm_prompt(
             outcome = exp.get("outcome", "?")
             delta = exp.get("delta", 0.0)
             hyp = exp.get("hypothesis", "")
-            changed = {k: v for k, v in exp.get("params", {}).items()
-                       if v != DEFAULT_PARAMS.get(k)}
+            changed = {
+                k: v
+                for k, v in exp.get("params", {}).items()
+                if v != DEFAULT_PARAMS.get(k)
+            }
             history_text += (
                 f"- Iteration {exp.get('iteration', '?')} [{outcome}] Δ={delta:+.4f}: "
                 f"{hyp} | changed={json.dumps(changed)}\n"
@@ -231,6 +242,7 @@ def call_llm(messages: list[dict], verbose: bool = False) -> str:
     """Call LLM via packages.kernel.moltis.get_llm_fn."""
     try:
         from packages.kernel.moltis import get_llm_fn  # type: ignore
+
         llm = get_llm_fn()
         response = llm(messages)
         return response
@@ -238,8 +250,10 @@ def call_llm(messages: list[dict], verbose: bool = False) -> str:
         # Fallback: try direct OpenAI if moltis unavailable
         log("moltis not available, falling back to openai direct", verbose)
         import os
+
         try:
             from openai import OpenAI  # type: ignore
+
             client = OpenAI(api_key=os.environ.get("OPENAI_API_KEY", ""))
             result = client.chat.completions.create(
                 model="gpt-4o-mini",
@@ -313,8 +327,10 @@ def run_eval(params: dict[str, Any], eval_set: str, verbose: bool = False) -> di
             [
                 sys.executable,
                 str(EVAL_PY),
-                "--config", tmp_config_path,
-                "--eval-set", eval_set,
+                "--config",
+                tmp_config_path,
+                "--eval-set",
+                eval_set,
                 "--output-json",
             ],
             capture_output=True,
@@ -332,6 +348,7 @@ def run_eval(params: dict[str, Any], eval_set: str, verbose: bool = False) -> di
         output = result.stdout.strip()
         # Find last JSON object in stdout (eval.py may print progress before final JSON)
         import re
+
         json_matches = list(re.finditer(r"\{[^{}]+\}", output, re.DOTALL))
         if not json_matches:
             raise ValueError(f"No JSON in eval output: {output[:300]}")
@@ -379,7 +396,9 @@ def run_autoresearch(
     eval_set: str = "eval_questions.jsonl",
     verbose: bool = True,
 ) -> None:
-    log(f"AutoResearch starting — {iterations} iterations, eval_set={eval_set}", verbose)
+    log(
+        f"AutoResearch starting — {iterations} iterations, eval_set={eval_set}", verbose
+    )
 
     program_md = PROGRAM_MD.read_text(encoding="utf-8")
     current_params = read_current_params()
@@ -390,7 +409,10 @@ def run_autoresearch(
     try:
         baseline_metrics = run_eval(current_params, eval_set, verbose)
         baseline_score = composite_score(baseline_metrics)
-        log(f"Baseline score: {baseline_score:.4f} | metrics={baseline_metrics}", verbose)
+        log(
+            f"Baseline score: {baseline_score:.4f} | metrics={baseline_metrics}",
+            verbose,
+        )
     except Exception as e:
         log(f"Baseline eval failed: {e}. Using score=0.0", verbose)
         baseline_metrics = {}
@@ -432,18 +454,20 @@ def run_autoresearch(
             log(f"New score: {new_score:.4f} (best so far: {best_score:.4f})", verbose)
         except Exception as e:
             log(f"Eval failed: {e} — logging as error, continuing", verbose)
-            log_experiment({
-                "timestamp": _ts(),
-                "iteration": i,
-                "hypothesis": hypothesis,
-                "params": proposed_params,
-                "score_before": best_score,
-                "score_after": None,
-                "delta": None,
-                "outcome": "error",
-                "metrics": {"error": str(e)},
-                "reverted": True,
-            })
+            log_experiment(
+                {
+                    "timestamp": _ts(),
+                    "iteration": i,
+                    "hypothesis": hypothesis,
+                    "params": proposed_params,
+                    "score_before": best_score,
+                    "score_after": None,
+                    "delta": None,
+                    "outcome": "error",
+                    "metrics": {"error": str(e)},
+                    "reverted": True,
+                }
+            )
             history = load_experiments()
             continue
 
@@ -458,7 +482,9 @@ def run_autoresearch(
             "score_before": round(best_score, 6),
             "score_after": round(new_score, 6),
             "delta": round(delta, 6),
-            "outcome": "improved" if improved else ("neutral" if delta == 0 else "degraded"),
+            "outcome": (
+                "improved" if improved else ("neutral" if delta == 0 else "degraded")
+            ),
             "metrics": new_metrics,
             "reverted": not improved,
         }
@@ -476,7 +502,7 @@ def run_autoresearch(
 
         history = load_experiments()
 
-    log(f"\n── AutoResearch complete ──", verbose)
+    log("\n── AutoResearch complete ──", verbose)
     log(f"Best score: {best_score:.4f}", verbose)
     log(f"Best config saved to: {BEST_CONFIG_PATH}", verbose)
 

@@ -2,16 +2,15 @@ from __future__ import annotations
 
 import hashlib
 import json
-import os
 import time
 import uuid
 from pathlib import Path
 from typing import Any, Optional
 
-
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
+
 
 def _ensure_dir(path: Path) -> None:
     path.mkdir(parents=True, exist_ok=True)
@@ -38,6 +37,7 @@ def _content_hash(content: str) -> str:
 # ---------------------------------------------------------------------------
 # 1. EpisodicMemory — Short-term, per-session interaction history
 # ---------------------------------------------------------------------------
+
 
 class EpisodicMemory:
     """Short-term interaction history (in-memory + JSONL file)."""
@@ -73,7 +73,9 @@ class EpisodicMemory:
             "id": str(uuid.uuid4()),
             "query": query,
             "response": response,
-            "chunks": [str(c) if not isinstance(c, (str, dict)) else c for c in (chunks or [])],
+            "chunks": [
+                str(c) if not isinstance(c, (str, dict)) else c for c in (chunks or [])
+            ],
             "confidence": confidence,
             "agent": agent,
             "timestamp": timestamp if timestamp is not None else time.time(),
@@ -102,6 +104,7 @@ class EpisodicMemory:
 # ---------------------------------------------------------------------------
 # 2. SemanticMemory — Long-term factual knowledge
 # ---------------------------------------------------------------------------
+
 
 class SemanticMemory:
     """Long-term factual knowledge extracted from interactions."""
@@ -174,6 +177,7 @@ class SemanticMemory:
 # 3. ProceduralMemory — Learned procedures/patterns
 # ---------------------------------------------------------------------------
 
+
 class ProceduralMemory:
     """Learned procedures and patterns (links to MetaClaw skills)."""
 
@@ -235,7 +239,9 @@ class ProceduralMemory:
         rec = self._procedures[pattern_id]
         rec["uses"] += 1
         alpha = 0.1  # learning rate
-        rec["success_rate"] = (1 - alpha) * rec["success_rate"] + alpha * (1.0 if success else 0.0)
+        rec["success_rate"] = (1 - alpha) * rec["success_rate"] + alpha * (
+            1.0 if success else 0.0
+        )
         self._save()
         return True
 
@@ -246,6 +252,7 @@ class ProceduralMemory:
 # ---------------------------------------------------------------------------
 # 4. RelationalMemory — Entity relationships (links to Knowledge Graph)
 # ---------------------------------------------------------------------------
+
 
 class RelationalMemory:
     """Entity relationships — links to the Knowledge Graph."""
@@ -293,7 +300,8 @@ class RelationalMemory:
         self, entity: str, relation_type: Optional[str] = None
     ) -> list[dict]:
         results = [
-            r for r in self._relations
+            r
+            for r in self._relations
             if r["entity_a"].lower() == entity.lower()
             or r["entity_b"].lower() == entity.lower()
         ]
@@ -303,10 +311,9 @@ class RelationalMemory:
 
     def search(self, query: str) -> list[dict]:
         return [
-            r for r in self._relations
-            if _keyword_match(
-                f"{r['entity_a']} {r['relation']} {r['entity_b']}", query
-            )
+            r
+            for r in self._relations
+            if _keyword_match(f"{r['entity_a']} {r['relation']} {r['entity_b']}", query)
         ]
 
     def count(self) -> int:
@@ -316,6 +323,7 @@ class RelationalMemory:
 # ---------------------------------------------------------------------------
 # 5. MemoryManager — Unified interface
 # ---------------------------------------------------------------------------
+
 
 class MemoryManager:
     """
@@ -397,7 +405,9 @@ class MemoryManager:
         return {
             "episodic": self._episodic.search(query, limit=limit),
             "semantic": self._semantic.search(query, limit=limit),
-            "procedural": [self._procedural.match(query)] if self._procedural.match(query) else [],
+            "procedural": (
+                [self._procedural.match(query)] if self._procedural.match(query) else []
+            ),
             "relational": self._relational.search(query)[:limit],
         }
 

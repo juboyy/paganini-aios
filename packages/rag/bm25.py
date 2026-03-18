@@ -11,31 +11,188 @@ import unicodedata
 from pathlib import Path
 from typing import Optional
 
-
 # ── Portuguese (Brazilian) stopwords ──────────────────────────────────────────
-_PT_STOPWORDS = frozenset({
-    "a", "ao", "aos", "aquela", "aquelas", "aquele", "aqueles", "aquilo",
-    "as", "até", "com", "como", "da", "das", "de", "dela", "delas", "dele",
-    "deles", "depois", "do", "dos", "e", "ela", "elas", "ele", "eles", "em",
-    "entre", "era", "essa", "essas", "esse", "esses", "esta", "estas", "este",
-    "estes", "eu", "foi", "for", "foram", "há", "isso", "isto", "já", "lhe",
-    "lhes", "mais", "mas", "me", "mesmo", "meu", "meus", "minha", "minhas",
-    "muito", "na", "nas", "nem", "no", "nos", "nós", "não", "num", "numa",
-    "o", "os", "ou", "outro", "para", "pelo", "pela", "pelos", "pelas",
-    "por", "qual", "quando", "que", "quem", "que", "se", "sem", "seu",
-    "seus", "sua", "suas", "são", "também", "te", "tem", "tendo", "ter",
-    "toda", "todas", "todo", "todos", "tua", "tuas", "teu", "teus", "uma",
-    "umas", "um", "uns", "você", "vocês", "vos", "à", "às", "nele", "nela",
-    "neles", "nelas", "deste", "desta", "desses", "dessas", "aquele",
-    "daquele", "daquela", "daqueles", "daquelas", "isso", "nesse", "nessa",
-    "nisso", "nisto", "aqui", "ali", "lá", "aí", "onde", "quando", "como",
-    "porque", "pois", "então", "portanto", "porém", "contudo", "todavia",
-    "entretanto", "ainda", "já", "logo", "depois", "antes", "agora",
-    "ser", "estar", "ter", "haver", "ir", "vir", "fazer", "poder", "querer",
-    "saber", "dever", "precisar", "sobre", "entre", "contra", "durante",
-    "desde", "até", "após", "ante", "perante", "conforme", "segundo",
-    "mediante", "exceto", "salvo", "inclusive", "além",
-})
+_PT_STOPWORDS = frozenset(
+    {
+        "a",
+        "ao",
+        "aos",
+        "aquela",
+        "aquelas",
+        "aquele",
+        "aqueles",
+        "aquilo",
+        "as",
+        "até",
+        "com",
+        "como",
+        "da",
+        "das",
+        "de",
+        "dela",
+        "delas",
+        "dele",
+        "deles",
+        "depois",
+        "do",
+        "dos",
+        "e",
+        "ela",
+        "elas",
+        "ele",
+        "eles",
+        "em",
+        "entre",
+        "era",
+        "essa",
+        "essas",
+        "esse",
+        "esses",
+        "esta",
+        "estas",
+        "este",
+        "estes",
+        "eu",
+        "foi",
+        "for",
+        "foram",
+        "há",
+        "isso",
+        "isto",
+        "já",
+        "lhe",
+        "lhes",
+        "mais",
+        "mas",
+        "me",
+        "mesmo",
+        "meu",
+        "meus",
+        "minha",
+        "minhas",
+        "muito",
+        "na",
+        "nas",
+        "nem",
+        "no",
+        "nos",
+        "nós",
+        "não",
+        "num",
+        "numa",
+        "o",
+        "os",
+        "ou",
+        "outro",
+        "para",
+        "pelo",
+        "pela",
+        "pelos",
+        "pelas",
+        "por",
+        "qual",
+        "quando",
+        "que",
+        "quem",
+        "que",
+        "se",
+        "sem",
+        "seu",
+        "seus",
+        "sua",
+        "suas",
+        "são",
+        "também",
+        "te",
+        "tem",
+        "tendo",
+        "ter",
+        "toda",
+        "todas",
+        "todo",
+        "todos",
+        "tua",
+        "tuas",
+        "teu",
+        "teus",
+        "uma",
+        "umas",
+        "um",
+        "uns",
+        "você",
+        "vocês",
+        "vos",
+        "à",
+        "às",
+        "nele",
+        "nela",
+        "neles",
+        "nelas",
+        "deste",
+        "desta",
+        "desses",
+        "dessas",
+        "aquele",
+        "daquele",
+        "daquela",
+        "daqueles",
+        "daquelas",
+        "isso",
+        "nesse",
+        "nessa",
+        "nisso",
+        "nisto",
+        "aqui",
+        "ali",
+        "lá",
+        "aí",
+        "onde",
+        "quando",
+        "como",
+        "porque",
+        "pois",
+        "então",
+        "portanto",
+        "porém",
+        "contudo",
+        "todavia",
+        "entretanto",
+        "ainda",
+        "já",
+        "logo",
+        "depois",
+        "antes",
+        "agora",
+        "ser",
+        "estar",
+        "ter",
+        "haver",
+        "ir",
+        "vir",
+        "fazer",
+        "poder",
+        "querer",
+        "saber",
+        "dever",
+        "precisar",
+        "sobre",
+        "entre",
+        "contra",
+        "durante",
+        "desde",
+        "até",
+        "após",
+        "ante",
+        "perante",
+        "conforme",
+        "segundo",
+        "mediante",
+        "exceto",
+        "salvo",
+        "inclusive",
+        "além",
+    }
+)
 
 
 def _strip_accents(text: str) -> str:
@@ -53,6 +210,7 @@ def _tokenize(text: str) -> list[str]:
 
 
 # ── BM25 Index ─────────────────────────────────────────────────────────────────
+
 
 class BM25Index:
     """BM25Okapi sparse retrieval index with Portuguese-aware tokenization.
@@ -80,10 +238,10 @@ class BM25Index:
         # Core data structures
         self._ids: list[str] = []
         self._metadatas: list[dict] = []
-        self._doc_lengths: list[int] = []          # token counts per doc
+        self._doc_lengths: list[int] = []  # token counts per doc
         self._avg_dl: float = 0.0
-        self._df: dict[str, int] = {}              # term → doc-frequency
-        self._tf: list[dict[str, int]] = []        # per-doc term frequencies
+        self._df: dict[str, int] = {}  # term → doc-frequency
+        self._tf: list[dict[str, int]] = []  # per-doc term frequencies
 
         self._loaded = False
 
@@ -107,7 +265,9 @@ class BM25Index:
             raise ValueError("documents, ids, and metadatas must have the same length")
 
         # Build an id → position map for fast duplicate detection
-        existing_id_map: dict[str, int] = {doc_id: i for i, doc_id in enumerate(self._ids)}
+        existing_id_map: dict[str, int] = {
+            doc_id: i for i, doc_id in enumerate(self._ids)
+        }
 
         for doc, doc_id, meta in zip(documents, ids, metadatas):
             tokens = _tokenize(doc)
@@ -175,7 +335,11 @@ class BM25Index:
                 if tf == 0:
                     continue
                 dl = self._doc_lengths[i]
-                norm = self.k1 * (1 - self.b + self.b * dl / self._avg_dl) if self._avg_dl else 1.0
+                norm = (
+                    self.k1 * (1 - self.b + self.b * dl / self._avg_dl)
+                    if self._avg_dl
+                    else 1.0
+                )
                 scores[i] += idf * (tf * (self.k1 + 1)) / (tf + norm)
 
         # Gather non-zero and sort
@@ -187,11 +351,13 @@ class BM25Index:
 
         results = []
         for i, score in ranked[:top_k]:
-            results.append({
-                "id": self._ids[i],
-                "score": score,
-                "metadata": self._metadatas[i],
-            })
+            results.append(
+                {
+                    "id": self._ids[i],
+                    "score": score,
+                    "metadata": self._metadatas[i],
+                }
+            )
         return results
 
     def __len__(self) -> int:
@@ -232,4 +398,6 @@ class BM25Index:
         except Exception as exc:
             # Corrupt or missing — start fresh
             self._loaded = False
-            raise RuntimeError(f"Failed to load BM25 index from {self.index_path}: {exc}") from exc
+            raise RuntimeError(
+                f"Failed to load BM25 index from {self.index_path}: {exc}"
+            ) from exc

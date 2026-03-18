@@ -123,7 +123,7 @@ function BurndownChart() {
           <text
             x={PAD.left - 6} y={yScale(t) + 4}
             textAnchor="end"
-            style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", fill: "var(--text-4)" }}
+            style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", fill: "var(--text-4)" }}
           >
             {t}
           </text>
@@ -136,7 +136,7 @@ function BurndownChart() {
           key={i}
           x={xScale(i)} y={H - PAD.bottom + 14}
           textAnchor="middle"
-          style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", fill: "var(--text-4)" }}
+          style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", fill: "var(--text-4)" }}
         >
           D{i + 1}
         </text>
@@ -155,7 +155,7 @@ function BurndownChart() {
       />
       <text
         x={idealPts[1].x + 4} y={idealPts[1].y - 4}
-        style={{ fontFamily: "var(--font-mono)", fontSize: "0.44rem", fill: "hsl(180 100% 50% / 0.6)" }}
+        style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", fill: "hsl(180 100% 50% / 0.6)" }}
       >
         IDEAL
       </text>
@@ -178,7 +178,7 @@ function BurndownChart() {
       <text
         x={actualPts[actualPts.length - 1].x + 6}
         y={actualPts[actualPts.length - 1].y - 6}
-        style={{ fontFamily: "var(--font-mono)", fontSize: "0.44rem", fill: "var(--accent)", fontWeight: 700 }}
+        style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", fill: "var(--accent)", fontWeight: 700 }}
       >
         +AHEAD
       </text>
@@ -222,7 +222,7 @@ function VelocityChart() {
             <line x1={PAD.left} y1={y} x2={W - PAD.right} y2={y}
               stroke="hsl(150 100% 50% / 0.07)" strokeWidth="1" />
             <text x={PAD.left - 4} y={y + 3} textAnchor="end"
-              style={{ fontFamily: "var(--font-mono)", fontSize: "0.44rem", fill: "var(--text-4)" }}>
+              style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", fill: "var(--text-4)" }}>
               {t}
             </text>
           </g>
@@ -244,11 +244,11 @@ function VelocityChart() {
               style={{ filter: d.current ? "drop-shadow(0 0 6px hsl(150 100% 55% / 0.5))" : "none" }}
             />
             <text x={x + barW / 2} y={y - 4} textAnchor="middle"
-              style={{ fontFamily: "var(--font-mono)", fontSize: "0.44rem", fill: d.current ? "var(--accent)" : "var(--text-3)", fontWeight: d.current ? 700 : 400 }}>
+              style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", fill: d.current ? "var(--accent)" : "var(--text-3)", fontWeight: d.current ? 700 : 400 }}>
               {d.pts}
             </text>
             <text x={x + barW / 2} y={H - PAD.bottom + 12} textAnchor="middle"
-              style={{ fontFamily: "var(--font-mono)", fontSize: "0.44rem", fill: d.current ? "var(--accent)" : "var(--text-4)" }}>
+              style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", fill: d.current ? "var(--accent)" : "var(--text-4)" }}>
               {d.sprint}
             </text>
           </g>
@@ -285,7 +285,7 @@ function AgentTag({ agent }: { agent: string }) {
   return (
     <span
       style={{
-        fontFamily: "var(--font-mono)", fontSize: "0.5rem",
+        fontFamily: "var(--font-mono)", fontSize: "0.75rem",
         color: "var(--cyan)", background: "rgba(0,255,255,0.08)",
         border: "1px solid rgba(0,255,255,0.18)", padding: "1px 5px",
         borderRadius: "var(--radius)", whiteSpace: "nowrap",
@@ -300,7 +300,7 @@ function PtsBadge({ pts }: { pts: number }) {
   return (
     <span
       style={{
-        fontFamily: "var(--font-mono)", fontSize: "0.5rem",
+        fontFamily: "var(--font-mono)", fontSize: "0.75rem",
         color: "#a78bfa", background: "rgba(167,139,250,0.10)",
         border: "1px solid rgba(167,139,250,0.22)", padding: "1px 6px",
         borderRadius: "var(--radius)", whiteSpace: "nowrap",
@@ -322,7 +322,7 @@ export default function SprintPage() {
       <div>
         <div
           style={{
-            fontFamily: "var(--font-mono)", fontSize: "0.5625rem",
+            fontFamily: "var(--font-mono)", fontSize: "0.75rem",
             letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "0.25rem",
           }}
         >
@@ -346,7 +346,7 @@ export default function SprintPage() {
           <div key={s.label} className="glass-card" style={{ padding: "1rem 1.25rem" }}>
             <div
               style={{
-                fontFamily: "var(--font-mono)", fontSize: "0.5625rem",
+                fontFamily: "var(--font-mono)", fontSize: "0.75rem",
                 letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "0.25rem",
               }}
             >
@@ -360,7 +360,7 @@ export default function SprintPage() {
             >
               {s.value}
             </div>
-            <div style={{ fontSize: "0.6875rem", color: "var(--text-4)", marginTop: "2px" }}>
+            <div style={{ fontSize: "0.8125rem", color: "var(--text-4)", marginTop: "2px" }}>
               {s.sub}
             </div>
           </div>
@@ -374,7 +374,7 @@ export default function SprintPage() {
         <div className="glass-card" style={{ padding: "1.25rem" }}>
           <div
             style={{
-              fontFamily: "var(--font-mono)", fontSize: "0.5625rem",
+              fontFamily: "var(--font-mono)", fontSize: "0.75rem",
               letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "0.75rem",
             }}
           >
@@ -397,7 +397,7 @@ export default function SprintPage() {
                     borderTop: dash ? `2px dashed ${color}` : "none",
                   }}
                 />
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", color: "var(--text-4)" }}>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-4)" }}>
                   {label}
                 </span>
               </div>
@@ -409,7 +409,7 @@ export default function SprintPage() {
         <div className="glass-card" style={{ padding: "1.25rem" }}>
           <div
             style={{
-              fontFamily: "var(--font-mono)", fontSize: "0.5625rem",
+              fontFamily: "var(--font-mono)", fontSize: "0.75rem",
               letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "0.75rem",
             }}
           >
@@ -423,7 +423,7 @@ export default function SprintPage() {
               borderRadius: "var(--radius)", background: "hsl(150 100% 50% / 0.04)",
             }}
           >
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", color: "var(--text-4)", marginBottom: "2px" }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-4)", marginBottom: "2px" }}>
               MÉDIA (5 SPRINTS)
             </div>
             <div style={{ fontFamily: "var(--font-mono)", fontSize: "1.25rem", fontWeight: 700, color: "var(--accent)" }}>
@@ -437,7 +437,7 @@ export default function SprintPage() {
       <div className="glass-card" style={{ padding: "1.25rem" }}>
         <div
           style={{
-            fontFamily: "var(--font-mono)", fontSize: "0.5625rem",
+            fontFamily: "var(--font-mono)", fontSize: "0.75rem",
             letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "1rem",
           }}
         >
@@ -456,7 +456,7 @@ export default function SprintPage() {
           <div>
             <div
               style={{
-                fontFamily: "var(--font-mono)", fontSize: "0.5625rem",
+                fontFamily: "var(--font-mono)", fontSize: "0.75rem",
                 letterSpacing: "0.12em", color: "#f59e0b",
                 padding: "4px 10px", border: "1px solid rgba(245,158,11,0.25)",
                 borderRadius: "var(--radius)", background: "rgba(245,158,11,0.07)",
@@ -474,7 +474,7 @@ export default function SprintPage() {
                     background: "rgba(245,158,11,0.04)", border: "1px solid rgba(245,158,11,0.14)",
                   }}
                 >
-                  <div style={{ fontSize: "0.6875rem", color: "var(--text-2)", lineHeight: 1.4, marginBottom: "0.5rem" }}>
+                  <div style={{ fontSize: "0.8125rem", color: "var(--text-2)", lineHeight: 1.4, marginBottom: "0.5rem" }}>
                     {card.title}
                   </div>
                   <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: "0.375rem" }}>
@@ -484,7 +484,7 @@ export default function SprintPage() {
                     <PtsBadge pts={card.pts} />
                     <span
                       style={{
-                        fontFamily: "var(--font-mono)", fontSize: "0.44rem",
+                        fontFamily: "var(--font-mono)", fontSize: "0.75rem",
                         color: "var(--text-4)", letterSpacing: "0.08em",
                       }}
                     >
@@ -500,7 +500,7 @@ export default function SprintPage() {
           <div>
             <div
               style={{
-                fontFamily: "var(--font-mono)", fontSize: "0.5625rem",
+                fontFamily: "var(--font-mono)", fontSize: "0.75rem",
                 letterSpacing: "0.12em", color: "var(--cyan)",
                 padding: "4px 10px", border: "1px solid rgba(0,255,255,0.22)",
                 borderRadius: "var(--radius)", background: "rgba(0,255,255,0.06)",
@@ -518,7 +518,7 @@ export default function SprintPage() {
                     background: "rgba(0,255,255,0.03)", border: "1px solid rgba(0,255,255,0.12)",
                   }}
                 >
-                  <div style={{ fontSize: "0.6875rem", color: "var(--text-2)", lineHeight: 1.4, marginBottom: "0.5rem" }}>
+                  <div style={{ fontSize: "0.8125rem", color: "var(--text-2)", lineHeight: 1.4, marginBottom: "0.5rem" }}>
                     {card.title}
                   </div>
                   <div style={{ display: "flex", gap: 4, flexWrap: "wrap", marginBottom: "0.5rem" }}>
@@ -529,7 +529,7 @@ export default function SprintPage() {
                     <PtsBadge pts={card.pts} />
                     <span
                       style={{
-                        fontFamily: "var(--font-mono)", fontSize: "0.5rem",
+                        fontFamily: "var(--font-mono)", fontSize: "0.75rem",
                         color: card.pct >= 70 ? "var(--accent)" : card.pct >= 40 ? "var(--cyan)" : "var(--text-3)",
                         fontWeight: 600,
                       }}
@@ -546,7 +546,7 @@ export default function SprintPage() {
           <div>
             <div
               style={{
-                fontFamily: "var(--font-mono)", fontSize: "0.5625rem",
+                fontFamily: "var(--font-mono)", fontSize: "0.75rem",
                 letterSpacing: "0.12em", color: "#a78bfa",
                 padding: "4px 10px", border: "1px solid rgba(167,139,250,0.25)",
                 borderRadius: "var(--radius)", background: "rgba(167,139,250,0.07)",
@@ -564,13 +564,13 @@ export default function SprintPage() {
                     background: "rgba(167,139,250,0.04)", border: "1px solid rgba(167,139,250,0.14)",
                   }}
                 >
-                  <div style={{ fontSize: "0.6875rem", color: "var(--text-2)", lineHeight: 1.4, marginBottom: "0.5rem" }}>
+                  <div style={{ fontSize: "0.8125rem", color: "var(--text-2)", lineHeight: 1.4, marginBottom: "0.5rem" }}>
                     {card.title}
                   </div>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <span
                       style={{
-                        fontFamily: "var(--font-mono)", fontSize: "0.5rem",
+                        fontFamily: "var(--font-mono)", fontSize: "0.75rem",
                         color: "#a78bfa", background: "rgba(167,139,250,0.10)",
                         border: "1px solid rgba(167,139,250,0.22)", padding: "1px 6px",
                         borderRadius: "var(--radius)",
@@ -578,7 +578,7 @@ export default function SprintPage() {
                     >
                       {card.pr}
                     </span>
-                    <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.44rem", color: "var(--text-4)", letterSpacing: "0.08em" }}>
+                    <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-4)", letterSpacing: "0.08em" }}>
                       {card.domain}
                     </span>
                   </div>
@@ -591,7 +591,7 @@ export default function SprintPage() {
           <div>
             <div
               style={{
-                fontFamily: "var(--font-mono)", fontSize: "0.5625rem",
+                fontFamily: "var(--font-mono)", fontSize: "0.75rem",
                 letterSpacing: "0.12em", color: "var(--accent)",
                 padding: "4px 10px", border: "1px solid hsl(150 100% 50% / 0.25)",
                 borderRadius: "var(--radius)", background: "hsl(150 100% 50% / 0.07)",
@@ -610,10 +610,10 @@ export default function SprintPage() {
               }}
             >
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", color: "var(--text-4)" }}>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-4)" }}>
                   COMPLETADO
                 </span>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", color: "var(--accent)", fontWeight: 700 }}>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--accent)", fontWeight: 700 }}>
                   67%
                 </span>
               </div>
@@ -630,8 +630,8 @@ export default function SprintPage() {
                     background: i % 2 === 0 ? "rgba(0,255,128,0.03)" : "transparent",
                   }}
                 >
-                  <span style={{ color: "var(--accent)", fontSize: "0.625rem", flexShrink: 0, marginTop: 1 }}>✓</span>
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--text-4)", lineHeight: 1.4 }}>
+                  <span style={{ color: "var(--accent)", fontSize: "0.8125rem", flexShrink: 0, marginTop: 1 }}>✓</span>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-4)", lineHeight: 1.4 }}>
                     {item}
                   </span>
                 </div>
@@ -641,7 +641,7 @@ export default function SprintPage() {
                   onClick={() => setDoneExpanded(true)}
                   style={{
                     marginTop: "4px", padding: "4px",
-                    fontFamily: "var(--font-mono)", fontSize: "0.5rem",
+                    fontFamily: "var(--font-mono)", fontSize: "0.75rem",
                     color: "var(--text-4)", background: "transparent",
                     border: "1px solid var(--border)", borderRadius: "var(--radius)",
                     cursor: "pointer", letterSpacing: "0.08em",
@@ -659,7 +659,7 @@ export default function SprintPage() {
       <div className="glass-card" style={{ padding: "1.25rem" }}>
         <div
           style={{
-            fontFamily: "var(--font-mono)", fontSize: "0.5625rem",
+            fontFamily: "var(--font-mono)", fontSize: "0.75rem",
             letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "1rem",
           }}
         >
@@ -691,7 +691,7 @@ export default function SprintPage() {
                     <span>{a.emoji}</span>
                     <span
                       style={{
-                        fontFamily: "var(--font-mono)", fontSize: "0.625rem",
+                        fontFamily: "var(--font-mono)", fontSize: "0.8125rem",
                         color: a.color, fontWeight: 600,
                       }}
                     >
@@ -701,7 +701,7 @@ export default function SprintPage() {
                   <div style={{ display: "flex", gap: "0.5rem" }}>
                     <span
                       style={{
-                        fontFamily: "var(--font-mono)", fontSize: "0.5rem",
+                        fontFamily: "var(--font-mono)", fontSize: "0.75rem",
                         color: "var(--text-4)", background: "rgba(0,0,0,0.3)",
                         padding: "1px 5px", borderRadius: "var(--radius)",
                         border: "1px solid var(--border)",

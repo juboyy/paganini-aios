@@ -17,39 +17,43 @@ from typing import Any
 # Result dataclasses
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class VaRResult:
     """Value-at-Risk computation result."""
-    historical_var: float         # BRL amount at risk (historical simulation)
-    parametric_var: float         # BRL amount at risk (parametric/normal)
-    confidence: float             # e.g. 0.95
-    horizon_days: int             # look-forward horizon
-    portfolio_value: float        # total portfolio market value
-    historical_var_pct: float     # as % of portfolio
-    parametric_var_pct: float     # as % of portfolio
-    num_observations: int         # how many P&L observations used
+
+    historical_var: float  # BRL amount at risk (historical simulation)
+    parametric_var: float  # BRL amount at risk (parametric/normal)
+    confidence: float  # e.g. 0.95
+    horizon_days: int  # look-forward horizon
+    portfolio_value: float  # total portfolio market value
+    historical_var_pct: float  # as % of portfolio
+    parametric_var_pct: float  # as % of portfolio
+    num_observations: int  # how many P&L observations used
     mean_return: float
     std_return: float
-    method_used: str              # "historical" | "parametric" | "parametric_fallback"
+    method_used: str  # "historical" | "parametric" | "parametric_fallback"
 
 
 @dataclass
 class ScenarioImpact:
     """Per-scenario impact breakdown."""
+
     scenario: str
-    default_rate_shock: float     # e.g. +0.02 = +2pp
-    recovery_rate_shock: float    # e.g. -0.05 = -5pp
-    rate_shock_bps: int           # basis-point shock on CDI
-    pdd_impact: float             # BRL change in PDD (provisão para devedores duvidosos)
-    nav_impact: float             # BRL change in NAV
-    liquidity_impact: float       # BRL change in liquid assets
-    expected_loss_impact: float   # BRL change in EL
-    nav_impact_pct: float         # as % of NAV
+    default_rate_shock: float  # e.g. +0.02 = +2pp
+    recovery_rate_shock: float  # e.g. -0.05 = -5pp
+    rate_shock_bps: int  # basis-point shock on CDI
+    pdd_impact: float  # BRL change in PDD (provisão para devedores duvidosos)
+    nav_impact: float  # BRL change in NAV
+    liquidity_impact: float  # BRL change in liquid assets
+    expected_loss_impact: float  # BRL change in EL
+    nav_impact_pct: float  # as % of NAV
 
 
 @dataclass
 class StressResult:
     """Stress-test result across all scenarios."""
+
     portfolio_value: float
     current_nav: float
     scenarios: dict[str, ScenarioImpact] = field(default_factory=dict)
@@ -60,6 +64,7 @@ class StressResult:
 # ---------------------------------------------------------------------------
 # Main class
 # ---------------------------------------------------------------------------
+
 
 class RiskAgent:
     """
@@ -92,12 +97,12 @@ class RiskAgent:
         (65.0, "BBB"),
         (55.0, "BB"),
         (45.0, "B"),
-        (0.0,  "CCC"),
+        (0.0, "CCC"),
     ]
 
     # Stress scenarios: (default_shock, recovery_shock, rate_shock_bps)
     SCENARIOS: dict[str, tuple[float, float, int]] = {
-        "base":    (0.02, -0.05, 100),
+        "base": (0.02, -0.05, 100),
         "adverse": (0.05, -0.15, 200),
         "extreme": (0.10, -0.30, 400),
     }
@@ -138,13 +143,15 @@ class RiskAgent:
 
         # Concentration
         results["concentration_cedente"] = self.concentration_risk(portfolio, "cedente")
-        results["concentration_sector"]  = self.concentration_risk(portfolio, "sector")
+        results["concentration_sector"] = self.concentration_risk(portfolio, "sector")
 
         # Portfolio-level EL
-        pd_avg  = statistics.mean(r.get("pd", 0.03) for r in portfolio)
+        pd_avg = statistics.mean(r.get("pd", 0.03) for r in portfolio)
         lgd_avg = statistics.mean(r.get("lgd", 0.45) for r in portfolio)
-        results["expected_loss"]   = self.calculate_expected_loss(pd_avg, lgd_avg, nav)
-        results["unexpected_loss"] = self.calculate_unexpected_loss(pd_avg, lgd_avg, nav)
+        results["expected_loss"] = self.calculate_expected_loss(pd_avg, lgd_avg, nav)
+        results["unexpected_loss"] = self.calculate_unexpected_loss(
+            pd_avg, lgd_avg, nav
+        )
 
         # Synthetic score → rating
         score = max(0, min(100, 100 - pd_avg * 500))
@@ -191,7 +198,9 @@ class RiskAgent:
         if not 0 < confidence < 1:
             raise ValueError(f"confidence must be in (0,1), got {confidence}")
 
-        portfolio_value = sum(r.get("valor_presente", r.get("valor_face", 0)) for r in portfolio)
+        portfolio_value = sum(
+            r.get("valor_presente", r.get("valor_face", 0)) for r in portfolio
+        )
 
         # Aggregate daily returns across all receivables
         all_returns: list[float] = []
@@ -207,15 +216,16 @@ class RiskAgent:
             spreads = []
             for r in portfolio:
                 face = r.get("valor_face", 0)
-                pv   = r.get("valor_presente", face)
+                pv = r.get("valor_presente", face)
                 if face > 0:
                     spreads.append((face - pv) / face)
             base_vol = statistics.stdev(spreads) if len(spreads) > 1 else 0.01
             # Simulate 252 trading-day returns (normal distribution approx)
             import random
+
             rng = random.Random(42)
             daily_vol = base_vol / math.sqrt(252)
-            daily_rf  = (1 + self.CDI_ANNUAL) ** (1 / 252) - 1
+            daily_rf = (1 + self.CDI_ANNUAL) ** (1 / 252) - 1
             all_returns = [rng.gauss(daily_rf, daily_vol) for _ in range(252)]
 
         # ---- Historical VaR ----
@@ -228,7 +238,7 @@ class RiskAgent:
         historical_var = portfolio_value * hist_loss_pct_scaled
 
         # ---- Parametric VaR ----
-        mu  = statistics.mean(all_returns)
+        mu = statistics.mean(all_returns)
         try:
             sigma = statistics.stdev(all_returns)
         except statistics.StatisticsError:
@@ -236,7 +246,7 @@ class RiskAgent:
 
         z = self._get_z_score(confidence)
         # Daily parametric VaR, scaled to horizon
-        parametric_loss_pct = (-(mu * horizon_days) + z * sigma * math.sqrt(horizon_days))
+        parametric_loss_pct = -(mu * horizon_days) + z * sigma * math.sqrt(horizon_days)
         parametric_var = portfolio_value * max(0, parametric_loss_pct)
 
         return VaRResult(
@@ -293,31 +303,45 @@ class RiskAgent:
             StressResult dataclass
         """
         if scenario not in self.SCENARIOS:
-            raise ValueError(f"Unknown scenario '{scenario}'. Must be one of {list(self.SCENARIOS)}")
+            raise ValueError(
+                f"Unknown scenario '{scenario}'. Must be one of {list(self.SCENARIOS)}"
+            )
 
         default_shock, recovery_shock, rate_shock_bps = self.SCENARIOS[scenario]
 
-        portfolio_value = sum(r.get("valor_presente", r.get("valor_face", 0)) for r in portfolio)
-        current_nav     = portfolio_value  # simplified: NAV ≈ PV of receivables
+        portfolio_value = sum(
+            r.get("valor_presente", r.get("valor_face", 0)) for r in portfolio
+        )
+        current_nav = portfolio_value  # simplified: NAV ≈ PV of receivables
 
         # --- Base metrics ---
         total_ead = sum(r.get("valor_face", 0) for r in portfolio)
-        base_pd   = statistics.mean(r.get("pd",  0.03) for r in portfolio) if portfolio else 0.03
-        base_lgd  = statistics.mean(r.get("lgd", 0.45) for r in portfolio) if portfolio else 0.45
+        base_pd = (
+            statistics.mean(r.get("pd", 0.03) for r in portfolio) if portfolio else 0.03
+        )
+        base_lgd = (
+            statistics.mean(r.get("lgd", 0.45) for r in portfolio)
+            if portfolio
+            else 0.45
+        )
 
         # Stressed PD/LGD
-        stressed_pd  = min(1.0, base_pd  + default_shock)
-        stressed_lgd = max(0.0, min(1.0, base_lgd - recovery_shock))  # recovery ↓ → LGD ↑
+        stressed_pd = min(1.0, base_pd + default_shock)
+        stressed_lgd = max(
+            0.0, min(1.0, base_lgd - recovery_shock)
+        )  # recovery ↓ → LGD ↑
 
         # --- PDD impact ---
-        base_el     = self.calculate_expected_loss(base_pd,     base_lgd,     total_ead)
+        base_el = self.calculate_expected_loss(base_pd, base_lgd, total_ead)
         stressed_el = self.calculate_expected_loss(stressed_pd, stressed_lgd, total_ead)
-        pdd_impact  = stressed_el - base_el  # positive = more PDD needed
+        pdd_impact = stressed_el - base_el  # positive = more PDD needed
 
         # --- Rate / duration impact on NAV ---
-        avg_duration_years = statistics.mean(
-            r.get("prazo_dias", 90) / 365 for r in portfolio
-        ) if portfolio else 0.25
+        avg_duration_years = (
+            statistics.mean(r.get("prazo_dias", 90) / 365 for r in portfolio)
+            if portfolio
+            else 0.25
+        )
         rate_shock_decimal = rate_shock_bps / 10_000
         # Duration approximation: ΔPrice ≈ -Duration × ΔYield × Price
         rate_nav_impact = -avg_duration_years * rate_shock_decimal * portfolio_value
@@ -342,7 +366,9 @@ class RiskAgent:
             nav_impact=round(nav_impact, 2),
             liquidity_impact=round(liquidity_impact, 2),
             expected_loss_impact=round(stressed_el - base_el, 2),
-            nav_impact_pct=round((nav_impact / current_nav * 100) if current_nav else 0, 4),
+            nav_impact_pct=round(
+                (nav_impact / current_nav * 100) if current_nav else 0, 4
+            ),
         )
 
         result = StressResult(
@@ -428,45 +454,73 @@ class RiskAgent:
             """Inverse standard normal CDF — rational approximation."""
             if p <= 0 or p >= 1:
                 raise ValueError("p must be in (0,1)")
-            a = [0, -3.969683028665376e+01,  2.209460984245205e+02,
-                 -2.759285104469687e+02,  1.383577518672690e+02,
-                 -3.066479806614716e+01,  2.506628277459239e+00]
-            b = [0, -5.447609879822406e+01,  1.615858368580409e+02,
-                 -1.556989798598866e+02,  6.680131188771972e+01,
-                 -1.328068155288572e+01]
-            c = [-7.784894002430293e-03, -3.223964580411365e-01,
-                 -2.400758277161838e+00, -2.549732539343734e+00,
-                  4.374664141464968e+00,  2.938163982698783e+00]
-            d = [7.784695709041462e-03,  3.224671290700398e-01,
-                 2.445134137142996e+00,  3.754408661907416e+00]
-            p_low  = 0.02425
+            a = [
+                0,
+                -3.969683028665376e01,
+                2.209460984245205e02,
+                -2.759285104469687e02,
+                1.383577518672690e02,
+                -3.066479806614716e01,
+                2.506628277459239e00,
+            ]
+            b = [
+                0,
+                -5.447609879822406e01,
+                1.615858368580409e02,
+                -1.556989798598866e02,
+                6.680131188771972e01,
+                -1.328068155288572e01,
+            ]
+            c = [
+                -7.784894002430293e-03,
+                -3.223964580411365e-01,
+                -2.400758277161838e00,
+                -2.549732539343734e00,
+                4.374664141464968e00,
+                2.938163982698783e00,
+            ]
+            d = [
+                7.784695709041462e-03,
+                3.224671290700398e-01,
+                2.445134137142996e00,
+                3.754408661907416e00,
+            ]
+            p_low = 0.02425
             p_high = 1 - p_low
             if p < p_low:
                 q = math.sqrt(-2 * math.log(p))
-                return (((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5]) / \
-                       ((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1)
+                return (
+                    ((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]
+                ) / ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1)
             elif p <= p_high:
                 q = p - 0.5
                 r = q * q
-                return (((((a[1]*r+a[2])*r+a[3])*r+a[4])*r+a[5])*r+a[6])*q / \
-                       (((((b[1]*r+b[2])*r+b[3])*r+b[4])*r+b[5])*r+1)
+                return (
+                    (
+                        ((((a[1] * r + a[2]) * r + a[3]) * r + a[4]) * r + a[5]) * r
+                        + a[6]
+                    )
+                    * q
+                    / (((((b[1] * r + b[2]) * r + b[3]) * r + b[4]) * r + b[5]) * r + 1)
+                )
             else:
                 q = math.sqrt(-2 * math.log(1 - p))
-                return -(((((c[0]*q+c[1])*q+c[2])*q+c[3])*q+c[4])*q+c[5]) / \
-                        ((((d[0]*q+d[1])*q+d[2])*q+d[3])*q+1)
+                return -(
+                    ((((c[0] * q + c[1]) * q + c[2]) * q + c[3]) * q + c[4]) * q + c[5]
+                ) / ((((d[0] * q + d[1]) * q + d[2]) * q + d[3]) * q + 1)
 
         def norm_cdf(x: float) -> float:
             """Standard normal CDF using math.erfc."""
             return 0.5 * math.erfc(-x / math.sqrt(2))
 
-        inv_pd    = norm_ppf(max(1e-7, min(1 - 1e-7, pd)))
-        inv_999   = norm_ppf(0.999)          # ≈ 3.0902
-        sqrt_rho  = math.sqrt(rho)
+        inv_pd = norm_ppf(max(1e-7, min(1 - 1e-7, pd)))
+        inv_999 = norm_ppf(0.999)  # ≈ 3.0902
+        sqrt_rho = math.sqrt(rho)
         sqrt_1mrho = math.sqrt(1 - rho)
 
         # Basel II WCDR (Worst-Case Default Rate)
         wcdr_arg = (inv_pd / sqrt_1mrho) + (sqrt_rho / sqrt_1mrho) * inv_999
-        wcdr     = norm_cdf(wcdr_arg)
+        wcdr = norm_cdf(wcdr_arg)
 
         # Capital charge K = LGD × WCDR − EL_rate
         el_rate = pd * lgd
@@ -497,7 +551,7 @@ class RiskAgent:
             dict with hhi, concentrated (bool), top5, breakdown
         """
         if dimension not in ("cedente", "sacado", "sector"):
-            raise ValueError(f"dimension must be 'cedente', 'sacado', or 'sector'")
+            raise ValueError("dimension must be 'cedente', 'sacado', or 'sector'")
 
         total_exposure = sum(r.get("valor_face", 0) for r in portfolio)
         if total_exposure == 0:
@@ -514,8 +568,14 @@ class RiskAgent:
 
         # Top-5 by exposure
         top5 = sorted(
-            [{"name": k, "exposure": v, "share_pct": round(v / total_exposure * 100, 2)}
-             for k, v in buckets.items()],
+            [
+                {
+                    "name": k,
+                    "exposure": v,
+                    "share_pct": round(v / total_exposure * 100, 2),
+                }
+                for k, v in buckets.items()
+            ],
             key=lambda x: x["exposure"],
             reverse=True,
         )[:5]
@@ -643,11 +703,15 @@ if __name__ == "__main__":
     print("=== RISK AGENT DEMO ===")
     print(f"Summary: {result['summary']}")
     var_r = result["results"]["var"]
-    print(f"\nVaR 95% (1-day): R$ {var_r.historical_var:,.2f} ({var_r.historical_var_pct:.2f}%)")
+    print(
+        f"\nVaR 95% (1-day): R$ {var_r.historical_var:,.2f} ({var_r.historical_var_pct:.2f}%)"
+    )
     print(f"Parametric VaR: R$ {var_r.parametric_var:,.2f}")
     print(f"Method: {var_r.method_used}")
     conc = result["results"]["concentration_cedente"]
-    print(f"\nConcentration (cedente) HHI: {conc['hhi']:.4f} — {conc['interpretation']}")
+    print(
+        f"\nConcentration (cedente) HHI: {conc['hhi']:.4f} — {conc['interpretation']}"
+    )
     print(f"Rating: {result['results']['rating']}")
     print(f"Expected Loss: R$ {result['results']['expected_loss']:,.2f}")
     print(f"Unexpected Loss: R$ {result['results']['unexpected_loss']:,.2f}")

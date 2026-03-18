@@ -25,13 +25,18 @@ Brazilian market constants used across modules:
   Regulation: CVM Resolução 175/2022, BACEN 3.978, BACEN 4.966, CMN 4.557
 """
 
-from .risk               import RiskAgent, VaRResult, StressResult, ScenarioImpact
-from .knowledge_graph    import KnowledgeGraphAgent, Entity, Relationship, IngestResult
-from .treasury           import TreasuryAgent, CashFlowProjection, ReconciliationResult, DailyBalance
-from .auditor            import AuditorAgent, AuditResult, AuditFinding
-from .reporting          import ReportingAgent
+from .auditor import AuditFinding, AuditorAgent, AuditResult
 from .investor_relations import InvestorRelationsAgent, PerformanceReport
-from .regulatory_watch   import RegulatoryWatchAgent, Publication, ImpactAssessment
+from .knowledge_graph import Entity, IngestResult, KnowledgeGraphAgent, Relationship
+from .regulatory_watch import ImpactAssessment, Publication, RegulatoryWatchAgent
+from .reporting import ReportingAgent
+from .risk import RiskAgent, ScenarioImpact, StressResult, VaRResult
+from .treasury import (
+    CashFlowProjection,
+    DailyBalance,
+    ReconciliationResult,
+    TreasuryAgent,
+)
 
 __all__ = [
     # Agents

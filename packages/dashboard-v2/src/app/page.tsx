@@ -115,7 +115,7 @@ function GitHeatmap() {
     >
       {/* Hour labels */}
       {[0, 6, 12, 18, 23].map(h => (
-        <text key={h} x={h * (cellW + gapX) + cellW / 2} y={10} fontSize="8" fill="rgba(255,255,255,0.2)" textAnchor="middle">
+        <text key={h} x={h * (cellW + gapX) + cellW / 2} y={10} fontSize="12" fill="rgba(255,255,255,0.2)" textAnchor="middle">
           {h}h
         </text>
       ))}
@@ -137,7 +137,7 @@ function GitHeatmap() {
       )}
       {/* Day labels */}
       {days.map((day, d) => (
-        <text key={day} x={-2} y={d * (cellH + gapY) + 14 + cellH / 2 + 3} fontSize="8" fill="rgba(255,255,255,0.2)" textAnchor="end">
+        <text key={day} x={-2} y={d * (cellH + gapY) + 14 + cellH / 2 + 3} fontSize="12" fill="rgba(255,255,255,0.2)" textAnchor="end">
           {day}
         </text>
       ))}
@@ -232,7 +232,7 @@ export default function OverviewPage() {
       {/* ── Cabeçalho ── */}
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", flexWrap: "wrap", gap: "0.75rem" }}>
         <div>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "0.25rem" }}>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "0.25rem" }}>
             PAGANINI AIOS · DEV PLATFORM
           </div>
           <h1 style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--text-1)", margin: 0, display: "flex", alignItems: "center", gap: "0.75rem" }}>
@@ -255,7 +255,7 @@ export default function OverviewPage() {
       <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "1rem" }} className="stats-grid">
         {STATS.map((s, i) => (
           <div key={i} className="glass-card" style={{ padding: "1.25rem" }}>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "0.5rem" }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "0.5rem" }}>
               {s.label}
             </div>
             <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "0.5rem" }}>
@@ -263,7 +263,7 @@ export default function OverviewPage() {
                 <div className="stat-value" style={{ fontSize: "2rem", fontWeight: 700, color: s.color, lineHeight: 1, fontFamily: "var(--font-mono)" }}>
                   {s.value}
                 </div>
-                <div style={{ fontSize: "0.6875rem", color: "var(--text-3)", marginTop: "0.25rem" }}>{s.sub}</div>
+                <div style={{ fontSize: "0.8125rem", color: "var(--text-3)", marginTop: "0.25rem" }}>{s.sub}</div>
               </div>
               <Sparkline data={s.sparkData} />
             </div>
@@ -278,7 +278,7 @@ export default function OverviewPage() {
         <div className="glass-card scanline" style={{ padding: "1.25rem" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem" }}>
             <div>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)" }}>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", letterSpacing: "0.12em", color: "var(--text-4)" }}>
                 TERMINAL DE EXECUÇÃO AO VIVO
               </div>
               <div style={{ color: "var(--text-1)", fontWeight: 600, fontSize: "0.875rem", marginTop: "2px" }}>
@@ -287,7 +287,7 @@ export default function OverviewPage() {
             </div>
             <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
               <StatusDot />
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--accent)" }}>TRANSMITINDO</span>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: "var(--accent)" }}>TRANSMITINDO</span>
             </div>
           </div>
 
@@ -301,7 +301,7 @@ export default function OverviewPage() {
               height: 260,
               overflowY: "auto",
               fontFamily: "var(--font-mono)",
-              fontSize: "0.6875rem",
+              fontSize: "0.8125rem",
               lineHeight: 1.75,
             }}
           >
@@ -322,7 +322,7 @@ export default function OverviewPage() {
 
           {/* Guardrail Strip */}
           <div className="glass-card" style={{ padding: "1.25rem" }}>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "1rem" }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "1rem" }}>
               GATES DE QUALIDADE
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
@@ -330,10 +330,10 @@ export default function OverviewPage() {
                 <div key={gate} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
                   <svg width={16} height={16} style={{ flexShrink: 0 }}>
                     <circle cx={8} cy={8} r={7} fill="hsl(150 100% 50% / 0.12)" stroke="hsl(150 100% 50% / 0.4)" strokeWidth={1} />
-                    <text x={8} y={11.5} fontSize="8" fill="var(--accent)" textAnchor="middle">✓</text>
+                    <text x={8} y={11.5} fontSize="12" fill="var(--accent)" textAnchor="middle">✓</text>
                   </svg>
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.625rem", color: "var(--text-2)", flex: 1 }}>{gate}</span>
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--accent)" }}>OK</span>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: "var(--text-2)", flex: 1 }}>{gate}</span>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--accent)" }}>OK</span>
                 </div>
               ))}
             </div>
@@ -344,7 +344,7 @@ export default function OverviewPage() {
               border: "1px solid hsl(150 100% 50% / 0.3)",
               borderRadius: "var(--radius)",
               fontFamily: "var(--font-mono)",
-              fontSize: "0.625rem",
+              fontSize: "0.8125rem",
               color: "var(--accent)",
               textAlign: "center",
               fontWeight: 700,
@@ -355,7 +355,7 @@ export default function OverviewPage() {
 
           {/* Alertas Recentes */}
           <div className="glass-card" style={{ padding: "1.25rem" }}>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "0.75rem" }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "0.75rem" }}>
               ALERTAS RECENTES
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
@@ -370,10 +370,10 @@ export default function OverviewPage() {
                     border: `1px solid ${col.startsWith("#") ? col : "hsl(150 100% 50%)"}30`,
                     borderRadius: "var(--radius)",
                   }}>
-                    <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.625rem", color: col, flexShrink: 0 }}>{icon}</span>
+                    <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: col, flexShrink: 0 }}>{icon}</span>
                     <div>
-                      <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--text-3)" }}>{a.time}</div>
-                      <div style={{ fontSize: "0.5625rem", color: "var(--text-2)", marginTop: "2px", lineHeight: 1.4 }}>{a.msg}</div>
+                      <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-3)" }}>{a.time}</div>
+                      <div style={{ fontSize: "0.75rem", color: "var(--text-2)", marginTop: "2px", lineHeight: 1.4 }}>{a.msg}</div>
                     </div>
                   </div>
                 );
@@ -387,7 +387,7 @@ export default function OverviewPage() {
       <div className="glass-card" style={{ padding: "1.25rem" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem" }}>
           <div>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)" }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", letterSpacing: "0.12em", color: "var(--text-4)" }}>
               COMMITS POR HORA — ÚLTIMAS 24H
             </div>
             <div style={{ color: "var(--text-1)", fontWeight: 600, fontSize: "0.8125rem", marginTop: "2px" }}>
@@ -420,22 +420,22 @@ export default function OverviewPage() {
             );
           })}
           {[0, 6, 12, 18, 23].map(h => (
-            <text key={h} x={(h / 23) * 800} y={60} fontSize="8" fill="rgba(255,255,255,0.2)" textAnchor="middle">{h}h</text>
+            <text key={h} x={(h / 23) * 800} y={60} fontSize="12" fill="rgba(255,255,255,0.2)" textAnchor="middle">{h}h</text>
           ))}
         </svg>
       </div>
 
       {/* ── Tabela de Atividade dos Agentes ── */}
       <div className="glass-card" style={{ padding: "1.25rem" }}>
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "1rem" }}>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "1rem" }}>
           ATIVIDADE DOS AGENTES · {AGENTS.filter(a => a.active).length}/{AGENTS.length} ATIVOS
         </div>
         <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "var(--font-mono)", fontSize: "0.6875rem" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "var(--font-mono)", fontSize: "0.8125rem" }}>
             <thead>
               <tr style={{ borderBottom: "1px solid var(--border)" }}>
                 {["AGENTE", "STATUS", "TAREFA ATUAL", "LOC", "TESTES", "CUSTO"].map(h => (
-                  <th key={h} style={{ textAlign: "left", padding: "0.5rem 0.75rem", color: "var(--text-4)", fontSize: "0.5625rem", letterSpacing: "0.12em", fontWeight: 500 }}>
+                  <th key={h} style={{ textAlign: "left", padding: "0.5rem 0.75rem", color: "var(--text-4)", fontSize: "0.75rem", letterSpacing: "0.12em", fontWeight: 500 }}>
                     {h}
                   </th>
                 ))}
@@ -448,12 +448,12 @@ export default function OverviewPage() {
                   <td style={{ padding: "0.6rem 0.75rem" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                       <StatusDot active={agent.active} />
-                      <span style={{ color: agent.active ? "var(--text-2)" : "var(--text-4)", fontSize: "0.5625rem" }}>
+                      <span style={{ color: agent.active ? "var(--text-2)" : "var(--text-4)", fontSize: "0.75rem" }}>
                         {agent.active ? "ATIVO" : "STANDBY"}
                       </span>
                     </div>
                   </td>
-                  <td style={{ padding: "0.6rem 0.75rem", color: agent.active ? "var(--text-2)" : "var(--text-4)", maxWidth: 260, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: "0.625rem" }}>
+                  <td style={{ padding: "0.6rem 0.75rem", color: agent.active ? "var(--text-2)" : "var(--text-4)", maxWidth: 260, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: "0.8125rem" }}>
                     {agent.task}
                   </td>
                   <td style={{ padding: "0.6rem 0.75rem", color: "var(--cyan)" }}>{agent.loc}</td>
@@ -465,9 +465,9 @@ export default function OverviewPage() {
           </table>
         </div>
         <div style={{ marginTop: "0.75rem", display: "flex", justifyContent: "flex-end", gap: "1rem" }}>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.625rem", color: "var(--text-4)" }}>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: "var(--text-4)" }}>
             TOTAL HOJE:{" "}
-            <span style={{ color: "var(--accent)" }}>57.6K LOC</span> ·{" "}
+            <span style={{ color: "var(--accent)" }}>1.97M LOC</span> ·{" "}
             <span style={{ color: "var(--accent)" }}>347 testes</span> ·{" "}
             <span style={{ color: "var(--accent)" }}>$0.19</span>
           </div>
@@ -476,18 +476,18 @@ export default function OverviewPage() {
 
       {/* ── Git Activity Heatmap ── */}
       <div className="glass-card" style={{ padding: "1.25rem" }}>
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "1rem" }}>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "1rem" }}>
           MAPA DE CALOR DE COMMITS — 7 DIAS × 24 HORAS
         </div>
         <div style={{ overflowX: "auto", paddingLeft: "28px" }}>
           <GitHeatmap />
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "0.75rem", justifyContent: "flex-end" }}>
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--text-4)" }}>menos</span>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-4)" }}>menos</span>
           {[0.08, 0.25, 0.45, 0.65, 0.85].map((a, i) => (
             <div key={i} style={{ width: 12, height: 12, borderRadius: "2px", background: `hsl(150 100% 50% / ${a})` }} />
           ))}
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--text-4)" }}>mais</span>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-4)" }}>mais</span>
         </div>
       </div>
 

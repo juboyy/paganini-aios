@@ -7,7 +7,6 @@ Moltis is the AI gateway (Rust binary). This adapter:
 """
 
 import os
-import json
 import shutil
 import subprocess
 import time
@@ -54,7 +53,9 @@ class MoltisAdapter:
 
         config_path = Path(self.moltis_config)
         if not config_path.exists():
-            paganini_home = Path(os.environ.get("PAGANINI_HOME", Path.home() / ".paganini"))
+            paganini_home = Path(
+                os.environ.get("PAGANINI_HOME", Path.home() / ".paganini")
+            )
             config_path = paganini_home / self.moltis_config
 
         cmd = [self.binary_path, "gateway", "start"]
@@ -85,7 +86,7 @@ class MoltisAdapter:
 
     def completion(self, model: str, messages: list, **kwargs) -> dict:
         """Route LLM call through Moltis gateway.
-        
+
         Uses OpenAI-compatible /v1/chat/completions endpoint.
         """
         try:
@@ -117,7 +118,7 @@ class MoltisAdapter:
 
 def get_llm_fn(config: dict):
     """Create LLM callable — routes through Moltis if available, falls back to litellm.
-    
+
     Architecture:
         paganini query → Moltis gateway → LLM provider (BYOK)
                               ↓
@@ -133,6 +134,7 @@ def get_llm_fn(config: dict):
     if engine == "moltis":
         adapter = MoltisAdapter(config)
         if adapter.is_running() or adapter.start():
+
             def moltis_llm_fn(system_prompt: str, user_prompt: str) -> str:
                 try:
                     result = adapter.completion(
@@ -143,9 +145,11 @@ def get_llm_fn(config: dict):
                         ],
                     )
                     return result["choices"][0]["message"]["content"]
-                except Exception as e:
+                except Exception:
                     # Fallback to direct call
-                    return _direct_llm_call(model, api_key, provider, system_prompt, user_prompt)
+                    return _direct_llm_call(
+                        model, api_key, provider, system_prompt, user_prompt
+                    )
 
             return moltis_llm_fn
 
@@ -156,15 +160,19 @@ def get_llm_fn(config: dict):
     return direct_llm_fn
 
 
-def _direct_llm_call(model: str, api_key: str, provider: dict,
-                     system_prompt: str, user_prompt: str) -> str:
+def _direct_llm_call(
+    model: str, api_key: str, provider: dict, system_prompt: str, user_prompt: str
+) -> str:
     """Direct LLM call via litellm (fallback when Moltis unavailable)."""
     import litellm
 
     ptype = provider.get("type", "openai")
     if api_key:
-        env_map = {"openai": "OPENAI_API_KEY", "anthropic": "ANTHROPIC_API_KEY",
-                    "google": "GEMINI_API_KEY"}
+        env_map = {
+            "openai": "OPENAI_API_KEY",
+            "anthropic": "ANTHROPIC_API_KEY",
+            "google": "GEMINI_API_KEY",
+        }
         env_var = env_map.get(ptype)
         if env_var:
             os.environ[env_var] = api_key

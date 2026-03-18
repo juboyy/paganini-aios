@@ -15,14 +15,14 @@ export function Topbar() {
       <div className="w-10 lg:hidden" />
 
       {/* Status line */}
-      <div className="flex items-center gap-3" style={{ fontFamily: "var(--font-mono)", fontSize: "0.625rem", color: "var(--text-4)", letterSpacing: "0.1em" }}>
+      <div className="flex items-center gap-3" style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: "var(--text-4)", letterSpacing: "0.1em" }}>
         <span>PAGANINI AIOS</span>
         <span style={{ color: "var(--border)" }}>│</span>
         <span style={{ color: "var(--text-3)" }}>PLATAFORMA DE AGENTES AUTÔNOMOS DE CÓDIGO</span>
       </div>
 
       {/* Right indicators */}
-      <div className="flex items-center gap-4" style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem" }}>
+      <div className="flex items-center gap-4" style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem" }}>
         <div className="hidden sm:flex items-center gap-1.5">
           <span className="tag-badge">12 AGENTES DE CÓDIGO</span>
           <span className="tag-badge-cyan">52 CAPACIDADES</span>

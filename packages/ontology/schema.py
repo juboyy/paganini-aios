@@ -2,15 +2,15 @@ from __future__ import annotations
 
 import json
 from collections import deque
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field
 from enum import Enum
 from pathlib import Path
 from typing import Optional
 
-
 # ---------------------------------------------------------------------------
 # Enums
 # ---------------------------------------------------------------------------
+
 
 class EntityType(str, Enum):
     REGULACAO = "Regulacao"
@@ -40,6 +40,7 @@ class RelationType(str, Enum):
 # ---------------------------------------------------------------------------
 # Data classes
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class Entity:
@@ -100,6 +101,7 @@ class Relation:
 # ---------------------------------------------------------------------------
 # Knowledge Graph
 # ---------------------------------------------------------------------------
+
 
 class KnowledgeGraph:
     """In-memory knowledge graph for the FIDC domain ontology."""
@@ -195,7 +197,9 @@ class KnowledgeGraph:
                 rel_idx = id(rel)
                 if rel_idx not in visited_relations:
                     visited_relations.add(rel_idx)
-                neighbor_id = rel.target_id if rel.source_id == current_id else rel.source_id
+                neighbor_id = (
+                    rel.target_id if rel.source_id == current_id else rel.source_id
+                )
                 if neighbor_id not in visited_entities:
                     visited_entities.add(neighbor_id)
                     queue.append((neighbor_id, current_depth + 1))
@@ -223,7 +227,9 @@ class KnowledgeGraph:
             "entities": [e.to_dict() for e in self._entities.values()],
             "relations": [r.to_dict() for r in self._relations],
         }
-        Path(path).write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+        Path(path).write_text(
+            json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
 
     @classmethod
     def load(cls, path: str | Path) -> KnowledgeGraph:

@@ -42,8 +42,14 @@ def install() -> bool:
     """Install RTK via official installer."""
     try:
         result = subprocess.run(
-            ["sh", "-c", "curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/heads/master/install.sh | sh"],
-            capture_output=True, text=True, timeout=60
+            [
+                "sh",
+                "-c",
+                "curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/heads/master/install.sh | sh",
+            ],
+            capture_output=True,
+            text=True,
+            timeout=60,
         )
         return result.returncode == 0
     except Exception:
@@ -66,8 +72,12 @@ def exec_compressed(command: str, cwd: str = None, timeout: int = 30) -> dict:
         # Fallback: run raw command
         try:
             result = subprocess.run(
-                command, shell=True, capture_output=True, text=True,
-                cwd=cwd, timeout=timeout
+                command,
+                shell=True,
+                capture_output=True,
+                text=True,
+                cwd=cwd,
+                timeout=timeout,
             )
             output = result.stdout + result.stderr
             return {
@@ -85,8 +95,11 @@ def exec_compressed(command: str, cwd: str = None, timeout: int = 30) -> dict:
     try:
         result = subprocess.run(
             f"{rtk} {command}",
-            shell=True, capture_output=True, text=True,
-            cwd=cwd, timeout=timeout
+            shell=True,
+            capture_output=True,
+            text=True,
+            cwd=cwd,
+            timeout=timeout,
         )
         output = result.stdout.strip()
         # Estimate raw tokens (RTK tracks this internally)
@@ -114,10 +127,13 @@ def gain() -> dict:
     try:
         result = subprocess.run(
             [rtk, "gain", "--all", "--format", "json"],
-            capture_output=True, text=True, timeout=10
+            capture_output=True,
+            text=True,
+            timeout=10,
         )
         if result.returncode == 0:
             import json
+
             return json.loads(result.stdout)
     except Exception:
         pass

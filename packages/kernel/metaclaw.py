@@ -15,13 +15,20 @@ Modes:
 import json
 import time
 from pathlib import Path
-from typing import Optional
 
 
 class Skill:
     """A learned behavior pattern."""
-    def __init__(self, name: str, pattern: str, response_template: str,
-                 domain: str = "fidc", score: float = 0.5, uses: int = 0):
+
+    def __init__(
+        self,
+        name: str,
+        pattern: str,
+        response_template: str,
+        domain: str = "fidc",
+        score: float = 0.5,
+        uses: int = 0,
+    ):
         self.name = name
         self.pattern = pattern
         self.response_template = response_template
@@ -74,7 +81,7 @@ class MetaClawProxy:
 
     def enrich_query(self, query: str, context: str) -> str:
         """Enrich the LLM prompt with relevant skills.
-        
+
         Called BEFORE the LLM call. Injects skill knowledge into context.
         """
         if not self.enabled or not self.skills:
@@ -94,10 +101,11 @@ class MetaClawProxy:
 
         return context + skill_context
 
-    def learn_from_interaction(self, query: str, response: str,
-                               chunks_used: list, confidence: float):
+    def learn_from_interaction(
+        self, query: str, response: str, chunks_used: list, confidence: float
+    ):
         """Post-interaction learning — potentially generates new skills.
-        
+
         Called AFTER successful LLM response. Decides if the interaction
         pattern is worth persisting as a reusable skill.
         """
@@ -162,8 +170,8 @@ class MetaClawProxy:
     def _prune_skills(self):
         """Remove lowest-scoring skills when at capacity."""
         self.skills.sort(key=lambda s: s.score * (1 + s.uses * 0.1), reverse=True)
-        to_remove = self.skills[self.max_skills:]
-        self.skills = self.skills[:self.max_skills]
+        to_remove = self.skills[self.max_skills :]
+        self.skills = self.skills[: self.max_skills]
         for skill in to_remove:
             path = self.skills_dir / f"{skill.name}.json"
             path.unlink(missing_ok=True)

@@ -156,7 +156,7 @@ function ArchDiagram() {
             strokeWidth="1"
           />
           <text x={n.x + BOX_W / 2} y={n.y + 14}
-            fontSize="8" fill={
+            fontSize="12" fill={
               n.color === "var(--accent)" ? "#00ff80" :
               n.color === "var(--cyan)"   ? "#00ffff" :
               n.color.startsWith("hsl(150 80%") ? "#7dffb0" :
@@ -213,13 +213,13 @@ export default function FundPage() {
           { label: "STATUS",           value: "100% Prod",                 color: "var(--accent)", sub: "0 módulos com erro" },
         ].map((s, i) => (
           <div key={i} className="glass-card" style={{ padding: "1.25rem" }}>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "0.5rem" }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "0.5rem" }}>
               {s.label}
             </div>
             <div className="stat-value" style={{ fontSize: "1.75rem", fontWeight: 700, color: s.color, lineHeight: 1, fontFamily: "var(--font-mono)" }}>
               {s.value}
             </div>
-            <div style={{ fontSize: "0.6875rem", color: "var(--text-3)", marginTop: "0.25rem" }}>{s.sub}</div>
+            <div style={{ fontSize: "0.8125rem", color: "var(--text-3)", marginTop: "0.25rem" }}>{s.sub}</div>
           </div>
         ))}
       </div>
@@ -227,19 +227,19 @@ export default function FundPage() {
       {/* ── Tabela de Módulos ── */}
       <div className="glass-card" style={{ padding: "1.25rem" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem", flexWrap: "wrap", gap: "0.5rem" }}>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)" }}>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", letterSpacing: "0.12em", color: "var(--text-4)" }}>
             MÓDULOS DO PACK · GERADOS POR AGENTES PAGANINI
           </div>
-          <span className="section-help" style={{ fontSize: "0.5625rem", color: "var(--text-3)", fontFamily: "var(--font-mono)" }}>
+          <span className="section-help" style={{ fontSize: "0.75rem", color: "var(--text-3)", fontFamily: "var(--font-mono)" }}>
             Todos os módulos passaram pelos 6 gates de qualidade
           </span>
         </div>
         <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "var(--font-mono)", fontSize: "0.6875rem" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "var(--font-mono)", fontSize: "0.8125rem" }}>
             <thead>
               <tr style={{ borderBottom: "1px solid var(--border)" }}>
                 {["MÓDULO", "LINHAS", "TESTES", "COBERTURA", "STATUS"].map(h => (
-                  <th key={h} style={{ textAlign: "left", padding: "0.5rem 0.75rem", color: "var(--text-4)", fontSize: "0.5625rem", letterSpacing: "0.12em", fontWeight: 500 }}>
+                  <th key={h} style={{ textAlign: "left", padding: "0.5rem 0.75rem", color: "var(--text-4)", fontSize: "0.75rem", letterSpacing: "0.12em", fontWeight: 500 }}>
                     {h}
                   </th>
                 ))}
@@ -269,7 +269,7 @@ export default function FundPage() {
                       background: "hsl(150 100% 50% / 0.08)",
                       border: "1px solid hsl(150 100% 50% / 0.25)",
                       borderRadius: "var(--radius)",
-                      fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--accent)",
+                      fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--accent)",
                     }}>
                       ✓ Prod
                     </span>
@@ -283,7 +283,7 @@ export default function FundPage() {
                 <td style={{ padding: "0.6rem 0.75rem", color: "var(--accent)", fontWeight: 700 }}>{totalLoc.toLocaleString()}</td>
                 <td style={{ padding: "0.6rem 0.75rem", color: "var(--cyan)", fontWeight: 700 }}>{totalTests}</td>
                 <td style={{ padding: "0.6rem 0.75rem", color: "var(--accent)", fontWeight: 700 }}>{avgCoverage}% média</td>
-                <td style={{ padding: "0.6rem 0.75rem", color: "var(--accent)", fontSize: "0.5625rem" }}>14/14 ✓</td>
+                <td style={{ padding: "0.6rem 0.75rem", color: "var(--accent)", fontSize: "0.75rem" }}>14/14 ✓</td>
               </tr>
             </tfoot>
           </table>
@@ -293,14 +293,14 @@ export default function FundPage() {
       {/* ── Diagrama de Arquitetura ── */}
       <div className="glass-card" style={{ padding: "1.25rem" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem", flexWrap: "wrap", gap: "0.5rem" }}>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)" }}>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", letterSpacing: "0.12em", color: "var(--text-4)" }}>
             DIAGRAMA DE DEPENDÊNCIAS — MÓDULOS DO PACK FIDC
           </div>
           <div style={{ display: "flex", gap: "0.75rem" }}>
             {[["var(--accent)", "Orquestração"], ["var(--cyan)", "Validação"], ["hsl(150 80% 60%)", "Cálculo"], ["var(--text-2)", "Domínio"]].map(([col, label]) => (
               <div key={label} style={{ display: "flex", alignItems: "center", gap: "4px" }}>
                 <div style={{ width: 8, height: 8, borderRadius: "2px", background: col === "var(--accent)" ? "#00ff80" : col === "var(--cyan)" ? "#00ffff" : col === "hsl(150 80% 60%)" ? "#7dffb0" : "#8fa88f" }} />
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--text-3)" }}>{label}</span>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-3)" }}>{label}</span>
               </div>
             ))}
           </div>
@@ -314,7 +314,7 @@ export default function FundPage() {
       <div className="glass-card" style={{ padding: "1.25rem", background: "linear-gradient(135deg, hsl(150 100% 50% / 0.05) 0%, hsl(220 18% 7%) 100%)" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem", flexWrap: "wrap", gap: "0.5rem" }}>
           <div>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "0.25rem" }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "0.25rem" }}>
               RESULTADOS DO CÓDIGO GERADO — MÉTRICAS FINANCEIRAS AO VIVO
             </div>
             <div style={{ color: "var(--text-1)", fontWeight: 600, fontSize: "0.875rem" }}>
@@ -327,13 +327,13 @@ export default function FundPage() {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem" }}>
           {/* NAV */}
           <div style={{ padding: "1rem", border: "1px solid var(--border)", borderRadius: "var(--radius)", background: "rgba(0,0,0,0.2)" }}>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--text-4)", marginBottom: "0.5rem" }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-4)", marginBottom: "0.5rem" }}>
               NAV TOTAL · <span style={{ color: "var(--accent)" }}>administrador.py</span>
             </div>
             <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
               <div>
                 <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--text-1)", fontFamily: "var(--font-mono)", lineHeight: 1 }}>R$ 247,8M</div>
-                <div style={{ fontSize: "0.625rem", color: "var(--accent)", marginTop: "4px", fontFamily: "var(--font-mono)" }}>+2,3% MTD</div>
+                <div style={{ fontSize: "0.8125rem", color: "var(--accent)", marginTop: "4px", fontFamily: "var(--font-mono)" }}>+2,3% MTD</div>
               </div>
               <Sparkline data={sparkData} color="var(--accent)" />
             </div>
@@ -341,27 +341,27 @@ export default function FundPage() {
 
           {/* PDD */}
           <div style={{ padding: "1rem", border: "1px solid var(--border)", borderRadius: "var(--radius)", background: "rgba(0,0,0,0.2)" }}>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--text-4)", marginBottom: "0.5rem" }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-4)", marginBottom: "0.5rem" }}>
               PDD · <span style={{ color: "var(--accent)" }}>risk.py</span>
             </div>
             <div>
               <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--text-1)", fontFamily: "var(--font-mono)", lineHeight: 1 }}>R$ 12,4M</div>
-              <div style={{ fontSize: "0.625rem", color: "var(--text-3)", marginTop: "4px", fontFamily: "var(--font-mono)" }}>5,0% do portfólio</div>
+              <div style={{ fontSize: "0.8125rem", color: "var(--text-3)", marginTop: "4px", fontFamily: "var(--font-mono)" }}>5,0% do portfólio</div>
               <div style={{ marginTop: "0.5rem", height: 4, background: "rgba(255,255,255,0.06)", borderRadius: 2, overflow: "hidden" }}>
                 <div style={{ width: "5%", height: "100%", background: "var(--accent)" }} />
               </div>
-              <div style={{ fontSize: "0.5625rem", color: "var(--text-4)", marginTop: "2px", fontFamily: "var(--font-mono)" }}>Limite: 8%</div>
+              <div style={{ fontSize: "0.75rem", color: "var(--text-4)", marginTop: "2px", fontFamily: "var(--font-mono)" }}>Limite: 8%</div>
             </div>
           </div>
 
           {/* Subordinação */}
           <div style={{ padding: "1rem", border: "1px solid var(--border)", borderRadius: "var(--radius)", background: "rgba(0,0,0,0.2)" }}>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--text-4)", marginBottom: "0.5rem" }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-4)", marginBottom: "0.5rem" }}>
               SUBORDINAÇÃO · <span style={{ color: "var(--cyan)" }}>compliance.py</span>
             </div>
             <div>
               <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--text-1)", fontFamily: "var(--font-mono)", lineHeight: 1 }}>28,5%</div>
-              <div style={{ fontSize: "0.625rem", color: "var(--accent)", marginTop: "4px", fontFamily: "var(--font-mono)" }}>Mín: 25% · ✓ OK</div>
+              <div style={{ fontSize: "0.8125rem", color: "var(--accent)", marginTop: "4px", fontFamily: "var(--font-mono)" }}>Mín: 25% · ✓ OK</div>
               <div style={{ marginTop: "0.5rem", height: 4, background: "rgba(255,255,255,0.06)", borderRadius: 2, overflow: "hidden" }}>
                 <div style={{ width: "57%", height: "100%", background: "var(--cyan)" }} />
               </div>
@@ -370,12 +370,12 @@ export default function FundPage() {
 
           {/* Liquidez */}
           <div style={{ padding: "1rem", border: "1px solid var(--border)", borderRadius: "var(--radius)", background: "rgba(0,0,0,0.2)" }}>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--text-4)", marginBottom: "0.5rem" }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-4)", marginBottom: "0.5rem" }}>
               LIQUIDEZ · <span style={{ color: "var(--cyan)" }}>treasury.py</span>
             </div>
             <div>
               <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--text-1)", fontFamily: "var(--font-mono)", lineHeight: 1 }}>2,1×</div>
-              <div style={{ fontSize: "0.625rem", color: "var(--accent)", marginTop: "4px", fontFamily: "var(--font-mono)" }}>Mín: 1,5× · ✓ OK</div>
+              <div style={{ fontSize: "0.8125rem", color: "var(--accent)", marginTop: "4px", fontFamily: "var(--font-mono)" }}>Mín: 1,5× · ✓ OK</div>
               <div style={{ marginTop: "0.5rem", height: 4, background: "rgba(255,255,255,0.06)", borderRadius: 2, overflow: "hidden" }}>
                 <div style={{ width: "70%", height: "100%", background: "var(--accent)" }} />
               </div>
@@ -392,10 +392,10 @@ export default function FundPage() {
           borderRadius: "var(--radius)",
           display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.5rem",
         }}>
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--accent)", fontWeight: 600 }}>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: "var(--accent)", fontWeight: 600 }}>
             ✓ Todos os covenants dentro dos limites — calculados por risk.py + compliance.py
           </span>
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--text-3)" }}>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-3)" }}>
             Última execução: {new Date().toLocaleTimeString("pt-BR")}
           </span>
         </div>
@@ -403,10 +403,10 @@ export default function FundPage() {
 
       {/* ── CLI Demo ── */}
       <div className="glass-card" style={{ padding: "1.25rem" }}>
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "1rem" }}>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "1rem" }}>
           CLI DEMO — PAGANINI QUERY
         </div>
-        <div className="section-help" style={{ fontSize: "0.6875rem", color: "var(--text-3)", marginBottom: "1rem", fontFamily: "var(--font-mono)" }}>
+        <div className="section-help" style={{ fontSize: "0.8125rem", color: "var(--text-3)", marginBottom: "1rem", fontFamily: "var(--font-mono)" }}>
           Interaja com os módulos gerados via linha de comando
         </div>
         <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
@@ -419,10 +419,10 @@ export default function FundPage() {
                     <div key={j} style={{ width: 8, height: 8, borderRadius: "50%", background: c, opacity: 0.6 }} />
                   ))}
                 </div>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--text-4)" }}>terminal</span>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-4)" }}>terminal</span>
               </div>
               {/* Code */}
-              <div style={{ background: "rgba(0,0,0,0.4)", padding: "0.75rem 1rem", fontFamily: "var(--font-mono)", fontSize: "0.6875rem", lineHeight: 1.7 }}>
+              <div style={{ background: "rgba(0,0,0,0.4)", padding: "0.75rem 1rem", fontFamily: "var(--font-mono)", fontSize: "0.8125rem", lineHeight: 1.7 }}>
                 <div style={{ color: "var(--text-4)" }}>{ex.comment}</div>
                 <div style={{ color: "var(--accent)", marginTop: "2px" }}>
                   <span style={{ color: "var(--text-3)" }}>$ </span>{ex.cmd}

@@ -37,7 +37,7 @@ function NavItem({ item, onClick }: { item: { href: string; label: string; icon:
       style={{
         borderRadius: "var(--radius)",
         fontFamily: "var(--font-mono)",
-        fontSize: "0.6875rem",
+        fontSize: "0.8125rem",
         letterSpacing: "0.08em",
         color: active ? "var(--accent)" : "var(--text-3)",
         background: active ? "var(--accent-bg)" : "transparent",
@@ -45,7 +45,7 @@ function NavItem({ item, onClick }: { item: { href: string; label: string; icon:
         textShadow: active ? "0 0 10px hsl(150 100% 50% / 0.3)" : "none",
       }}
     >
-      <span style={{ fontSize: "0.625rem", opacity: active ? 1 : 0.5 }}>
+      <span style={{ fontSize: "0.8125rem", opacity: active ? 1 : 0.5 }}>
         {item.icon}
       </span>
       {item.label}
@@ -116,7 +116,7 @@ export function Sidebar() {
             <div
               style={{
                 fontFamily: "var(--font-mono)",
-                fontSize: "0.5rem",
+                fontSize: "0.75rem",
                 color: "var(--accent)",
                 letterSpacing: "0.14em",
               }}
@@ -134,7 +134,7 @@ export function Sidebar() {
             className="px-3 pt-3 pb-1"
             style={{
               fontFamily: "var(--font-mono)",
-              fontSize: "0.5rem",
+              fontSize: "0.75rem",
               letterSpacing: "0.16em",
               color: "var(--accent)",
               opacity: 0.7,
@@ -160,7 +160,7 @@ export function Sidebar() {
             className="px-3 pt-3 pb-1"
             style={{
               fontFamily: "var(--font-mono)",
-              fontSize: "0.5rem",
+              fontSize: "0.75rem",
               letterSpacing: "0.16em",
               color: "var(--text-4)",
             }}
@@ -181,7 +181,7 @@ export function Sidebar() {
             className="flex items-center gap-2"
             style={{
               fontFamily: "var(--font-mono)",
-              fontSize: "0.5625rem",
+              fontSize: "0.75rem",
               color: "var(--text-4)",
             }}
           >
@@ -199,7 +199,7 @@ export function Sidebar() {
           <div
             style={{
               fontFamily: "var(--font-mono)",
-              fontSize: "0.5rem",
+              fontSize: "0.75rem",
               color: "var(--text-4)",
               marginTop: "4px",
               opacity: 0.6,

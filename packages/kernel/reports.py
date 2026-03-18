@@ -3,34 +3,59 @@
 Generates regulatory reports from fund data + corpus knowledge.
 Templates are markdown-based, rendered via the LLM.
 """
+
 from __future__ import annotations
 
-import json
-import time
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Optional
 
 REPORT_TEMPLATES = {
     "informe-mensal": {
         "name": "Informe Mensal",
         "description": "Monthly fund report per CVM requirements",
-        "sections": ["resumo", "composição_carteira", "inadimplência", "covenants", "movimentação_cotas", "rentabilidade", "fatos_relevantes"],
+        "sections": [
+            "resumo",
+            "composição_carteira",
+            "inadimplência",
+            "covenants",
+            "movimentação_cotas",
+            "rentabilidade",
+            "fatos_relevantes",
+        ],
     },
     "cadoc-3040": {
         "name": "CADOC 3040",
         "description": "Central bank credit portfolio report",
-        "sections": ["identificação_fundo", "carteira_crédito", "cedentes", "devedores", "garantias", "provisão"],
+        "sections": [
+            "identificação_fundo",
+            "carteira_crédito",
+            "cedentes",
+            "devedores",
+            "garantias",
+            "provisão",
+        ],
     },
     "pdd-report": {
         "name": "Relatório PDD",
         "description": "Expected credit loss report per IFRS9",
-        "sections": ["resumo_pdd", "staging", "variação_período", "análise_setorial", "projeções"],
+        "sections": [
+            "resumo_pdd",
+            "staging",
+            "variação_período",
+            "análise_setorial",
+            "projeções",
+        ],
     },
     "risk-report": {
         "name": "Relatório de Riscos",
         "description": "Comprehensive risk assessment",
-        "sections": ["risco_crédito", "risco_mercado", "risco_liquidez", "risco_operacional", "stress_testing"],
+        "sections": [
+            "risco_crédito",
+            "risco_mercado",
+            "risco_liquidez",
+            "risco_operacional",
+            "stress_testing",
+        ],
     },
     "covenant-report": {
         "name": "Relatório de Covenants",
@@ -49,7 +74,9 @@ class ReportGenerator:
     def list_templates(self) -> list[dict]:
         return [{"id": k, **v} for k, v in REPORT_TEMPLATES.items()]
 
-    def generate(self, template_id: str, fund_id: str = "default", llm_fn=None, rag_pipeline=None) -> dict:
+    def generate(
+        self, template_id: str, fund_id: str = "default", llm_fn=None, rag_pipeline=None
+    ) -> dict:
         if template_id not in REPORT_TEMPLATES:
             return {"status": "error", "message": f"Template '{template_id}' not found"}
 
@@ -61,7 +88,7 @@ class ReportGenerator:
             f"# {template['name']}",
             f"**Fundo**: {fund_id}",
             f"**Data**: {now.strftime('%d/%m/%Y %H:%M UTC')}",
-            f"**Gerado por**: PAGANINI AIOS v0.1.0",
+            "**Gerado por**: PAGANINI AIOS v0.1.0",
             "",
         ]
 
@@ -75,17 +102,26 @@ class ReportGenerator:
                 chunks = rag_pipeline.retrieve(query, top_k=3)
                 if chunks:
                     context = "\n".join(c.text[:500] for c in chunks)
-                    prompt = (f"Gere a seção '{section_title}' de um {template['name']} "
-                              f"com base no contexto:\n{context}")
+                    prompt = (
+                        f"Gere a seção '{section_title}' de um {template['name']} "
+                        f"com base no contexto:\n{context}"
+                    )
                     try:
-                        content = llm_fn("Você é um especialista em relatórios regulatórios de FIDC.", prompt)
+                        content = llm_fn(
+                            "Você é um especialista em relatórios regulatórios de FIDC.",
+                            prompt,
+                        )
                         report_lines.append(content)
                     except Exception:
-                        report_lines.append(f"*Seção pendente — dados do fundo {fund_id} não disponíveis.*")
+                        report_lines.append(
+                            f"*Seção pendente — dados do fundo {fund_id} não disponíveis.*"
+                        )
                 else:
-                    report_lines.append(f"*Sem dados no corpus para esta seção.*")
+                    report_lines.append("*Sem dados no corpus para esta seção.*")
             else:
-                report_lines.append(f"*Seção pendente — execute com --fund e API key configurada.*")
+                report_lines.append(
+                    "*Seção pendente — execute com --fund e API key configurada.*"
+                )
 
             report_lines.append("")
 

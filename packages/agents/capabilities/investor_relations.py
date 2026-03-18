@@ -10,41 +10,43 @@ from __future__ import annotations
 
 import math
 import statistics
-from dataclasses import dataclass, field
-from datetime import datetime, date
+from dataclasses import dataclass
+from datetime import date, datetime
 from typing import Optional
-
 
 # ---------------------------------------------------------------------------
 # Dataclasses
 # ---------------------------------------------------------------------------
 
+
 @dataclass
 class PerformanceReport:
     """Comprehensive fund performance metrics."""
-    mtd: float                   # Month-to-date return (decimal, e.g. 0.012 = 1.2%)
-    qtd: float                   # Quarter-to-date return
-    ytd: float                   # Year-to-date return
-    since_inception: float       # Return since inception (cumulative)
-    annualized: float            # Annualized return since inception
-    sharpe_ratio: float          # Sharpe ratio vs CDI (annualized)
-    max_drawdown: float          # Maximum drawdown (negative number, e.g. -0.05)
-    cdi_mtd: float               # CDI for the same MTD period
-    cdi_ytd: float               # CDI for the same YTD period
-    pct_cdi_mtd: float           # Fund MTD as % of CDI MTD
-    pct_cdi_ytd: float           # Fund YTD as % of CDI YTD
-    volatility_annual: float     # Annualized volatility of daily returns
-    nav_start: float             # NAV at start of period
-    nav_end: float               # NAV at end of period
-    num_observations: int        # Number of NAV data points
-    best_month: float            # Best monthly return in history
-    worst_month: float           # Worst monthly return in history
-    calmar_ratio: float          # Annualized return / |max_drawdown|
+
+    mtd: float  # Month-to-date return (decimal, e.g. 0.012 = 1.2%)
+    qtd: float  # Quarter-to-date return
+    ytd: float  # Year-to-date return
+    since_inception: float  # Return since inception (cumulative)
+    annualized: float  # Annualized return since inception
+    sharpe_ratio: float  # Sharpe ratio vs CDI (annualized)
+    max_drawdown: float  # Maximum drawdown (negative number, e.g. -0.05)
+    cdi_mtd: float  # CDI for the same MTD period
+    cdi_ytd: float  # CDI for the same YTD period
+    pct_cdi_mtd: float  # Fund MTD as % of CDI MTD
+    pct_cdi_ytd: float  # Fund YTD as % of CDI YTD
+    volatility_annual: float  # Annualized volatility of daily returns
+    nav_start: float  # NAV at start of period
+    nav_end: float  # NAV at end of period
+    num_observations: int  # Number of NAV data points
+    best_month: float  # Best monthly return in history
+    worst_month: float  # Worst monthly return in history
+    calmar_ratio: float  # Annualized return / |max_drawdown|
 
 
 # ---------------------------------------------------------------------------
 # Main class
 # ---------------------------------------------------------------------------
+
 
 class InvestorRelationsAgent:
     """
@@ -58,8 +60,8 @@ class InvestorRelationsAgent:
     # Constants                                                            #
     # ------------------------------------------------------------------ #
 
-    CDI_ANNUAL: float = 0.1375      # ~13.75% a.a. (early 2026 target)
-    CDI_DAILY: float  = (1 + CDI_ANNUAL) ** (1 / 252) - 1
+    CDI_ANNUAL: float = 0.1375  # ~13.75% a.a. (early 2026 target)
+    CDI_DAILY: float = (1 + CDI_ANNUAL) ** (1 / 252) - 1
     TRADING_DAYS: int = 252
 
     # ------------------------------------------------------------------ #
@@ -79,17 +81,19 @@ class InvestorRelationsAgent:
             dict with status, performance, factsheet, query_response, summary
         """
         nav_history = context.get("nav_history", DEMO_NAV_HISTORY)
-        fund_data   = context.get("fund_data", DEMO_FUND_DATA)
-        query       = context.get("investor_query", "")
+        fund_data = context.get("fund_data", DEMO_FUND_DATA)
+        query = context.get("investor_query", "")
 
-        perf    = self.calculate_performance(nav_history)
-        fs      = self.generate_factsheet(fund_data, perf)
-        dist    = self.calculate_distribution(
+        perf = self.calculate_performance(nav_history)
+        fs = self.generate_factsheet(fund_data, perf)
+        dist = self.calculate_distribution(
             nav=fund_data.get("nav", 0),
             income=fund_data.get("distributable_income", 0),
             quota_count=fund_data.get("quotas_senior", 1),
         )
-        q_resp  = self.process_investor_query(query, fund_data) if query else "(no query)"
+        q_resp = (
+            self.process_investor_query(query, fund_data) if query else "(no query)"
+        )
 
         return {
             "status": "ok",
@@ -129,49 +133,50 @@ class InvestorRelationsAgent:
             PerformanceReport dataclass
         """
         if len(nav_history) < 2:
-            raise ValueError("Need at least 2 NAV data points for performance calculation")
+            raise ValueError(
+                "Need at least 2 NAV data points for performance calculation"
+            )
 
         # Sort by date ascending
         sorted_hist = sorted(nav_history, key=lambda x: x["date"])
 
-        today  = datetime.utcnow().date()
-        navs   = [float(h["nav"]) for h in sorted_hist]
-        dates  = [datetime.fromisoformat(h["date"]).date() for h in sorted_hist]
+        today = datetime.utcnow().date()
+        navs = [float(h["nav"]) for h in sorted_hist]
+        dates = [datetime.fromisoformat(h["date"]).date() for h in sorted_hist]
 
-        nav_start  = navs[0]
-        nav_end    = navs[-1]
+        nav_start = navs[0]
+        nav_end = navs[-1]
         first_date = dates[0]
 
         # Daily returns
         daily_returns = [
-            (navs[i] - navs[i-1]) / navs[i-1]
-            for i in range(1, len(navs))
+            (navs[i] - navs[i - 1]) / navs[i - 1] for i in range(1, len(navs))
         ]
 
         # ---- MTD ----
         mtd_start = self._find_period_start(sorted_hist, "month")
-        mtd        = (nav_end - mtd_start) / mtd_start if mtd_start else 0.0
+        mtd = (nav_end - mtd_start) / mtd_start if mtd_start else 0.0
 
         # ---- QTD ----
         qtd_start = self._find_period_start(sorted_hist, "quarter")
-        qtd        = (nav_end - qtd_start) / qtd_start if qtd_start else 0.0
+        qtd = (nav_end - qtd_start) / qtd_start if qtd_start else 0.0
 
         # ---- YTD ----
         ytd_start = self._find_period_start(sorted_hist, "year")
-        ytd        = (nav_end - ytd_start) / ytd_start if ytd_start else 0.0
+        ytd = (nav_end - ytd_start) / ytd_start if ytd_start else 0.0
 
         # ---- Since inception ----
         since_inception = (nav_end - nav_start) / nav_start if nav_start else 0.0
 
         # ---- Annualized return ----
         days_elapsed = (dates[-1] - first_date).days or 1
-        years        = days_elapsed / 365.25
-        annualized   = (1 + since_inception) ** (1 / years) - 1 if years > 0 else 0.0
+        years = days_elapsed / 365.25
+        annualized = (1 + since_inception) ** (1 / years) - 1 if years > 0 else 0.0
 
         # ---- CDI benchmarks ----
         months_mtd = max(1, (today - today.replace(day=1)).days) / 30
-        cdi_mtd    = (1 + self.CDI_ANNUAL) ** (months_mtd / 12) - 1
-        cdi_ytd    = (1 + self.CDI_ANNUAL) ** (today.timetuple().tm_yday / 365) - 1
+        cdi_mtd = (1 + self.CDI_ANNUAL) ** (months_mtd / 12) - 1
+        cdi_ytd = (1 + self.CDI_ANNUAL) ** (today.timetuple().tm_yday / 365) - 1
 
         pct_cdi_mtd = (mtd / cdi_mtd * 100) if cdi_mtd else 0.0
         pct_cdi_ytd = (ytd / cdi_ytd * 100) if cdi_ytd else 0.0
@@ -184,14 +189,14 @@ class InvestorRelationsAgent:
 
         # ---- Volatility (annualized) ----
         if len(daily_returns) >= 2:
-            daily_vol  = statistics.stdev(daily_returns)
+            daily_vol = statistics.stdev(daily_returns)
             annual_vol = daily_vol * math.sqrt(self.TRADING_DAYS)
         else:
             annual_vol = 0.0
 
         # ---- Monthly returns for best/worst ----
         monthly_returns = self._compute_monthly_returns(sorted_hist)
-        best_month  = max(monthly_returns) if monthly_returns else mtd
+        best_month = max(monthly_returns) if monthly_returns else mtd
         worst_month = min(monthly_returns) if monthly_returns else mtd
 
         # ---- Calmar ratio ----
@@ -225,7 +230,7 @@ class InvestorRelationsAgent:
             cutoff = today.replace(day=1)
         elif period == "quarter":
             q_month = ((today.month - 1) // 3) * 3 + 1
-            cutoff  = today.replace(month=q_month, day=1)
+            cutoff = today.replace(month=q_month, day=1)
         elif period == "year":
             cutoff = today.replace(month=1, day=1)
         else:
@@ -233,8 +238,7 @@ class InvestorRelationsAgent:
 
         # Find last NAV before cutoff (as starting value)
         candidates = [
-            h for h in history
-            if datetime.fromisoformat(h["date"]).date() < cutoff
+            h for h in history if datetime.fromisoformat(h["date"]).date() < cutoff
         ]
         if candidates:
             return float(candidates[-1]["nav"])
@@ -271,7 +275,7 @@ class InvestorRelationsAgent:
         months = sorted(monthly.keys())
         returns = []
         for i in range(1, len(months)):
-            prev_last = monthly[months[i-1]][-1]
+            prev_last = monthly[months[i - 1]][-1]
             curr_last = monthly[months[i]][-1]
             if prev_last > 0:
                 returns.append((curr_last - prev_last) / prev_last)
@@ -302,8 +306,8 @@ class InvestorRelationsAgent:
             return 0.0
 
         rf_daily = (1 + risk_free_rate) ** (1 / self.TRADING_DAYS) - 1
-        excess   = [r - rf_daily for r in returns]
-        mean_ex  = statistics.mean(excess)
+        excess = [r - rf_daily for r in returns]
+        mean_ex = statistics.mean(excess)
         try:
             std_ex = statistics.stdev(excess)
         except statistics.StatisticsError:
@@ -333,16 +337,16 @@ class InvestorRelationsAgent:
         Returns:
             Markdown string
         """
-        fname     = fund_data.get("fund_name", "FIDC Paganini")
-        cnpj      = fund_data.get("cnpj", "00.000.000/0001-00")
-        admin     = fund_data.get("administrator", "Paganini Gestora S.A.")
-        nav       = fund_data.get("nav", 0.0)
-        q_val     = fund_data.get("quota_value", 0.0)
-        rating    = fund_data.get("rating", "A")
-        strategy  = fund_data.get("strategy", "Multissetorial de recebíveis comerciais")
+        fname = fund_data.get("fund_name", "FIDC Paganini")
+        cnpj = fund_data.get("cnpj", "00.000.000/0001-00")
+        admin = fund_data.get("administrator", "Paganini Gestora S.A.")
+        nav = fund_data.get("nav", 0.0)
+        q_val = fund_data.get("quota_value", 0.0)
+        rating = fund_data.get("rating", "A")
+        strategy = fund_data.get("strategy", "Multissetorial de recebíveis comerciais")
         target_ret = fund_data.get("target_return", "CDI + 2% a.a.")
-        inception  = fund_data.get("inception_date", "01/01/2022")
-        now        = datetime.utcnow().strftime("%d/%m/%Y")
+        inception = fund_data.get("inception_date", "01/01/2022")
+        now = datetime.utcnow().strftime("%d/%m/%Y")
 
         def pct(v: float) -> str:
             return f"{v*100:.4f}%"
@@ -357,12 +361,12 @@ class InvestorRelationsAgent:
         lines = [
             f"# 📊 Factsheet — {fname}",
             f"**Data de referência:** {now}",
-            f"",
-            f"---",
-            f"## Identificação",
-            f"",
-            f"| Campo | Detalhe |",
-            f"|-------|---------|",
+            "",
+            "---",
+            "## Identificação",
+            "",
+            "| Campo | Detalhe |",
+            "|-------|---------|",
             f"| Nome | {fname} |",
             f"| CNPJ | {cnpj} |",
             f"| Administrador / Gestor | {admin} |",
@@ -370,48 +374,48 @@ class InvestorRelationsAgent:
             f"| Data de Início | {inception} |",
             f"| Rating | {rating} |",
             f"| Retorno Alvo | {target_ret} |",
-            f"",
-            f"---",
-            f"## Dados do Fundo",
-            f"",
-            f"| Indicador | Valor |",
-            f"|-----------|-------|",
+            "",
+            "---",
+            "## Dados do Fundo",
+            "",
+            "| Indicador | Valor |",
+            "|-----------|-------|",
             f"| PL | {fmt_brl(nav)} |",
             f"| Valor da Cota Sênior | {fmt_brl(q_val)} |",
-            f"| Benchmark | CDI |",
-            f"",
-            f"---",
-            f"## Rentabilidade",
-            f"",
-            f"| Período | Fundo | CDI | % CDI |",
-            f"|---------|-------|-----|-------|",
+            "| Benchmark | CDI |",
+            "",
+            "---",
+            "## Rentabilidade",
+            "",
+            "| Período | Fundo | CDI | % CDI |",
+            "|---------|-------|-----|-------|",
             f"| Mês | {pct(performance.mtd)} | {pct(performance.cdi_mtd)} | {performance.pct_cdi_mtd:.1f}% |",
             f"| Ano | {pct(performance.ytd)} | {pct(performance.cdi_ytd)} | {performance.pct_cdi_ytd:.1f}% |",
             f"| Desde o início | {pct(performance.since_inception)} | — | — |",
             f"| Anualizado | {pct(performance.annualized)} | {pct(self.CDI_ANNUAL)} | {performance.annualized/self.CDI_ANNUAL*100:.1f}% |",
-            f"",
-            f"---",
-            f"## Indicadores de Risco",
-            f"",
-            f"| Indicador | Valor |",
-            f"|-----------|-------|",
+            "",
+            "---",
+            "## Indicadores de Risco",
+            "",
+            "| Indicador | Valor |",
+            "|-----------|-------|",
             f"| Volatilidade (a.a.) | {pct(performance.volatility_annual)} |",
             f"| Sharpe Ratio | {performance.sharpe_ratio:.2f} |",
             f"| Max Drawdown | {pct(performance.max_drawdown)} |",
             f"| Calmar Ratio | {performance.calmar_ratio:.2f} |",
             f"| Melhor Mês | {pct(performance.best_month)} |",
             f"| Pior Mês | {pct(performance.worst_month)} |",
-            f"",
-            f"---",
-            f"## Público-Alvo e Informações",
-            f"",
-            f"Este fundo é destinado a investidores qualificados nos termos da regulamentação CVM.",
-            f"A rentabilidade passada não é garantia de rentabilidade futura.",
-            f"Leia o regulamento e o prospecto antes de investir.",
-            f"",
-            f"**Regulamentação:** CVM Resolução Nº 175/2022 | ANBIMA Código de Melhores Práticas",
-            f"",
-            f"---",
+            "",
+            "---",
+            "## Público-Alvo e Informações",
+            "",
+            "Este fundo é destinado a investidores qualificados nos termos da regulamentação CVM.",
+            "A rentabilidade passada não é garantia de rentabilidade futura.",
+            "Leia o regulamento e o prospecto antes de investir.",
+            "",
+            "**Regulamentação:** CVM Resolução Nº 175/2022 | ANBIMA Código de Melhores Práticas",
+            "",
+            "---",
             f"*Paganini AIOS — Documento gerado automaticamente em {now}*",
         ]
 
@@ -436,13 +440,13 @@ class InvestorRelationsAgent:
             Formatted answer string
         """
         q_lower = query.lower()
-        nav       = fund_data.get("nav", 0)
-        mtd       = fund_data.get("mtd_return", 0)
-        rating    = fund_data.get("rating", "A")
+        nav = fund_data.get("nav", 0)
+        mtd = fund_data.get("mtd_return", 0)
+        rating = fund_data.get("rating", "A")
         liquidity = fund_data.get("liquidity_ratio", 0)
-        pdd       = fund_data.get("pdd", 0)
+        pdd = fund_data.get("pdd", 0)
         total_rec = fund_data.get("total_receivables", nav)
-        pdd_pct   = (pdd / total_rec * 100) if total_rec else 0
+        pdd_pct = (pdd / total_rec * 100) if total_rec else 0
 
         def fmt_brl(v: float) -> str:
             abs_v = abs(v)
@@ -452,7 +456,10 @@ class InvestorRelationsAgent:
             return f"R$ {'-' if v < 0 else ''}{int_part},{cents:02d}"
 
         # Dispatch on topic
-        if any(kw in q_lower for kw in ["rentabilidade", "rendimento", "retorno", "performance"]):
+        if any(
+            kw in q_lower
+            for kw in ["rentabilidade", "rendimento", "retorno", "performance"]
+        ):
             return (
                 f"**Rentabilidade do Fundo**\n\n"
                 f"- Mês atual: {mtd*100:.4f}%\n"
@@ -487,7 +494,10 @@ class InvestorRelationsAgent:
                 f"O fundo mantém rating {rating}, dentro da faixa investment-grade."
             )
 
-        if any(kw in q_lower for kw in ["distribuição", "dividendo", "amortização", "rendimento"]):
+        if any(
+            kw in q_lower
+            for kw in ["distribuição", "dividendo", "amortização", "rendimento"]
+        ):
             dist_info = fund_data.get("last_distribution", {})
             if dist_info:
                 return (
@@ -507,7 +517,9 @@ class InvestorRelationsAgent:
                 lines = ["**Status dos Covenants**\n"]
                 for c in covenants:
                     icon = "✅" if c.get("ok", True) else "❌"
-                    lines.append(f"- {icon} {c['name']}: limite {c['limit']}, atual {c['actual']}")
+                    lines.append(
+                        f"- {icon} {c['name']}: limite {c['limit']}, atual {c['actual']}"
+                    )
                 return "\n".join(lines)
             return "Dados de covenants não disponíveis. Consulte o relatório mensal."
 
@@ -521,10 +533,10 @@ class InvestorRelationsAgent:
 
         # Default
         return (
-            f"Olá! Posso responder perguntas sobre rentabilidade, PL, liquidez, "
-            f"risco, covenants e distribuições do fundo. "
-            f"Por favor, reformule sua pergunta ou entre em contato com a equipe de RI: "
-            f"ri@paganini.com.br"
+            "Olá! Posso responder perguntas sobre rentabilidade, PL, liquidez, "
+            "risco, covenants e distribuições do fundo. "
+            "Por favor, reformule sua pergunta ou entre em contato com a equipe de RI: "
+            "ri@paganini.com.br"
         )
 
     # ------------------------------------------------------------------ #
@@ -562,12 +574,12 @@ class InvestorRelationsAgent:
 
         # IR withholding (simplified: 15% for long-term holding)
         IR_RATE = 0.15
-        ir_per_quota   = gross_per_quota * IR_RATE
-        net_per_quota  = gross_per_quota - ir_per_quota
+        ir_per_quota = gross_per_quota * IR_RATE
+        net_per_quota = gross_per_quota - ir_per_quota
 
         total_gross = gross_per_quota * quota_count
-        total_ir    = ir_per_quota    * quota_count
-        total_net   = net_per_quota   * quota_count
+        total_ir = ir_per_quota * quota_count
+        total_net = net_per_quota * quota_count
 
         # Yield vs CDI for the period (assume monthly)
         monthly_cdi = (1 + self.CDI_ANNUAL) ** (1 / 12) - 1
@@ -597,18 +609,20 @@ class InvestorRelationsAgent:
 # Demo data
 # ---------------------------------------------------------------------------
 
+
 def _make_nav_history() -> list[dict]:
     """Generate 252 trading days of synthetic NAV history."""
     import random
+
     rng = random.Random(42)
     nav = 100.0
-    daily_rf  = (1 + 0.1375) ** (1 / 252) - 1
-    daily_vol = 0.0008   # typical FIDC low volatility
+    daily_rf = (1 + 0.1375) ** (1 / 252) - 1
+    daily_vol = 0.0008  # typical FIDC low volatility
     history = []
     current = date(2025, 3, 1)
     for _ in range(252):
         ret = rng.gauss(daily_rf + 0.0002, daily_vol)
-        nav *= (1 + ret)
+        nav *= 1 + ret
         history.append({"date": current.isoformat(), "nav": round(nav, 6)})
         current = current + __import__("datetime").timedelta(days=1)
     return history
@@ -617,30 +631,35 @@ def _make_nav_history() -> list[dict]:
 DEMO_NAV_HISTORY = _make_nav_history()
 
 DEMO_FUND_DATA = {
-    "fund_name":           "FIDC Paganini Multissetorial",
-    "cnpj":                "12.345.678/0001-90",
-    "administrator":       "Paganini Gestora S.A.",
-    "nav":                 3_000_000.0,
-    "quota_value":              270.0,
-    "quotas_senior":        10_000.0,
-    "rating":                   "A",
-    "strategy":            "multissetorial de recebíveis comerciais",
-    "target_return":       "CDI + 2,0% a.a.",
-    "inception_date":      "01/03/2022",
-    "mtd_return":               0.011832,
-    "ytd_return":               0.034521,
-    "pdd":                   165_000.0,
-    "total_receivables":   2_800_000.0,
-    "distributable_income":  35_000.0,
-    "liquidity_ratio":           2.3,
+    "fund_name": "FIDC Paganini Multissetorial",
+    "cnpj": "12.345.678/0001-90",
+    "administrator": "Paganini Gestora S.A.",
+    "nav": 3_000_000.0,
+    "quota_value": 270.0,
+    "quotas_senior": 10_000.0,
+    "rating": "A",
+    "strategy": "multissetorial de recebíveis comerciais",
+    "target_return": "CDI + 2,0% a.a.",
+    "inception_date": "01/03/2022",
+    "mtd_return": 0.011832,
+    "ytd_return": 0.034521,
+    "pdd": 165_000.0,
+    "total_receivables": 2_800_000.0,
+    "distributable_income": 35_000.0,
+    "liquidity_ratio": 2.3,
     "covenants": [
-        {"name": "Subordinação Mínima", "limit": "≥ 15%", "actual": "18.5%", "ok": True},
-        {"name": "Índice de PDD",       "limit": "≤ 8%",  "actual": "5.9%",  "ok": True},
+        {
+            "name": "Subordinação Mínima",
+            "limit": "≥ 15%",
+            "actual": "18.5%",
+            "ok": True,
+        },
+        {"name": "Índice de PDD", "limit": "≤ 8%", "actual": "5.9%", "ok": True},
     ],
     "last_distribution": {
-        "date":      "28/02/2026",
+        "date": "28/02/2026",
         "per_quota": 3.15,
-        "total":     31_500.0,
+        "total": 31_500.0,
     },
 }
 
@@ -663,7 +682,9 @@ if __name__ == "__main__":
     print(f"Max drawdown:    {p.max_drawdown*100:.4f}%")
     print(f"Volatility (a.a.): {p.volatility_annual*100:.4f}%")
     d = result["distribution"]
-    print(f"\nDistribution per quota: R$ {d['gross_per_quota']:.6f} ({d['pct_cdi']:.1f}% CDI)")
+    print(
+        f"\nDistribution per quota: R$ {d['gross_per_quota']:.6f} ({d['pct_cdi']:.1f}% CDI)"
+    )
     print("\n--- Factsheet (first 600 chars) ---")
     print(result["factsheet"][:600])
     print("\n--- Query: rentabilidade ---")

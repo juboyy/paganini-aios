@@ -2,9 +2,8 @@ from __future__ import annotations
 
 import json
 import logging
-import os
 import time
-from dataclasses import dataclass, field, asdict
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Callable, Optional
@@ -55,15 +54,17 @@ class DaemonTask:
     name: str
     interval_seconds: int
     description: str = ""
-    trigger_time: Optional[str] = None   # raw string e.g. "06:00 UTC"
-    last_run: Optional[float] = None     # epoch seconds
+    trigger_time: Optional[str] = None  # raw string e.g. "06:00 UTC"
+    last_run: Optional[float] = None  # epoch seconds
     next_run: float = field(default_factory=lambda: time.time())
-    status: str = "idle"                 # idle | running | error
+    status: str = "idle"  # idle | running | error
     run_count: int = 0
     error_count: int = 0
 
     # Derived from trigger_time — not serialised to history
-    _trigger_hour_utc: Optional[int] = field(default=None, init=False, repr=False, compare=False)
+    _trigger_hour_utc: Optional[int] = field(
+        default=None, init=False, repr=False, compare=False
+    )
 
     def __post_init__(self) -> None:
         self._trigger_hour_utc = parse_trigger_hour_utc(self.trigger_time)
@@ -180,15 +181,18 @@ def covenant_monitor(config: dict) -> dict:
         return result
 
     # Default covenant thresholds (override via config["covenants"] dict)
-    thresholds: dict = config.get("covenants", {
-        "max_inadimplencia_rate": 0.05,       # 5%
-        "min_subordinacao": 0.20,              # 20%
-        "max_concentracao_cedente": 0.15,      # 15% per cedente
-        "min_liquidity_ratio": 0.10,           # 10%
-    })
+    thresholds: dict = config.get(
+        "covenants",
+        {
+            "max_inadimplencia_rate": 0.05,  # 5%
+            "min_subordinacao": 0.20,  # 20%
+            "max_concentracao_cedente": 0.15,  # 15% per cedente
+            "min_liquidity_ratio": 0.10,  # 10%
+        },
+    )
 
     violations: list[dict] = []
-    warnings:   list[dict] = []
+    warnings: list[dict] = []
 
     for fund in funds:
         name = fund.get("name", fund.get("fund_name", "unknown"))
@@ -199,50 +203,72 @@ def covenant_monitor(config: dict) -> dict:
         if inad is not None:
             limit = thresholds["max_inadimplencia_rate"]
             if inad > limit:
-                violations.append({
-                    "fund": name, "cnpj": cnpj,
-                    "covenant": "inadimplencia_rate",
-                    "limit": limit, "actual": inad,
-                    "severity": "breach",
-                })
+                violations.append(
+                    {
+                        "fund": name,
+                        "cnpj": cnpj,
+                        "covenant": "inadimplencia_rate",
+                        "limit": limit,
+                        "actual": inad,
+                        "severity": "breach",
+                    }
+                )
             elif inad > limit * 0.80:  # 80% of limit → warning
-                warnings.append({
-                    "fund": name, "cnpj": cnpj,
-                    "covenant": "inadimplencia_rate",
-                    "limit": limit, "actual": inad,
-                    "severity": "warn",
-                })
+                warnings.append(
+                    {
+                        "fund": name,
+                        "cnpj": cnpj,
+                        "covenant": "inadimplencia_rate",
+                        "limit": limit,
+                        "actual": inad,
+                        "severity": "warn",
+                    }
+                )
 
         # --- Subordinação check ---
         sub = fund.get("subordinacao_ratio", fund.get("subordination_ratio"))
         if sub is not None:
             limit = thresholds["min_subordinacao"]
             if sub < limit:
-                violations.append({
-                    "fund": name, "cnpj": cnpj,
-                    "covenant": "subordinacao_ratio",
-                    "limit": limit, "actual": sub,
-                    "severity": "breach",
-                })
+                violations.append(
+                    {
+                        "fund": name,
+                        "cnpj": cnpj,
+                        "covenant": "subordinacao_ratio",
+                        "limit": limit,
+                        "actual": sub,
+                        "severity": "breach",
+                    }
+                )
             elif sub < limit * 1.10:  # within 10% headroom → warning
-                warnings.append({
-                    "fund": name, "cnpj": cnpj,
-                    "covenant": "subordinacao_ratio",
-                    "limit": limit, "actual": sub,
-                    "severity": "warn",
-                })
+                warnings.append(
+                    {
+                        "fund": name,
+                        "cnpj": cnpj,
+                        "covenant": "subordinacao_ratio",
+                        "limit": limit,
+                        "actual": sub,
+                        "severity": "warn",
+                    }
+                )
 
         # --- Concentração por cedente check ---
-        top_cedente_pct = fund.get("top_cedente_pct", fund.get("max_cedente_concentration"))
+        top_cedente_pct = fund.get(
+            "top_cedente_pct", fund.get("max_cedente_concentration")
+        )
         if top_cedente_pct is not None:
             limit = thresholds["max_concentracao_cedente"]
             if top_cedente_pct > limit:
-                violations.append({
-                    "fund": name, "cnpj": cnpj,
-                    "covenant": "concentracao_cedente",
-                    "limit": limit, "actual": top_cedente_pct,
-                    "severity": "breach",
-                })
+                violations.append(
+                    {
+                        "fund": name,
+                        "cnpj": cnpj,
+                        "covenant": "concentracao_cedente",
+                        "limit": limit,
+                        "actual": top_cedente_pct,
+                        "severity": "breach",
+                    }
+                )
 
     overall = "ok" if not violations else "breach"
     if warnings and not violations:
@@ -333,7 +359,7 @@ def pdd_calculator(config: dict) -> dict:
             pdd_stage1 = pdd_stage2 = pdd_stage3 = 0.0
             for bucket in aging_data["buckets"]:
                 balance = float(bucket.get("balance", 0))
-                days    = int(bucket.get("days_overdue", 0))
+                days = int(bucket.get("days_overdue", 0))
                 if days <= 30:
                     pdd_stage1 += balance * 0.005
                 elif days <= 90:
@@ -400,12 +426,15 @@ def risk_scanner(config: dict) -> dict:
         logger.info("[%s] risk_scanner: no_data", started)
         return result
 
-    thresholds: dict = config.get("risk_limits", {
-        "max_concentration_index": 0.15,   # HHI / top-cedente % PL
-        "min_diversification_count": 5,    # minimum distinct cedentes
-        "max_var_99_pct_pl": 0.10,         # VaR 99% must not exceed 10% PL
-        "min_liquidity_ratio": 0.10,
-    })
+    thresholds: dict = config.get(
+        "risk_limits",
+        {
+            "max_concentration_index": 0.15,  # HHI / top-cedente % PL
+            "min_diversification_count": 5,  # minimum distinct cedentes
+            "max_var_99_pct_pl": 0.10,  # VaR 99% must not exceed 10% PL
+            "min_liquidity_ratio": 0.10,
+        },
+    )
 
     alerts: list[dict] = []
     concentration_summary: dict = {}
@@ -413,14 +442,16 @@ def risk_scanner(config: dict) -> dict:
 
     for fund in funds:
         name = fund.get("name", fund.get("fund_name", "unknown"))
-        pl   = float(fund.get("pl", fund.get("patrimonio_liquido", 0.0)))
+        pl = float(fund.get("pl", fund.get("patrimonio_liquido", 0.0)))
         total_pl += pl
 
         # Concentration check
-        top_cedente_pct = float(fund.get("top_cedente_pct", fund.get("max_cedente_concentration", 0.0)))
-        n_cedentes      = int(fund.get("n_cedentes", fund.get("cedente_count", 0)))
-        liq_ratio       = float(fund.get("liquidity_ratio", fund.get("indice_liquidez", 1.0)))
-        var_99          = float(fund.get("var_99", 0.0))
+        top_cedente_pct = float(
+            fund.get("top_cedente_pct", fund.get("max_cedente_concentration", 0.0))
+        )
+        n_cedentes = int(fund.get("n_cedentes", fund.get("cedente_count", 0)))
+        liq_ratio = float(fund.get("liquidity_ratio", fund.get("indice_liquidez", 1.0)))
+        var_99 = float(fund.get("var_99", 0.0))
 
         concentration_summary[name] = {
             "pl": pl,
@@ -430,44 +461,56 @@ def risk_scanner(config: dict) -> dict:
         }
 
         if top_cedente_pct > thresholds["max_concentration_index"]:
-            alerts.append({
-                "fund": name, "type": "concentration",
-                "message": (
-                    f"Top cedente represents {top_cedente_pct:.1%} of PL, "
-                    f"exceeding limit of {thresholds['max_concentration_index']:.1%}"
-                ),
-                "severity": "high",
-            })
+            alerts.append(
+                {
+                    "fund": name,
+                    "type": "concentration",
+                    "message": (
+                        f"Top cedente represents {top_cedente_pct:.1%} of PL, "
+                        f"exceeding limit of {thresholds['max_concentration_index']:.1%}"
+                    ),
+                    "severity": "high",
+                }
+            )
 
         if n_cedentes > 0 and n_cedentes < thresholds["min_diversification_count"]:
-            alerts.append({
-                "fund": name, "type": "diversification",
-                "message": (
-                    f"Only {n_cedentes} cedente(s) — minimum is "
-                    f"{thresholds['min_diversification_count']}"
-                ),
-                "severity": "medium",
-            })
+            alerts.append(
+                {
+                    "fund": name,
+                    "type": "diversification",
+                    "message": (
+                        f"Only {n_cedentes} cedente(s) — minimum is "
+                        f"{thresholds['min_diversification_count']}"
+                    ),
+                    "severity": "medium",
+                }
+            )
 
         if liq_ratio < thresholds["min_liquidity_ratio"]:
-            alerts.append({
-                "fund": name, "type": "liquidity",
-                "message": (
-                    f"Liquidity ratio {liq_ratio:.1%} below minimum "
-                    f"{thresholds['min_liquidity_ratio']:.1%}"
-                ),
-                "severity": "high",
-            })
+            alerts.append(
+                {
+                    "fund": name,
+                    "type": "liquidity",
+                    "message": (
+                        f"Liquidity ratio {liq_ratio:.1%} below minimum "
+                        f"{thresholds['min_liquidity_ratio']:.1%}"
+                    ),
+                    "severity": "high",
+                }
+            )
 
         if pl > 0 and var_99 > 0 and (var_99 / pl) > thresholds["max_var_99_pct_pl"]:
-            alerts.append({
-                "fund": name, "type": "var",
-                "message": (
-                    f"VaR 99% is {var_99/pl:.1%} of PL, "
-                    f"exceeding limit of {thresholds['max_var_99_pct_pl']:.1%}"
-                ),
-                "severity": "high",
-            })
+            alerts.append(
+                {
+                    "fund": name,
+                    "type": "var",
+                    "message": (
+                        f"VaR 99% is {var_99/pl:.1%} of PL, "
+                        f"exceeding limit of {thresholds['max_var_99_pct_pl']:.1%}"
+                    ),
+                    "severity": "high",
+                }
+            )
 
     high_count = sum(1 for a in alerts if a.get("severity") == "high")
     overall = "ok" if not alerts else ("critical" if high_count > 0 else "warn")
@@ -574,7 +617,9 @@ class DaemonRunner:
             path = base / daemons_path
 
         if not path.exists():
-            logger.warning("daemons.yaml not found at %s — starting with empty daemon set", path)
+            logger.warning(
+                "daemons.yaml not found at %s — starting with empty daemon set", path
+            )
             return
 
         with path.open() as fh:
@@ -630,7 +675,9 @@ class DaemonRunner:
 
         handler = self._handlers.get(name)
         if handler is None:
-            logger.info("Daemon '%s' has no handler registered — skipping execution", name)
+            logger.info(
+                "Daemon '%s' has no handler registered — skipping execution", name
+            )
             return {"status": "no_handler", "daemon": name}
 
         task.mark_running()
@@ -650,8 +697,12 @@ class DaemonRunner:
 
             record = {
                 "daemon": name,
-                "started_at": datetime.fromtimestamp(started_at, tz=timezone.utc).isoformat(),
-                "ended_at": datetime.fromtimestamp(ended_at, tz=timezone.utc).isoformat(),
+                "started_at": datetime.fromtimestamp(
+                    started_at, tz=timezone.utc
+                ).isoformat(),
+                "ended_at": datetime.fromtimestamp(
+                    ended_at, tz=timezone.utc
+                ).isoformat(),
                 "duration_seconds": round(ended_at - started_at, 3),
                 "success": success,
                 "result": result,

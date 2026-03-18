@@ -584,7 +584,7 @@ export default function PipelinePage() {
                 </div>
                 <div className="flex justify-between items-center">
                   <div>
-                    <div style={{ color: "var(--text-4)", fontSize: "0.6875rem", fontFamily: "var(--font-mono)" }}>
+                    <div style={{ color: "var(--text-4)", fontSize: "0.8125rem", fontFamily: "var(--font-mono)" }}>
                       Latência
                     </div>
                     <div style={{ color: stage.color, fontSize: "0.875rem", fontWeight: 600, fontFamily: "var(--font-mono)" }}>
@@ -592,7 +592,7 @@ export default function PipelinePage() {
                     </div>
                   </div>
                   <div style={{ textAlign: "right" }}>
-                    <div style={{ color: "var(--text-4)", fontSize: "0.6875rem", fontFamily: "var(--font-mono)" }}>
+                    <div style={{ color: "var(--text-4)", fontSize: "0.8125rem", fontFamily: "var(--font-mono)" }}>
                       Fila
                     </div>
                     <div style={{ color: "var(--text-2)", fontSize: "0.875rem", fontWeight: 600, fontFamily: "var(--font-mono)" }}>
@@ -712,7 +712,7 @@ export default function PipelinePage() {
                   {/* Métricas */}
                   <div className="flex items-center gap-4 flex-shrink-0">
                     <div style={{ textAlign: "center" }}>
-                      <div style={{ color: "var(--text-4)", fontSize: "0.6875rem", fontFamily: "var(--font-mono)" }}>
+                      <div style={{ color: "var(--text-4)", fontSize: "0.8125rem", fontFamily: "var(--font-mono)" }}>
                         TEMPO
                       </div>
                       <div style={{ color: "var(--accent)", fontSize: "0.875rem", fontWeight: 600, fontFamily: "var(--font-mono)" }}>
@@ -720,7 +720,7 @@ export default function PipelinePage() {
                       </div>
                     </div>
                     <div style={{ textAlign: "center" }}>
-                      <div style={{ color: "var(--text-4)", fontSize: "0.6875rem", fontFamily: "var(--font-mono)" }}>
+                      <div style={{ color: "var(--text-4)", fontSize: "0.8125rem", fontFamily: "var(--font-mono)" }}>
                         CUSTO
                       </div>
                       <div style={{ color: "var(--cyan)", fontSize: "0.875rem", fontWeight: 600, fontFamily: "var(--font-mono)" }}>
@@ -728,7 +728,7 @@ export default function PipelinePage() {
                       </div>
                     </div>
                     <div style={{ textAlign: "center" }}>
-                      <div style={{ color: "var(--text-4)", fontSize: "0.6875rem", fontFamily: "var(--font-mono)" }}>
+                      <div style={{ color: "var(--text-4)", fontSize: "0.8125rem", fontFamily: "var(--font-mono)" }}>
                         TOKENS
                       </div>
                       <div style={{ color: "var(--text-2)", fontSize: "0.875rem", fontWeight: 600, fontFamily: "var(--font-mono)" }}>

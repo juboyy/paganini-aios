@@ -21,6 +21,7 @@ BACEN Resolução 2682/99 PDD buckets (minimum provisions):
 
 Paganini uses simplified 7-bucket mapping (0-30d through >180d) aligned with BACEN.
 """
+
 from __future__ import annotations
 
 import logging
@@ -37,12 +38,12 @@ logger = logging.getLogger(__name__)
 
 # (max_days_past_due, provision_rate, bucket_label)
 PDD_BUCKETS: list[tuple[int, float, str]] = [
-    (30,  0.005,  "A:0-30d"),
-    (60,  0.010,  "B:31-60d"),
-    (90,  0.030,  "C:61-90d"),
-    (120, 0.100,  "D:91-120d"),
-    (150, 0.300,  "E:121-150d"),
-    (180, 0.500,  "F:151-180d"),
+    (30, 0.005, "A:0-30d"),
+    (60, 0.010, "B:31-60d"),
+    (90, 0.030, "C:61-90d"),
+    (120, 0.100, "D:91-120d"),
+    (150, 0.300, "E:121-150d"),
+    (180, 0.500, "F:151-180d"),
     (999_999, 1.000, "H:>180d"),
 ]
 
@@ -53,6 +54,7 @@ CALENDAR_DAYS_YEAR = 365
 # ---------------------------------------------------------------------------
 # Data structures
 # ---------------------------------------------------------------------------
+
 
 @dataclass
 class AgingBucket:
@@ -72,7 +74,8 @@ class AgingBucket:
             "face_value_brl": round(self.face_value, 2),
             "provision_brl": round(self.provision_amount, 2),
             "provision_pct_of_bucket": round(
-                self.provision_amount / self.face_value * 100 if self.face_value else 0, 2
+                self.provision_amount / self.face_value * 100 if self.face_value else 0,
+                2,
             ),
         }
 
@@ -93,7 +96,9 @@ class AgingReport:
             "total_receivables": self.total_receivables,
             "total_face_value_brl": round(self.total_face_value, 2),
             "total_provision_brl": round(self.total_provision, 2),
-            "effective_provision_rate_pct": round(self.effective_provision_rate * 100, 4),
+            "effective_provision_rate_pct": round(
+                self.effective_provision_rate * 100, 4
+            ),
             "buckets": [b.to_dict() for b in self.buckets],
             "reclassifications": self.reclassifications,
         }
@@ -102,6 +107,7 @@ class AgingReport:
 # ---------------------------------------------------------------------------
 # PricingAgent
 # ---------------------------------------------------------------------------
+
 
 class PricingAgent:
     """
@@ -225,20 +231,22 @@ class PricingAgent:
                     break
 
             if assigned_bucket is None:
-                assigned_bucket = buckets[-1]   # H: >180d = 100%
+                assigned_bucket = buckets[-1]  # H: >180d = 100%
 
             # BACEN rating override: if debtor is rated lower than bucket, use debtor rating
             if bacen_override:
                 override_rate = self._bacen_rating_to_rate(bacen_override)
                 if override_rate > assigned_bucket.provision_rate:
-                    reclassifications.append({
-                        "receivable_id": rec.get("id", "?"),
-                        "original_bucket": assigned_bucket.label,
-                        "original_rate": assigned_bucket.provision_rate,
-                        "override_rating": bacen_override,
-                        "override_rate": override_rate,
-                        "reason": "Debtor credit rating requires higher provision.",
-                    })
+                    reclassifications.append(
+                        {
+                            "receivable_id": rec.get("id", "?"),
+                            "original_bucket": assigned_bucket.label,
+                            "original_rate": assigned_bucket.provision_rate,
+                            "override_rating": bacen_override,
+                            "override_rate": override_rate,
+                            "reason": "Debtor credit rating requires higher provision.",
+                        }
+                    )
                     # Create a virtual bucket for this reclassification
                     provision_amount = fv * override_rate
                     total_face_value += fv
@@ -255,10 +263,19 @@ class PricingAgent:
         # Also account for reclassified amounts
         for r in reclassifications:
             total_provision += float(r.get("override_rate", 0)) * float(
-                next((rec.get("face_value", 0) for rec in receivables if rec.get("id") == r["receivable_id"]), 0)
+                next(
+                    (
+                        rec.get("face_value", 0)
+                        for rec in receivables
+                        if rec.get("id") == r["receivable_id"]
+                    ),
+                    0,
+                )
             )
 
-        effective_rate = total_provision / total_face_value if total_face_value > 0 else 0.0
+        effective_rate = (
+            total_provision / total_face_value if total_face_value > 0 else 0.0
+        )
 
         return AgingReport(
             date=datetime.utcnow().strftime("%Y-%m-%d"),
@@ -351,7 +368,9 @@ class PricingAgent:
         # Term structure adjustment: spread is higher for longer maturities
         # Using simplified exponential saturation: spread increases toward full spread
         term_factor = 1.0 - math.exp(-maturity_days / self.bd_year)
-        adjusted_spread = spread * (0.5 + 0.5 * term_factor)   # Linear interpolation base
+        adjusted_spread = spread * (
+            0.5 + 0.5 * term_factor
+        )  # Linear interpolation base
 
         # Compound: (1 + risk_free) × (1 + spread_adj) − 1
         composite_rate = (1 + risk_free) * (1 + adjusted_spread) - 1
@@ -427,8 +446,13 @@ class PricingAgent:
 
         # Build default curve from risk-free + sector spread
         default_curve = {
-            "30d": 0.105, "60d": 0.108, "90d": 0.111, "120d": 0.114,
-            "180d": 0.118, "252d": 0.122, "360d": 0.126,
+            "30d": 0.105,
+            "60d": 0.108,
+            "90d": 0.111,
+            "120d": 0.114,
+            "180d": 0.118,
+            "252d": 0.122,
+            "360d": 0.126,
         }
 
         items: list[dict[str, Any]] = []
@@ -440,7 +464,9 @@ class PricingAgent:
 
         for rec in portfolio:
             fv = float(rec.get("face_value", 0.0))
-            pp = float(rec.get("purchase_price", fv))   # Assume purchased at par if not provided
+            pp = float(
+                rec.get("purchase_price", fv)
+            )  # Assume purchased at par if not provided
             days = int(rec.get("days_to_maturity", 1))
             dpd = int(rec.get("days_past_due", 0))
 
@@ -468,23 +494,25 @@ class PricingAgent:
             # Unrealised P&L
             unrealised_pnl = mtm - pp
 
-            items.append({
-                "id": rec.get("id", "?"),
-                "face_value_brl": round(fv, 2),
-                "purchase_price_brl": round(pp, 2),
-                "mtm_value_brl": round(mtm, 2),
-                "mtm_discount_brl": round(mtm_discount, 2),
-                "mtm_discount_pct": round(mtm_discount_pct, 4),
-                "unrealised_pnl_brl": round(unrealised_pnl, 2),
-                "annualized_yield_pct": round(yld * 100, 4),
-                "days_to_maturity": days,
-                "days_past_due": dpd,
-                "pdd_rate_pct": round(bucket_rate * 100, 2),
-                "pdd_provision_brl": round(provision, 2),
-                "cedente": rec.get("cedente", ""),
-                "sacado": rec.get("sacado", ""),
-                "sector": rec.get("sector", ""),
-            })
+            items.append(
+                {
+                    "id": rec.get("id", "?"),
+                    "face_value_brl": round(fv, 2),
+                    "purchase_price_brl": round(pp, 2),
+                    "mtm_value_brl": round(mtm, 2),
+                    "mtm_discount_brl": round(mtm_discount, 2),
+                    "mtm_discount_pct": round(mtm_discount_pct, 4),
+                    "unrealised_pnl_brl": round(unrealised_pnl, 2),
+                    "annualized_yield_pct": round(yld * 100, 4),
+                    "days_to_maturity": days,
+                    "days_past_due": dpd,
+                    "pdd_rate_pct": round(bucket_rate * 100, 2),
+                    "pdd_provision_brl": round(provision, 2),
+                    "cedente": rec.get("cedente", ""),
+                    "sacado": rec.get("sacado", ""),
+                    "sector": rec.get("sector", ""),
+                }
+            )
 
             total_face_value += fv
             total_mtm += mtm
@@ -495,7 +523,9 @@ class PricingAgent:
         if not items:
             return {"error": "No valid receivables in portfolio."}
 
-        weighted_avg_yield = weighted_yield_numerator / total_face_value if total_face_value > 0 else 0.0
+        weighted_avg_yield = (
+            weighted_yield_numerator / total_face_value if total_face_value > 0 else 0.0
+        )
         total_unrealised_pnl = total_mtm - total_purchase_price
         net_asset_value = total_mtm - total_provision
 
@@ -513,7 +543,11 @@ class PricingAgent:
                 "net_asset_value_brl": round(net_asset_value, 2),
                 "total_unrealised_pnl_brl": round(total_unrealised_pnl, 2),
                 "weighted_avg_yield_pct": round(weighted_avg_yield * 100, 4),
-                "effective_provision_rate_pct": round(total_provision / total_face_value * 100, 4) if total_face_value else 0,
+                "effective_provision_rate_pct": (
+                    round(total_provision / total_face_value * 100, 4)
+                    if total_face_value
+                    else 0
+                ),
             },
             "aging_report": aging.to_dict(),
             "receivables": items,
@@ -533,8 +567,15 @@ class PricingAgent:
     def _bacen_rating_to_rate(self, rating: str) -> float:
         """Map BACEN rating letter (AA–H) to provision rate."""
         mapping = {
-            "AA": 0.0, "A": 0.005, "B": 0.01, "C": 0.03,
-            "D": 0.10, "E": 0.30, "F": 0.50, "G": 0.70, "H": 1.00,
+            "AA": 0.0,
+            "A": 0.005,
+            "B": 0.01,
+            "C": 0.03,
+            "D": 0.10,
+            "E": 0.30,
+            "F": 0.50,
+            "G": 0.70,
+            "H": 1.00,
         }
         return mapping.get(rating.upper(), 0.0)
 
@@ -564,7 +605,7 @@ class PricingAgent:
             try:
                 tenor_days = float(key.replace("d", "").replace("m", ""))
                 if "m" in key:
-                    tenor_days *= 21   # Approximate trading months
+                    tenor_days *= 21  # Approximate trading months
                 parsed.append((tenor_days, float(rate)))
             except ValueError:
                 continue
@@ -600,30 +641,51 @@ class PricingAgent:
 
 DEMO_RECEIVABLES = [
     {
-        "id": "rec_001", "face_value": 500_000, "purchase_price": 490_000,
-        "days_to_maturity": 90, "days_past_due": 0,
-        "cedente": "Alpha Ltda", "sacado": "Walmart BR", "sector": "varejo",
+        "id": "rec_001",
+        "face_value": 500_000,
+        "purchase_price": 490_000,
+        "days_to_maturity": 90,
+        "days_past_due": 0,
+        "cedente": "Alpha Ltda",
+        "sacado": "Walmart BR",
+        "sector": "varejo",
     },
     {
-        "id": "rec_002", "face_value": 200_000, "purchase_price": 180_000,
-        "days_to_maturity": 45, "days_past_due": 35,
-        "cedente": "Beta S.A.", "sacado": "Magazine Luiza", "sector": "varejo",
+        "id": "rec_002",
+        "face_value": 200_000,
+        "purchase_price": 180_000,
+        "days_to_maturity": 45,
+        "days_past_due": 35,
+        "cedente": "Beta S.A.",
+        "sacado": "Magazine Luiza",
+        "sector": "varejo",
     },
     {
-        "id": "rec_003", "face_value": 1_000_000, "purchase_price": 950_000,
-        "days_to_maturity": 180, "days_past_due": 0,
-        "cedente": "Gamma ME", "sacado": "Petrobras", "sector": "energia",
+        "id": "rec_003",
+        "face_value": 1_000_000,
+        "purchase_price": 950_000,
+        "days_to_maturity": 180,
+        "days_past_due": 0,
+        "cedente": "Gamma ME",
+        "sacado": "Petrobras",
+        "sector": "energia",
     },
     {
-        "id": "rec_004", "face_value": 300_000, "purchase_price": 240_000,
-        "days_to_maturity": 10, "days_past_due": 95,
+        "id": "rec_004",
+        "face_value": 300_000,
+        "purchase_price": 240_000,
+        "days_to_maturity": 10,
+        "days_past_due": 95,
         "bacen_rating": "D",
-        "cedente": "Delta S.A.", "sacado": "Empresa XYZ", "sector": "construção",
+        "cedente": "Delta S.A.",
+        "sacado": "Empresa XYZ",
+        "sector": "construção",
     },
 ]
 
 if __name__ == "__main__":
     import json
+
     agent = PricingAgent()
 
     print("=== PDD Aging Report ===")
