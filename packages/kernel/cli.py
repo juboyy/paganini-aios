@@ -446,6 +446,11 @@ def doctor():
     config_exists = (PAGANINI_ROOT / "config.yaml").exists()
     checks.append(("Config", config_exists, "config.yaml" if config_exists else "run: paganini init"))
 
+    # RTK
+    from packages.kernel.rtk import status as rtk_stat
+    rs = rtk_stat()
+    checks.append(("RTK proxy", rs["installed"], rs.get("version", "not found — paganini rtk install")))
+
     # Moltis health
     if config_exists:
         config = _load_config()
@@ -624,6 +629,59 @@ def serve(host, port):
     app = create_app(config)
     console.print(f"[green]🎻 Dashboard at http://{host}:{port}[/]")
     uvicorn.run(app, host=host, port=port, log_level="info")
+
+
+@cli.group()
+def rtk():
+    """RTK token compression proxy — reduce LLM context by 60-90%."""
+    pass
+
+
+@rtk.command("status")
+def rtk_status():
+    """Show RTK installation status and savings."""
+    from packages.kernel.rtk import status as rtk_stat, gain
+    s = rtk_stat()
+    if s["installed"]:
+        console.print(f"[green]✓ RTK installed[/] — {s['version']}")
+        console.print(f"  Path: {s['path']}")
+        g = gain()
+        if "text" in g:
+            console.print(f"\n{g['text']}")
+        elif "error" not in g:
+            console.print(f"\n[bold]Token Savings:[/]")
+            console.print(Panel(str(g), title="RTK Gain", border_style="green"))
+    else:
+        console.print("[red]✗ RTK not installed[/]")
+        console.print("  Install: curl -fsSL https://raw.githubusercontent.com/rtk-ai/rtk/refs/heads/master/install.sh | sh")
+
+
+@rtk.command("install")
+def rtk_install():
+    """Install RTK binary."""
+    from packages.kernel.rtk import install as do_install, status as rtk_stat
+    s = rtk_stat()
+    if s["installed"]:
+        console.print(f"[green]✓ Already installed[/] — {s['version']}")
+        return
+    console.print("[yellow]Installing RTK...[/]")
+    if do_install():
+        console.print("[green]✓ RTK installed successfully[/]")
+    else:
+        console.print("[red]✗ Installation failed[/]")
+
+
+@rtk.command("gain")
+def rtk_gain():
+    """Show token savings statistics."""
+    from packages.kernel.rtk import gain
+    g = gain()
+    if "text" in g:
+        console.print(g["text"])
+    elif "error" in g:
+        console.print(f"[red]{g['error']}[/]")
+    else:
+        console.print(str(g))
 
 
 if __name__ == "__main__":
