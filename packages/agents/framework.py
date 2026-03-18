@@ -1,10 +1,19 @@
-"""PAGANINI Agent Framework — Loads SOULs, dispatches queries to specialized agents."""
+"""PAGANINI Agent Framework — Loads SOULs, dispatches queries to specialized agents.
+
+Supports recursive sub-agent spawning with context inheritance.
+Each agent can delegate sub-tasks to other agents, building execution
+trees of arbitrary depth. Context flows parent → child with full
+trace logging for observability.
+"""
 
 from __future__ import annotations
 
 import re
+import time
+import uuid
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
+from typing import Any, Callable, Optional
 
 
 class AgentSOUL:
@@ -198,3 +207,329 @@ class AgentDispatcher:
 
         sorted_agents = sorted(scores.values(), key=lambda x: x[1], reverse=True)
         return sorted_agents[:max_agents]
+
+
+# ---------------------------------------------------------------------------
+# Execution Trace — Full observability for recursive agent operations
+# ---------------------------------------------------------------------------
+
+@dataclass
+class ExecutionSpan:
+    """A single execution span in the agent trace tree."""
+    span_id: str = field(default_factory=lambda: uuid.uuid4().hex[:12])
+    parent_id: Optional[str] = None
+    agent_slug: str = ""
+    task: str = ""
+    depth: int = 0
+    status: str = "pending"  # pending | running | completed | failed
+    result: Any = None
+    start_time: float = 0.0
+    end_time: float = 0.0
+    tokens_in: int = 0
+    tokens_out: int = 0
+    children: list["ExecutionSpan"] = field(default_factory=list)
+
+    @property
+    def duration_ms(self) -> float:
+        if self.end_time and self.start_time:
+            return round((self.end_time - self.start_time) * 1000, 1)
+        return 0
+
+    @property
+    def total_spans(self) -> int:
+        return 1 + sum(c.total_spans for c in self.children)
+
+    @property
+    def max_depth(self) -> int:
+        if not self.children:
+            return self.depth
+        return max(c.max_depth for c in self.children)
+
+    def to_dict(self) -> dict:
+        return {
+            "span_id": self.span_id,
+            "parent_id": self.parent_id,
+            "agent": self.agent_slug,
+            "task": self.task[:120],
+            "depth": self.depth,
+            "status": self.status,
+            "duration_ms": self.duration_ms,
+            "tokens": {"in": self.tokens_in, "out": self.tokens_out},
+            "children": [c.to_dict() for c in self.children],
+        }
+
+
+@dataclass
+class ExecutionContext:
+    """Context that flows from parent to child agents during recursive dispatch."""
+    trace_id: str = field(default_factory=lambda: uuid.uuid4().hex[:16])
+    parent_span: Optional[ExecutionSpan] = None
+    depth: int = 0
+    max_depth: int = 6
+    accumulated_context: list[dict] = field(default_factory=list)
+    metadata: dict = field(default_factory=dict)
+
+    def child(self, agent_slug: str, task: str) -> "ExecutionContext":
+        """Create a child context for a sub-agent spawn."""
+        span = ExecutionSpan(
+            parent_id=self.parent_span.span_id if self.parent_span else None,
+            agent_slug=agent_slug,
+            task=task,
+            depth=self.depth + 1,
+            start_time=time.time(),
+            status="running",
+        )
+        if self.parent_span:
+            self.parent_span.children.append(span)
+
+        return ExecutionContext(
+            trace_id=self.trace_id,
+            parent_span=span,
+            depth=self.depth + 1,
+            max_depth=self.max_depth,
+            accumulated_context=self.accumulated_context.copy(),
+            metadata={**self.metadata, "parent_agent": agent_slug},
+        )
+
+    def add_context(self, key: str, value: Any) -> None:
+        """Add context that child agents can access."""
+        self.accumulated_context.append({
+            "key": key,
+            "value": value,
+            "from_agent": self.parent_span.agent_slug if self.parent_span else "root",
+            "depth": self.depth,
+        })
+
+    @property
+    def can_recurse(self) -> bool:
+        return self.depth < self.max_depth
+
+
+# ---------------------------------------------------------------------------
+# Delegation Rules — Which agents can spawn which sub-agents
+# ---------------------------------------------------------------------------
+
+DELEGATION_MAP: dict[str, list[dict]] = {
+    "administrador": [
+        {"to": "pricing", "for": "NAV calculation requires PDD/mark-to-market"},
+        {"to": "compliance", "for": "Quota issuance requires compliance check"},
+        {"to": "reporting", "for": "Generate regulatory filings"},
+    ],
+    "compliance": [
+        {"to": "due_diligence", "for": "KYC/AML checks on new entities"},
+        {"to": "pricing", "for": "PDD validation for covenant checks"},
+        {"to": "regulatory_watch", "for": "Check latest regulatory changes"},
+    ],
+    "due_diligence": [
+        {"to": "compliance", "for": "PLD/AML screening after scoring"},
+    ],
+    "gestor": [
+        {"to": "pricing", "for": "Mark-to-market for portfolio valuation"},
+        {"to": "compliance", "for": "Concentration check before allocation"},
+        {"to": "custodiante", "for": "Verify collateral availability"},
+    ],
+    "pricing": [
+        {"to": "administrador", "for": "Fetch current NAV for pricing models"},
+    ],
+    "reporting": [
+        {"to": "administrador", "for": "Fetch NAV and quota data"},
+        {"to": "pricing", "for": "Fetch PDD and aging data"},
+        {"to": "compliance", "for": "Fetch compliance status"},
+    ],
+    "investor_relations": [
+        {"to": "reporting", "for": "Generate performance reports"},
+        {"to": "administrador", "for": "Fetch quota prices"},
+    ],
+}
+
+
+# ---------------------------------------------------------------------------
+# Recursive Dispatcher — Agents spawning agents with context flow
+# ---------------------------------------------------------------------------
+
+class RecursiveDispatcher:
+    """Orchestrates multi-agent execution with recursive sub-agent spawning.
+    
+    Unlike the basic AgentDispatcher (single-hop routing), this dispatcher
+    allows agents to delegate sub-tasks to other agents, building execution
+    trees. Context flows parent → child, and results aggregate child → parent.
+    
+    This is the core of the AIOS: agents that understand when they need
+    help from other specialists, and can spawn them autonomously.
+    """
+
+    def __init__(self, registry: AgentRegistry, llm_fn: Optional[Callable] = None):
+        self.registry = registry
+        self.basic_dispatcher = AgentDispatcher(registry)
+        self.llm_fn = llm_fn
+        self._traces: list[ExecutionSpan] = []
+
+    def dispatch(
+        self,
+        task: str,
+        context: Optional[ExecutionContext] = None,
+        agent_slug: Optional[str] = None,
+    ) -> dict:
+        """Dispatch a task with recursive sub-agent support.
+        
+        Args:
+            task: The task/query to execute
+            context: Execution context (created automatically for root calls)
+            agent_slug: Force dispatch to a specific agent (otherwise auto-route)
+        
+        Returns:
+            Dict with result, trace, and metrics
+        """
+        # Create root context if not provided
+        if context is None:
+            root_span = ExecutionSpan(
+                agent_slug="orchestrator",
+                task=task,
+                depth=0,
+                start_time=time.time(),
+                status="running",
+            )
+            context = ExecutionContext(parent_span=root_span)
+
+        # Route to agent
+        if agent_slug:
+            agent = self.registry.get(agent_slug)
+            confidence = 0.95
+        else:
+            agent, confidence = self.basic_dispatcher.route(task)
+
+        if not agent:
+            return {"error": "No agent found", "task": task}
+
+        # Create execution span
+        child_ctx = context.child(agent.slug, task)
+        span = child_ctx.parent_span
+
+        # Check delegation rules — does this agent need sub-agents?
+        delegations = DELEGATION_MAP.get(agent.slug, [])
+        sub_results = []
+
+        if delegations and context.can_recurse:
+            # Determine which delegations are relevant for this task
+            for delegation in delegations:
+                target_slug = delegation["to"]
+                reason = delegation["for"]
+
+                # Simple relevance check: does the reason relate to the task?
+                task_lower = task.lower()
+                reason_lower = reason.lower()
+                reason_keywords = set(reason_lower.split())
+                task_keywords = set(task_lower.split())
+                overlap = reason_keywords & task_keywords
+
+                if len(overlap) >= 2 or any(kw in task_lower for kw in reason_lower.split()[:3]):
+                    # Spawn sub-agent
+                    sub_task = f"[delegated from {agent.slug}] {reason}: {task}"
+                    sub_result = self.dispatch(
+                        task=sub_task,
+                        context=child_ctx,
+                        agent_slug=target_slug,
+                    )
+                    sub_results.append({
+                        "from": agent.slug,
+                        "to": target_slug,
+                        "reason": reason,
+                        "result": sub_result,
+                    })
+                    # Add sub-agent result to context for parent
+                    child_ctx.add_context(
+                        key=f"sub_result_{target_slug}",
+                        value=sub_result.get("result", ""),
+                    )
+
+        # Execute the agent's own task (with accumulated context)
+        agent_result = self._execute_agent(agent, task, child_ctx, confidence)
+
+        # Complete span
+        span.status = "completed"
+        span.end_time = time.time()
+        span.result = agent_result
+
+        # Store root trace
+        if context.depth == 0:
+            root_span = context.parent_span
+            root_span.status = "completed"
+            root_span.end_time = time.time()
+            self._traces.append(root_span)
+
+        return {
+            "agent": agent.slug,
+            "confidence": confidence,
+            "result": agent_result,
+            "sub_results": sub_results,
+            "depth": child_ctx.depth,
+            "duration_ms": span.duration_ms,
+            "context_items": len(child_ctx.accumulated_context),
+            "trace": span.to_dict() if context.depth <= 1 else None,
+        }
+
+    def _execute_agent(
+        self,
+        agent: AgentSOUL,
+        task: str,
+        context: ExecutionContext,
+        confidence: float,
+    ) -> str:
+        """Execute an agent with its accumulated context."""
+        # Build prompt with inherited context
+        context_block = ""
+        if context.accumulated_context:
+            context_items = "\n".join(
+                f"- [{item['from_agent']}@depth={item['depth']}] {item['key']}: {item['value']}"
+                for item in context.accumulated_context[-5:]  # Last 5 context items
+            )
+            context_block = f"\n\n## Inherited Context\n{context_items}"
+
+        prompt = (
+            f"You are {agent.name} ({agent.slug}).\n"
+            f"Role: {agent.role}\n"
+            f"Domains: {', '.join(agent.domains)}\n"
+            f"Task: {task}\n"
+            f"Confidence: {confidence:.2f}\n"
+            f"Depth: {context.depth}/{context.max_depth}"
+            f"{context_block}"
+        )
+
+        # If LLM function is available, use it
+        if self.llm_fn:
+            try:
+                return self.llm_fn(prompt, agent.system_prompt)
+            except Exception as e:
+                return f"[{agent.slug}] Error: {e}"
+
+        # Without LLM, return structured response
+        return (
+            f"[{agent.slug}] Processed task at depth={context.depth}. "
+            f"Domains: {', '.join(agent.domains)}. "
+            f"Context items inherited: {len(context.accumulated_context)}."
+        )
+
+    @property
+    def traces(self) -> list[dict]:
+        """Get all execution traces as dicts."""
+        return [t.to_dict() for t in self._traces]
+
+    @property
+    def stats(self) -> dict:
+        """Aggregate execution statistics."""
+        if not self._traces:
+            return {"total_executions": 0}
+
+        total_spans = sum(t.total_spans for t in self._traces)
+        max_depth = max(t.max_depth for t in self._traces)
+        avg_duration = sum(t.duration_ms for t in self._traces) / len(self._traces)
+
+        return {
+            "total_executions": len(self._traces),
+            "total_spans": total_spans,
+            "max_depth": max_depth,
+            "avg_duration_ms": round(avg_duration, 1),
+            "agents_used": list(set(
+                t.agent_slug for t in self._traces
+            )),
+        }
