@@ -26,7 +26,7 @@ const ACTIVE_PIPELINES = [
     id: "pipe-001",
     title: "Dashboard v2 — Telemetry page",
     issueId: "VIV-94",
-    tier: "Feature",
+    tier: "feature",
     gateToken: "GATE-20260317T214432:54f7348e",
     currentStage: 11,
     stages: ALL_STAGES,
@@ -35,7 +35,7 @@ const ACTIVE_PIPELINES = [
     id: "pipe-002",
     title: "Capabilities graph semantic indexing",
     issueId: "VIV-97",
-    tier: "Quick",
+    tier: "quick",
     gateToken: "GATE-20260318T003812:a1c9f203",
     currentStage: 4,
     stages: ALL_STAGES.slice(0, 14),
@@ -43,159 +43,132 @@ const ACTIVE_PIPELINES = [
 ];
 
 const HISTORY = [
-  {
-    title: "Revenue-OS auth refresh",
-    issueId: "VIV-88",
-    tier: "Quick",
-    duration: "18m",
-    stages: 5,
-    cost: "$0.34",
-    outcome: "success",
-  },
-  {
-    title: "Supabase RLS policy update",
-    issueId: "VIV-85",
-    tier: "Micro",
-    duration: "6m",
-    stages: 3,
-    cost: "$0.07",
-    outcome: "success",
-  },
-  {
-    title: "Stripe webhook handler refactor",
-    issueId: "VIV-79",
-    tier: "Feature",
-    duration: "1h 42m",
-    stages: 10,
-    cost: "$1.82",
-    outcome: "success",
-  },
-  {
-    title: "Linear approval poller crash fix",
-    issueId: "VIV-72",
-    tier: "Quick",
-    duration: "24m",
-    stages: 5,
-    cost: "$0.41",
-    outcome: "rollback",
-  },
+  { title: "Revenue-OS auth refresh", issueId: "VIV-88", tier: "quick", duration: "18m", cost: "$0.34", outcome: "success" },
+  { title: "Supabase RLS policy update", issueId: "VIV-85", tier: "micro", duration: "6m", cost: "$0.07", outcome: "success" },
+  { title: "Stripe webhook handler refactor", issueId: "VIV-79", tier: "feature", duration: "1h 42m", cost: "$1.82", outcome: "success" },
+  { title: "Linear approval poller crash fix", issueId: "VIV-72", tier: "quick", duration: "24m", cost: "$0.41", outcome: "failed" },
 ];
 
 const GATE_LOG = [
-  {
-    token: "GATE-20260318T003812:a1c9f203",
-    task: "Capabilities graph semantic indexing",
-    tier: "Quick",
-    time: "2026-03-18 00:38",
-    status: "active",
-  },
-  {
-    token: "GATE-20260317T214432:54f7348e",
-    task: "Dashboard v2 — Telemetry page",
-    tier: "Feature",
-    time: "2026-03-17 21:44",
-    status: "active",
-  },
-  {
-    token: "GATE-20260317T183021:b3d22f91",
-    task: "Revenue-OS auth refresh",
-    tier: "Quick",
-    time: "2026-03-17 18:30",
-    status: "closed",
-  },
-  {
-    token: "GATE-20260317T120948:77e8102c",
-    task: "Supabase RLS policy update",
-    tier: "Micro",
-    time: "2026-03-17 12:09",
-    status: "closed",
-  },
-  {
-    token: "GATE-20260316T221503:c0af6d3e",
-    task: "Linear approval poller crash fix",
-    tier: "Quick",
-    time: "2026-03-16 22:15",
-    status: "closed",
-  },
+  { token: "GATE-20260318T003812:a1c9f203", task: "Capabilities graph semantic indexing", tier: "quick", time: "00:38", status: "active" },
+  { token: "GATE-20260317T214432:54f7348e", task: "Dashboard v2 — Telemetry page", tier: "feature", time: "21:44", status: "active" },
+  { token: "GATE-20260317T183021:b3d22f91", task: "Revenue-OS auth refresh", tier: "quick", time: "18:30", status: "closed" },
+  { token: "GATE-20260317T120948:77e8102c", task: "Supabase RLS policy update", tier: "micro", time: "12:09", status: "closed" },
+  { token: "GATE-20260316T221503:c0af6d3e", task: "Linear approval poller crash fix", tier: "quick", time: "22:15", status: "closed" },
 ];
 
 const TIER_COLOR: Record<string, string> = {
-  Micro: "var(--teal)",
-  Quick: "var(--blue)",
-  Feature: "var(--accent)",
-  Epic: "var(--amber)",
+  micro: "var(--teal)",
+  quick: "var(--blue)",
+  feature: "var(--accent)",
+  epic: "var(--red)",
 };
 
-function StagePill({
-  stage,
-  currentStage,
-}: {
-  stage: (typeof ALL_STAGES)[0];
-  currentStage: number;
-}) {
-  const isDone = stage.num < currentStage;
-  const isCurrent = stage.num === currentStage;
+const TIER_LABEL: Record<string, string> = {
+  micro: "Micro",
+  quick: "Quick",
+  feature: "Feature",
+  epic: "Epic",
+};
 
+function TierBadge({ tier }: { tier: string }) {
+  const color = TIER_COLOR[tier] ?? "var(--text-4)";
   return (
-    <div
+    <span
       style={{
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        gap: 4,
-        minWidth: 72,
+        fontSize: 9,
+        fontWeight: 700,
+        letterSpacing: "0.12em",
+        textTransform: "uppercase",
+        padding: "3px 8px",
+        borderRadius: 999,
+        background: color + "22",
+        color,
+        flexShrink: 0,
       }}
     >
+      {TIER_LABEL[tier] ?? tier}
+    </span>
+  );
+}
+
+function StageCircle({ stage, currentStage }: { stage: (typeof ALL_STAGES)[0]; currentStage: number }) {
+  const isDone = stage.num < currentStage;
+  const isCurrent = stage.num === currentStage;
+  const isPending = stage.num > currentStage;
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, minWidth: 44 }}>
       <div
         style={{
-          padding: "5px 10px",
-          borderRadius: 999,
-          fontSize: 11,
-          fontWeight: 600,
-          whiteSpace: "nowrap",
+          width: 36,
+          height: 36,
+          borderRadius: "50%",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          fontSize: 12,
+          fontWeight: 700,
+          flexShrink: 0,
+          position: "relative",
           background: isDone
-            ? "rgba(34, 197, 94, 0.18)"
-            : isCurrent
-            ? "rgba(59, 130, 246, 0.2)"
-            : "var(--accent-bg)",
-          color: isDone
             ? "var(--green)"
             : isCurrent
             ? "var(--blue)"
-            : "var(--text-4)",
-          border: isCurrent ? "1px solid var(--blue)" : "1px solid transparent",
-          boxShadow: isCurrent ? "0 0 8px rgba(59,130,246,0.3)" : "none",
-          animation: isCurrent ? "pulse-stage 2s infinite" : "none",
-          position: "relative",
+            : "transparent",
+          border: isPending
+            ? "2px solid var(--border)"
+            : isDone
+            ? "2px solid var(--green)"
+            : "2px solid var(--blue)",
+          color: isDone || isCurrent ? "#fff" : "var(--text-4)",
+          boxShadow: isCurrent ? "0 0 0 4px rgba(59,130,246,0.2)" : "none",
+          animation: isCurrent ? "pulse-ring 2s infinite" : "none",
+          zIndex: 1,
         }}
       >
-        {stage.num}. {stage.name}
+        {isDone ? "✓" : stage.num}
       </div>
-      <span style={{ fontSize: 10, color: "var(--text-4)" }}>{stage.owner}</span>
+      <span
+        style={{
+          fontSize: 9,
+          fontWeight: 600,
+          color: isDone ? "var(--green)" : isCurrent ? "var(--blue)" : "var(--text-4)",
+          textAlign: "center",
+          letterSpacing: "0.04em",
+          whiteSpace: "nowrap",
+          maxWidth: 48,
+          overflow: "hidden",
+          textOverflow: "ellipsis",
+        }}
+      >
+        {stage.name}
+      </span>
     </div>
   );
 }
 
 export default function PipelinePage() {
   return (
-    <div className="flex flex-col gap-6 p-6 max-w-7xl mx-auto w-full">
+    <div style={{ display: "flex", flexDirection: "column", gap: 24, padding: "16px", maxWidth: 960, margin: "0 auto", width: "100%" }}>
       {/* Header */}
       <div>
-        <h1 style={{ color: "var(--text-1)", fontSize: 22, fontWeight: 700 }}>BMAD-CE Pipeline</h1>
-        <p style={{ color: "var(--text-3)", fontSize: 14, marginTop: 4 }}>
+        <h1 style={{ color: "var(--text-1)", fontSize: 20, fontWeight: 700, lineHeight: 1.2 }}>BMAD-CE Pipeline</h1>
+        <p style={{ color: "var(--text-3)", fontSize: 13, marginTop: 4 }}>
           18-stage methodology · Context Scout → Metrics Logger
         </p>
       </div>
 
       {/* Active Pipelines */}
-      <div className="flex flex-col gap-4">
-        <h2 style={{ fontSize: 15, fontWeight: 600, color: "var(--text-1)" }}>
-          Active Pipelines
+      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+          <h2 style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)", textTransform: "uppercase", letterSpacing: "0.15em" }}>
+            Active Pipelines
+          </h2>
           <span
             style={{
-              marginLeft: 8,
-              fontSize: 12,
-              fontWeight: 500,
+              fontSize: 11,
+              fontWeight: 700,
               padding: "2px 8px",
               borderRadius: 999,
               background: "rgba(59,130,246,0.15)",
@@ -204,181 +177,183 @@ export default function PipelinePage() {
           >
             {ACTIVE_PIPELINES.length}
           </span>
-        </h2>
+        </div>
 
-        {ACTIVE_PIPELINES.map((pipeline) => (
-          <div
-            key={pipeline.id}
-            style={{
-              background: "var(--bg-card)",
-              border: "1px solid var(--border)",
-              borderRadius: 12,
-              padding: "20px 24px",
-            }}
-          >
-            {/* Pipeline header */}
-            <div className="flex flex-wrap items-start justify-between gap-3 mb-4">
-              <div>
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span style={{ fontSize: 15, fontWeight: 600, color: "var(--text-1)" }}>
-                    {pipeline.title}
-                  </span>
-                  <span
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 600,
-                      padding: "2px 8px",
-                      borderRadius: 999,
-                      background: TIER_COLOR[pipeline.tier] + "22",
-                      color: TIER_COLOR[pipeline.tier],
-                    }}
-                  >
-                    {pipeline.tier}
-                  </span>
-                </div>
-                <div style={{ fontSize: 12, color: "var(--text-4)", marginTop: 4 }}>
-                  {pipeline.issueId} · Stage {pipeline.currentStage}/{pipeline.stages.length}
-                </div>
-              </div>
-              <div
-                style={{
-                  fontSize: 11,
-                  fontFamily: "monospace",
-                  color: "var(--text-3)",
-                  background: "var(--accent-bg)",
-                  padding: "4px 10px",
-                  borderRadius: 6,
-                }}
-              >
-                {pipeline.gateToken}
-              </div>
-            </div>
-
-            {/* Stage pills scrollable row */}
+        {ACTIVE_PIPELINES.map((pipeline) => {
+          const currentStageObj = pipeline.stages.find((s) => s.num === pipeline.currentStage);
+          return (
             <div
+              key={pipeline.id}
               style={{
-                overflowX: "auto",
-                paddingBottom: 8,
+                background: "var(--bg-card)",
+                border: "1px solid var(--border)",
+                borderRadius: 16,
+                padding: "20px",
+                display: "flex",
+                flexDirection: "column",
+                gap: 16,
               }}
             >
-              <div className="flex items-start gap-2" style={{ minWidth: "max-content" }}>
-                {pipeline.stages.map((stage, i) => (
-                  <div key={stage.num} className="flex items-center">
-                    <StagePill stage={stage} currentStage={pipeline.currentStage} />
-                    {i < pipeline.stages.length - 1 && (
-                      <div
-                        style={{
-                          width: 16,
-                          height: 1,
-                          background: stage.num < pipeline.currentStage
-                            ? "var(--green)"
-                            : "var(--border)",
-                          marginTop: -12,
-                          flexShrink: 0,
-                        }}
-                      />
-                    )}
+              {/* Pipeline header */}
+              <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+                    <span style={{ fontSize: 15, fontWeight: 700, color: "var(--text-1)" }}>{pipeline.title}</span>
+                    <TierBadge tier={pipeline.tier} />
                   </div>
-                ))}
+                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                    <span
+                      style={{
+                        fontSize: 10,
+                        fontWeight: 700,
+                        color: "var(--text-4)",
+                        fontFamily: "monospace",
+                        background: "var(--accent-bg)",
+                        padding: "2px 6px",
+                        borderRadius: 4,
+                      }}
+                    >
+                      {pipeline.issueId}
+                    </span>
+                    <span style={{ fontSize: 12, color: "var(--text-4)" }}>
+                      Stage {pipeline.currentStage}/{pipeline.stages.length}
+                    </span>
+                  </div>
+                </div>
+                <div
+                  style={{
+                    fontSize: 10,
+                    fontFamily: "monospace",
+                    color: "var(--text-3)",
+                    background: "var(--accent-bg)",
+                    padding: "6px 10px",
+                    borderRadius: 8,
+                    border: "1px solid var(--border)",
+                    letterSpacing: "0.04em",
+                    maxWidth: "100%",
+                    overflowX: "auto",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {pipeline.gateToken}
+                </div>
               </div>
+
+              {/* Stage circles scrollable row */}
+              <div style={{ overflowX: "auto", paddingBottom: 4 }}>
+                <div style={{ display: "flex", alignItems: "flex-start", minWidth: "max-content", gap: 0 }}>
+                  {pipeline.stages.map((stage, i) => (
+                    <div key={stage.num} style={{ display: "flex", alignItems: "center" }}>
+                      <StageCircle stage={stage} currentStage={pipeline.currentStage} />
+                      {i < pipeline.stages.length - 1 && (
+                        <div
+                          style={{
+                            width: 20,
+                            height: 2,
+                            background: stage.num < pipeline.currentStage ? "var(--green)" : "var(--border)",
+                            marginBottom: 18,
+                            flexShrink: 0,
+                          }}
+                        />
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Current stage callout */}
+              {currentStageObj && (
+                <div
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: 8,
+                    padding: "8px 14px",
+                    borderRadius: 10,
+                    background: "rgba(59,130,246,0.08)",
+                    border: "1px solid rgba(59,130,246,0.2)",
+                    alignSelf: "flex-start",
+                  }}
+                >
+                  <span
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: "50%",
+                      background: "var(--blue)",
+                      display: "inline-block",
+                      animation: "pulse-dot 2s infinite",
+                    }}
+                  />
+                  <span style={{ fontSize: 12, fontWeight: 600, color: "var(--blue)" }}>
+                    Stage {currentStageObj.num}: {currentStageObj.name}
+                  </span>
+                  <span style={{ fontSize: 11, color: "var(--text-4)" }}>→ {currentStageObj.owner}</span>
+                </div>
+              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {/* Pipeline History */}
-      <div
-        style={{
-          background: "var(--bg-card)",
-          border: "1px solid var(--border)",
-          borderRadius: 12,
-          overflow: "hidden",
-        }}
-      >
-        <div style={{ padding: "20px 24px 16px" }}>
-          <h2 style={{ fontSize: 15, fontWeight: 600, color: "var(--text-1)" }}>Pipeline History</h2>
-          <p style={{ fontSize: 13, color: "var(--text-3)", marginTop: 2 }}>
-            Completed pipeline runs
-          </p>
-        </div>
-
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
-            <thead>
-              <tr style={{ borderTop: "1px solid var(--border)", borderBottom: "1px solid var(--border)" }}>
-                {["Title", "ID", "Tier", "Duration", "Stages", "Cost", "Outcome"].map((h) => (
-                  <th
-                    key={h}
-                    style={{
-                      padding: "10px 16px",
-                      textAlign: "left",
-                      fontSize: 11,
-                      fontWeight: 600,
-                      color: "var(--text-4)",
-                      textTransform: "uppercase",
-                      letterSpacing: "0.06em",
-                      background: "var(--accent-bg)",
-                    }}
-                  >
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {HISTORY.map((row, i) => (
-                <tr
-                  key={i}
+      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+        <h2 style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)", textTransform: "uppercase", letterSpacing: "0.15em" }}>
+          Pipeline History
+        </h2>
+        <div
+          style={{
+            display: "grid",
+            gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
+            gap: 12,
+          }}
+        >
+          {HISTORY.map((row, i) => (
+            <div
+              key={i}
+              style={{
+                background: "var(--bg-card)",
+                border: "1px solid var(--border)",
+                borderRadius: 16,
+                padding: "16px 18px",
+                display: "flex",
+                flexDirection: "column",
+                gap: 10,
+                borderLeftWidth: 3,
+                borderLeftColor: row.outcome === "success" ? "var(--green)" : "var(--red)",
+                borderLeftStyle: "solid",
+              }}
+            >
+              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-1)", lineHeight: 1.3 }}>{row.title}</div>
+                  <div style={{ fontSize: 10, fontFamily: "monospace", color: "var(--text-4)", marginTop: 3 }}>{row.issueId}</div>
+                </div>
+                <span
                   style={{
-                    borderBottom: i < HISTORY.length - 1 ? "1px solid var(--border)" : "none",
+                    fontSize: 11,
+                    fontWeight: 700,
+                    padding: "3px 8px",
+                    borderRadius: 999,
+                    background: row.outcome === "success" ? "rgba(34,197,94,0.15)" : "rgba(239,68,68,0.15)",
+                    color: row.outcome === "success" ? "var(--green)" : "var(--red)",
+                    flexShrink: 0,
+                    textTransform: "uppercase",
+                    letterSpacing: "0.06em",
                   }}
                 >
-                  <td style={{ padding: "12px 16px", color: "var(--text-2)", fontWeight: 500 }}>
-                    {row.title}
-                  </td>
-                  <td style={{ padding: "12px 16px", color: "var(--text-4)", fontFamily: "monospace", fontSize: 12 }}>
-                    {row.issueId}
-                  </td>
-                  <td style={{ padding: "12px 16px" }}>
-                    <span
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 600,
-                        padding: "2px 8px",
-                        borderRadius: 999,
-                        background: TIER_COLOR[row.tier] + "22",
-                        color: TIER_COLOR[row.tier],
-                      }}
-                    >
-                      {row.tier}
-                    </span>
-                  </td>
-                  <td style={{ padding: "12px 16px", color: "var(--text-3)" }}>{row.duration}</td>
-                  <td style={{ padding: "12px 16px", color: "var(--text-3)" }}>{row.stages}</td>
-                  <td style={{ padding: "12px 16px", color: "var(--text-2)", fontFamily: "monospace" }}>
-                    {row.cost}
-                  </td>
-                  <td style={{ padding: "12px 16px" }}>
-                    <span
-                      style={{
-                        fontSize: 11,
-                        fontWeight: 600,
-                        padding: "2px 10px",
-                        borderRadius: 999,
-                        background:
-                          row.outcome === "success"
-                            ? "rgba(34,197,94,0.15)"
-                            : "rgba(239,68,68,0.15)",
-                        color: row.outcome === "success" ? "var(--green)" : "var(--red)",
-                      }}
-                    >
-                      {row.outcome}
-                    </span>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                  {row.outcome}
+                </span>
+              </div>
+              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+                <TierBadge tier={row.tier} />
+                <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                  <span style={{ fontSize: 12, color: "var(--text-3)" }}>⏱ {row.duration}</span>
+                  <span style={{ fontSize: 12, fontFamily: "monospace", fontWeight: 700, color: "var(--text-2)" }}>{row.cost}</span>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
 
@@ -387,32 +362,39 @@ export default function PipelinePage() {
         style={{
           background: "var(--bg-card)",
           border: "1px solid var(--border)",
-          borderRadius: 12,
-          padding: "20px 24px",
+          borderRadius: 16,
+          padding: "20px",
+          display: "flex",
+          flexDirection: "column",
+          gap: 16,
         }}
       >
-        <div style={{ marginBottom: 16 }}>
-          <h2 style={{ fontSize: 15, fontWeight: 600, color: "var(--text-1)" }}>Gate Log</h2>
-          <p style={{ fontSize: 13, color: "var(--text-3)", marginTop: 2 }}>
+        <div>
+          <h2 style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)", textTransform: "uppercase", letterSpacing: "0.15em" }}>
+            Gate Log
+          </h2>
+          <p style={{ fontSize: 13, color: "var(--text-3)", marginTop: 4 }}>
             Pre-execution gate tokens · mandatory per BMAD-CE
           </p>
         </div>
 
-        <div className="flex flex-col gap-3">
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
           {GATE_LOG.map((entry, i) => (
             <div
               key={i}
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: 12,
-                padding: "12px 14px",
-                borderRadius: 8,
+                gap: 10,
+                padding: "10px 14px",
+                borderRadius: 10,
                 background: "var(--bg)",
                 border: "1px solid var(--border)",
                 flexWrap: "wrap",
+                minHeight: 44,
               }}
             >
+              {/* Status dot */}
               <span
                 style={{
                   width: 8,
@@ -420,35 +402,28 @@ export default function PipelinePage() {
                   borderRadius: "50%",
                   background: entry.status === "active" ? "var(--green)" : "var(--text-4)",
                   flexShrink: 0,
+                  boxShadow: entry.status === "active" ? "0 0 6px var(--green)" : "none",
                 }}
               />
+              {/* Token */}
               <code
                 style={{
-                  fontSize: 12,
+                  fontSize: 11,
                   fontFamily: "monospace",
-                  color: entry.status === "active" ? "var(--accent)" : "var(--text-3)",
-                  flex: 1,
-                  minWidth: 220,
+                  color: entry.status === "active" ? "var(--accent)" : "var(--text-4)",
+                  flex: "1 1 180px",
+                  minWidth: 0,
+                  overflow: "hidden",
+                  textOverflow: "ellipsis",
+                  whiteSpace: "nowrap",
                 }}
               >
                 {entry.token}
               </code>
-              <span style={{ fontSize: 12, color: "var(--text-2)", flex: 2, minWidth: 160 }}>
-                {entry.task}
-              </span>
-              <span
-                style={{
-                  fontSize: 11,
-                  fontWeight: 600,
-                  padding: "2px 8px",
-                  borderRadius: 999,
-                  background: TIER_COLOR[entry.tier] + "22",
-                  color: TIER_COLOR[entry.tier],
-                }}
-              >
-                {entry.tier}
-              </span>
-              <span style={{ fontSize: 11, color: "var(--text-4)", minWidth: 120, textAlign: "right" }}>
+              {/* Tier badge */}
+              <TierBadge tier={entry.tier} />
+              {/* Time */}
+              <span style={{ fontSize: 10, color: "var(--text-4)", fontFamily: "monospace", flexShrink: 0 }}>
                 {entry.time}
               </span>
             </div>
@@ -457,9 +432,13 @@ export default function PipelinePage() {
       </div>
 
       <style>{`
-        @keyframes pulse-stage {
-          0%, 100% { box-shadow: 0 0 8px rgba(59,130,246,0.3); }
-          50% { box-shadow: 0 0 16px rgba(59,130,246,0.6); }
+        @keyframes pulse-ring {
+          0%, 100% { box-shadow: 0 0 0 4px rgba(59,130,246,0.2); }
+          50% { box-shadow: 0 0 0 8px rgba(59,130,246,0.05); }
+        }
+        @keyframes pulse-dot {
+          0%, 100% { opacity: 1; }
+          50% { opacity: 0.4; }
         }
       `}</style>
     </div>

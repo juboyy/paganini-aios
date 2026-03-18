@@ -22,7 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             <Sidebar />
             <div className="flex-1 flex flex-col">
               <Topbar />
-              <main className="flex-1 p-6 max-w-7xl mx-auto w-full">
+              <main className="flex-1 p-4 lg:p-6 max-w-7xl mx-auto w-full fade-in">
                 {children}
               </main>
             </div>
