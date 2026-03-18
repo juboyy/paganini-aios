@@ -175,6 +175,8 @@ if [ -n "$API_KEY" ]; then
     source .venv/bin/activate 2>/dev/null
     paganini init --provider "$PROVIDER" --model "$MODEL" --api-key "$API_KEY" --pack fidc-starter 2>/dev/null || true
     ok "Configurado via paganini init ($PROVIDER)"
+    # Fix: symlink config for KERNEL_ROOT resolution
+    ln -sf ../config.yaml packages/config.yaml 2>/dev/null || true
 else
     warn "Nenhuma API key. Defina GOOGLE_API_KEY e rode: paganini init --provider google --api-key SUA_KEY"
 fi
