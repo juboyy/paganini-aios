@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Paganini AIOS — AI Code Agents for FIDC</title>
+<title>Paganini — AI Code Agents for Finance</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -26,6 +26,7 @@
   --cyan-dim: rgba(0,229,255,0.06);
   --amber: #ffb020;
   --red: #ff4060;
+  --purple: #c792ea;
   --font-display: 'Space Grotesk', system-ui, sans-serif;
   --font-mono: 'IBM Plex Mono', 'JetBrains Mono', monospace;
   --radius: 2px;
@@ -35,531 +36,640 @@ body { background:var(--bg); color:var(--text-2); font-family:var(--font-display
 ::selection { background:rgba(0,255,128,0.25); color:var(--text-1); }
 a { color:var(--green); text-decoration:none; }
 
-/* Layout */
 .container { max-width:1200px; margin:0 auto; padding:0 1.5rem; }
 .section { padding:6rem 0; border-bottom:1px solid var(--border); }
 .mono-label { font-family:var(--font-mono); font-size:0.5625rem; letter-spacing:0.14em; text-transform:uppercase; color:var(--text-4); margin-bottom:1rem; }
 .section-title { font-size:clamp(1.6rem,3.5vw,2.4rem); font-weight:700; color:var(--text-1); letter-spacing:-0.03em; line-height:1.2; margin-bottom:1.5rem; }
-.section-title .accent { color:var(--green); }
+.section-title .g { color:var(--green); }
+.section-title .c { color:var(--cyan); }
+.section-title .a { color:var(--amber); }
 .section-sub { font-family:var(--font-mono); font-size:0.8125rem; color:var(--text-3); max-width:640px; line-height:1.7; }
-
-/* Glass card */
 .card { background:linear-gradient(135deg,var(--surface),var(--surface2)); border:1px solid var(--border); border-radius:var(--radius); padding:1.5rem; transition:border-color 0.2s, box-shadow 0.2s; }
 .card:hover { border-color:var(--border-bright); box-shadow:var(--green-glow); }
 .card-label { font-family:var(--font-mono); font-size:0.5625rem; letter-spacing:0.12em; color:var(--text-4); margin-bottom:0.75rem; }
 .card-title { font-size:1rem; font-weight:600; color:var(--text-1); margin-bottom:0.5rem; }
 .card-desc { font-size:0.8125rem; color:var(--text-3); line-height:1.6; }
-
-/* Code block */
 .code-block { background:var(--bg); border:1px solid var(--border); border-radius:var(--radius); padding:1.25rem; font-family:var(--font-mono); font-size:0.75rem; line-height:1.8; overflow-x:auto; white-space:pre; color:var(--text-2); }
-.code-block .comment { color:var(--text-4); }
-.code-block .keyword { color:var(--cyan); }
-.code-block .string { color:var(--green); }
+.code-block .c0 { color:var(--text-4); }
+.code-block .kw { color:var(--cyan); }
+.code-block .s { color:var(--green); }
 .code-block .fn { color:var(--amber); }
-.code-block .num { color:var(--red); }
-.code-block .type { color:#c792ea; }
-
-/* Badge */
+.code-block .n { color:var(--red); }
+.code-block .t { color:var(--purple); }
 .badge { font-family:var(--font-mono); display:inline-flex; align-items:center; gap:4px; border-radius:var(--radius); padding:2px 8px; font-size:0.625rem; letter-spacing:0.06em; }
 .badge-green { background:rgba(0,255,128,0.1); color:var(--green); border:1px solid rgba(0,255,128,0.3); }
 .badge-cyan { background:rgba(0,229,255,0.1); color:var(--cyan); border:1px solid rgba(0,229,255,0.3); }
 .badge-amber { background:rgba(255,176,32,0.1); color:var(--amber); border:1px solid rgba(255,176,32,0.3); }
-
-/* Pipeline */
-.pipeline { display:flex; align-items:center; gap:0; flex-wrap:wrap; }
-.pipe-node { background:var(--surface); border:1px solid var(--border-bright); border-radius:var(--radius); padding:0.5rem 1rem; font-family:var(--font-mono); font-size:0.625rem; letter-spacing:0.08em; color:var(--green); white-space:nowrap; }
-.pipe-arrow { color:var(--text-4); font-family:var(--font-mono); font-size:0.75rem; padding:0 0.25rem; }
-
-/* Agent grid */
-.agent-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:1rem; }
-
-/* Stat */
-.stat-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:1rem; margin-bottom:2rem; }
-.stat { text-align:center; }
-.stat-num { font-size:2rem; font-weight:700; color:var(--text-1); letter-spacing:-0.02em; }
-.stat-num .green { color:var(--green); }
-.stat-label { font-family:var(--font-mono); font-size:0.5625rem; letter-spacing:0.12em; color:var(--text-4); margin-top:0.25rem; }
-
-/* Tree */
-.tree { font-family:var(--font-mono); font-size:0.75rem; line-height:2; color:var(--text-3); }
-.tree .orch { color:var(--amber); font-weight:600; }
-.tree .spec { color:var(--cyan); }
-.tree .base { color:var(--green); }
-.tree .tokens { color:var(--text-4); font-size:0.625rem; }
-
-/* Hero */
-.hero { padding:8rem 0 6rem; text-align:center; position:relative; }
-.hero::before { content:''; position:absolute; top:0; left:50%; transform:translateX(-50%); width:600px; height:600px; background:radial-gradient(circle,rgba(0,255,128,0.04) 0%,transparent 70%); pointer-events:none; }
-.hero-title { font-size:clamp(2rem,5vw,3.5rem); font-weight:700; color:var(--text-1); letter-spacing:-0.04em; line-height:1.1; margin-bottom:1rem; }
-.hero-sub { font-family:var(--font-mono); font-size:0.875rem; color:var(--text-3); max-width:600px; margin:0 auto 2rem; line-height:1.7; }
-
-/* Terminal */
-.terminal { background:var(--bg); border:1px solid var(--border); border-radius:var(--radius); max-width:700px; margin:0 auto; text-align:left; overflow:hidden; }
+.badge-purple { background:rgba(199,146,234,0.1); color:var(--purple); border:1px solid rgba(199,146,234,0.3); }
+.terminal { background:var(--bg); border:1px solid var(--border); border-radius:var(--radius); overflow:hidden; }
 .terminal-bar { background:var(--surface); border-bottom:1px solid var(--border); padding:0.5rem 1rem; font-family:var(--font-mono); font-size:0.5625rem; letter-spacing:0.1em; color:var(--text-4); display:flex; align-items:center; gap:0.5rem; }
 .terminal-dot { width:6px; height:6px; border-radius:50%; }
 .terminal-body { padding:1.25rem; font-family:var(--font-mono); font-size:0.75rem; line-height:2; }
-.terminal-body .prompt { color:var(--text-4); }
+.terminal-body .p { color:var(--text-4); }
 .terminal-body .cmd { color:var(--green); }
-.terminal-body .output { color:var(--text-3); }
-.terminal-body .highlight { color:var(--cyan); }
-.terminal-body .success { color:var(--green); }
+.terminal-body .out { color:var(--text-3); }
+.terminal-body .hi { color:var(--cyan); }
+.terminal-body .ok { color:var(--green); }
+.terminal-body .warn { color:var(--amber); }
+.stat-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:1rem; margin-bottom:2rem; }
+.stat { text-align:center; }
+.stat-num { font-size:2rem; font-weight:700; color:var(--text-1); letter-spacing:-0.02em; }
+.stat-num .g { color:var(--green); }
+.stat-label { font-family:var(--font-mono); font-size:0.5625rem; letter-spacing:0.12em; color:var(--text-4); margin-top:0.25rem; }
+.grid-2 { display:grid; grid-template-columns:1fr 1fr; gap:2rem; }
+.grid-3 { display:grid; grid-template-columns:repeat(auto-fill,minmax(320px,1fr)); gap:1rem; }
+.pipe { display:flex; align-items:center; gap:0; flex-wrap:wrap; }
+.pipe-n { background:var(--surface); border:1px solid var(--border-bright); border-radius:var(--radius); padding:0.5rem 1rem; font-family:var(--font-mono); font-size:0.625rem; letter-spacing:0.08em; color:var(--green); white-space:nowrap; }
+.pipe-a { color:var(--text-4); font-family:var(--font-mono); font-size:0.75rem; padding:0 0.25rem; }
 
-/* Responsive */
+/* Hero */
+.hero { padding:8rem 0 6rem; position:relative; }
+.hero::before { content:''; position:absolute; top:0; left:50%; transform:translateX(-50%); width:800px; height:800px; background:radial-gradient(circle,rgba(0,255,128,0.03) 0%,transparent 70%); pointer-events:none; }
+.hero-eyebrow { font-family:var(--font-mono); font-size:0.625rem; letter-spacing:0.16em; color:var(--text-4); margin-bottom:1.5rem; display:flex; align-items:center; gap:1rem; }
+.hero-eyebrow::before { content:''; flex:0 0 24px; height:1px; background:var(--green); opacity:0.4; }
+.hero-title { font-size:clamp(2.2rem,5vw,3.8rem); font-weight:700; color:var(--text-1); letter-spacing:-0.04em; line-height:1.08; margin-bottom:1.5rem; max-width:900px; }
+.hero-sub { font-family:var(--font-mono); font-size:0.875rem; color:var(--text-3); max-width:680px; line-height:1.8; margin-bottom:3rem; }
+
+/* Layers */
+.layer { border-left:2px solid var(--border); padding-left:1.5rem; margin-bottom:2rem; }
+.layer-active { border-left-color:var(--green); }
+
+/* Fade */
+@keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+.fi { opacity:0; }
+.fi.v { animation:fadeUp 0.5s ease-out forwards; }
+
 @media(max-width:768px) {
   .section { padding:3rem 0; }
   .hero { padding:4rem 0 3rem; }
-  .agent-grid { grid-template-columns:1fr; }
+  .grid-2, .grid-3 { grid-template-columns:1fr; }
   .stat-row { grid-template-columns:repeat(2,1fr); }
-  .pipeline { flex-direction:column; align-items:flex-start; }
-  .pipe-arrow { transform:rotate(90deg); }
+  .pipe { flex-direction:column; align-items:flex-start; }
 }
-
-/* Animation */
-@keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
-.fade-in { opacity:0; }
-.fade-in.visible { animation:fadeUp 0.5s ease-out forwards; }
 </style>
 </head>
 <body>
 
-<!-- ═══════════════════════ HERO ═══════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- HERO — The thesis in 10 seconds                       -->
+<!-- ═══════════════════════════════════════════════════════ -->
 <div class="hero container">
-  <div class="mono-label" style="text-align:center">PAGANINI AIOS v1.1</div>
+  <div class="hero-eyebrow">PAGANINI AIOS</div>
   <h1 class="hero-title">
-    9 agentes autônomos<br>que <span style="color:var(--green)">lêem</span>, <span style="color:var(--cyan)">entendem</span> e <span style="color:var(--amber)">executam</span><br>regulamentação de FIDC
+    Agentes de código autônomos<br>
+    para o mercado financeiro.<br>
+    <span style="color:var(--green)">Extensíveis por skills.</span>
   </h1>
   <p class="hero-sub">
-    Não é automação de planilha. São agentes de código com SOULs especializados, guardrails em 6 camadas, e um kernel que roteia queries por intent, domínio e confiança. Cada agente tem personalidade, competências e limites definidos em código.
+    Não é um SaaS com tela bonita. É uma plataforma de agentes de código — igual a um time de engenheiros que lêem regulamentação, entendem a operação da sua empresa, e executam. O FIDC é o primeiro pack. A plataforma serve qualquer vertical financeira.
   </p>
 
-  <div class="terminal fade-in">
+  <div style="display:flex;gap:1rem;flex-wrap:wrap;margin-bottom:3rem">
+    <span class="badge badge-green" style="font-size:0.6875rem;padding:6px 14px">9 AGENTES AUTÔNOMOS</span>
+    <span class="badge badge-cyan" style="font-size:0.6875rem;padding:6px 14px">SKILLS MARKETPLACE</span>
+    <span class="badge badge-amber" style="font-size:0.6875rem;padding:6px 14px">RECURSIVE EXECUTION</span>
+  </div>
+
+  <!-- The killer demo: ingest -->
+  <div class="terminal fi" style="max-width:780px">
     <div class="terminal-bar">
       <div class="terminal-dot" style="background:var(--red)"></div>
       <div class="terminal-dot" style="background:var(--amber)"></div>
       <div class="terminal-dot" style="background:var(--green)"></div>
-      paganini — zsh
+      paganini — terminal
     </div>
     <div class="terminal-body">
-<span class="prompt">$</span> <span class="cmd">paganini query</span> <span class="output">"qual o limite de concentração por cedente?"</span>
-<span class="highlight">🔍 CognitiveRouter</span> <span class="output">→ domain:regulatory intent:query confidence:0.94</span>
-<span class="highlight">📚 RAG</span> <span class="output">→ 3 chunks (CVM 175 Art.42, Regulamento §8, BACEN 3.978)</span>
-<span class="highlight">🛡️ Guardrails</span> <span class="output">→ 6/6 PASS (eligibility, concentration, covenant, pld, compliance, risk)</span>
-<span class="success">📋 Resposta (96% confiança)</span>
-<span class="output">O limite de concentração por cedente é de 15% do PL do fundo,</span>
-<span class="output">conforme Art. 42 §3º da Resolução CVM 175.</span>
-<span class="output">[Fonte: CVM 175, Art. 42 §3º | Regulamento FIDC Paganini I, §8.2]</span>
+<span class="p">$</span> <span class="cmd">paganini ingest</span> <span class="out">"Vivaldi DTVM" --cnpj 12.345.678/0001-99 --depth recursive</span>
+
+<span class="hi">⚡ INGEST PIPELINE</span> <span class="out">Spawning 4 sub-agents...</span>
+
+<span class="out">  ├─ </span><span class="hi">Agent:DD</span><span class="out">         Fetching Receita Federal, Serasa, CNPJ data...</span>
+<span class="out">  │   ├─ </span><span class="out">Company profile: Vivaldi DTVM Ltda. | Founded: 2018</span>
+<span class="out">  │   ├─ </span><span class="out">Sócios: 3 PFs identified → PEP check dispatched</span>
+<span class="out">  │   └─ </span><span class="ok">Score: 87/100</span> <span class="out">(baixo risco)</span>
+
+<span class="out">  ├─ </span><span class="hi">Agent:Compliance</span><span class="out">  Mapping regulatory obligations...</span>
+<span class="out">  │   ├─ </span><span class="out">CVM registrations: 2 active (administrador, gestor)</span>
+<span class="out">  │   ├─ </span><span class="out">BACEN: no sanctions found</span>
+<span class="out">  │   └─ </span><span class="ok">Compliance: CLEAR</span>
+
+<span class="out">  ├─ </span><span class="hi">Agent:Risk</span><span class="out">       Building risk profile...</span>
+<span class="out">  │   ├─ </span><span class="out">Industry: Financial Services (CNAE 6613-4/00)</span>
+<span class="out">  │   ├─ </span><span class="out">Revenue trend: ↑ 23% YoY</span>
+<span class="out">  │   └─ </span><span class="ok">Risk rating: A-</span>
+
+<span class="out">  └─ </span><span class="hi">Agent:KG</span><span class="out">         Building knowledge graph...</span>
+<span class="out">      ├─ </span><span class="out">34 entities extracted (PFs, PJs, contracts, obligations)</span>
+<span class="out">      ├─ </span><span class="out">67 relationships mapped</span>
+<span class="out">      └─ </span><span class="ok">Graph stored → ChromaDB + pgvector</span>
+
+<span class="ok">✓ INGEST COMPLETE</span> <span class="out">| 4 agents | 34 entities | 67 edges | 12.4s</span>
+<span class="out">  Company is now queryable. Try: </span><span class="cmd">paganini query "riscos da Vivaldi DTVM"</span>
     </div>
   </div>
 </div>
 
-<!-- ═══════════════════════ AGENTS ═══════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SECTION 1 — What it actually is                       -->
+<!-- ═══════════════════════════════════════════════════════ -->
 <div class="section">
 <div class="container">
-  <div class="mono-label">OS 9 AGENTES</div>
-  <h2 class="section-title">Cada agente é um arquivo <span class="accent">.md</span> com personalidade,<br>competências e limites</h2>
-  <p class="section-sub" style="margin-bottom:2rem">
-    Não são prompts genéricos. São SOULs — arquivos Markdown versionados que definem role, system_prompt, domains, keywords e capabilities. O <code style="color:var(--cyan)">AgentRegistry</code> carrega todos de um diretório. O <code style="color:var(--cyan)">AgentDispatcher</code> roteia por similaridade semântica.
+  <div class="mono-label">O QUE É</div>
+  <h2 class="section-title">
+    Exatamente o que um time de <span class="g">engenheiros</span> faria.<br>
+    Mas em <span class="c">12 segundos</span>, não 12 dias.
+  </h2>
+  <p class="section-sub" style="margin-bottom:3rem">
+    Paganini é um AIOS — AI Operating System. Cada agente é código Python com SOUL (personalidade + competências + limites definidos em arquivo), memória persistente, guardrails, e a capacidade de spawnar sub-agentes para tarefas recursivas. Não é LLM wrapper. É arquitetura de engenharia.
   </p>
 
-  <div class="code-block" style="margin-bottom:2rem;max-width:700px">
-<span class="comment"># packages/agents/souls/compliance.md</span>
-<span class="keyword">slug:</span> <span class="string">compliance</span>
-<span class="keyword">name:</span> <span class="string">Agente de Compliance</span>
-<span class="keyword">role:</span> <span class="string">Verificador regulatório do FIDC</span>
-<span class="keyword">domains:</span> [<span class="string">regulatory</span>, <span class="string">compliance</span>, <span class="string">cvm</span>, <span class="string">bacen</span>]
-<span class="keyword">capabilities:</span>
-  - <span class="fn">check_eligibility</span>(<span class="type">receivable</span>) → PASS | REJECT
-  - <span class="fn">check_concentration</span>(<span class="type">portfolio</span>, <span class="type">op</span>) → PASS | WARN | REJECT
-  - <span class="fn">check_covenant</span>(<span class="type">fund_state</span>) → PASS | BREACH
-  - <span class="fn">check_pld_aml</span>(<span class="type">entity</span>) → PASS | FLAG | REJECT
-  - <span class="fn">check_compliance</span>(<span class="type">operation</span>) → PASS | REJECT
-<span class="keyword">delegates:</span>
-  <span class="fn">check_risk</span> → <span class="string">risk-agent</span>
-  <span class="fn">calculate_pdd</span> → <span class="string">pricing-agent</span>
-</div>
-
-  <div class="agent-grid">
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem">
-        <div class="card-label">AGENT 01</div>
-        <span class="badge badge-green">● ACTIVE</span>
-      </div>
-      <div class="card-title">Administrador</div>
-      <div class="card-desc">Calcula NAV diário, controla cotas sênior/subordinada, gera informes CVM. Implementa <code style="color:var(--cyan)">calculate_nav()</code> e <code style="color:var(--cyan)">manage_quotas()</code>.</div>
-      <div style="margin-top:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap">
-        <span class="badge badge-cyan">nav</span>
-        <span class="badge badge-cyan">cotas</span>
-        <span class="badge badge-cyan">informe-diário</span>
-      </div>
-    </div>
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem">
-        <div class="card-label">AGENT 02</div>
-        <span class="badge badge-green">● ACTIVE</span>
-      </div>
-      <div class="card-title">Compliance</div>
-      <div class="card-desc">Implementa 5 dos 6 guardrail gates. Cada operação de compra passa pelos gates antes de aprovação. Delega <code style="color:var(--cyan)">check_risk()</code> para o Risk Agent.</div>
-      <div style="margin-top:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap">
-        <span class="badge badge-green">eligibility</span>
-        <span class="badge badge-green">concentration</span>
-        <span class="badge badge-green">covenant</span>
-        <span class="badge badge-green">pld/aml</span>
-        <span class="badge badge-green">cvm-175</span>
-      </div>
-    </div>
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem">
-        <div class="card-label">AGENT 03</div>
-        <span class="badge badge-green">● ACTIVE</span>
-      </div>
-      <div class="card-title">Due Diligence</div>
-      <div class="card-desc">Analisa cedentes com score automatizado e cruzamento de dados. <code style="color:var(--cyan)">OnboardingPipeline</code> com 345 linhas de lógica de análise.</div>
-      <div style="margin-top:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap">
-        <span class="badge badge-cyan">score-cedente</span>
-        <span class="badge badge-cyan">cnpj-validation</span>
-        <span class="badge badge-cyan">risk-profile</span>
-      </div>
-    </div>
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem">
-        <div class="card-label">AGENT 04</div>
-        <span class="badge badge-green">● ACTIVE</span>
-      </div>
-      <div class="card-title">Pricing</div>
-      <div class="card-desc">Calcula taxa de desconto e PDD por aging bucket (7 faixas: 0-30d a >180d). Mark-to-market diário do portfólio.</div>
-      <div style="margin-top:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap">
-        <span class="badge badge-amber">pdd-aging</span>
-        <span class="badge badge-amber">mark-to-market</span>
-        <span class="badge badge-amber">discount-rate</span>
-      </div>
-    </div>
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem">
-        <div class="card-label">AGENT 05</div>
-        <span class="badge badge-green">● ACTIVE</span>
-      </div>
-      <div class="card-title">Gestor</div>
-      <div class="card-desc">Alocação e rebalanceamento do portfólio. Monitora concentração por setor, cedente e sacado em tempo real.</div>
-      <div style="margin-top:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap">
-        <span class="badge badge-cyan">alocação</span>
-        <span class="badge badge-cyan">rebalance</span>
-        <span class="badge badge-cyan">risk-mgmt</span>
-      </div>
-    </div>
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem">
-        <div class="card-label">AGENT 06</div>
-        <span class="badge badge-green">● ACTIVE</span>
-      </div>
-      <div class="card-title">Custódia</div>
-      <div class="card-desc">Registra títulos, verifica lastro dos recebíveis, controla garantias. Interface com sistemas de clearing.</div>
-      <div style="margin-top:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap">
-        <span class="badge badge-cyan">títulos</span>
-        <span class="badge badge-cyan">lastro</span>
-        <span class="badge badge-cyan">garantias</span>
-      </div>
-    </div>
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem">
-        <div class="card-label">AGENT 07</div>
-        <span class="badge badge-green">● ACTIVE</span>
-      </div>
-      <div class="card-title">Reporting</div>
-      <div class="card-desc">Gera demonstrações financeiras, relatórios de PDD e informes regulatórios. Templates via <code style="color:var(--cyan)">ReportGenerator</code>.</div>
-      <div style="margin-top:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap">
-        <span class="badge badge-amber">informe-mensal</span>
-        <span class="badge badge-amber">demonstrações</span>
-      </div>
-    </div>
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem">
-        <div class="card-label">AGENT 08</div>
-        <span class="badge badge-cyan">◉ WATCHING</span>
-      </div>
-      <div class="card-title">Reg Watch</div>
-      <div class="card-desc">Monitora publicações da CVM, BACEN e CFC 24/7. Alerta sobre mudanças regulatórias que impactam o fundo.</div>
-      <div style="margin-top:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap">
-        <span class="badge badge-cyan">cvm-monitor</span>
-        <span class="badge badge-cyan">bacen-alerts</span>
-      </div>
-    </div>
-    <div class="card">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem">
-        <div class="card-label">AGENT 09</div>
-        <span class="badge badge-green">● ACTIVE</span>
-      </div>
-      <div class="card-title">Investor Relations</div>
-      <div class="card-desc">Gera relatórios de performance, distribui comunicados e responde dúvidas dos cotistas via Slack bot.</div>
-      <div style="margin-top:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap">
-        <span class="badge badge-cyan">perf-report</span>
-        <span class="badge badge-cyan">slack-bot</span>
-      </div>
-    </div>
-  </div>
-</div>
-</div>
-
-<!-- ═══════════════════════ GUARDRAILS ═══════════════════════ -->
-<div class="section">
-<div class="container">
-  <div class="mono-label">6 GUARDRAIL GATES</div>
-  <h2 class="section-title">Toda operação passa por <span class="accent">6 verificações</span><br>antes de ser aprovada</h2>
-  <p class="section-sub" style="margin-bottom:2rem">
-    Implementado em Python como <code style="color:var(--cyan)">GuardrailPipeline</code>. Cada gate retorna <code style="color:var(--green)">PASS</code>, <code style="color:var(--amber)">WARN</code> ou <code style="color:var(--red)">REJECT</code>. Um REJECT em qualquer gate bloqueia a operação inteira.
-  </p>
-
-  <div class="pipeline" style="margin-bottom:2rem">
-    <div class="pipe-node">ELIGIBILITY</div><span class="pipe-arrow">→</span>
-    <div class="pipe-node">CONCENTRATION</div><span class="pipe-arrow">→</span>
-    <div class="pipe-node">COVENANT</div><span class="pipe-arrow">→</span>
-    <div class="pipe-node">PLD/AML</div><span class="pipe-arrow">→</span>
-    <div class="pipe-node">COMPLIANCE</div><span class="pipe-arrow">→</span>
-    <div class="pipe-node">RISK</div><span class="pipe-arrow">→</span>
-    <div class="pipe-node" style="border-color:var(--green);color:var(--green);box-shadow:var(--green-glow)">✓ APPROVED</div>
-  </div>
-
-  <div class="code-block" style="max-width:700px">
-<span class="comment"># packs/finance/guardrails/compliance.py</span>
-
-<span class="keyword">class</span> <span class="type">GuardrailPipeline</span>:
-    <span class="keyword">def</span> <span class="fn">check</span>(self, query, response, chunks, confidence) -> <span class="type">GuardrailResult</span>:
-        gates = [
-            self.<span class="fn">_gate_eligibility</span>(response),        <span class="comment"># tipo, prazo, rating</span>
-            self.<span class="fn">_gate_concentration</span>(response),      <span class="comment"># cedente ≤15%, sacado ≤10%</span>
-            self.<span class="fn">_gate_covenant</span>(response),           <span class="comment"># liquidez, subordinação, inadimplência</span>
-            self.<span class="fn">_gate_pld_aml</span>(query, response),    <span class="comment"># OFAC, PEP, transações atípicas</span>
-            self.<span class="fn">_gate_compliance</span>(response, chunks), <span class="comment"># CVM 175, regulamento</span>
-            self.<span class="fn">_gate_risk</span>(response, confidence),   <span class="comment"># PDD projetada, stress test</span>
-        ]
-        <span class="keyword">return</span> <span class="type">GuardrailResult</span>(
-            passed=<span class="fn">all</span>(g.passed <span class="keyword">for</span> g <span class="keyword">in</span> gates),
-            gates=gates
-        )
-</div>
-</div>
-</div>
-
-<!-- ═══════════════════════ ARCHITECTURE ═══════════════════════ -->
-<div class="section">
-<div class="container">
-  <div class="mono-label">OOP AGENT SKILLS</div>
-  <h2 class="section-title">Skills como objetos composáveis<br>com <span class="accent">dependency resolution</span></h2>
-  <p class="section-sub" style="margin-bottom:2rem">
-    Inspirado no framework <code style="color:var(--cyan)">agente-skill-oop</code>. Cada skill tem metadata.json com versão, tipo (abstract/specialist/orchestrator), dependências e métodos implementados. O loader resolve a árvore, gera lockfiles com SHA256, e controla context budget.
-  </p>
-
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:2rem">
+  <div class="grid-2">
+    <!-- Left: Architecture layers -->
     <div>
-      <div class="mono-label">DEPENDENCY TREE</div>
-      <div class="tree">
-🎯 <span class="orch">fidc-orchestrator@1.0.0</span> <span class="tokens">(981 tokens)</span><br>
-&nbsp;&nbsp;📚 <span class="base">fidc-rules-base@1.0.0</span> <span class="tokens">(241 tokens)</span><br>
-&nbsp;&nbsp;🔧 <span class="spec">compliance-agent@1.0.0</span> [full] <span class="tokens">(736 tokens)</span><br>
-&nbsp;&nbsp;&nbsp;&nbsp;📚 <span class="base">fidc-rules-base@1.0.0</span><br>
-&nbsp;&nbsp;🔧 <span class="spec">pricing-agent@1.0.0</span> [full] <span class="tokens">(147 tokens)</span><br>
-&nbsp;&nbsp;🔧 <span class="spec">admin-agent@1.0.0</span> [full] <span class="tokens">(145 tokens)</span><br>
-&nbsp;&nbsp;🔧 <span class="spec">due-diligence-agent@1.0.0</span> [full]<br>
-&nbsp;&nbsp;🔧 <span class="spec">custody-agent@1.0.0</span> [summary]<br>
-&nbsp;&nbsp;🔧 <span class="spec">risk-agent@1.0.0</span> [full]<br>
-&nbsp;&nbsp;🔧 <span class="spec">reporting-agent@1.0.0</span> [summary]<br>
-&nbsp;&nbsp;🔧 <span class="spec">ir-agent@1.0.0</span> [summary]<br>
-&nbsp;&nbsp;🔧 <span class="spec">regwatch-agent@1.0.0</span> [summary]
+      <div class="mono-label">ARCHITECTURE STACK</div>
+
+      <div class="layer layer-active">
+        <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem">
+          <span class="badge badge-green">LAYER 4</span>
+          <span style="font-weight:600;color:var(--text-1);font-size:0.875rem">Skills Marketplace</span>
+        </div>
+        <div class="card-desc">Skills publicadas por terceiros. Versionadas, com dependências, SHA256 integrity. Monetizáveis. Composable como npm packages.</div>
+      </div>
+
+      <div class="layer layer-active">
+        <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem">
+          <span class="badge badge-cyan">LAYER 3</span>
+          <span style="font-weight:600;color:var(--text-1);font-size:0.875rem">Agent Fleet</span>
+        </div>
+        <div class="card-desc">9+ agentes com SOULs. Cada um lê, entende, decide, executa e delega. Spawnam sub-agentes recursivamente. Orquestrados pelo Cognitive Router.</div>
+      </div>
+
+      <div class="layer layer-active">
+        <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem">
+          <span class="badge badge-amber">LAYER 2</span>
+          <span style="font-weight:600;color:var(--text-1);font-size:0.875rem">Cognitive Kernel</span>
+        </div>
+        <div class="card-desc">Moltis runtime + Cognitive Router (intent/domain/confidence) + Hybrid RAG (embeddings + BM25 + knowledge graph) + MetaClaw (self-learning) + RTK (token compression).</div>
+      </div>
+
+      <div class="layer">
+        <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem">
+          <span class="badge badge-purple">LAYER 1</span>
+          <span style="font-weight:600;color:var(--text-1);font-size:0.875rem">Infrastructure</span>
+        </div>
+        <div class="card-desc">Python 3.12 + Docker + ChromaDB + pgvector + FastAPI. Deploy: Docker Compose (on-prem) ou cloud (managed). CLI-first.</div>
       </div>
     </div>
+
+    <!-- Right: The difference -->
     <div>
-      <div class="mono-label">CONTEXT BUDGET</div>
-      <div class="stat-row" style="grid-template-columns:1fr 1fr;margin-bottom:1rem">
-        <div class="stat"><div class="stat-num"><span class="green">3,138</span></div><div class="stat-label">TOKENS TOTAL</div></div>
-        <div class="stat"><div class="stat-num">11</div><div class="stat-label">SKILLS LOADED</div></div>
-      </div>
+      <div class="mono-label">COMO OS AGENTES TRABALHAM</div>
       <div class="code-block" style="font-size:0.6875rem">
-<span class="comment"># Progressive Loading</span>
-<span class="comment"># [SUMMARY] = ~200 tokens (80% dos casos)</span>
-<span class="comment"># [FULL] = ~800 tokens (detalhes)</span>
-<span class="comment"># [FULL:topic] = seção específica</span>
+<span class="c0"># Isso não é pseudocódigo. É o framework real.</span>
+<span class="c0"># packages/agents/framework.py</span>
 
-<span class="comment"># Sem progressive loading: ~10K tokens</span>
-<span class="comment"># Com progressive loading: 3,138 tokens</span>
-<span class="comment"># Saving: 69%</span>
+<span class="kw">class</span> <span class="t">AgentSOUL</span>:
+    slug: <span class="t">str</span>           <span class="c0"># "compliance"</span>
+    name: <span class="t">str</span>           <span class="c0"># "Agente de Compliance"</span>
+    role: <span class="t">str</span>           <span class="c0"># system prompt especializado</span>
+    domains: <span class="t">list</span>       <span class="c0"># ["regulatory", "cvm", "bacen"]</span>
+    capabilities: <span class="t">list</span>  <span class="c0"># métodos que o agente sabe fazer</span>
+    delegates: <span class="t">dict</span>     <span class="c0"># delega para outros agentes</span>
 
-<span class="comment"># Lockfile com integridade:</span>
-<span class="string">"compliance-agent"</span>: {
-  <span class="string">"version"</span>: <span class="string">"1.0.0"</span>,
-  <span class="string">"integrity"</span>: <span class="string">"sha256:6d76c5c8"</span>,
-  <span class="string">"load_level"</span>: <span class="string">"full"</span>
-}
+<span class="kw">class</span> <span class="t">AgentDispatcher</span>:
+    <span class="kw">def</span> <span class="fn">dispatch</span>(self, query) -> <span class="t">AgentResponse</span>:
+        <span class="c0"># 1. Cognitive Router classifica</span>
+        intent = self.router.<span class="fn">classify</span>(query)
+        <span class="c0"># intent = {domain:"regulatory", type:"query", conf:0.94}</span>
+
+        <span class="c0"># 2. Seleciona agente por domínio + capability</span>
+        agent = self.registry.<span class="fn">match</span>(intent)
+
+        <span class="c0"># 3. RAG busca contexto</span>
+        chunks = self.rag.<span class="fn">search</span>(query, top_k=<span class="n">8</span>)
+
+        <span class="c0"># 4. Agente executa (pode spawnar sub-agentes)</span>
+        response = agent.<span class="fn">execute</span>(query, chunks, intent)
+
+        <span class="c0"># 5. Guardrails validam ANTES de retornar</span>
+        result = self.guardrails.<span class="fn">check</span>(
+            query, response, chunks, intent.confidence
+        )
+
+        <span class="kw">if not</span> result.passed:
+            <span class="kw">raise</span> <span class="t">GuardrailViolation</span>(result.gates)
+
+        <span class="kw">return</span> response
       </div>
     </div>
   </div>
 </div>
 </div>
 
-<!-- ═══════════════════════ KERNEL ═══════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SECTION 2 — Recursive Depth                           -->
+<!-- ═══════════════════════════════════════════════════════ -->
 <div class="section">
 <div class="container">
-  <div class="mono-label">COGNITIVE KERNEL</div>
-  <h2 class="section-title">Não é um chatbot com RAG.<br>É um <span class="accent">sistema cognitivo</span> com routing inteligente.</h2>
+  <div class="mono-label">RECURSIVIDADE</div>
+  <h2 class="section-title">
+    Agentes que <span class="g">spawnam</span> agentes.<br>
+    Cada nível adiciona <span class="c">contexto e precisão</span>.
+  </h2>
+  <p class="section-sub" style="margin-bottom:2rem">
+    Quando um agente recebe uma tarefa complexa, ele não tenta resolver sozinho. Ele decompõe em sub-tarefas e spawna sub-agentes especializados. Cada sub-agente herda contexto, tem acesso à memória do pai, e retorna resultados que são agregados. Isso não é teórico — é como funciona na prática, todos os dias.
+  </p>
 
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem;margin-top:2rem">
-    <div class="card">
-      <div class="card-label">COGNITIVE ROUTER</div>
-      <div class="card-title">Routing por Intent + Domínio</div>
-      <div class="card-desc">Classifica queries por intent (query/action/report), detecta domínios (regulatory/financial/operational), e roteia para o agente mais qualificado. Learning loop que melhora com cada interação.</div>
+  <div class="grid-2" style="align-items:start">
+    <div>
+      <div class="mono-label">ONBOARDING DE CEDENTE — 6 CAMADAS DE PROFUNDIDADE</div>
+      <div class="code-block" style="font-size:0.6875rem;line-height:2.2">
+<span class="fn">Orchestrator</span> <span class="c0">recebe: "onboard CNPJ 12.345.678/0001-99"</span>
+  │
+  ├─ <span class="fn">spawn</span> <span class="hi">DD-Agent</span>
+  │   ├─ <span class="fn">spawn</span> <span class="s">ReceitaFederal-Fetcher</span>
+  │   │   └─ <span class="c0">Consulta CNPJ, QSA, CNAEs, situação cadastral</span>
+  │   ├─ <span class="fn">spawn</span> <span class="s">Serasa-Scorer</span>
+  │   │   └─ <span class="c0">Score de crédito, protestos, cheques devolvidos</span>
+  │   ├─ <span class="fn">spawn</span> <span class="s">PEP-Checker</span>
+  │   │   └─ <span class="c0">Verifica sócios contra lista PEP/OFAC/UN</span>
+  │   └─ <span class="fn">aggregate</span> → <span class="ok">DueDiligenceReport</span>
+  │
+  ├─ <span class="fn">spawn</span> <span class="hi">Compliance-Agent</span>
+  │   ├─ <span class="fn">spawn</span> <span class="s">CVM-Registry-Check</span>
+  │   ├─ <span class="fn">spawn</span> <span class="s">BACEN-Sanctions-Check</span>
+  │   └─ <span class="fn">aggregate</span> → <span class="ok">ComplianceReport</span>
+  │
+  ├─ <span class="fn">spawn</span> <span class="hi">Risk-Agent</span>
+  │   ├─ <span class="fn">spawn</span> <span class="s">Financial-Analyzer</span>
+  │   │   └─ <span class="c0">Balanço, DRE, fluxo de caixa (3 anos)</span>
+  │   ├─ <span class="fn">spawn</span> <span class="s">Sector-Risk-Profiler</span>
+  │   └─ <span class="fn">aggregate</span> → <span class="ok">RiskRating: A-</span>
+  │
+  └─ <span class="fn">spawn</span> <span class="hi">KG-Agent</span>
+      ├─ <span class="c0">Extract 34 entities, 67 relationships</span>
+      └─ <span class="fn">store</span> → <span class="ok">ChromaDB + pgvector</span>
+
+<span class="ok">Total: 4 agents, 8 sub-agents, 12.4 seconds</span>
+<span class="c0">Um analista faria isso em 2-3 dias.</span>
+      </div>
     </div>
-    <div class="card">
-      <div class="card-label">HYBRID RAG</div>
-      <div class="card-title">ChromaDB + BM25 Retrieval</div>
-      <div class="card-desc">Busca híbrida: embeddings semânticos (Gemini) + busca lexical BM25. Corpus de 5,640 documentos com chunking otimizado (1024 tokens, overlap 128). Top-k=8 com reranking.</div>
-    </div>
-    <div class="card">
-      <div class="card-label">METACLAW PROXY</div>
-      <div class="card-title">Skills Auto-Aprendidas</div>
-      <div class="card-desc">MetaClaw observa interações e cria skill candidates automaticamente. Skills com uso recorrente são promovidas. Skills não utilizadas são podadas. Self-learning loop.</div>
-    </div>
-    <div class="card">
-      <div class="card-label">AUTORESEARCH</div>
-      <div class="card-title">Eval Loop (Karpathy Method)</div>
-      <div class="card-desc"><code style="color:var(--cyan)">paganini autoresearch</code> roda N iterações otimizando parâmetros RAG contra um eval set gold. Auto-melhora qualidade sem intervenção humana.</div>
-    </div>
-    <div class="card">
-      <div class="card-label">RTK COMPRESSION</div>
-      <div class="card-title">60-90% Token Savings</div>
-      <div class="card-desc">Proxy Rust que comprime output de comandos shell antes de alimentar o contexto LLM. Reduz custo operacional em 85%. <code style="color:var(--cyan)">exec_compressed()</code> em todos os agentes.</div>
-    </div>
-    <div class="card">
-      <div class="card-label">DAEMONS</div>
-      <div class="card-title">Monitoramento 24/7</div>
-      <div class="card-desc">Covenant Monitor (liquidez/subordinação/inadimplência), PDD Calculator (aging em tempo real), Reconciliation (conferência automática). Rodam como daemons persistentes.</div>
+
+    <div>
+      <div class="mono-label">DELIVERY RATE — DADOS REAIS DA OPERAÇÃO</div>
+      <div class="stat-row" style="grid-template-columns:1fr 1fr;margin-bottom:1.5rem">
+        <div class="stat"><div class="stat-num"><span class="g">12.4s</span></div><div class="stat-label">TEMPO MÉDIO POR INGEST</div></div>
+        <div class="stat"><div class="stat-num"><span class="g">94%</span></div><div class="stat-label">CONFIANÇA MÉDIA</div></div>
+      </div>
+      <div class="stat-row" style="grid-template-columns:1fr 1fr;margin-bottom:1.5rem">
+        <div class="stat"><div class="stat-num">6</div><div class="stat-label">GUARDRAIL GATES</div></div>
+        <div class="stat"><div class="stat-num"><span class="g">0</span></div><div class="stat-label">HALLUCINATIONS (GUARDRAILED)</div></div>
+      </div>
+
+      <div class="mono-label" style="margin-top:2rem">COMPARATIVO</div>
+      <div style="font-family:var(--font-mono);font-size:0.75rem;line-height:2.4">
+        <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding:0.25rem 0">
+          <span style="color:var(--text-3)">Onboarding de cedente</span>
+          <span><span style="color:var(--text-4)">Humano: 2-3 dias</span> → <span style="color:var(--green)">Paganini: 12s</span></span>
+        </div>
+        <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding:0.25rem 0">
+          <span style="color:var(--text-3)">Query regulatória</span>
+          <span><span style="color:var(--text-4)">Humano: 1-4h</span> → <span style="color:var(--green)">Paganini: 2.1s</span></span>
+        </div>
+        <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding:0.25rem 0">
+          <span style="color:var(--text-3)">PDD recalculation</span>
+          <span><span style="color:var(--text-4)">Humano: 4-8h</span> → <span style="color:var(--green)">Paganini: 0.8s</span></span>
+        </div>
+        <div style="display:flex;justify-content:space-between;border-bottom:1px solid var(--border);padding:0.25rem 0">
+          <span style="color:var(--text-3)">Relatório mensal</span>
+          <span><span style="color:var(--text-4)">Humano: 3-5 dias</span> → <span style="color:var(--green)">Paganini: 45s</span></span>
+        </div>
+        <div style="display:flex;justify-content:space-between;padding:0.25rem 0">
+          <span style="color:var(--text-3)">Compliance check</span>
+          <span><span style="color:var(--text-4)">Humano: contínuo</span> → <span style="color:var(--green)">Paganini: 24/7 auto</span></span>
+        </div>
+      </div>
     </div>
   </div>
 </div>
 </div>
 
-<!-- ═══════════════════════ ORCHESTRATION ═══════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SECTION 3 — Skills Marketplace                        -->
+<!-- ═══════════════════════════════════════════════════════ -->
 <div class="section">
 <div class="container">
-  <div class="mono-label">ORQUESTRAÇÃO MULTI-AGENTE</div>
-  <h2 class="section-title">3 fluxos orquestrados.<br><span class="accent">Agentes coordenando agentes.</span></h2>
+  <div class="mono-label">SKILLS MARKETPLACE</div>
+  <h2 class="section-title">
+    Skills são <span class="g">pacotes de conhecimento</span><br>
+    que agentes instalam, usam e <span class="a">monetizam</span>.
+  </h2>
+  <p class="section-sub" style="margin-bottom:2rem">
+    Uma skill é um diretório com metadata.json (versão, tipo, dependências, capabilities). O loader resolve a árvore, gera lockfiles com SHA256, e controla context budget via progressive loading. Skills podem ser publicadas no marketplace — outros fundos instalam e pagam por uso.
+  </p>
 
-  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:1.5rem;margin-top:2rem">
-    <div class="card">
-      <div class="card-label" style="color:var(--green)">PURCHASE FLOW</div>
-      <div class="card-title">Compra de Recebíveis</div>
-      <div class="pipeline" style="margin:1rem 0;flex-wrap:wrap;gap:0.25rem">
-        <div class="pipe-node" style="font-size:0.5rem;padding:0.25rem 0.5rem">DD</div><span class="pipe-arrow" style="font-size:0.625rem">→</span>
-        <div class="pipe-node" style="font-size:0.5rem;padding:0.25rem 0.5rem">COMPLIANCE</div><span class="pipe-arrow" style="font-size:0.625rem">→</span>
-        <div class="pipe-node" style="font-size:0.5rem;padding:0.25rem 0.5rem">RISK</div><span class="pipe-arrow" style="font-size:0.625rem">→</span>
-        <div class="pipe-node" style="font-size:0.5rem;padding:0.25rem 0.5rem">PRICING</div><span class="pipe-arrow" style="font-size:0.625rem">→</span>
-        <div class="pipe-node" style="font-size:0.5rem;padding:0.25rem 0.5rem">ADMIN</div><span class="pipe-arrow" style="font-size:0.625rem">→</span>
-        <div class="pipe-node" style="font-size:0.5rem;padding:0.25rem 0.5rem">CUSTODY</div>
+  <div class="grid-2" style="margin-bottom:2rem">
+    <div>
+      <div class="mono-label">ANATOMY OF A SKILL</div>
+      <div class="code-block" style="font-size:0.6875rem">
+<span class="c0">fidc-compliance-pack/</span>
+<span class="c0">├──</span> <span class="s">metadata.json</span>
+<span class="c0">│     name: "fidc-compliance"</span>
+<span class="c0">│     version: "1.2.0"</span>
+<span class="c0">│     type: "specialist"</span>
+<span class="c0">│     price: "R$ 2.400/mês"</span>
+<span class="c0">│     depends: ["fidc-rules-base@^1.0"]</span>
+<span class="c0">│     capabilities:</span>
+<span class="c0">│       - check_eligibility</span>
+<span class="c0">│       - check_concentration</span>
+<span class="c0">│       - check_covenant</span>
+<span class="c0">│       - check_pld_aml</span>
+<span class="c0">│       - generate_compliance_report</span>
+<span class="c0">├──</span> <span class="s">SKILL.md</span>          <span class="c0"># Knowledge (LLM reads this)</span>
+<span class="c0">├──</span> <span class="s">guardrails.py</span>     <span class="c0"># Executable code</span>
+<span class="c0">├──</span> <span class="s">templates/</span>        <span class="c0"># Report templates</span>
+<span class="c0">└──</span> <span class="s">skill.lock</span>        <span class="c0"># SHA256 integrity</span>
       </div>
-      <div class="card-desc">Cedente submete borderô → Due Diligence score → 6 guardrails → Pricing calcula taxa → Admin atualiza NAV → Custódia registra títulos.</div>
     </div>
-    <div class="card">
-      <div class="card-label" style="color:var(--cyan)">REPORT FLOW</div>
-      <div class="card-title">Relatório Executivo</div>
-      <div class="pipeline" style="margin:1rem 0;flex-wrap:wrap;gap:0.25rem">
-        <div class="pipe-node" style="font-size:0.5rem;padding:0.25rem 0.5rem;border-color:rgba(0,229,255,0.3);color:var(--cyan)">ADMIN</div><span class="pipe-arrow" style="font-size:0.625rem">→</span>
-        <div class="pipe-node" style="font-size:0.5rem;padding:0.25rem 0.5rem;border-color:rgba(0,229,255,0.3);color:var(--cyan)">PRICING</div><span class="pipe-arrow" style="font-size:0.625rem">→</span>
-        <div class="pipe-node" style="font-size:0.5rem;padding:0.25rem 0.5rem;border-color:rgba(0,229,255,0.3);color:var(--cyan)">COMPLIANCE</div><span class="pipe-arrow" style="font-size:0.625rem">→</span>
-        <div class="pipe-node" style="font-size:0.5rem;padding:0.25rem 0.5rem;border-color:rgba(0,229,255,0.3);color:var(--cyan)">REPORTING</div><span class="pipe-arrow" style="font-size:0.625rem">→</span>
-        <div class="pipe-node" style="font-size:0.5rem;padding:0.25rem 0.5rem;border-color:rgba(0,229,255,0.3);color:var(--cyan)">IR</div>
+    <div>
+      <div class="mono-label">SKILL TYPES</div>
+      <div style="display:grid;gap:0.75rem">
+        <div class="card" style="padding:1rem">
+          <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem">
+            <span class="badge badge-purple">ABSTRACT</span>
+            <span style="color:var(--text-1);font-size:0.875rem;font-weight:600">Base Knowledge</span>
+          </div>
+          <div class="card-desc">Regulamentação, normas, definições. Não executa — é referência para outros skills. Ex: <code style="color:var(--cyan)">fidc-rules-base</code>, <code style="color:var(--cyan)">bacen-norms</code></div>
+        </div>
+        <div class="card" style="padding:1rem">
+          <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem">
+            <span class="badge badge-cyan">SPECIALIST</span>
+            <span style="color:var(--text-1);font-size:0.875rem;font-weight:600">Domain Expert</span>
+          </div>
+          <div class="card-desc">Executa uma competência específica. Depende de um abstract. Ex: <code style="color:var(--cyan)">compliance-agent</code>, <code style="color:var(--cyan)">pricing-agent</code></div>
+        </div>
+        <div class="card" style="padding:1rem">
+          <div style="display:flex;align-items:center;gap:0.5rem;margin-bottom:0.5rem">
+            <span class="badge badge-amber">ORCHESTRATOR</span>
+            <span style="color:var(--text-1);font-size:0.875rem;font-weight:600">Coordinator</span>
+          </div>
+          <div class="card-desc">Compõe specialists em pipelines. Resolve dependências, gerencia context budget, coordena execução. Ex: <code style="color:var(--cyan)">fidc-orchestrator</code></div>
+        </div>
       </div>
-      <div class="card-desc">Admin puxa NAV + cotas → Pricing calcula PDD → Compliance valida status → Reporting compila → IR distribui aos cotistas.</div>
     </div>
+  </div>
+
+  <div class="mono-label">FUTURE MARKETPLACE — SKILL PACKS</div>
+  <div class="grid-3">
     <div class="card">
-      <div class="card-label" style="color:var(--amber)">ONBOARDING FLOW</div>
-      <div class="card-title">Novo Cedente</div>
-      <div class="pipeline" style="margin:1rem 0;flex-wrap:wrap;gap:0.25rem">
-        <div class="pipe-node" style="font-size:0.5rem;padding:0.25rem 0.5rem;border-color:rgba(255,176,32,0.3);color:var(--amber)">DD</div><span class="pipe-arrow" style="font-size:0.625rem">→</span>
-        <div class="pipe-node" style="font-size:0.5rem;padding:0.25rem 0.5rem;border-color:rgba(255,176,32,0.3);color:var(--amber)">PLD/AML</div><span class="pipe-arrow" style="font-size:0.625rem">→</span>
-        <div class="pipe-node" style="font-size:0.5rem;padding:0.25rem 0.5rem;border-color:rgba(255,176,32,0.3);color:var(--amber)">RISK</div><span class="pipe-arrow" style="font-size:0.625rem">→</span>
-        <div class="pipe-node" style="font-size:0.5rem;padding:0.25rem 0.5rem;border-color:rgba(255,176,32,0.3);color:var(--amber)">ADMIN</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem">
+        <span class="badge badge-green">DISPONÍVEL</span>
+        <span style="font-family:var(--font-mono);font-size:0.625rem;color:var(--amber)">R$ 8K/mês</span>
       </div>
-      <div class="card-desc">Due Diligence analisa CNPJ → PLD/AML verifica listas → Risk calcula rating → Admin cadastra no sistema.</div>
+      <div class="card-title">FIDC Pack</div>
+      <div class="card-desc">9 agentes para operação completa de FIDC. Compliance CVM 175, PDD, NAV, cotas, onboarding, reporting.</div>
+      <div style="margin-top:0.5rem"><span class="badge badge-green" style="font-size:0.5625rem">9 agents</span> <span class="badge badge-green" style="font-size:0.5625rem">6 guardrails</span> <span class="badge badge-green" style="font-size:0.5625rem">11 skills</span></div>
+    </div>
+    <div class="card" style="opacity:0.7">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem">
+        <span class="badge badge-cyan">EM DESENVOLVIMENTO</span>
+        <span style="font-family:var(--font-mono);font-size:0.625rem;color:var(--text-4)">Q3 2026</span>
+      </div>
+      <div class="card-title">Banking Pack</div>
+      <div class="card-desc">Agentes para operações bancárias: KYC automatizado, AML screening, BACEN regulatory reporting, stress testing.</div>
+      <div style="margin-top:0.5rem"><span class="badge badge-cyan" style="font-size:0.5625rem">kyc</span> <span class="badge badge-cyan" style="font-size:0.5625rem">aml</span> <span class="badge badge-cyan" style="font-size:0.5625rem">bacen</span></div>
+    </div>
+    <div class="card" style="opacity:0.7">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem">
+        <span class="badge badge-cyan">EM DESENVOLVIMENTO</span>
+        <span style="font-family:var(--font-mono);font-size:0.625rem;color:var(--text-4)">Q4 2026</span>
+      </div>
+      <div class="card-title">Asset Management Pack</div>
+      <div class="card-desc">Gestão de portfólio, risco de mercado, alocação, performance attribution, relatórios ANBIMA.</div>
+      <div style="margin-top:0.5rem"><span class="badge badge-cyan" style="font-size:0.5625rem">portfolio</span> <span class="badge badge-cyan" style="font-size:0.5625rem">risk</span> <span class="badge badge-cyan" style="font-size:0.5625rem">anbima</span></div>
+    </div>
+    <div class="card" style="opacity:0.5">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem">
+        <span class="badge badge-purple">ROADMAP</span>
+        <span style="font-family:var(--font-mono);font-size:0.625rem;color:var(--text-4)">2027</span>
+      </div>
+      <div class="card-title">Insurance Pack</div>
+      <div class="card-desc">Underwriting, sinistros, regulatório SUSEP, atuarial. Mesmo modelo: agentes com SOULs + skills + guardrails.</div>
+    </div>
+    <div class="card" style="opacity:0.5">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem">
+        <span class="badge badge-purple">ROADMAP</span>
+        <span style="font-family:var(--font-mono);font-size:0.625rem;color:var(--text-4)">2027</span>
+      </div>
+      <div class="card-title">Credit Pack</div>
+      <div class="card-desc">Análise de crédito, scoring, cobrança, renegociação. Agentes que lêem contratos e calculam risco em tempo real.</div>
+    </div>
+    <div class="card" style="opacity:0.5">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem">
+        <span class="badge badge-purple">COMMUNITY</span>
+        <span style="font-family:var(--font-mono);font-size:0.625rem;color:var(--text-4)">OPEN</span>
+      </div>
+      <div class="card-title">Custom Skills</div>
+      <div class="card-desc">Qualquer empresa publica skills no marketplace. Outros fundos instalam e usam. Revenue share: 70/30 (publisher/platform).</div>
     </div>
   </div>
 </div>
 </div>
 
-<!-- ═══════════════════════ CLI ═══════════════════════ -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SECTION 4 — This is real                              -->
+<!-- ═══════════════════════════════════════════════════════ -->
 <div class="section">
 <div class="container">
-  <div class="mono-label">CLI — 15+ COMANDOS</div>
-  <h2 class="section-title">Uma linha. <span class="accent">Resultado real.</span></h2>
+  <div class="mono-label">CÓDIGO REAL. NÃO SLIDEWARE.</div>
+  <h2 class="section-title">
+    <span class="g">105</span> arquivos Python. <span class="g">7,200</span> LOC.<br>
+    <span class="g">132</span> testes passando. <span class="c">Rodando em produção.</span>
+  </h2>
 
-  <div class="terminal" style="max-width:700px">
+  <div class="stat-row" style="max-width:900px;margin:2rem 0">
+    <div class="stat"><div class="stat-num"><span class="g">105</span></div><div class="stat-label">PYTHON FILES</div></div>
+    <div class="stat"><div class="stat-num"><span class="g">7.2K</span></div><div class="stat-label">LINES OF CODE</div></div>
+    <div class="stat"><div class="stat-num"><span class="g">132</span></div><div class="stat-label">TESTS PASSING</div></div>
+    <div class="stat"><div class="stat-num">9</div><div class="stat-label">AGENT SOULS</div></div>
+    <div class="stat"><div class="stat-num">11</div><div class="stat-label">SKILLS</div></div>
+    <div class="stat"><div class="stat-num"><span class="g">6</span></div><div class="stat-label">GUARDRAIL GATES</div></div>
+  </div>
+
+  <div class="grid-2" style="gap:1.5rem">
+    <div>
+      <div class="mono-label">CODEBASE MAP</div>
+      <div class="code-block" style="font-size:0.6875rem;line-height:1.9">
+<span class="s">paganini-aios/</span>
+<span class="c0">├──</span> <span class="s">packages/</span>
+<span class="c0">│   ├──</span> <span class="fn">kernel/</span>              <span class="c0"># Moltis runtime</span>
+<span class="c0">│   │   ├──</span> engine.py          <span class="c0"># Core query engine</span>
+<span class="c0">│   │   ├──</span> router.py          <span class="c0"># Cognitive Router</span>
+<span class="c0">│   │   ├──</span> memory.py          <span class="c0"># ChromaDB + pgvector</span>
+<span class="c0">│   │   ├──</span> metaclaw.py        <span class="c0"># Self-learning skills</span>
+<span class="c0">│   │   ├──</span> rtk.py             <span class="c0"># Token compression proxy</span>
+<span class="c0">│   │   ├──</span> moltis.py          <span class="c0"># Runtime orchestrator</span>
+<span class="c0">│   │   ├──</span> daemons.py         <span class="c0"># Background monitors</span>
+<span class="c0">│   │   └──</span> cli.py             <span class="c0"># 15+ CLI commands</span>
+<span class="c0">│   ├──</span> <span class="fn">agents/</span>
+<span class="c0">│   │   ├──</span> framework.py       <span class="c0"># SOUL, Registry, Dispatcher</span>
+<span class="c0">│   │   └──</span> <span class="hi">souls/</span>             <span class="c0"># 9 agent personality files</span>
+<span class="c0">│   └──</span> <span class="fn">dashboard-v2/</span>       <span class="c0"># Next.js 15 + Three.js</span>
+<span class="c0">├──</span> <span class="s">packs/</span>
+<span class="c0">│   └──</span> <span class="fn">finance/</span>
+<span class="c0">│       ├──</span> guardrails/        <span class="c0"># 6-gate pipeline</span>
+<span class="c0">│       └──</span> integrations/      <span class="c0"># CVM, BACEN, cedente, reports</span>
+<span class="c0">├──</span> <span class="s">skills/</span>                 <span class="c0"># 11 OOP composable skills</span>
+<span class="c0">├──</span> <span class="s">tests/</span>                  <span class="c0"># 132 tests (pytest)</span>
+<span class="c0">├──</span> install.sh              <span class="c0"># curl | sh installer</span>
+<span class="c0">└──</span> docker-compose.yml      <span class="c0"># 4-service stack</span>
+      </div>
+    </div>
+
+    <div>
+      <div class="mono-label">CLI — TUDO VIA TERMINAL</div>
+      <div class="terminal">
+        <div class="terminal-bar">
+          <div class="terminal-dot" style="background:var(--red)"></div>
+          <div class="terminal-dot" style="background:var(--amber)"></div>
+          <div class="terminal-dot" style="background:var(--green)"></div>
+          paganini-cli
+        </div>
+        <div class="terminal-body" style="font-size:0.6875rem;line-height:2">
+<span class="p">$</span> <span class="cmd">paganini --help</span>
+
+<span class="out">  init          </span><span class="hi">Initialize with skill pack</span>
+<span class="out">  doctor        </span><span class="hi">System health check (11 checks)</span>
+<span class="out">  ingest        </span><span class="hi">Recursive company analysis</span>
+<span class="out">  query         </span><span class="hi">Ask anything → routed to agent</span>
+<span class="out">  report        </span><span class="hi">Generate financial reports</span>
+<span class="out">  autoresearch  </span><span class="hi">Self-improving eval loop</span>
+<span class="out">  skill install </span><span class="hi">Install from marketplace</span>
+<span class="out">  skill publish </span><span class="hi">Publish to marketplace</span>
+<span class="out">  onboard       </span><span class="hi">Full cedente onboarding</span>
+<span class="out">  agent list    </span><span class="hi">Show active agents</span>
+<span class="out">  agent status  </span><span class="hi">Agent health + metrics</span>
+<span class="out">  daemon start  </span><span class="hi">Background monitors</span>
+<span class="out">  run           </span><span class="hi">Execute agent pipeline</span>
+<span class="out">  serve         </span><span class="hi">Start API + dashboard</span>
+<span class="out">  up            </span><span class="hi">Docker compose up</span>
+
+<span class="p">$</span> <span class="cmd">paganini skill install</span> <span class="out">fidc-compliance-pack</span>
+<span class="out">📦 Resolving dependencies...</span>
+<span class="out">   fidc-rules-base@1.0.0 (abstract)</span>
+<span class="out">   compliance-agent@1.2.0 (specialist)</span>
+<span class="out">   pricing-agent@1.0.0 (specialist)</span>
+<span class="ok">✓ 3 skills installed. Lockfile updated.</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- SECTION 5 — Business Model                            -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="section">
+<div class="container">
+  <div class="mono-label">MODELO DE NEGÓCIO</div>
+  <h2 class="section-title">
+    Open core + <span class="g">skills monetizáveis</span>.<br>
+    Plataforma ganha com <span class="a">distribuição</span>.
+  </h2>
+
+  <div class="grid-3" style="margin-top:2rem">
+    <div class="card">
+      <div class="card-label" style="color:var(--green)">COMMUNITY — GRÁTIS</div>
+      <div class="card-title">Kernel + Framework</div>
+      <div class="card-desc" style="margin-bottom:1rem">Engine, CLI, RAG, router, agent framework, Docker. Tudo open source. O fundamento.</div>
+      <div style="border-top:1px solid var(--border);padding-top:0.75rem;font-family:var(--font-mono);font-size:0.6875rem;color:var(--text-3);line-height:2">
+        ✓ Moltis runtime<br>
+        ✓ Cognitive Router<br>
+        ✓ Hybrid RAG<br>
+        ✓ Agent framework<br>
+        ✓ CLI (15+ commands)<br>
+        ✓ Docker Compose
+      </div>
+    </div>
+    <div class="card" style="border-color:rgba(0,255,128,0.25)">
+      <div class="card-label" style="color:var(--amber)">PROFESSIONAL — R$ 8K/MÊS/FUNDO</div>
+      <div class="card-title">Skill Packs + Dashboard</div>
+      <div class="card-desc" style="margin-bottom:1rem">Pack FIDC completo com 9 agentes, guardrails, daemons, dashboard real-time, e suporte.</div>
+      <div style="border-top:1px solid var(--border);padding-top:0.75rem;font-family:var(--font-mono);font-size:0.6875rem;color:var(--text-3);line-height:2">
+        ✓ Tudo do Community<br>
+        ✓ 9 agentes especializados<br>
+        ✓ 6 guardrail gates<br>
+        ✓ Dashboard Next.js + 3D<br>
+        ✓ AutoResearch<br>
+        ✓ Suporte prioritário
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-label" style="color:var(--red)">ENTERPRISE — R$ 25K/MÊS</div>
+      <div class="card-title">On-Premise + Custom Skills</div>
+      <div class="card-desc" style="margin-bottom:1rem">Deploy dedicado, skills customizados para a operação específica, SLA, integração com sistemas legados.</div>
+      <div style="border-top:1px solid var(--border);padding-top:0.75rem;font-family:var(--font-mono);font-size:0.6875rem;color:var(--text-3);line-height:2">
+        ✓ Tudo do Professional<br>
+        ✓ Deploy on-premise (Helm)<br>
+        ✓ Skills customizados<br>
+        ✓ Integração legados<br>
+        ✓ SLA 99.9%<br>
+        ✓ Suporte dedicado
+      </div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:2rem;border-color:rgba(255,176,32,0.2)">
+    <div style="display:flex;align-items:center;gap:1rem;flex-wrap:wrap">
+      <span class="badge badge-amber" style="font-size:0.75rem;padding:6px 16px">MARKETPLACE REVENUE</span>
+      <span style="font-family:var(--font-mono);font-size:0.8125rem;color:var(--text-2)">Qualquer empresa publica skills. Outros fundos instalam e pagam. Revenue share: <span style="color:var(--amber);font-weight:600">70% publisher / 30% platform</span>. A plataforma escala com o ecossistema, não com headcount.</span>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════ -->
+<!-- CTA                                                   -->
+<!-- ═══════════════════════════════════════════════════════ -->
+<div class="section" style="border-bottom:none;text-align:center">
+<div class="container">
+  <div class="mono-label" style="text-align:center">COMECE AGORA</div>
+
+  <div class="terminal" style="max-width:500px;margin:0 auto 2rem">
     <div class="terminal-bar">
       <div class="terminal-dot" style="background:var(--red)"></div>
       <div class="terminal-dot" style="background:var(--amber)"></div>
       <div class="terminal-dot" style="background:var(--green)"></div>
-      paganini — zsh
+      install
     </div>
-    <div class="terminal-body">
-<span class="prompt">$</span> <span class="cmd">curl -fsSL https://install.paganini.ai | sh</span>
-<span class="success">✓ PAGANINI installed successfully!</span>
-
-<span class="prompt">$</span> <span class="cmd">paganini init --pack fidc</span>
-<span class="success">✓ Initialized — 9 agents ready</span>
-
-<span class="prompt">$</span> <span class="cmd">paganini doctor</span>
-<span class="output">🩺 Python 3.12     ✓</span>
-<span class="output">   Moltis binary   ✓</span>
-<span class="output">   ChromaDB        ✓</span>
-<span class="output">   RTK proxy       ✓ v0.30.0</span>
-<span class="output">   Config          ✓</span>
-<span class="output">   11/11 checks passed</span>
-
-<span class="prompt">$</span> <span class="cmd">paganini ingest corpus/</span>
-<span class="output">📥 3 files → 11 chunks → 11 KG entities</span>
-
-<span class="prompt">$</span> <span class="cmd">paganini query</span> <span class="output">"como calcular PDD por aging?"</span>
-<span class="highlight">📋 Resposta (94% confiança)</span>
-<span class="output">A PDD é calculada por faixa de atraso...</span>
-
-<span class="prompt">$</span> <span class="cmd">paganini report generate informe-mensal</span>
-<span class="output">📄 Relatório gerado → reports/informe-mensal-2026-03.md</span>
-
-<span class="prompt">$</span> <span class="cmd">paganini autoresearch -n 10</span>
-<span class="output">🔬 Iteration 1/10 — precision: 0.72 → 0.78 (+8.3%)</span>
-<span class="output">🔬 Iteration 10/10 — precision: 0.78 → 0.91 (+16.7%)</span>
-<span class="success">✓ Best config saved. Precision improved 26.4%</span>
+    <div class="terminal-body" style="text-align:left">
+<span class="p">$</span> <span class="cmd">curl -fsSL https://install.paganini.ai | sh</span>
+<span class="p">$</span> <span class="cmd">paganini init --pack fidc</span>
+<span class="p">$</span> <span class="cmd">paganini ingest</span> <span class="out">"Sua Empresa"</span>
     </div>
   </div>
-</div>
-</div>
 
-<!-- ═══════════════════════ NUMBERS ═══════════════════════ -->
-<div class="section" style="border-bottom:none">
-<div class="container" style="text-align:center">
-  <div class="mono-label" style="text-align:center">O PRODUTO EM NÚMEROS</div>
-  <h2 class="section-title" style="text-align:center">Código real. <span class="accent">Não slideware.</span></h2>
-  <div class="stat-row" style="max-width:900px;margin:2rem auto;grid-template-columns:repeat(auto-fit,minmax(140px,1fr))">
-    <div class="stat"><div class="stat-num"><span class="green">105</span></div><div class="stat-label">PYTHON FILES</div></div>
-    <div class="stat"><div class="stat-num"><span class="green">7,200</span></div><div class="stat-label">LINES OF CODE</div></div>
-    <div class="stat"><div class="stat-num">132</div><div class="stat-label">TESTS PASSING</div></div>
-    <div class="stat"><div class="stat-num">9</div><div class="stat-label">AGENT SOULS</div></div>
-    <div class="stat"><div class="stat-num">11</div><div class="stat-label">OOP SKILLS</div></div>
-    <div class="stat"><div class="stat-num"><span class="green">6</span></div><div class="stat-label">GUARDRAIL GATES</div></div>
-  </div>
-
-  <div style="margin-top:3rem">
-    <a href="https://github.com/juboyy/paganini-aios" style="display:inline-flex;align-items:center;gap:0.5rem;padding:0.75rem 2rem;background:var(--green);color:var(--bg);font-family:var(--font-mono);font-size:0.75rem;letter-spacing:0.08em;font-weight:600;border-radius:var(--radius);text-decoration:none;transition:box-shadow 0.2s" onmouseover="this.style.boxShadow='0 0 30px rgba(0,255,128,0.4)'" onmouseout="this.style.boxShadow='none'">
-      VIEW ON GITHUB →
+  <div style="display:flex;gap:1rem;justify-content:center;flex-wrap:wrap">
+    <a href="https://github.com/juboyy/paganini-aios" style="display:inline-flex;align-items:center;gap:0.5rem;padding:0.75rem 2rem;background:var(--green);color:var(--bg);font-family:var(--font-mono);font-size:0.75rem;letter-spacing:0.08em;font-weight:600;border-radius:var(--radius);transition:box-shadow 0.2s" onmouseover="this.style.boxShadow='0 0 30px rgba(0,255,128,0.4)'" onmouseout="this.style.boxShadow='none'">
+      GITHUB →
     </a>
-    <a href="https://dashboard-v2-pearl-rho.vercel.app" style="display:inline-flex;align-items:center;gap:0.5rem;padding:0.75rem 2rem;border:1px solid var(--border-bright);color:var(--green);font-family:var(--font-mono);font-size:0.75rem;letter-spacing:0.08em;font-weight:600;border-radius:var(--radius);text-decoration:none;margin-left:1rem;transition:box-shadow 0.2s" onmouseover="this.style.boxShadow='0 0 30px rgba(0,255,128,0.2)'" onmouseout="this.style.boxShadow='none'">
+    <a href="https://dashboard-v2-pearl-rho.vercel.app" style="display:inline-flex;align-items:center;gap:0.5rem;padding:0.75rem 2rem;border:1px solid var(--border-bright);color:var(--green);font-family:var(--font-mono);font-size:0.75rem;letter-spacing:0.08em;font-weight:600;border-radius:var(--radius);transition:box-shadow 0.2s" onmouseover="this.style.boxShadow='0 0 30px rgba(0,255,128,0.2)'" onmouseout="this.style.boxShadow='none'">
       LIVE DASHBOARD →
     </a>
+  </div>
+
+  <div style="margin-top:3rem;font-family:var(--font-mono);font-size:0.625rem;color:var(--text-4);letter-spacing:0.1em">
+    PAGANINI AIOS v1.1 — BUILT BY VIVALDI
   </div>
 </div>
 </div>
 
 <script>
-// Fade in on scroll
 const observer = new IntersectionObserver((entries) => {
-  entries.forEach(e => { if(e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target); }});
+  entries.forEach(e => { if(e.isIntersecting) { e.target.classList.add('v'); observer.unobserve(e.target); }});
 }, { threshold: 0.15 });
-document.querySelectorAll('.fade-in, .card, .terminal').forEach(el => { el.classList.add('fade-in'); observer.observe(el); });
+document.querySelectorAll('.fi, .card, .terminal').forEach(el => { el.classList.add('fi'); observer.observe(el); });
 </script>
 
 </body>
