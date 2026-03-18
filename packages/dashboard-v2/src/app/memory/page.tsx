@@ -1,429 +1,523 @@
 "use client";
 
-import { useState } from "react";
+const TOP_STATS = [
+  { label: "TOTAL DOCUMENTS", value: "5,640" },
+  { label: "EMBEDDINGS", value: "5,640" },
+  { label: "KNOWLEDGE ENTITIES", value: "847" },
+  { label: "AVG RETRIEVAL", value: "45ms" },
+];
 
-const STAT_CARDS = [
+const CORPUS_SOURCES = [
+  { name: "CVM Regulations", docs: 234, lastIngest: "2026-03-18 08:12", color: "var(--accent)" },
+  { name: "Fund Regulamento", docs: 89, lastIngest: "2026-03-17 22:45", color: "var(--cyan)" },
+  { name: "BACEN Circulars", docs: 156, lastIngest: "2026-03-18 06:30", color: "var(--accent)" },
+  { name: "Internal Policies", docs: 67, lastIngest: "2026-03-15 14:00", color: "var(--text-3)" },
+  { name: "Market Data", docs: 412, lastIngest: "2026-03-18 12:55", color: "var(--cyan)" },
+  { name: "Historical NAV", docs: 4682, lastIngest: "2026-03-18 12:58", color: "var(--accent)" },
+];
+
+const RECENT_QUERIES = [
   {
-    label: "Episodic",
-    value: "2,847",
-    icon: "🟢",
-    emoji: "🎞️",
-    desc: "Event memories",
-    color: "var(--green)",
-    bg: "rgba(34,197,94,0.10)",
+    query: "inadimplência cedente CNPJ 12.345.678/0001-99 últimos 90 dias",
+    confidence: 94.2,
+    sources: ["Historical NAV", "Internal Policies"],
+    latency: "38ms",
   },
   {
-    label: "Semantic",
-    value: "1,203",
-    icon: "🔵",
-    emoji: "📚",
-    desc: "Factual knowledge",
-    color: "var(--blue)",
-    bg: "rgba(59,130,246,0.10)",
+    query: "limite concentração sacado regulamento FIDC Paganini",
+    confidence: 98.7,
+    sources: ["Fund Regulamento", "CVM Regulations"],
+    latency: "29ms",
   },
   {
-    label: "Procedural",
-    value: "89",
-    icon: "🟣",
-    emoji: "⚙️",
-    desc: "How-to memories",
-    color: "var(--accent)",
-    bg: "var(--accent-bg)",
+    query: "BACEN circular PLD AML atualização 2025",
+    confidence: 87.4,
+    sources: ["BACEN Circulars", "Internal Policies"],
+    latency: "51ms",
   },
   {
-    label: "Relational",
-    value: "342",
-    icon: "🟠",
-    emoji: "🔗",
-    desc: "Entity relations",
-    color: "var(--amber)",
-    bg: "rgba(234,179,8,0.10)",
+    query: "cálculo PDD projetada safra Q4 2025",
+    confidence: 91.3,
+    sources: ["Historical NAV", "Market Data"],
+    latency: "44ms",
+  },
+  {
+    query: "subordinação mínima CVM resolução 175 FIDC",
+    confidence: 96.1,
+    sources: ["CVM Regulations", "Fund Regulamento"],
+    latency: "33ms",
   },
 ];
 
-const FILTER_PILLS = ["All layers", "Episodic", "Semantic", "Procedural", "Relational"];
-
-const MOCK_RESULTS = [
-  {
-    score: 0.97,
-    content:
-      "Revenue-OS deploy pipeline uses Vercel with Linear as the production gate. No prod deploy without Linear approval.",
-    agent: "OraCLI",
-    layer: "Procedural",
-    timestamp: "2026-03-17 23:41",
-  },
-  {
-    score: 0.94,
-    content:
-      "João prefers action over permission. Never ask for confirmation on reversible tasks — execute and report.",
-    agent: "OraCLI",
-    layer: "Semantic",
-    timestamp: "2026-03-17 22:15",
-  },
-  {
-    score: 0.91,
-    content:
-      "VIV-94: Implemented token usage bar chart in Telemetry page. Used CSS div stacking, no Recharts.",
-    agent: "Code",
-    layer: "Episodic",
-    timestamp: "2026-03-17 21:03",
-  },
-  {
-    score: 0.88,
-    content:
-      "Supabase capabilities table has 34 entries with 3072d embeddings via gemini-embedding-001.",
-    agent: "Data",
-    layer: "Semantic",
-    timestamp: "2026-03-16 18:30",
-  },
-  {
-    score: 0.85,
-    content:
-      "Gate token pattern: GATE-{datetime}:{8char-hash}. Must appear in every spec and commit message.",
-    agent: "OraCLI",
-    layer: "Procedural",
-    timestamp: "2026-03-16 11:20",
-  },
+const RAG_CONFIG = [
+  { key: "chunk_size", value: "1024" },
+  { key: "overlap", value: "128" },
+  { key: "top_k", value: "8" },
+  { key: "embedding_model", value: "gemini-embedding-001" },
 ];
 
-const LAYER_COLOR: Record<string, string> = {
-  Episodic: "var(--green)",
-  Semantic: "var(--blue)",
-  Procedural: "var(--accent)",
-  Relational: "var(--amber)",
-};
+// KG node positions (% based, within a 900x400 viewport)
+const KG_NODES = [
+  { id: "fidc",       label: "FIDC",       x: 50,  y: 50,  color: "var(--accent)",  size: 10 },
+  { id: "cvm175",     label: "CVM 175",    x: 20,  y: 20,  color: "var(--cyan)",    size: 7  },
+  { id: "cedente",    label: "Cedente",    x: 78,  y: 22,  color: "var(--accent)",  size: 7  },
+  { id: "sacado",     label: "Sacado",     x: 85,  y: 55,  color: "var(--cyan)",    size: 6  },
+  { id: "pdd",        label: "PDD",        x: 65,  y: 80,  color: "var(--amber)",   size: 6  },
+  { id: "covenant",   label: "Covenant",   x: 30,  y: 78,  color: "var(--accent)",  size: 7  },
+  { id: "nav",        label: "NAV",        x: 12,  y: 58,  color: "var(--cyan)",    size: 6  },
+  { id: "compliance", label: "Compliance", x: 42,  y: 25,  color: "var(--amber)",   size: 7  },
+];
 
-function ScoreBar({ score }: { score: number }) {
-  const pct = Math.round(score * 100);
-  const color =
-    score >= 0.95
-      ? "var(--green)"
-      : score >= 0.90
-      ? "var(--blue)"
-      : "var(--amber)";
-  return (
-    <div className="flex items-center gap-2">
-      <div
-        className="rounded-full overflow-hidden flex-shrink-0"
-        style={{ width: 64, height: 5, background: "var(--border)" }}
-      >
-        <div
-          className="h-full rounded-full transition-all duration-500"
-          style={{ width: `${pct}%`, background: color }}
-        />
-      </div>
-      <span
-        className="font-bold font-mono text-[13px]"
-        style={{ color, minWidth: 30 }}
-      >
-        {pct}%
-      </span>
-    </div>
-  );
+// edges: pairs of node ids
+const KG_EDGES = [
+  ["fidc", "cvm175"],
+  ["fidc", "cedente"],
+  ["fidc", "covenant"],
+  ["fidc", "nav"],
+  ["fidc", "pdd"],
+  ["cvm175", "compliance"],
+  ["cedente", "sacado"],
+  ["cedente", "pdd"],
+  ["sacado", "pdd"],
+  ["covenant", "nav"],
+  ["covenant", "compliance"],
+  ["compliance", "fidc"],
+];
+
+function nodeById(id: string) {
+  return KG_NODES.find((n) => n.id === id)!;
 }
 
+import KnowledgeGraph3D from "../../components/charts/knowledge-graph-3d";
+
 export default function MemoryPage() {
-  const [activeFilter, setActiveFilter] = useState("All layers");
-  const [query, setQuery] = useState("");
-
-  const filtered = MOCK_RESULTS.filter((r) => {
-    const layerMatch = activeFilter === "All layers" || r.layer === activeFilter;
-    const queryMatch =
-      query.trim() === "" ||
-      r.content.toLowerCase().includes(query.toLowerCase());
-    return layerMatch && queryMatch;
-  });
-
   return (
-    <div className="flex flex-col gap-6 p-4 sm:p-6">
+    <div style={{ padding: "1.5rem", maxWidth: "1400px", margin: "0 auto" }}>
       {/* Header */}
-      <div>
-        <h1
-          className="text-2xl font-bold tracking-tight"
-          style={{ color: "var(--text-1)" }}
+      <div style={{ marginBottom: "2rem" }}>
+        <p
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: "0.5625rem",
+            letterSpacing: "0.12em",
+            color: "var(--text-4)",
+            marginBottom: "0.25rem",
+          }}
         >
-          Memory Explorer
+          SISTEMA FIDC / MEMÓRIA
+        </p>
+        <h1
+          style={{
+            fontFamily: "var(--font-display)",
+            fontSize: "1.75rem",
+            fontWeight: 700,
+            color: "var(--text-1)",
+            letterSpacing: "-0.03em",
+          }}
+        >
+          Knowledge Memory
         </h1>
-        <p className="mt-1 text-[13px]" style={{ color: "var(--text-3)" }}>
-          Semantic memory layers · pgvector + Mem0
+        <p
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: "0.625rem",
+            color: "var(--text-4)",
+            marginTop: "0.25rem",
+            letterSpacing: "0.08em",
+          }}
+        >
+          RAG corpus · embeddings · grafo de entidades
         </p>
       </div>
 
-      {/* Stat Cards — 2-col mobile, 4-col md */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
-        {STAT_CARDS.map((card) => (
-          <div
-            key={card.label}
-            className="rounded-2xl flex flex-col gap-2 transition-all duration-200 active:scale-[0.98]"
-            style={{
-              background: "var(--bg-card)",
-              border: "1px solid var(--border)",
-              boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-              padding: "18px 16px 14px",
-            }}
-          >
-            {/* Icon row */}
-            <div className="flex items-center gap-2">
-              <span
-                className="flex items-center justify-center rounded-xl"
-                style={{
-                  width: 36,
-                  height: 36,
-                  fontSize: 18,
-                  background: card.bg,
-                  border: `1px solid ${card.color}30`,
-                }}
-              >
-                {card.emoji}
-              </span>
-              <span style={{ fontSize: 16 }}>{card.icon}</span>
-            </div>
-
-            {/* Value */}
+      {/* Top Stats */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(4, 1fr)",
+          gap: "1rem",
+          marginBottom: "2rem",
+        }}
+      >
+        {TOP_STATS.map((stat, i) => (
+          <div key={i} className="glass-card p-4">
             <p
-              className="font-bold leading-none"
-              style={{ fontSize: 28, color: "var(--text-1)" }}
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: "0.5625rem",
+                letterSpacing: "0.12em",
+                color: "var(--text-4)",
+                marginBottom: "0.5rem",
+              }}
             >
-              {card.value}
+              {stat.label}
             </p>
-
-            {/* Label */}
             <p
-              className="font-semibold text-[13px]"
-              style={{ color: card.color }}
+              style={{
+                fontFamily: "var(--font-display)",
+                fontSize: "1.5rem",
+                fontWeight: 700,
+                color: i === 3 ? "var(--cyan)" : "var(--text-1)",
+                letterSpacing: "-0.02em",
+              }}
             >
-              {card.label}
-            </p>
-
-            {/* Desc */}
-            <p className="text-[13px]" style={{ color: "var(--text-4)" }}>
-              {card.desc}
+              {stat.value}
             </p>
           </div>
         ))}
       </div>
 
-      {/* Knowledge Graph Placeholder */}
+      {/* ── 3D Knowledge Graph ── */}
       <div
-        className="rounded-2xl overflow-hidden"
-        style={{
-          background: "var(--bg-card)",
-          border: "1px solid var(--border)",
-          boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-        }}
+        id="kg-3d"
+        className="glass-card p-4 overflow-hidden"
+        style={{ marginBottom: "1.5rem" }}
       >
-        {/* Card header */}
         <div
-          className="px-5 py-4 flex items-center justify-between"
-          style={{ borderBottom: "1px solid var(--border)" }}
-        >
-          <div>
-            <h2 className="font-semibold text-base" style={{ color: "var(--text-1)" }}>
-              Knowledge Graph
-            </h2>
-            <p className="text-[13px] mt-0.5" style={{ color: "var(--text-3)" }}>
-              Entity relationships across memory layers
-            </p>
-          </div>
-          <span
-            className="rounded-xl px-3 py-1 text-[9px] uppercase tracking-[0.15em] font-bold"
-            style={{ background: "var(--accent-bg)", color: "var(--accent)" }}
-          >
-            Coming soon
-          </span>
-        </div>
-
-        {/* Placeholder body */}
-        <div
-          className="flex flex-col items-center justify-center gap-4"
           style={{
-            height: 240,
-            background:
-              "linear-gradient(135deg, rgba(124,58,237,0.06) 0%, rgba(20,184,166,0.04) 50%, rgba(59,130,246,0.06) 100%)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            marginBottom: "1rem",
           }}
         >
-          {/* Pulsing glow orb */}
-          <div
-            className="relative flex items-center justify-center"
-            style={{ width: 80, height: 80 }}
+          <p
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: "0.5625rem",
+              letterSpacing: "0.12em",
+              color: "var(--text-4)",
+            }}
           >
-            <div
-              className="absolute inset-0 rounded-full"
+            KNOWLEDGE GRAPH — 3D TOPOLOGY
+          </p>
+          <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+            <span className="tag-badge-cyan">847 entities</span>
+            <span
               style={{
-                background: "rgba(124,58,237,0.12)",
-                animation: "pulse-dot 2s ease-in-out infinite",
+                fontFamily: "var(--font-mono)",
+                fontSize: "0.4375rem",
+                letterSpacing: "0.1em",
+                color: "var(--text-4)",
               }}
-            />
-            <div
-              className="absolute rounded-full"
-              style={{
-                width: 56,
-                height: 56,
-                background: "rgba(124,58,237,0.18)",
-                animation: "pulse-dot 2s ease-in-out infinite 0.3s",
-              }}
-            />
-            <span style={{ fontSize: 32, position: "relative", zIndex: 1 }}>🕸️</span>
+            >
+              THREE.JS / FORCE-GRAPH-3D
+            </span>
           </div>
-          <div className="text-center">
-            <p className="font-semibold text-[13px]" style={{ color: "var(--text-2)" }}>
-              Graph explorer
-            </p>
-            <p className="text-[13px] mt-0.5" style={{ color: "var(--text-4)" }}>
-              {MOCK_RESULTS.length} nodes indexed · 34 capabilities linked
-            </p>
-          </div>
+        </div>
+
+        {/* Graph canvas container */}
+        <div
+          style={{
+            height: "500px",
+            background: "hsl(220 25% 3% / 0.8)",
+            border: "1px solid var(--border-subtle)",
+            borderRadius: "var(--radius)",
+            overflow: "hidden",
+          }}
+        >
+          <KnowledgeGraph3D />
         </div>
       </div>
 
-      {/* Semantic Search */}
+      {/* Two-col layout: Corpus + RAG Config */}
       <div
-        className="rounded-2xl"
         style={{
-          background: "var(--bg-card)",
-          border: "1px solid var(--border)",
-          boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+          display: "grid",
+          gridTemplateColumns: "1fr 320px",
+          gap: "1rem",
+          marginBottom: "1.5rem",
         }}
       >
-        {/* Header */}
-        <div
-          className="px-5 py-4"
-          style={{ borderBottom: "1px solid var(--border)" }}
-        >
-          <h2 className="font-semibold text-base" style={{ color: "var(--text-1)" }}>
-            Semantic Search
-          </h2>
-          <p className="text-[13px] mt-0.5" style={{ color: "var(--text-3)" }}>
-            Query across all memory layers by meaning
+        {/* Corpus Sources */}
+        <div className="glass-card p-4">
+          <p
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: "0.5625rem",
+              letterSpacing: "0.12em",
+              color: "var(--text-4)",
+              marginBottom: "1rem",
+            }}
+          >
+            CORPUS — FONTES INGERIDAS
           </p>
-        </div>
-
-        <div className="p-5 flex flex-col gap-4">
-          {/* Search input with icon */}
-          <div className="relative">
-            <span
-              className="absolute top-1/2 -translate-y-1/2"
-              style={{ left: 14, fontSize: 16, color: "var(--text-4)" }}
-            >
-              🔍
-            </span>
-            <input
-              type="text"
-              value={query}
-              onChange={(e) => setQuery(e.target.value)}
-              placeholder="Search memories by meaning…"
-              className="w-full rounded-2xl text-[13px] transition-all"
-              style={{
-                paddingLeft: 42,
-                paddingRight: 16,
-                paddingTop: 12,
-                paddingBottom: 12,
-                border: "1px solid var(--border)",
-                background: "var(--bg)",
-                color: "var(--text-1)",
-                outline: "none",
-                minHeight: 44,
-              }}
-            />
-          </div>
-
-          {/* Filter pills */}
-          <div className="flex flex-wrap gap-2">
-            {FILTER_PILLS.map((pill) => {
-              const active = activeFilter === pill;
-              return (
-                <button
-                  key={pill}
-                  onClick={() => setActiveFilter(pill)}
-                  className="rounded-2xl transition-all duration-150 active:scale-[0.98]"
-                  style={{
-                    padding: "7px 14px",
-                    minHeight: 36,
-                    fontSize: 13,
-                    fontWeight: 500,
-                    background: active ? "var(--accent)" : "transparent",
-                    color: active ? "#fff" : "var(--text-3)",
-                    border: active ? "none" : "1px solid var(--border)",
-                    cursor: "pointer",
-                  }}
-                >
-                  {pill}
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Results */}
-          <div className="flex flex-col gap-3">
-            {filtered.length === 0 && (
-              <div
-                className="py-10 text-center rounded-2xl text-[13px]"
-                style={{ color: "var(--text-4)", background: "var(--bg)", border: "1px solid var(--border)" }}
-              >
-                No memories matched
-              </div>
-            )}
-            {filtered.map((result, i) => {
-              const layerColor = LAYER_COLOR[result.layer] ?? "var(--accent)";
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+            {CORPUS_SOURCES.map((src) => {
+              const maxDocs = 4682;
+              const pct = Math.round((src.docs / maxDocs) * 100);
               return (
                 <div
-                  key={i}
-                  className="rounded-2xl flex flex-col gap-3 transition-all duration-150"
+                  key={src.name}
                   style={{
-                    padding: "14px 16px",
-                    background: "var(--bg)",
-                    border: "1px solid var(--border)",
+                    background: "hsl(220 20% 4% / 0.5)",
+                    border: "1px solid var(--border-subtle)",
+                    borderRadius: "var(--radius)",
+                    padding: "0.75rem",
                   }}
                 >
-                  {/* Score bar + content */}
-                  <div className="flex items-start gap-3">
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      marginBottom: "0.4rem",
+                    }}
+                  >
                     <p
-                      className="flex-1 text-[13px] leading-relaxed"
-                      style={{ color: "var(--text-2)" }}
+                      style={{
+                        fontFamily: "var(--font-mono)",
+                        fontSize: "0.5rem",
+                        letterSpacing: "0.08em",
+                        color: "var(--text-2)",
+                        fontWeight: 600,
+                      }}
                     >
-                      {result.content}
+                      {src.name}
                     </p>
-                    <div className="flex-shrink-0">
-                      <ScoreBar score={result.score} />
+                    <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
+                      <span
+                        style={{
+                          fontFamily: "var(--font-display)",
+                          fontSize: "0.875rem",
+                          fontWeight: 700,
+                          color: src.color,
+                          letterSpacing: "-0.01em",
+                        }}
+                      >
+                        {src.docs.toLocaleString()}
+                      </span>
+                      <span
+                        style={{
+                          fontFamily: "var(--font-mono)",
+                          fontSize: "0.375rem",
+                          letterSpacing: "0.08em",
+                          color: "var(--text-4)",
+                        }}
+                      >
+                        {src.lastIngest}
+                      </span>
                     </div>
                   </div>
-
-                  {/* Metadata row */}
-                  <div className="flex flex-wrap items-center gap-2">
-                    {/* Layer badge */}
-                    <span
-                      className="rounded-xl font-bold text-[9px] uppercase tracking-[0.15em] px-2.5 py-1"
+                  {/* Progress bar */}
+                  <div
+                    style={{
+                      height: "2px",
+                      background: "var(--border-subtle)",
+                      borderRadius: "1px",
+                      overflow: "hidden",
+                    }}
+                  >
+                    <div
                       style={{
-                        background: layerColor + "20",
-                        color: layerColor,
+                        height: "100%",
+                        width: `${pct}%`,
+                        background: src.color,
+                        boxShadow: `0 0 6px ${src.color}`,
+                        borderRadius: "1px",
                       }}
-                    >
-                      {result.layer}
-                    </span>
-
-                    {/* Agent badge */}
-                    <span
-                      className="rounded-xl text-[9px] uppercase tracking-[0.15em] font-semibold px-2.5 py-1"
-                      style={{
-                        background: "var(--accent-bg)",
-                        color: "var(--accent)",
-                      }}
-                    >
-                      {result.agent}
-                    </span>
-
-                    {/* Timestamp */}
-                    <span
-                      className="text-[13px] ml-auto"
-                      style={{ color: "var(--text-4)" }}
-                    >
-                      {result.timestamp}
-                    </span>
+                    />
                   </div>
                 </div>
               );
             })}
           </div>
+        </div>
+
+        {/* RAG Config */}
+        <div className="glass-card p-4">
+          <p
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: "0.5625rem",
+              letterSpacing: "0.12em",
+              color: "var(--text-4)",
+              marginBottom: "1rem",
+            }}
+          >
+            RAG CONFIG
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+            {RAG_CONFIG.map((cfg) => (
+              <div
+                key={cfg.key}
+                style={{
+                  background: "hsl(220 20% 4% / 0.5)",
+                  border: "1px solid var(--border-subtle)",
+                  borderRadius: "var(--radius)",
+                  padding: "0.75rem",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <p
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "0.5rem",
+                    letterSpacing: "0.1em",
+                    color: "var(--text-4)",
+                  }}
+                >
+                  {cfg.key}
+                </p>
+                <p
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "0.5rem",
+                    letterSpacing: "0.06em",
+                    color: "var(--cyan)",
+                    fontWeight: 700,
+                  }}
+                >
+                  {cfg.value}
+                </p>
+              </div>
+            ))}
+          </div>
+
+          {/* Embedding status */}
+          <div
+            style={{
+              marginTop: "1rem",
+              padding: "0.75rem",
+              background: "hsl(220 20% 4% / 0.5)",
+              border: "1px solid var(--border-subtle)",
+              borderRadius: "var(--radius)",
+            }}
+          >
+            <p
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: "0.4375rem",
+                letterSpacing: "0.1em",
+                color: "var(--text-4)",
+                marginBottom: "0.5rem",
+              }}
+            >
+              VECTOR INDEX STATUS
+            </p>
+            <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "0.35rem" }}>
+              <span className="pulse-dot" style={{ color: "var(--accent)" }} />
+              <span
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "0.4375rem",
+                  letterSpacing: "0.08em",
+                  color: "var(--accent)",
+                }}
+              >
+                ONLINE — pgvector HNSW
+              </span>
+            </div>
+            <p
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: "0.375rem",
+                letterSpacing: "0.06em",
+                color: "var(--text-4)",
+              }}
+            >
+              3072d · cosine similarity · ef_search=100
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Recent Queries */}
+      <div className="glass-card p-4">
+        <p
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: "0.5625rem",
+            letterSpacing: "0.12em",
+            color: "var(--text-4)",
+            marginBottom: "1rem",
+          }}
+        >
+          RECENT QUERIES — ÚLTIMAS 5
+        </p>
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+          {RECENT_QUERIES.map((q, i) => (
+            <div
+              key={i}
+              style={{
+                background: "hsl(220 20% 4% / 0.5)",
+                border: "1px solid var(--border-subtle)",
+                borderRadius: "var(--radius)",
+                padding: "0.75rem",
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "flex-start",
+                  marginBottom: "0.5rem",
+                }}
+              >
+                <p
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "0.5rem",
+                    letterSpacing: "0.04em",
+                    color: "var(--text-2)",
+                    lineHeight: 1.5,
+                    flex: 1,
+                    marginRight: "1rem",
+                  }}
+                >
+                  "{q.query}"
+                </p>
+                <div style={{ flexShrink: 0, textAlign: "right" }}>
+                  <p
+                    style={{
+                      fontFamily: "var(--font-display)",
+                      fontSize: "0.875rem",
+                      fontWeight: 700,
+                      color:
+                        q.confidence >= 95
+                          ? "var(--accent)"
+                          : q.confidence >= 88
+                          ? "var(--cyan)"
+                          : "var(--amber)",
+                      letterSpacing: "-0.01em",
+                    }}
+                  >
+                    {q.confidence}%
+                  </p>
+                  <p
+                    style={{
+                      fontFamily: "var(--font-mono)",
+                      fontSize: "0.375rem",
+                      letterSpacing: "0.1em",
+                      color: "var(--text-4)",
+                    }}
+                  >
+                    CONFIDENCE
+                  </p>
+                </div>
+              </div>
+              <div style={{ display: "flex", gap: "0.5rem", alignItems: "center", flexWrap: "wrap" }}>
+                {q.sources.map((src) => (
+                  <span key={src} className="tag-badge-cyan">
+                    {src}
+                  </span>
+                ))}
+                <span
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "0.4375rem",
+                    letterSpacing: "0.08em",
+                    color: "var(--text-4)",
+                    marginLeft: "auto",
+                  }}
+                >
+                  {q.latency}
+                </span>
+              </div>
+            </div>
+          ))}
         </div>
       </div>
     </div>

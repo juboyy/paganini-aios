@@ -1,358 +1,294 @@
 "use client";
 
-import { useState } from "react";
+const LLM_CONFIG = {
+  model: "gemini-2.5-flash",
+  api_key_status: "configured",
+  fallback_model: "gemini-pro",
+  temperature: 0.1,
+  max_tokens: 8192,
+};
 
-type Theme = "system" | "light" | "dark";
+const RAG_CONFIG = {
+  chunk_size: 1024,
+  overlap: 128,
+  top_k: 8,
+  embedding_model: "gemini-embedding-001",
+  vector_store: "ChromaDB",
+  collection: "fidc_paganini",
+};
+
+const GUARDRAILS = [
+  { name: "Hallucination Guard", key: "hallucination_guard", enabled: true, threshold: 0.85, unit: "confidence" },
+  { name: "Topic Scope Filter", key: "topic_scope_filter", enabled: true, threshold: 0.90, unit: "relevance" },
+  { name: "Regulatory Citation Check", key: "regulatory_citation", enabled: true, threshold: null, unit: null },
+  { name: "PII Redaction", key: "pii_redaction", enabled: true, threshold: null, unit: null },
+  { name: "Token Budget Guard", key: "token_budget_guard", enabled: true, threshold: 4096, unit: "tokens" },
+  { name: "Adversarial Prompt Filter", key: "adversarial_filter", enabled: false, threshold: 0.95, unit: "score" },
+];
 
 const INTEGRATIONS = [
-  { name: "Jira", status: "connected", lastSync: "2m ago" },
-  { name: "Confluence", status: "connected", lastSync: "15m ago" },
-  { name: "Supabase", status: "connected", lastSync: "1m ago" },
-  { name: "Vercel", status: "connected", lastSync: "30m ago" },
-  { name: "GitHub", status: "connected", lastSync: "5m ago" },
-  { name: "Stripe", status: "connected", lastSync: "1h ago" },
-  { name: "Slack", status: "connected", lastSync: "1m ago" },
-  { name: "LinkedIn", status: "error", lastSync: "2d ago" },
-  { name: "Linear", status: "connected", lastSync: "30s ago" },
-  { name: "OpenAI", status: "connected", lastSync: "1m ago" },
-  { name: "Google AI", status: "connected", lastSync: "5m ago" },
-  { name: "Mem0", status: "connected", lastSync: "1h ago" },
+  { name: "Slack", status: "connected", meta: "webhook active", color: "var(--accent)" },
+  { name: "CLI", status: "active", meta: "v1.4.2", color: "var(--accent)" },
+  { name: "Dashboard", status: "active", meta: "v2.0.0", color: "var(--accent)" },
+  { name: "API", status: "active", meta: "port 8000", color: "var(--accent)" },
 ];
 
-const SYSTEM_INFO = [
-  { label: "Version", value: "v2.0.0", mono: false },
-  { label: "Agents", value: "19 total · 16 online", mono: false },
-  { label: "Model (OraCLI)", value: "claude-opus-4-6-thinking", mono: true },
-  { label: "Model (Agents)", value: "claude-sonnet-4-6", mono: true },
-  { label: "Model (Codex)", value: "gpt-5.3-codex", mono: true },
-  { label: "Infrastructure", value: "EC2 sa-east-1", mono: true },
-  { label: "DB", value: "Supabase · apkflemx", mono: true },
-  { label: "Deploy", value: "Vercel Edge Network", mono: false },
-];
+const FUND_CONFIG = {
+  fund_name: "FIDC Paganini I",
+  cnpj: "00.000.000/0001-00",
+  administrator: "Vivaldi DTVM",
+  custodiante: "Oliveira Trust",
+  regulatory: "CVM",
+  min_subordination: "20%",
+  class_senior: "Série A",
+  class_sub: "Subordinada",
+  inception_date: "2024-01-15",
+};
 
-const THEME_OPTIONS: { value: Theme; label: string; icon: string }[] = [
-  { value: "system", label: "System", icon: "⚙️" },
-  { value: "light", label: "Light", icon: "☀️" },
-  { value: "dark", label: "Dark", icon: "🌙" },
-];
+const LABEL_STYLE = {
+  fontFamily: "var(--font-mono)",
+  fontSize: "0.5625rem",
+  letterSpacing: "0.12em",
+  color: "var(--text-4)",
+  textTransform: "uppercase" as const,
+};
 
-function SectionCard({ title, children }: { title: string; children: React.ReactNode }) {
+const VALUE_STYLE = {
+  fontFamily: "var(--font-display)",
+  fontSize: "1.5rem",
+  fontWeight: 700,
+  color: "var(--text-1)",
+  letterSpacing: "-0.02em",
+};
+
+const SECTION_TITLE = {
+  fontFamily: "var(--font-mono)",
+  fontSize: "0.625rem",
+  letterSpacing: "0.15em",
+  color: "var(--text-4)",
+  textTransform: "uppercase" as const,
+  marginBottom: "0.75rem",
+};
+
+function ConfigRow({ label, value, accent }: { label: string; value: string | number; accent?: string }) {
   return (
-    <div
-      style={{
-        background: "var(--bg-card)",
-        border: "1px solid var(--border)",
-        borderRadius: 20,
-        padding: "24px",
-        display: "flex",
-        flexDirection: "column",
-        gap: 20,
-      }}
-    >
-      <h2
-        style={{
-          fontSize: 9,
-          fontWeight: 700,
-          textTransform: "uppercase",
-          letterSpacing: "0.15em",
-          color: "var(--text-4)",
-          margin: 0,
-        }}
-      >
-        {title}
-      </h2>
-      {children}
+    <div style={{
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      padding: "0.5rem 0.75rem",
+      background: "hsl(220 20% 4% / 0.5)",
+      border: "1px solid var(--border-subtle)",
+      borderRadius: "var(--radius)",
+    }}>
+      <span style={LABEL_STYLE}>{label}</span>
+      <span style={{
+        fontFamily: "var(--font-mono)",
+        fontSize: "0.5625rem",
+        color: accent || "var(--text-2)",
+        letterSpacing: "0.05em",
+      }}>
+        {value}
+      </span>
+    </div>
+  );
+}
+
+function ToggleDisplay({ enabled }: { enabled: boolean }) {
+  return (
+    <div style={{
+      display: "flex",
+      alignItems: "center",
+      gap: "0.4rem",
+      padding: "0.15rem 0.5rem",
+      background: enabled ? "hsl(120 80% 10% / 0.5)" : "hsl(0 60% 10% / 0.5)",
+      border: `1px solid ${enabled ? "var(--accent)" : "var(--red)"}`,
+      borderRadius: "var(--radius)",
+    }}>
+      <div style={{
+        width: "0.375rem",
+        height: "0.375rem",
+        borderRadius: "50%",
+        background: enabled ? "var(--accent)" : "var(--red)",
+      }} />
+      <span style={{
+        fontFamily: "var(--font-mono)",
+        fontSize: "0.4375rem",
+        color: enabled ? "var(--accent)" : "var(--red)",
+        letterSpacing: "0.1em",
+      }}>
+        {enabled ? "ENABLED" : "DISABLED"}
+      </span>
     </div>
   );
 }
 
 export default function SettingsPage() {
-  const [theme, setTheme] = useState<Theme>("dark");
-  const [pollInterval, setPollInterval] = useState(30);
-
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 20,
-        padding: "16px",
-        maxWidth: 720,
-        margin: "0 auto",
-        width: "100%",
-      }}
-    >
+    <div style={{ padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+
       {/* Header */}
-      <div>
-        <h1 style={{ color: "var(--text-1)", fontSize: 20, fontWeight: 700, lineHeight: 1.2 }}>Settings</h1>
-        <p style={{ color: "var(--text-3)", fontSize: 13, marginTop: 4 }}>Dashboard configuration</p>
+      <div style={{ display: "flex", alignItems: "baseline", gap: "1rem" }}>
+        <h1 style={{ fontFamily: "var(--font-display)", fontSize: "1.25rem", fontWeight: 700, color: "var(--text-1)", letterSpacing: "-0.02em", margin: 0 }}>
+          SETTINGS
+        </h1>
+        <span style={{ ...LABEL_STYLE, fontSize: "0.5rem" }}>SYSTEM CONFIGURATION — READ ONLY</span>
+        <div style={{ marginLeft: "auto" }}>
+          <span className="tag-badge-cyan">read-only mode</span>
+        </div>
       </div>
 
-      {/* Appearance */}
-      <SectionCard title="Appearance">
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-2)" }}>Theme</span>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
-            {THEME_OPTIONS.map((opt) => {
-              const isSelected = theme === opt.value;
-              return (
-                <button
-                  key={opt.value}
-                  onClick={() => setTheme(opt.value)}
-                  style={{
-                    display: "flex",
-                    flexDirection: "column",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    gap: 8,
-                    padding: "20px 12px",
-                    borderRadius: 14,
-                    border: isSelected ? "2px solid var(--accent)" : "2px solid var(--border)",
-                    background: isSelected ? "var(--accent-bg)" : "var(--bg)",
-                    cursor: "pointer",
-                    transition: "all 0.15s ease",
-                    minHeight: 80,
-                    minWidth: 44,
-                  }}
-                >
-                  <span style={{ fontSize: 24 }}>{opt.icon}</span>
-                  <span
-                    style={{
-                      fontSize: 11,
-                      fontWeight: 700,
-                      color: isSelected ? "var(--accent)" : "var(--text-3)",
-                      textTransform: "capitalize",
-                    }}
-                  >
-                    {opt.label}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
-        </div>
-      </SectionCard>
+      {/* Main grid: 2 columns */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
 
-      {/* Symphony */}
-      <SectionCard title="Symphony Daemon">
-        {/* Status row */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "14px 16px",
-            borderRadius: 12,
-            background: "var(--bg)",
-            border: "1px solid var(--border)",
-            flexWrap: "wrap",
-            gap: 12,
-            minHeight: 44,
-          }}
-        >
-          <div>
-            <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-1)" }}>Daemon Status</div>
-            <div style={{ fontSize: 11, color: "var(--text-4)", marginTop: 3 }}>PID 89563 · uptime 4h 32m</div>
+        {/* LLM Provider */}
+        <div className="glass-card p-4">
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.75rem" }}>
+            <div style={SECTION_TITLE}>LLM PROVIDER</div>
+            <span className="tag-badge">gemini</span>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-            <div
-              style={{
-                width: 12,
-                height: 12,
-                borderRadius: "50%",
-                background: "var(--green)",
-                boxShadow: "0 0 8px var(--green)",
-                animation: "pulse-dot 2s infinite",
-                flexShrink: 0,
-              }}
-            />
-            <span style={{ fontSize: 13, fontWeight: 700, color: "var(--green)" }}>Running</span>
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+            <ConfigRow label="MODEL" value={LLM_CONFIG.model} accent="var(--accent)" />
+            <div style={{
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "space-between",
+              padding: "0.5rem 0.75rem",
+              background: "hsl(220 20% 4% / 0.5)",
+              border: "1px solid var(--border-subtle)",
+              borderRadius: "var(--radius)",
+            }}>
+              <span style={LABEL_STYLE}>API KEY</span>
+              <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--text-4)", letterSpacing: "0.05em" }}>••••••••••••••••</span>
+                <span className="tag-badge">configured ✓</span>
+              </div>
+            </div>
+            <ConfigRow label="FALLBACK MODEL" value={LLM_CONFIG.fallback_model} accent="var(--cyan)" />
+            <ConfigRow label="TEMPERATURE" value={LLM_CONFIG.temperature} />
+            <ConfigRow label="MAX TOKENS" value={LLM_CONFIG.max_tokens.toLocaleString()} />
           </div>
         </div>
 
-        {/* Poll interval */}
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-            <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-2)" }}>Poll Interval</span>
-            <span
-              style={{
-                fontSize: 14,
-                fontWeight: 800,
-                fontFamily: "monospace",
-                color: "var(--accent)",
-                background: "var(--accent-bg)",
-                padding: "4px 10px",
-                borderRadius: 8,
-              }}
-            >
-              {pollInterval}s
-            </span>
+        {/* RAG Config */}
+        <div className="glass-card p-4">
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.75rem" }}>
+            <div style={SECTION_TITLE}>RAG CONFIGURATION</div>
+            <span className="tag-badge-cyan">chromadb</span>
           </div>
-          <input
-            type="range"
-            min={10}
-            max={120}
-            step={5}
-            value={pollInterval}
-            onChange={(e) => setPollInterval(Number(e.target.value))}
-            style={{
-              width: "100%",
-              accentColor: "var(--accent)",
-              height: 6,
-              cursor: "pointer",
-            }}
-          />
-          <div style={{ display: "flex", justifyContent: "space-between" }}>
-            <span style={{ fontSize: 10, color: "var(--text-4)" }}>10s</span>
-            <span style={{ fontSize: 10, color: "var(--text-4)" }}>120s</span>
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+            <ConfigRow label="CHUNK SIZE" value={`${RAG_CONFIG.chunk_size} tokens`} accent="var(--cyan)" />
+            <ConfigRow label="OVERLAP" value={`${RAG_CONFIG.overlap} tokens`} />
+            <ConfigRow label="TOP K" value={RAG_CONFIG.top_k} accent="var(--accent)" />
+            <ConfigRow label="EMBEDDING MODEL" value={RAG_CONFIG.embedding_model} accent="var(--text-2)" />
+            <ConfigRow label="VECTOR STORE" value={RAG_CONFIG.vector_store} accent="var(--cyan)" />
+            <ConfigRow label="COLLECTION" value={RAG_CONFIG.collection} />
           </div>
         </div>
 
-        {/* Linear team */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            padding: "14px 16px",
-            borderRadius: 12,
-            background: "var(--bg)",
-            border: "1px solid var(--border)",
-            flexWrap: "wrap",
-            gap: 8,
-          }}
-        >
-          <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-2)" }}>Linear Team</span>
-          <span style={{ fontSize: 13, fontFamily: "monospace", color: "var(--text-3)" }}>VIV (Vivaldi)</span>
-        </div>
-      </SectionCard>
-
-      {/* Integrations */}
-      <SectionCard title="Integrations">
-        <div style={{ display: "flex", flexDirection: "column", gap: 0 }}>
-          {INTEGRATIONS.map((int, i) => (
-            <div
-              key={int.name}
-              style={{
+        {/* Guardrails */}
+        <div className="glass-card p-4">
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.75rem" }}>
+            <div style={SECTION_TITLE}>GUARDRAILS — 6 GATES</div>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", color: "var(--accent)", letterSpacing: "0.1em" }}>5/6 ACTIVE</span>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+            {GUARDRAILS.map((g) => (
+              <div key={g.key} style={{
                 display: "flex",
                 alignItems: "center",
-                gap: 14,
-                padding: "12px 4px",
-                borderBottom:
-                  i < INTEGRATIONS.length - 1 ? "1px solid var(--border)" : "none",
-                minHeight: 52,
-                flexWrap: "wrap",
-              }}
-            >
-              {/* Large status dot */}
-              <div
-                style={{
-                  width: 12,
-                  height: 12,
-                  borderRadius: "50%",
-                  background: int.status === "connected" ? "var(--green)" : "var(--red)",
-                  flexShrink: 0,
-                  boxShadow:
-                    int.status === "connected"
-                      ? "0 0 6px var(--green)"
-                      : "0 0 6px var(--red)",
-                }}
-              />
-
-              {/* Name */}
-              <span
-                style={{
-                  fontSize: 13,
-                  fontWeight: 600,
-                  color: "var(--text-1)",
-                  flex: 1,
-                  minWidth: 0,
-                }}
-              >
-                {int.name}
-              </span>
-
-              {/* Last sync */}
-              <span style={{ fontSize: 11, color: "var(--text-4)", flexShrink: 0 }}>{int.lastSync}</span>
-
-              {/* Status badge */}
-              <span
-                style={{
-                  fontSize: 9,
-                  fontWeight: 700,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.1em",
-                  padding: "4px 10px",
-                  borderRadius: 999,
-                  background:
-                    int.status === "connected"
-                      ? "rgba(34,197,94,0.12)"
-                      : "rgba(239,68,68,0.12)",
-                  color: int.status === "connected" ? "var(--green)" : "var(--red)",
-                  flexShrink: 0,
-                }}
-              >
-                {int.status}
-              </span>
-            </div>
-          ))}
+                justifyContent: "space-between",
+                padding: "0.5rem 0.75rem",
+                background: "hsl(220 20% 4% / 0.5)",
+                border: "1px solid var(--border-subtle)",
+                borderRadius: "var(--radius)",
+              }}>
+                <div>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--text-2)", letterSpacing: "0.04em" }}>{g.name}</div>
+                  {g.threshold !== null && (
+                    <div style={{ ...LABEL_STYLE, fontSize: "0.4375rem", marginTop: "0.15rem" }}>
+                      threshold: {g.threshold} {g.unit}
+                    </div>
+                  )}
+                </div>
+                <ToggleDisplay enabled={g.enabled} />
+              </div>
+            ))}
+          </div>
         </div>
-      </SectionCard>
 
-      {/* System info */}
-      <SectionCard title="System">
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "1fr 1fr",
-            gap: 0,
-          }}
-        >
-          {SYSTEM_INFO.map((item, i) => (
-            <div
-              key={item.label}
-              style={{
-                padding: "12px 8px",
-                borderBottom:
-                  i < SYSTEM_INFO.length - 2 ? "1px solid var(--border)" : "none",
-                display: "flex",
-                flexDirection: "column",
-                gap: 4,
-              }}
-            >
-              <span
-                style={{
-                  fontSize: 9,
-                  fontWeight: 700,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.12em",
-                  color: "var(--text-4)",
-                }}
-              >
-                {item.label}
-              </span>
-              <span
-                style={{
-                  fontSize: item.mono ? 11 : 13,
-                  fontWeight: 600,
-                  color: "var(--text-1)",
-                  fontFamily: item.mono ? "monospace" : "inherit",
-                  wordBreak: "break-all",
-                }}
-              >
-                {item.value}
-              </span>
+        {/* Right column: Integrations + Fund Config stacked */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+
+          {/* Integrations */}
+          <div className="glass-card p-4">
+            <div style={SECTION_TITLE}>INTEGRATIONS</div>
+            <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.4rem" }}>
+              {INTEGRATIONS.map((intg) => (
+                <div key={intg.name} style={{
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "0.6rem",
+                  padding: "0.6rem 0.75rem",
+                  background: "hsl(220 20% 4% / 0.5)",
+                  border: "1px solid var(--border-subtle)",
+                  borderRadius: "var(--radius)",
+                }}>
+                  <span className="pulse-dot" style={{ background: intg.color }} />
+                  <div>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--text-2)", letterSpacing: "0.04em" }}>{intg.name}</div>
+                    <div style={{ ...LABEL_STYLE, fontSize: "0.4375rem", marginTop: "0.1rem" }}>{intg.meta}</div>
+                  </div>
+                  <span className="tag-badge" style={{ marginLeft: "auto" }}>{intg.status} ✓</span>
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      </SectionCard>
+          </div>
 
-      <style>{`
-        @keyframes pulse-dot {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.4; }
-        }
-      `}</style>
+          {/* Fund Config */}
+          <div className="glass-card p-4" style={{ flex: 1 }}>
+            <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "0.75rem" }}>
+              <div style={SECTION_TITLE}>FUND CONFIGURATION</div>
+              <span className="tag-badge-cyan">CVM</span>
+            </div>
+            <div style={{ marginBottom: "0.75rem" }}>
+              <div style={LABEL_STYLE}>FUND NAME</div>
+              <div style={{ ...VALUE_STYLE, fontSize: "1.125rem", marginTop: "0.2rem", color: "var(--accent)" }}>{FUND_CONFIG.fund_name}</div>
+            </div>
+            <div style={{ display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+              <ConfigRow label="CNPJ" value={FUND_CONFIG.cnpj} />
+              <ConfigRow label="ADMINISTRATOR" value={FUND_CONFIG.administrator} accent="var(--cyan)" />
+              <ConfigRow label="CUSTODIANTE" value={FUND_CONFIG.custodiante} accent="var(--cyan)" />
+              <ConfigRow label="REGULATORY" value={FUND_CONFIG.regulatory} accent="var(--amber)" />
+              <ConfigRow label="MIN SUBORDINATION" value={FUND_CONFIG.min_subordination} accent="var(--accent)" />
+              <ConfigRow label="INCEPTION DATE" value={FUND_CONFIG.inception_date} />
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+      {/* Footer note */}
+      <div style={{
+        display: "flex",
+        alignItems: "center",
+        gap: "0.75rem",
+        padding: "0.5rem 0.75rem",
+        background: "hsl(220 20% 4% / 0.5)",
+        border: "1px solid var(--border-subtle)",
+        borderRadius: "var(--radius)",
+      }}>
+        <span className="pulse-dot" style={{ background: "var(--amber)" }} />
+        <span style={{ ...LABEL_STYLE, fontSize: "0.5rem" }}>
+          CONFIGURATION IS READ-ONLY — EDIT VIA{" "}
+          <span style={{ color: "var(--accent)" }}>config/settings.yaml</span>
+          {" "}AND REDEPLOY THE AGENT CONTAINER
+        </span>
+        <span style={{ marginLeft: "auto" }}>
+          <span className="tag-badge-cyan">config v1.4.0</span>
+        </span>
+      </div>
+
     </div>
   );
 }

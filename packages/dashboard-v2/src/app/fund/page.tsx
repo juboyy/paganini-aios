@@ -1,556 +1,243 @@
 "use client";
 
-import {
-  AreaChart,
-  Area,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
-  ResponsiveContainer,
-} from "recharts";
-import { NAV_HISTORY, CONCENTRATION } from "@/lib/mock-data";
+const NAV_STATS = [
+  { label: "TOTAL NAV", value: "R$ 245.8M", delta: "+1.2%", up: true },
+  { label: "COTA SÊNIOR", value: "R$ 1.0234", delta: "+0.03%", up: true },
+  { label: "COTA SUBORDINADA", value: "R$ 0.9876", delta: "-0.12%", up: false },
+  { label: "SUBORDINATION RATIO", value: "28.5%", delta: "+0.3pp", up: true },
+];
 
-/* ──────────────────────────────────────────────
-   Static data
-────────────────────────────────────────────── */
+const PORTFOLIO_STATS = [
+  { label: "TOTAL RECEIVABLES", value: "R$ 312.4M" },
+  { label: "PDD PROVISION", value: "R$ 4.7M" },
+  { label: "NET PORTFOLIO", value: "R$ 307.7M" },
+];
+
+const PDD_AGING = [
+  { bucket: "0–30d", amount: "R$ 280.0M", rate: 1, pct: 90 },
+  { bucket: "31–60d", amount: "R$ 18.2M", rate: 3, pct: 5.8 },
+  { bucket: "61–90d", amount: "R$ 8.1M", rate: 10, pct: 2.6 },
+  { bucket: "91–120d", amount: "R$ 3.8M", rate: 30, pct: 1.2 },
+  { bucket: "121–150d", amount: "R$ 1.5M", rate: 50, pct: 0.5 },
+  { bucket: "151–180d", amount: "R$ 0.6M", rate: 70, pct: 0.2 },
+  { bucket: ">180d", amount: "R$ 0.2M", rate: 100, pct: 0.06 },
+];
+
+const RECENT_OPS = [
+  { cedente: "Metalúrgica Bonfim SA", amount: "R$ 2.4M", rate: "12.3%", status: "APPROVED" },
+  { cedente: "Distribuidora Norte Ltda", amount: "R$ 890K", rate: "11.8%", status: "APPROVED" },
+  { cedente: "Frigorífico Sul Carne", amount: "R$ 1.1M", rate: "13.1%", status: "FLAGGED" },
+  { cedente: "Têxtil Paraná Ind.", amount: "R$ 3.2M", rate: "12.0%", status: "APPROVED" },
+  { cedente: "Agro Cerrado Export", amount: "R$ 670K", rate: "14.5%", status: "REJECTED" },
+];
+
 const COVENANTS = [
-  { name: "Subordination ratio", current: 43.2, limit: 40, unit: "%", status: "ok" as const },
-  { name: "PDD / portfolio", current: 2.8, limit: 5, unit: "%", status: "ok" as const },
-  { name: "Single cedent conc.", current: 14.2, limit: 15, unit: "%", status: "warn" as const },
-  { name: "Delinquency 90d+", current: 3.1, limit: 8, unit: "%", status: "ok" as const },
+  { label: "LIQUIDITY RATIO", value: 1.12, min: 1.05, max: 2.0, unit: "x", display: "1.12x", threshold: "MIN 1.05x" },
+  { label: "SUBORDINATION", value: 28.5, min: 20, max: 50, unit: "%", display: "28.5%", threshold: "MIN 20%" },
+  { label: "DEFAULT RATE", value: 2.8, min: 0, max: 5, unit: "%", display: "2.8%", threshold: "MAX 5%", inverted: true },
 ];
 
-const CASHFLOW = [
-  { label: "Inflow 30d", value: "R$ 28.4M", positive: true },
-  { label: "Outflow 30d", value: "R$ 21.2M", positive: false },
-  { label: "Net 30d", value: "+R$ 7.2M", positive: true },
-  { label: "Net 90d", value: "+R$ 11.5M", positive: true },
-];
-
-const PDD_BUCKETS = [
-  { label: "0–30d", value: 0.4 },
-  { label: "31–60d", value: 0.8 },
-  { label: "61–90d", value: 1.2 },
-  { label: "91–180d", value: 2.4 },
-  { label: "180d+", value: 3.5 },
-];
-
-/* ──────────────────────────────────────────────
-   Helpers
-────────────────────────────────────────────── */
-function concColor(pct: number) {
-  if (pct >= 12) return "var(--red)";
-  if (pct >= 8) return "var(--amber)";
-  if (pct >= 4) return "var(--blue)";
-  return "var(--green)";
+function rateColor(rate: number) {
+  if (rate <= 3) return "var(--accent)";
+  if (rate <= 30) return "var(--amber)";
+  return "var(--red)";
 }
 
-function concBarColor(pct: number) {
-  if (pct >= 14) return "var(--red)";
-  if (pct >= 10) return "var(--amber)";
-  return "var(--green)";
+function statusBadge(status: string) {
+  if (status === "APPROVED") return "tag-badge";
+  if (status === "FLAGGED") return "tag-badge-cyan";
+  return null;
 }
 
-function covenantColor(status: "ok" | "warn" | "breach") {
-  if (status === "breach") return "var(--red)";
-  if (status === "warn") return "var(--amber)";
-  return "var(--green)";
-}
-
-/** Arc progress as SVG circle */
-function CircleProgress({
-  current,
-  limit,
-  status,
-  unit,
-  name,
-}: {
-  current: number;
-  limit: number;
-  status: "ok" | "warn" | "breach";
-  unit: string;
-  name: string;
-}) {
-  const pct = Math.min(100, (current / limit) * 100);
-  const r = 30;
-  const circ = 2 * Math.PI * r;
-  const dash = (pct / 100) * circ;
-  const color = covenantColor(status);
+function CovenantGauge({ cov }: { cov: typeof COVENANTS[0] }) {
+  const pct = ((cov.value - cov.min) / (cov.max - cov.min)) * 100;
+  const thresholdPct = cov.inverted
+    ? ((cov.max - cov.min) / (cov.max - cov.min)) * 100
+    : ((cov.min - cov.min) / (cov.max - cov.min)) * 100;
+  const safe = cov.inverted ? cov.value <= cov.max * 0.7 : cov.value >= cov.min * 1.05;
+  const color = safe ? "var(--accent)" : "var(--amber)";
 
   return (
-    <div
-      className="rounded-2xl flex flex-col items-center gap-2 active:scale-[0.98] transition-all duration-200"
-      style={{
-        background: "var(--bg-card)",
-        border: "1px solid var(--border)",
-        padding: "20px 12px 16px",
-        boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-      }}
-    >
-      {/* SVG circle */}
-      <svg width={80} height={80} style={{ transform: "rotate(-90deg)" }}>
-        {/* Track */}
-        <circle
-          cx={40}
-          cy={40}
-          r={r}
-          fill="none"
-          stroke="var(--border)"
-          strokeWidth={7}
-        />
-        {/* Progress */}
-        <circle
-          cx={40}
-          cy={40}
-          r={r}
-          fill="none"
-          stroke={color}
-          strokeWidth={7}
-          strokeLinecap="round"
-          strokeDasharray={`${dash} ${circ}`}
-          style={{ transition: "stroke-dasharray 0.6s ease" }}
-        />
-      </svg>
-
-      {/* Value overlay — we position absolutely above the svg */}
-      <div
-        className="flex flex-col items-center"
-        style={{ marginTop: -80 - 8, marginBottom: 8 - 16, height: 80, justifyContent: "center" }}
-      >
-        <span
-          className="font-bold font-mono"
-          style={{ fontSize: 15, color: "var(--text-1)" }}
-        >
-          {current}
-          {unit}
-        </span>
+    <div className="glass-card p-4" style={{ flex: 1 }}>
+      <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: 12 }}>
+        {cov.label}
       </div>
-
-      <p
-        className="text-[13px] text-center leading-tight"
-        style={{ color: "var(--text-3)" }}
-      >
-        {name}
-      </p>
-      <div className="flex items-center gap-1">
-        <span
-          className="rounded-full w-1.5 h-1.5"
-          style={{ background: color }}
-        />
-        <span
-          className="text-[9px] uppercase tracking-[0.15em] font-bold"
-          style={{ color }}
-        >
-          {status}
-        </span>
-        <span className="text-[9px]" style={{ color: "var(--text-4)" }}>
-          / {limit}
-          {unit}
-        </span>
+      <div style={{ fontFamily: "var(--font-display)", fontSize: "1.5rem", fontWeight: 700, color: "var(--text-1)", letterSpacing: "-0.02em", marginBottom: 4 }}>
+        {cov.display}
+      </div>
+      <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", color: color, marginBottom: 12 }}>
+        {cov.threshold}
+      </div>
+      {/* Bar gauge */}
+      <div style={{ position: "relative", height: 6, background: "hsl(220 20% 10%)", borderRadius: 1, overflow: "hidden" }}>
+        <div style={{
+          position: "absolute", left: 0, top: 0, height: "100%",
+          width: `${Math.min(pct, 100)}%`,
+          background: color,
+          borderRadius: 1,
+          transition: "width 0.6s ease",
+          boxShadow: `0 0 8px ${color}`,
+        }} />
+        {/* threshold line */}
+        <div style={{
+          position: "absolute", top: 0, bottom: 0,
+          left: `${cov.inverted ? 100 - ((cov.max * 0.7 - cov.min) / (cov.max - cov.min)) * 100 : ((cov.min - cov.min) / (cov.max - cov.min)) * 100}%`,
+          width: 1,
+          background: "var(--text-4)",
+          opacity: 0.5,
+        }} />
+      </div>
+      <div style={{ display: "flex", justifyContent: "space-between", marginTop: 6 }}>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.45rem", color: "var(--text-4)" }}>{cov.min}{cov.unit}</span>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.45rem", color: "var(--text-4)" }}>{cov.max}{cov.unit}</span>
       </div>
     </div>
   );
 }
 
-/* ──────────────────────────────────────────────
-   Recharts custom tooltip
-────────────────────────────────────────────── */
-const NavTooltip = ({
-  active,
-  payload,
-  label,
-}: {
-  active?: boolean;
-  payload?: Array<{ value: number }>;
-  label?: string;
-}) => {
-  if (!active || !payload?.length) return null;
-  return (
-    <div
-      className="rounded-2xl px-3 py-2 text-[13px] shadow-lg"
-      style={{
-        background: "var(--bg-card)",
-        border: "1px solid var(--border)",
-        color: "var(--text-1)",
-      }}
-    >
-      <p style={{ color: "var(--text-3)" }} className="text-[9px] uppercase tracking-[0.15em] mb-0.5">
-        {label}
-      </p>
-      <p className="font-bold font-mono" style={{ color: "var(--accent)" }}>
-        R$ {payload[0].value.toFixed(1)}M
-      </p>
-    </div>
-  );
-};
-
-/* ──────────────────────────────────────────────
-   Page
-────────────────────────────────────────────── */
 export default function FundPage() {
   return (
-    <div className="flex flex-col gap-6 p-4 sm:p-6">
+    <div style={{ padding: "24px 28px", minHeight: "100vh", fontFamily: "var(--font-mono)" }}>
       {/* Header */}
-      <div>
-        <h1
-          className="text-2xl font-bold tracking-tight"
-          style={{ color: "var(--text-1)" }}
-        >
-          Fund Operations
-        </h1>
-        <p className="mt-1 text-[13px]" style={{ color: "var(--text-3)" }}>
-          FIDC Paganini · R$ 245.8M AUM · Mar 2026
-        </p>
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 28 }}>
+        <span className="pulse-dot" style={{ background: "var(--accent)", boxShadow: "0 0 8px var(--accent)" }} />
+        <div>
+          <h1 style={{ fontFamily: "var(--font-display)", fontSize: "1.125rem", fontWeight: 700, color: "var(--text-1)", letterSpacing: "-0.02em", margin: 0 }}>
+            FUND OPS
+          </h1>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginTop: 2 }}>
+            FIDC PAGANINI · LIVE DATA · {new Date().toLocaleDateString("pt-BR")}
+          </div>
+        </div>
+        <div style={{ marginLeft: "auto" }}>
+          <span className="tag-badge">OPERATIONAL</span>
+        </div>
       </div>
 
-      {/* ── NAV Chart ───────────────────────────── */}
-      <section
-        className="rounded-2xl"
-        style={{
-          background: "var(--bg-card)",
-          border: "1px solid var(--border)",
-          boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-        }}
-      >
-        <div
-          className="flex items-center justify-between px-5 pt-5 pb-0"
-        >
-          <div>
-            <h2 className="text-base font-semibold" style={{ color: "var(--text-1)" }}>
-              Net Asset Value
-            </h2>
-            <p className="text-[13px] mt-0.5" style={{ color: "var(--text-3)" }}>
-              12-month trailing · millions BRL
-            </p>
+      {/* NAV Stats */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 20 }}>
+        {NAV_STATS.map((s) => (
+          <div key={s.label} className="glass-card p-4">
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: 8 }}>
+              {s.label}
+            </div>
+            <div style={{ fontFamily: "var(--font-display)", fontSize: "1.5rem", fontWeight: 700, color: "var(--text-1)", letterSpacing: "-0.02em" }}>
+              {s.value}
+            </div>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", color: s.up ? "var(--accent)" : "var(--red)", marginTop: 6 }}>
+              {s.delta} 24H
+            </div>
           </div>
-          <div className="text-right">
-            <p
-              className="text-xl font-bold font-mono"
-              style={{ color: "var(--accent)" }}
-            >
-              R$ 245.8M
-            </p>
-            <p className="text-[13px]" style={{ color: "var(--green)" }}>
-              +34.8% YTD
-            </p>
-          </div>
-        </div>
+        ))}
+      </div>
 
-        <div style={{ padding: "16px 8px 8px" }}>
-          <ResponsiveContainer width="100%" height={200}>
-            <AreaChart
-              data={NAV_HISTORY}
-              margin={{ top: 4, right: 8, left: -16, bottom: 0 }}
-            >
-              <defs>
-                <linearGradient id="navFill" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="var(--accent)" stopOpacity={0.28} />
-                  <stop offset="95%" stopColor="var(--accent)" stopOpacity={0.01} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid
-                strokeDasharray="3 3"
-                stroke="var(--border)"
-                vertical={false}
-              />
-              <XAxis
-                dataKey="month"
-                tick={{ fill: "var(--text-4)", fontSize: 11 }}
-                axisLine={false}
-                tickLine={false}
-              />
-              <YAxis
-                domain={["dataMin - 5", "dataMax + 5"]}
-                tick={{ fill: "var(--text-4)", fontSize: 11 }}
-                axisLine={false}
-                tickLine={false}
-                tickFormatter={(v) => `${v}`}
-              />
-              <Tooltip content={<NavTooltip />} />
-              <Area
-                type="monotone"
-                dataKey="value"
-                stroke="var(--accent)"
-                strokeWidth={2.5}
-                fill="url(#navFill)"
-                dot={false}
-                activeDot={{
-                  r: 5,
-                  fill: "var(--accent)",
-                  stroke: "var(--bg-card)",
-                  strokeWidth: 2,
-                }}
-              />
-            </AreaChart>
-          </ResponsiveContainer>
-        </div>
-      </section>
-
-      {/* ── Concentration ────────────────────────── */}
-      <section>
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-base font-semibold" style={{ color: "var(--text-1)" }}>
-            Cedent Concentration
-          </h2>
-          <div className="flex items-center gap-3 text-[13px]" style={{ color: "var(--text-4)" }}>
-            <span className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded inline-block" style={{ background: "var(--green)" }} />
-              &lt;10%
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded inline-block" style={{ background: "var(--amber)" }} />
-              10–14%
-            </span>
-            <span className="flex items-center gap-1">
-              <span className="w-2 h-2 rounded inline-block" style={{ background: "var(--red)" }} />
-              14%+
-            </span>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
-          {CONCENTRATION.map((item) => {
-            const barColor = concBarColor(item.pct);
-            const textColor = concColor(item.pct);
-            const barPct = Math.min(100, (item.pct / 15) * 100); // 15% = limit
-            const LIMIT_POS = (15 / 15) * 100; // 100% — the limit is at bar end
-
-            return (
-              <div
-                key={item.cedent}
-                className="rounded-2xl flex flex-col gap-2.5 transition-all duration-200 active:scale-[0.98]"
-                style={{
-                  background: "var(--bg-card)",
-                  border: "1px solid var(--border)",
-                  boxShadow: "0 1px 4px rgba(0,0,0,0.04)",
-                  padding: "16px 16px 14px",
-                }}
-              >
-                {/* Name + pct */}
-                <div className="flex items-center justify-between">
-                  <span className="text-[13px] font-semibold" style={{ color: "var(--text-2)" }}>
-                    {item.cedent}
-                  </span>
-                  <span
-                    className="text-xl font-bold font-mono"
-                    style={{ color: textColor }}
-                  >
-                    {item.pct}%
-                  </span>
-                </div>
-
-                {/* Progress bar with limit indicator */}
-                <div className="relative" style={{ height: 8 }}>
-                  {/* Track */}
-                  <div
-                    className="absolute inset-0 rounded-full overflow-hidden"
-                    style={{ background: "var(--border)" }}
-                  >
-                    {/* Fill */}
-                    <div
-                      className="h-full rounded-full transition-all duration-500"
-                      style={{
-                        width: `${barPct}%`,
-                        background: barColor,
-                      }}
-                    />
-                  </div>
-                  {/* Limit line (at 100% of bar width = 15% cedent) */}
-                  <div
-                    className="absolute top-0 bottom-0"
-                    style={{
-                      left: `${LIMIT_POS}%`,
-                      width: 2,
-                      background: "var(--red)",
-                      transform: "translateX(-50%)",
-                      borderRadius: 1,
-                    }}
-                  />
-                </div>
-
-                {/* Limit label */}
-                <div className="flex items-center justify-between">
-                  <span className="text-[9px] uppercase tracking-[0.15em] font-semibold" style={{ color: "var(--text-4)" }}>
-                    Limit: 15%
-                  </span>
-                  {item.pct >= 14 && (
-                    <span
-                      className="text-[9px] uppercase tracking-[0.15em] font-bold rounded-lg px-2 py-0.5"
-                      style={{ background: "rgba(239,68,68,0.12)", color: "var(--red)" }}
-                    >
-                      ⚠ Near limit
-                    </span>
-                  )}
-                  {item.pct >= 10 && item.pct < 14 && (
-                    <span
-                      className="text-[9px] uppercase tracking-[0.15em] font-bold rounded-lg px-2 py-0.5"
-                      style={{ background: "rgba(234,179,8,0.12)", color: "var(--amber)" }}
-                    >
-                      Watch
-                    </span>
-                  )}
-                </div>
+      {/* Portfolio + Aging */}
+      <div style={{ display: "grid", gridTemplateColumns: "280px 1fr", gap: 12, marginBottom: 20 }}>
+        {/* Portfolio Stats */}
+        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+          {PORTFOLIO_STATS.map((s) => (
+            <div key={s.label} className="glass-card p-4" style={{ flex: 1 }}>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: 6 }}>
+                {s.label}
               </div>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* ── Covenants: circular progress ─────────── */}
-      <section>
-        <h2
-          className="text-base font-semibold mb-3"
-          style={{ color: "var(--text-1)" }}
-        >
-          Covenant Monitor
-        </h2>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {COVENANTS.map((cov) => (
-            <CircleProgress
-              key={cov.name}
-              current={cov.current}
-              limit={cov.limit}
-              status={cov.status}
-              unit={cov.unit}
-              name={cov.name}
-            />
-          ))}
-        </div>
-      </section>
-
-      {/* ── Cashflow: 2×2 grid ────────────────────── */}
-      <section>
-        <h2
-          className="text-base font-semibold mb-3"
-          style={{ color: "var(--text-1)" }}
-        >
-          Cashflow Projection
-        </h2>
-        <div className="grid grid-cols-2 gap-3">
-          {CASHFLOW.map((cf) => (
-            <div
-              key={cf.label}
-              className="rounded-2xl flex flex-col gap-1 transition-all duration-200 active:scale-[0.98]"
-              style={{
-                background: "var(--bg-card)",
-                border: "1px solid var(--border)",
-                boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-                padding: "18px 16px 14px",
-              }}
-            >
-              <span
-                className="text-[9px] uppercase tracking-[0.15em] font-semibold"
-                style={{ color: "var(--text-4)" }}
-              >
-                {cf.label}
-              </span>
-              <span
-                className="text-xl font-bold font-mono"
-                style={{ color: cf.positive ? "var(--green)" : "var(--red)" }}
-              >
-                {cf.value}
-              </span>
+              <div style={{ fontFamily: "var(--font-display)", fontSize: "1.25rem", fontWeight: 700, color: "var(--text-1)", letterSpacing: "-0.02em" }}>
+                {s.value}
+              </div>
             </div>
           ))}
         </div>
-      </section>
 
-      {/* ── PDD Summary ───────────────────────────── */}
-      <section>
-        <h2
-          className="text-base font-semibold mb-3"
-          style={{ color: "var(--text-1)" }}
-        >
-          PDD Summary
-        </h2>
-        <div
-          className="rounded-2xl"
-          style={{
-            background: "var(--bg-card)",
-            border: "1px solid var(--border)",
-            boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-            padding: "20px",
-          }}
-        >
-          {/* Big number */}
-          <div className="flex items-start justify-between mb-5">
-            <div>
-              <p className="text-[9px] uppercase tracking-[0.15em] font-semibold" style={{ color: "var(--text-4)" }}>
-                Total provision
-              </p>
-              <p
-                className="text-xl font-bold font-mono mt-1"
-                style={{ color: "var(--text-1)" }}
-              >
-                R$ 20.33M
-              </p>
-            </div>
-            <div className="text-right">
-              <p className="text-[9px] uppercase tracking-[0.15em] font-semibold" style={{ color: "var(--text-4)" }}>
-                % of portfolio
-              </p>
-              <p
-                className="text-xl font-bold font-mono mt-1"
-                style={{ color: "var(--amber)" }}
-              >
-                2.8%
-              </p>
-            </div>
+        {/* PDD Aging Table */}
+        <div className="glass-card p-4">
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: 16 }}>
+            PDD AGING SCHEDULE
           </div>
-
-          {/* Aging bucket mini bars */}
-          <div className="flex flex-col gap-2.5">
-            {PDD_BUCKETS.map((bucket) => {
-              const maxVal = PDD_BUCKETS[PDD_BUCKETS.length - 1].value;
-              const pct = Math.round((bucket.value / maxVal) * 100);
-              const barColor =
-                bucket.value >= 3
-                  ? "var(--red)"
-                  : bucket.value >= 1.5
-                  ? "var(--amber)"
-                  : "var(--blue)";
-
+          <div style={{ display: "grid", gridTemplateColumns: "80px 1fr auto auto", gap: "0 16px", alignItems: "center" }}>
+            {/* Header */}
+            {["BUCKET", "EXPOSURE", "% PORT.", "PDD RATE"].map((h) => (
+              <div key={h} style={{ fontFamily: "var(--font-mono)", fontSize: "0.45rem", letterSpacing: "0.12em", color: "var(--text-4)", paddingBottom: 8, borderBottom: "1px solid var(--border-subtle)" }}>
+                {h}
+              </div>
+            ))}
+            {PDD_AGING.map((row) => {
+              const barColor = rateColor(row.rate);
               return (
-                <div key={bucket.label} className="flex items-center gap-3">
-                  <span
-                    className="text-[13px] flex-shrink-0 font-mono"
-                    style={{ color: "var(--text-4)", width: 52 }}
-                  >
-                    {bucket.label}
-                  </span>
-                  <div
-                    className="flex-1 rounded-full overflow-hidden"
-                    style={{ height: 7, background: "var(--border)" }}
-                  >
-                    <div
-                      className="h-full rounded-full transition-all duration-500"
-                      style={{ width: `${pct}%`, background: barColor }}
-                    />
+                <>
+                  <div key={row.bucket + "-b"} style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--text-2)", paddingTop: 8 }}>
+                    {row.bucket}
                   </div>
-                  <span
-                    className="text-[13px] font-bold font-mono flex-shrink-0"
-                    style={{ color: barColor, width: 36, textAlign: "right" }}
-                  >
-                    {bucket.value}%
-                  </span>
-                </div>
+                  {/* Bar cell */}
+                  <div key={row.bucket + "-bar"} style={{ paddingTop: 8, display: "flex", alignItems: "center", gap: 8 }}>
+                    <div style={{ flex: 1, height: 4, background: "hsl(220 20% 10%)", borderRadius: 1, position: "relative", overflow: "hidden" }}>
+                      <div style={{ position: "absolute", left: 0, top: 0, height: "100%", width: `${row.pct}%`, background: barColor, borderRadius: 1, boxShadow: `0 0 6px ${barColor}` }} />
+                    </div>
+                    <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--text-1)", minWidth: 60, textAlign: "right" }}>
+                      {row.amount}
+                    </span>
+                  </div>
+                  <div key={row.bucket + "-pct"} style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--text-3)", paddingTop: 8, textAlign: "right" }}>
+                    {row.pct.toFixed(1)}%
+                  </div>
+                  <div key={row.bucket + "-rate"} style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: barColor, paddingTop: 8, textAlign: "right" }}>
+                    {row.rate}%
+                  </div>
+                </>
               );
             })}
           </div>
-
-          <p
-            className="mt-4 text-[13px]"
-            style={{
-              color: "var(--text-4)",
-              borderTop: "1px solid var(--border)",
-              paddingTop: 12,
-            }}
-          >
-            Calculated by Pricing Agent · Last updated 14:32 UTC · Limit: 5%
-          </p>
         </div>
-      </section>
+      </div>
+
+      {/* Recent Operations */}
+      <div className="glass-card p-4" style={{ marginBottom: 20 }}>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: 16 }}>
+          RECENT PURCHASE OPERATIONS
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr auto auto auto", gap: "0 24px", alignItems: "center" }}>
+          {["CEDENTE", "AMOUNT", "DISCOUNT RATE", "GUARDRAIL"].map((h) => (
+            <div key={h} style={{ fontFamily: "var(--font-mono)", fontSize: "0.45rem", letterSpacing: "0.12em", color: "var(--text-4)", paddingBottom: 8, borderBottom: "1px solid var(--border-subtle)" }}>
+              {h}
+            </div>
+          ))}
+          {RECENT_OPS.map((op) => {
+            const badge = statusBadge(op.status);
+            return (
+              <>
+                <div key={op.cedente + "-n"} style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--text-1)", paddingTop: 10 }}>
+                  {op.cedente}
+                </div>
+                <div key={op.cedente + "-a"} style={{ fontFamily: "var(--font-display)", fontSize: "0.875rem", fontWeight: 700, color: "var(--text-1)", letterSpacing: "-0.02em", paddingTop: 10, textAlign: "right" }}>
+                  {op.amount}
+                </div>
+                <div key={op.cedente + "-r"} style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--cyan)", paddingTop: 10, textAlign: "right" }}>
+                  {op.rate}
+                </div>
+                <div key={op.cedente + "-s"} style={{ paddingTop: 10, textAlign: "right" }}>
+                  {badge ? (
+                    <span className={badge}>{op.status}</span>
+                  ) : (
+                    <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.45rem", letterSpacing: "0.08em", color: "var(--red)", border: "1px solid var(--red)", borderRadius: "var(--radius)", padding: "2px 6px" }}>
+                      {op.status}
+                    </span>
+                  )}
+                </div>
+              </>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Covenant Dashboard */}
+      <div>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: 12 }}>
+          COVENANT DASHBOARD
+        </div>
+        <div style={{ display: "flex", gap: 12 }}>
+          {COVENANTS.map((cov) => (
+            <CovenantGauge key={cov.label} cov={cov} />
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

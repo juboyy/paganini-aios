@@ -1,303 +1,399 @@
 "use client";
 
-import { useState } from "react";
-import { AGENTS } from "@/lib/mock-data";
+const AGENTS = [
+  {
+    id: "administrador",
+    name: "Administrador",
+    role: "Cálculo de NAV e gestão de cotas do fundo",
+    status: "active",
+    tasks: 28,
+    avgLatency: "0.9s",
+    capabilities: ["Cálculo NAV", "Emissão cotas", "Conciliação"],
+    lastAction: "há 12s",
+  },
+  {
+    id: "compliance",
+    name: "Compliance",
+    role: "Monitoramento de 6 gates regulatórios",
+    status: "active",
+    tasks: 19,
+    avgLatency: "1.4s",
+    capabilities: ["6 gates CVM", "Regulamento", "Alertas"],
+    lastAction: "há 34s",
+  },
+  {
+    id: "custodia",
+    name: "Custódia",
+    role: "Controle de títulos e verificação de lastro",
+    status: "active",
+    tasks: 22,
+    avgLatency: "1.1s",
+    capabilities: ["Títulos", "Lastro", "Liquidação"],
+    lastAction: "há 8s",
+  },
+  {
+    id: "due-diligence",
+    name: "Due Diligence",
+    role: "Score e análise de cedentes",
+    status: "active",
+    tasks: 15,
+    avgLatency: "2.1s",
+    capabilities: ["Score cedentes", "KYC", "Análise crédito"],
+    lastAction: "há 2min",
+  },
+  {
+    id: "gestor",
+    name: "Gestor",
+    role: "Estratégia de alocação e política de investimento",
+    status: "active",
+    tasks: 11,
+    avgLatency: "0.8s",
+    capabilities: ["Alocação", "Política inv.", "Rebalanceamento"],
+    lastAction: "há 45s",
+  },
+  {
+    id: "ir",
+    name: "IR",
+    role: "Apuração de IR para cotistas",
+    status: "idle",
+    tasks: 7,
+    avgLatency: "1.6s",
+    capabilities: ["Come-cotas", "DARF", "Informe rendimentos"],
+    lastAction: "há 18min",
+  },
+  {
+    id: "pricing",
+    name: "Pricing",
+    role: "PDD projetada e cálculo de taxas",
+    status: "active",
+    tasks: 18,
+    avgLatency: "1.3s",
+    capabilities: ["PDD", "Taxa desconto", "Mark-to-market"],
+    lastAction: "há 22s",
+  },
+  {
+    id: "reg-watch",
+    name: "Reg Watch",
+    role: "Monitoramento contínuo CVM e BACEN",
+    status: "watching",
+    tasks: 14,
+    avgLatency: "0.7s",
+    capabilities: ["CVM 175", "BACEN", "Normativos"],
+    lastAction: "há 5s",
+  },
+  {
+    id: "reporting",
+    name: "Reporting",
+    role: "Geração de demonstrações e relatórios",
+    status: "idle",
+    tasks: 8,
+    avgLatency: "1.9s",
+    capabilities: ["Demonstrações", "Lâmina", "Carta gestão"],
+    lastAction: "há 31min",
+  },
+];
 
-type FilterType = "all" | "FIDC" | "AIOS" | "Tier-2";
+const TOP_STATS = [
+  { label: "TOTAL TASKS TODAY", value: "142" },
+  { label: "AVG LATENCY", value: "1.2s" },
+  { label: "ACTIVE AGENTS", value: "7/9" },
+  { label: "ERRORS TODAY", value: "0" },
+];
 
-const FILTERS: FilterType[] = ["all", "FIDC", "AIOS", "Tier-2"];
-
-const STATUS_COLOR: Record<string, string> = {
-  online: "var(--green)",
-  working: "var(--blue)",
-  idle: "var(--amber)",
-  offline: "var(--red)",
+const STATUS_CONFIG: Record<string, { color: string; label: string }> = {
+  active: { color: "var(--accent)", label: "ACTIVE" },
+  idle: { color: "var(--text-4)", label: "IDLE" },
+  watching: { color: "var(--cyan)", label: "WATCHING" },
 };
-
-const STATUS_BG: Record<string, string> = {
-  online: "rgba(34,197,94,0.12)",
-  working: "rgba(59,130,246,0.12)",
-  idle: "rgba(234,179,8,0.12)",
-  offline: "rgba(239,68,68,0.12)",
-};
-
-const STATUS_LABEL: Record<string, string> = {
-  online: "Online",
-  working: "Working",
-  idle: "Idle",
-  offline: "Offline",
-};
-
-const TYPE_STYLE: Record<string, { bg: string; color: string }> = {
-  FIDC: { bg: "var(--accent-bg)", color: "var(--accent)" },
-  AIOS: { bg: "rgba(20,184,166,0.12)", color: "var(--teal)" },
-  "Tier-2": { bg: "rgba(234,179,8,0.12)", color: "var(--amber)" },
-};
-
-const MAX_TOKENS = Math.max(...AGENTS.map((a) => a.tokens24h));
 
 export default function AgentsPage() {
-  const [filter, setFilter] = useState<FilterType>("all");
-
-  const filtered = filter === "all" ? AGENTS : AGENTS.filter((a) => a.type === filter);
-
-  const counts: Record<FilterType, number> = {
-    all: AGENTS.length,
-    FIDC: AGENTS.filter((a) => a.type === "FIDC").length,
-    AIOS: AGENTS.filter((a) => a.type === "AIOS").length,
-    "Tier-2": AGENTS.filter((a) => a.type === "Tier-2").length,
-  };
-
-  const onlineCount = AGENTS.filter((a) => a.status === "online" || a.status === "working").length;
-  const idleCount = AGENTS.filter((a) => a.status === "idle").length;
-  const totalCost = AGENTS.reduce((s, a) => s + a.cost24h, 0).toFixed(2);
-
   return (
-    <div className="flex flex-col gap-5 p-4 sm:p-6">
+    <div style={{ padding: "1.5rem", maxWidth: "1400px", margin: "0 auto" }}>
       {/* Header */}
-      <div>
+      <div style={{ marginBottom: "2rem" }}>
+        <p
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: "0.5625rem",
+            letterSpacing: "0.12em",
+            color: "var(--text-4)",
+            marginBottom: "0.25rem",
+          }}
+        >
+          SISTEMA FIDC / AGENTES
+        </p>
         <h1
-          className="text-2xl font-bold tracking-tight"
-          style={{ color: "var(--text-1)" }}
+          style={{
+            fontFamily: "var(--font-display)",
+            fontSize: "1.75rem",
+            fontWeight: 700,
+            color: "var(--text-1)",
+            letterSpacing: "-0.03em",
+          }}
         >
           Agent Fleet
         </h1>
-        <p className="mt-1 text-[13px]" style={{ color: "var(--text-3)" }}>
-          {onlineCount} of {AGENTS.length} active
+        <p
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: "0.625rem",
+            color: "var(--text-4)",
+            marginTop: "0.25rem",
+            letterSpacing: "0.08em",
+          }}
+        >
+          9 agentes especializados · sincronizado há 5s
         </p>
       </div>
 
-      {/* Filter Pills */}
-      <div className="flex flex-wrap gap-2">
-        {FILTERS.map((f) => {
-          const active = filter === f;
-          return (
-            <button
-              key={f}
-              onClick={() => setFilter(f)}
-              className="flex items-center gap-1.5 rounded-2xl transition-all duration-200 active:scale-[0.98]"
+      {/* Top Stats */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(4, 1fr)",
+          gap: "1rem",
+          marginBottom: "2rem",
+        }}
+      >
+        {TOP_STATS.map((stat, i) => (
+          <div key={i} className="glass-card p-4">
+            <p
               style={{
-                padding: "8px 16px",
-                minHeight: 44,
-                fontSize: 13,
-                fontWeight: 600,
-                background: active ? "var(--accent)" : "var(--bg-card)",
-                color: active ? "#fff" : "var(--text-3)",
-                border: active ? "none" : "1px solid var(--border)",
-                boxShadow: active ? "0 2px 8px rgba(124,58,237,0.3)" : "none",
-                cursor: "pointer",
+                fontFamily: "var(--font-mono)",
+                fontSize: "0.5625rem",
+                letterSpacing: "0.12em",
+                color: "var(--text-4)",
+                marginBottom: "0.5rem",
               }}
             >
-              {f === "all" ? "All" : f}
-              <span
-                className="rounded-full px-1.5 py-0.5 text-[10px] font-bold"
-                style={{
-                  background: active ? "rgba(255,255,255,0.2)" : "var(--accent-bg)",
-                  color: active ? "#fff" : "var(--accent)",
-                }}
-              >
-                {counts[f]}
-              </span>
-            </button>
-          );
-        })}
+              {stat.label}
+            </p>
+            <p
+              style={{
+                fontFamily: "var(--font-display)",
+                fontSize: "1.5rem",
+                fontWeight: 700,
+                color:
+                  stat.label === "ERRORS TODAY"
+                    ? "var(--accent)"
+                    : stat.label === "ACTIVE AGENTS"
+                    ? "var(--cyan)"
+                    : "var(--text-1)",
+                letterSpacing: "-0.02em",
+              }}
+            >
+              {stat.value}
+            </p>
+          </div>
+        ))}
       </div>
 
-      {/* Agent Cards Grid */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-        {filtered.map((agent) => {
-          const tokenPct = Math.round((agent.tokens24h / MAX_TOKENS) * 100);
-          const barColor =
-            tokenPct > 70
-              ? "var(--accent)"
-              : tokenPct > 40
-              ? "var(--blue)"
-              : "var(--teal)";
-          const typeStyle = TYPE_STYLE[agent.type] ?? TYPE_STYLE.FIDC;
-          const isWorking = agent.status === "working";
-
+      {/* Agent Grid */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(3, 1fr)",
+          gap: "1rem",
+        }}
+      >
+        {AGENTS.map((agent) => {
+          const sc = STATUS_CONFIG[agent.status];
           return (
-            <div
-              key={agent.slug}
-              className="rounded-2xl flex flex-col gap-3 transition-all duration-200 active:scale-[0.98]"
-              style={{
-                background: "var(--bg-card)",
-                border: "1px solid var(--border)",
-                boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
-                padding: "18px 18px 14px",
-              }}
-            >
-              {/* Top row: icon + name/role + type badge */}
-              <div className="flex items-start gap-3">
-                {/* Icon */}
-                <div
-                  className="flex items-center justify-center rounded-2xl flex-shrink-0"
-                  style={{
-                    width: 48,
-                    height: 48,
-                    fontSize: 22,
-                    background: typeStyle.bg,
-                    border: `1px solid ${typeStyle.color}30`,
-                  }}
-                >
-                  {agent.icon}
-                </div>
-
-                {/* Name + role */}
-                <div className="flex-1 min-w-0">
+            <div key={agent.id} className="glass-card p-4">
+              {/* Card Header */}
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "flex-start",
+                  justifyContent: "space-between",
+                  marginBottom: "0.75rem",
+                }}
+              >
+                <div>
                   <p
-                    className="font-bold leading-tight truncate"
-                    style={{ fontSize: 15, color: "var(--text-1)" }}
+                    style={{
+                      fontFamily: "var(--font-display)",
+                      fontSize: "0.9375rem",
+                      fontWeight: 700,
+                      color: "var(--text-1)",
+                      letterSpacing: "-0.01em",
+                      marginBottom: "0.2rem",
+                    }}
                   >
                     {agent.name}
                   </p>
                   <p
-                    className="text-[13px] mt-0.5 truncate"
-                    style={{ color: "var(--text-3)" }}
+                    style={{
+                      fontFamily: "var(--font-mono)",
+                      fontSize: "0.5rem",
+                      letterSpacing: "0.08em",
+                      color: "var(--text-4)",
+                      lineHeight: 1.4,
+                    }}
                   >
                     {agent.role}
                   </p>
                 </div>
-
-                {/* Type badge */}
-                <span
-                  className="rounded-xl flex-shrink-0 font-bold text-[9px] uppercase tracking-[0.15em]"
+                <div
                   style={{
-                    padding: "4px 8px",
-                    background: typeStyle.bg,
-                    color: typeStyle.color,
-                    border: `1px solid ${typeStyle.color}30`,
+                    display: "flex",
+                    alignItems: "center",
+                    gap: "0.35rem",
+                    flexShrink: 0,
+                    marginLeft: "0.5rem",
                   }}
                 >
-                  {agent.type}
-                </span>
+                  <span
+                    className="pulse-dot"
+                    style={{ color: sc.color }}
+                  />
+                  <span
+                    style={{
+                      fontFamily: "var(--font-mono)",
+                      fontSize: "0.4375rem",
+                      letterSpacing: "0.12em",
+                      color: sc.color,
+                    }}
+                  >
+                    {sc.label}
+                  </span>
+                </div>
               </div>
 
-              {/* Status row */}
-              <div className="flex items-center gap-2">
-                {/* Status dot */}
-                <span
-                  className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${isWorking ? "pulse-dot" : ""}`}
-                  style={{ background: STATUS_COLOR[agent.status] }}
-                />
-                <span
-                  className="rounded-full px-2.5 py-1 text-[9px] uppercase tracking-[0.15em] font-bold"
+              {/* Metrics Row */}
+              <div
+                style={{
+                  display: "grid",
+                  gridTemplateColumns: "1fr 1fr",
+                  gap: "0.5rem",
+                  marginBottom: "0.75rem",
+                }}
+              >
+                <div
                   style={{
-                    background: STATUS_BG[agent.status],
-                    color: STATUS_COLOR[agent.status],
+                    background: "hsl(220 20% 4% / 0.5)",
+                    border: "1px solid var(--border-subtle)",
+                    borderRadius: "var(--radius)",
+                    padding: "0.5rem",
                   }}
                 >
-                  {STATUS_LABEL[agent.status]}
-                </span>
-                {/* Last action */}
-                <span
-                  className="text-[13px] truncate"
-                  style={{ color: "var(--text-4)", marginLeft: "auto", maxWidth: 120 }}
-                >
-                  {agent.lastAction}
-                </span>
-              </div>
-
-              {/* Token bar */}
-              <div>
-                <div className="flex items-center justify-between mb-1.5">
-                  <span
-                    className="text-[9px] uppercase tracking-[0.15em] font-semibold"
-                    style={{ color: "var(--text-4)" }}
+                  <p
+                    style={{
+                      fontFamily: "var(--font-mono)",
+                      fontSize: "0.4375rem",
+                      letterSpacing: "0.12em",
+                      color: "var(--text-4)",
+                      marginBottom: "0.2rem",
+                    }}
                   >
-                    Tokens 24h
-                  </span>
-                  <span
-                    className="text-[13px] font-mono font-semibold"
-                    style={{ color: "var(--text-3)" }}
+                    TASKS
+                  </p>
+                  <p
+                    style={{
+                      fontFamily: "var(--font-display)",
+                      fontSize: "1.125rem",
+                      fontWeight: 700,
+                      color: "var(--text-1)",
+                      letterSpacing: "-0.02em",
+                    }}
                   >
-                    {agent.tokens24h >= 1000
-                      ? `${(agent.tokens24h / 1000).toFixed(1)}k`
-                      : agent.tokens24h}
-                  </span>
+                    {agent.tasks}
+                  </p>
                 </div>
                 <div
-                  className="w-full rounded-full overflow-hidden"
-                  style={{ height: 6, background: "var(--border)" }}
+                  style={{
+                    background: "hsl(220 20% 4% / 0.5)",
+                    border: "1px solid var(--border-subtle)",
+                    borderRadius: "var(--radius)",
+                    padding: "0.5rem",
+                  }}
                 >
-                  <div
-                    className="h-full rounded-full transition-all duration-500"
-                    style={{ width: `${tokenPct}%`, background: barColor }}
-                  />
+                  <p
+                    style={{
+                      fontFamily: "var(--font-mono)",
+                      fontSize: "0.4375rem",
+                      letterSpacing: "0.12em",
+                      color: "var(--text-4)",
+                      marginBottom: "0.2rem",
+                    }}
+                  >
+                    AVG LATENCY
+                  </p>
+                  <p
+                    style={{
+                      fontFamily: "var(--font-display)",
+                      fontSize: "1.125rem",
+                      fontWeight: 700,
+                      color: "var(--cyan)",
+                      letterSpacing: "-0.02em",
+                    }}
+                  >
+                    {agent.avgLatency}
+                  </p>
                 </div>
               </div>
 
-              {/* Cost badge */}
-              <div className="flex items-center justify-between">
-                <span
-                  className="text-[9px] uppercase tracking-[0.15em] font-semibold"
-                  style={{ color: "var(--text-4)" }}
-                >
-                  Cost
-                </span>
-                <span
-                  className="rounded-xl px-2.5 py-1 text-[13px] font-bold font-mono"
+              {/* Capabilities */}
+              <div style={{ marginBottom: "0.75rem" }}>
+                <p
                   style={{
-                    background: "var(--accent-bg)",
-                    color: "var(--accent)",
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "0.4375rem",
+                    letterSpacing: "0.12em",
+                    color: "var(--text-4)",
+                    marginBottom: "0.4rem",
                   }}
                 >
-                  ${agent.cost24h.toFixed(2)}
-                </span>
+                  CAPABILITIES
+                </p>
+                <div style={{ display: "flex", gap: "0.3rem", flexWrap: "wrap" }}>
+                  {agent.capabilities.map((cap) => (
+                    <span
+                      key={cap}
+                      className={
+                        agent.status === "watching" ? "tag-badge-cyan" : "tag-badge"
+                      }
+                    >
+                      {cap}
+                    </span>
+                  ))}
+                </div>
+              </div>
+
+              {/* Footer */}
+              <div
+                style={{
+                  borderTop: "1px solid var(--border-subtle)",
+                  paddingTop: "0.5rem",
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                }}
+              >
+                <p
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "0.4375rem",
+                    letterSpacing: "0.08em",
+                    color: "var(--text-4)",
+                  }}
+                >
+                  LAST ACTION
+                </p>
+                <p
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "0.4375rem",
+                    letterSpacing: "0.08em",
+                    color: "var(--text-3)",
+                  }}
+                >
+                  {agent.lastAction}
+                </p>
               </div>
             </div>
           );
         })}
-
-        {filtered.length === 0 && (
-          <div
-            className="col-span-full py-16 text-center rounded-2xl"
-            style={{ color: "var(--text-4)", background: "var(--bg-card)", border: "1px solid var(--border)" }}
-          >
-            No agents in this category
-          </div>
-        )}
-      </div>
-
-      {/* Summary bar */}
-      <div
-        className="rounded-2xl flex flex-wrap items-center gap-4 px-5"
-        style={{
-          background: "var(--bg-card)",
-          border: "1px solid var(--border)",
-          minHeight: 52,
-        }}
-      >
-        <span
-          className="flex items-center gap-1.5 text-[13px]"
-          style={{ color: "var(--text-3)" }}
-        >
-          <span
-            className="w-2 h-2 rounded-full"
-            style={{ background: "var(--green)" }}
-          />
-          <strong style={{ color: "var(--text-1)" }}>{onlineCount}</strong> online
-        </span>
-        <span
-          className="flex items-center gap-1.5 text-[13px]"
-          style={{ color: "var(--text-3)" }}
-        >
-          <span
-            className="w-2 h-2 rounded-full"
-            style={{ background: "var(--amber)" }}
-          />
-          <strong style={{ color: "var(--text-1)" }}>{idleCount}</strong> idle
-        </span>
-        <span className="text-[13px]" style={{ color: "var(--text-4)" }}>·</span>
-        <span className="text-[13px]" style={{ color: "var(--text-3)" }}>
-          Total cost{" "}
-          <strong className="font-mono" style={{ color: "var(--accent)" }}>
-            ${totalCost}
-          </strong>
-        </span>
-        <span className="text-[13px] ml-auto" style={{ color: "var(--text-4)" }}>
-          Showing {filtered.length} agents
-        </span>
       </div>
     </div>
   );

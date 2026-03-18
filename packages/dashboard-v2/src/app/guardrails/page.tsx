@@ -1,326 +1,479 @@
 "use client";
 
-import { GUARDRAIL_GATES } from "@/lib/mock-data";
+const TOP_STATS = [
+  { label: "TOTAL CHECKS", value: "1,847" },
+  { label: "PASS RATE", value: "97.3%" },
+  { label: "ACTIVE ALERTS", value: "2", alert: true },
+  { label: "LAST FULL SCAN", value: "5min ago" },
+];
 
-const STATUS_MAP = {
-  pass: {
-    label: "PASS",
-    color: "#fff",
-    bg: "var(--green)",
-    glow: "none",
-  },
-  warn: {
-    label: "WARN",
-    color: "#fff",
-    bg: "var(--amber)",
-    glow: "0 0 0 1px var(--amber), 0 0 14px rgba(234,179,8,0.35)",
-  },
-  block: {
-    label: "BLOCK",
-    color: "#fff",
-    bg: "var(--red)",
-    glow: "0 0 0 1px var(--red), 0 0 14px rgba(239,68,68,0.4)",
-  },
-} as const;
-
-const RECENT_EVENTS = [
+const GATES = [
   {
-    id: 1,
-    type: "pass" as const,
-    gate: "Eligibility",
-    message: "847 receivables checked — all eligible criteria met",
-    time: "2m ago",
+    id: "eligibility",
+    name: "Eligibility",
+    subtitle: "tipo / prazo / rating",
+    status: "PASS",
+    lastCheck: "há 4min",
+    checksToday: 312,
+    passRate: 99.4,
+    description:
+      "Verifica tipo de ativo, prazo máximo permitido e rating mínimo exigido pelo regulamento do fundo.",
   },
   {
-    id: 2,
-    type: "warn" as const,
-    gate: "Concentration",
-    message: "Cedent ABC reached 14.2% — approaching 15% limit",
-    time: "12m ago",
+    id: "concentration",
+    name: "Concentration",
+    subtitle: "cedente ≤15% · sacado ≤10%",
+    status: "WARN",
+    lastCheck: "há 2min",
+    checksToday: 289,
+    passRate: 96.2,
+    description:
+      "Controla concentração por cedente (máx 15%) e sacado (máx 10%) sobre PL total do fundo.",
   },
   {
-    id: 3,
-    type: "pass" as const,
-    gate: "PLD/AML",
-    message: "Batch scan complete — 0 flags raised across 312 entities",
-    time: "38m ago",
+    id: "covenant",
+    name: "Covenant",
+    subtitle: "liquidez ≥1.05x · sub ≥20% · inad ≤5%",
+    status: "PASS",
+    lastCheck: "há 6min",
+    checksToday: 301,
+    passRate: 98.7,
+    description:
+      "Monitora covenants: índice de liquidez ≥1.05x, subordinação ≥20% e inadimplência ≤5%.",
   },
   {
-    id: 4,
-    type: "pass" as const,
-    gate: "Compliance",
-    message: "CVM 356 eligibility confirmed for current portfolio",
-    time: "1h ago",
+    id: "pld-aml",
+    name: "PLD / AML",
+    subtitle: "OFAC · PEP · transações atípicas",
+    status: "WARN",
+    lastCheck: "há 1min",
+    checksToday: 278,
+    passRate: 94.6,
+    description:
+      "Screening contra listas OFAC e PEP. Detecção de transações atípicas via análise comportamental.",
   },
   {
-    id: 5,
-    type: "pass" as const,
-    gate: "Covenant",
-    message: "Subordination ratio 43.2% — within 40% minimum covenant",
-    time: "2h ago",
+    id: "compliance",
+    name: "Compliance",
+    subtitle: "CVM 175 · regulamento",
+    status: "PASS",
+    lastCheck: "há 3min",
+    checksToday: 334,
+    passRate: 99.1,
+    description:
+      "Conformidade com CVM Resolução 175 e cláusulas do regulamento do FIDC.",
   },
   {
-    id: 6,
-    type: "pass" as const,
-    gate: "Risk",
-    message: "PDD recalculated at 2.8% of portfolio — within 5% limit",
-    time: "4h ago",
+    id: "risk",
+    name: "Risk",
+    subtitle: "PDD projetada · stress test",
+    status: "PASS",
+    lastCheck: "há 5min",
+    checksToday: 333,
+    passRate: 97.9,
+    description:
+      "PDD projetada por safra e cenários de stress test para inadimplência e concentração.",
   },
 ];
 
-const EVENT_DOT_COLOR: Record<string, string> = {
-  pass: "var(--green)",
-  warn: "var(--amber)",
-  block: "var(--red)",
+const GATE_EVENTS = [
+  { time: "12:57:42", gate: "PLD / AML", event: "WARN — cedente flagged PEP tier-2", status: "WARN" },
+  { time: "12:55:18", gate: "Concentration", event: "WARN — Sacado ABC acima de 9.8%", status: "WARN" },
+  { time: "12:53:01", gate: "Eligibility", event: "PASS — Lote #4821 aprovado (48 recebíveis)", status: "PASS" },
+  { time: "12:50:34", gate: "Risk", event: "PASS — PDD projetada 2.1% dentro do limite", status: "PASS" },
+  { time: "12:48:59", gate: "Covenant", event: "PASS — Subordinação 22.4% ✓", status: "PASS" },
+  { time: "12:46:12", gate: "Compliance", event: "PASS — CVM 175 Art. 43 conforme", status: "PASS" },
+  { time: "12:44:07", gate: "Eligibility", event: "PASS — Lote #4820 aprovado (61 recebíveis)", status: "PASS" },
+  { time: "12:41:55", gate: "PLD / AML", event: "PASS — Screening OFAC limpo (12 cnpjs)", status: "PASS" },
+  { time: "12:39:28", gate: "Concentration", event: "PASS — Distribuição cedentes dentro dos limites", status: "PASS" },
+  { time: "12:37:14", gate: "Risk", event: "PASS — Stress test cenário base OK", status: "PASS" },
+];
+
+const STATUS_COLORS: Record<string, string> = {
+  PASS: "var(--accent)",
+  WARN: "var(--amber)",
+  REJECT: "var(--red)",
 };
 
-type EventType = "pass" | "warn" | "block";
-
-const SOUL_CHECKS = [
-  { check: "Action Over Permission", passing: true, detail: "No confirmation prompts issued in last 24h" },
-  { check: "BMAD-CE Gate Token", passing: true, detail: "All 3 tasks had valid GATE tokens" },
-  { check: "No Walls of Text", passing: false, detail: "2 responses exceeded 400 tokens (non-critical)" },
-  { check: "Memory Write Discipline", passing: true, detail: "Daily log updated 4 times today" },
-  { check: "No Anti-Patterns", passing: true, detail: "Zero filler phrases detected in outputs" },
-];
-
 export default function GuardrailsPage() {
-  const passCount = GUARDRAIL_GATES.filter((g) => g.status === "pass").length;
-  const warnCount = GUARDRAIL_GATES.filter((g) => g.status === "warn").length;
-
   return (
-    <div className="flex flex-col gap-6 p-4 sm:p-6">
+    <div style={{ padding: "1.5rem", maxWidth: "1400px", margin: "0 auto" }}>
       {/* Header */}
-      <div className="flex items-start justify-between gap-4">
-        <div>
-          <h1
-            className="text-2xl font-bold tracking-tight"
-            style={{ color: "var(--text-1)" }}
-          >
-            Guardrails
-          </h1>
-          <p className="mt-1 text-[13px]" style={{ color: "var(--text-3)" }}>
-            Real-time gate monitoring across all FIDC control layers
-          </p>
-        </div>
-        <div className="flex flex-col items-end gap-1">
-          <span
-            className="text-xl font-bold font-mono"
-            style={{ color: "var(--green)" }}
-          >
-            {passCount}/{GUARDRAIL_GATES.length}
-          </span>
-          <span className="text-[9px] uppercase tracking-[0.15em] font-semibold" style={{ color: "var(--text-4)" }}>
-            Passing
-          </span>
-        </div>
-      </div>
-
-      {/* Gate Cards Grid — 2×3 mobile, 3×2 sm, 6 in one row lg */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        {GUARDRAIL_GATES.map((gate) => {
-          const s = STATUS_MAP[gate.status];
-          const animated = (gate.status as string) === "warn" || (gate.status as string) === "block";
-
-          return (
-            <div
-              key={gate.gate}
-              className="flex flex-col items-center justify-center gap-2.5 rounded-2xl text-center transition-all duration-300 active:scale-[0.98]"
-              style={{
-                background: "var(--bg-card)",
-                border: "1px solid var(--border)",
-                boxShadow: s.glow,
-                padding: "20px 12px",
-                animation: animated ? "pulse-dot 3s ease-in-out infinite" : "none",
-                minHeight: 130,
-              }}
-            >
-              <span style={{ fontSize: 28, lineHeight: 1 }}>{gate.icon}</span>
-              <span
-                className="font-semibold"
-                style={{ fontSize: 13, color: "var(--text-1)" }}
-              >
-                {gate.label}
-              </span>
-              <span
-                className="rounded-xl font-bold text-[9px] uppercase tracking-[0.15em] px-2.5 py-1"
-                style={{ background: s.bg, color: s.color }}
-              >
-                {s.label}
-              </span>
-              <span className="text-[13px]" style={{ color: "var(--text-3)" }}>
-                {gate.stat}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-
-      {/* Warn alert */}
-      {warnCount > 0 && (
-        <div
-          className="flex items-center gap-3 rounded-2xl px-4 py-3"
+      <div style={{ marginBottom: "2rem" }}>
+        <p
           style={{
-            background: "rgba(234,179,8,0.08)",
-            border: "1px solid rgba(234,179,8,0.3)",
+            fontFamily: "var(--font-mono)",
+            fontSize: "0.5625rem",
+            letterSpacing: "0.12em",
+            color: "var(--text-4)",
+            marginBottom: "0.25rem",
           }}
         >
-          <span style={{ fontSize: 18 }}>⚠️</span>
-          <p className="text-[13px]" style={{ color: "var(--amber)" }}>
-            <strong>Concentration gate</strong> WARN — Cedent ABC at 14.2% approaching the 15% single-cedent limit.
-          </p>
-        </div>
-      )}
-
-      {/* Recent Events — timeline */}
-      <section>
-        <h2
-          className="text-base font-semibold mb-4"
-          style={{ color: "var(--text-1)" }}
+          SISTEMA FIDC / GUARDRAILS
+        </p>
+        <h1
+          style={{
+            fontFamily: "var(--font-display)",
+            fontSize: "1.75rem",
+            fontWeight: 700,
+            color: "var(--text-1)",
+            letterSpacing: "-0.03em",
+          }}
         >
-          Recent Events
-        </h2>
-
-        <div
-          className="rounded-2xl overflow-hidden"
-          style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}
+          Guardrail Gates
+        </h1>
+        <p
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: "0.625rem",
+            color: "var(--text-4)",
+            marginTop: "0.25rem",
+            letterSpacing: "0.08em",
+          }}
         >
-          {RECENT_EVENTS.map((event, idx) => {
-            const dotColor = EVENT_DOT_COLOR[event.type];
-            const isLast = idx === RECENT_EVENTS.length - 1;
-            return (
-              <div
-                key={event.id}
-                className="flex items-start gap-4 px-5 py-4"
-                style={{ borderBottom: isLast ? "none" : "1px solid var(--border)" }}
-              >
-                {/* Timeline column */}
-                <div className="flex flex-col items-center flex-shrink-0 mt-1" style={{ width: 20 }}>
-                  <span
-                    className="rounded-full flex-shrink-0"
-                    style={{
-                      width: 10,
-                      height: 10,
-                      background: dotColor,
-                      boxShadow: `0 0 6px ${dotColor}80`,
-                    }}
-                  />
-                  {!isLast && (
-                    <div
-                      style={{
-                        width: 2,
-                        flex: 1,
-                        minHeight: 24,
-                        background: "var(--border)",
-                        marginTop: 4,
-                      }}
-                    />
-                  )}
-                </div>
+          6 gates ativos · pipeline contínuo de compliance
+        </p>
+      </div>
 
-                {/* Content */}
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span
-                      className="text-[9px] uppercase tracking-[0.15em] font-bold rounded-lg px-2 py-0.5"
-                      style={{
-                        background: EVENT_DOT_COLOR[event.type] + "20",
-                        color: EVENT_DOT_COLOR[event.type],
-                      }}
-                    >
-                      {event.gate}
-                    </span>
-                  </div>
-                  <p className="text-[13px]" style={{ color: "var(--text-3)" }}>
-                    {event.message}
-                  </p>
-                </div>
-
-                {/* Timestamp */}
-                <span
-                  className="flex-shrink-0 text-[13px]"
-                  style={{ color: "var(--text-4)" }}
-                >
-                  {event.time}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-      </section>
-
-      {/* SOUL Audit */}
-      <section>
-        <h2
-          className="text-base font-semibold mb-4"
-          style={{ color: "var(--text-1)" }}
-        >
-          SOUL Audit
-        </h2>
-
-        <div
-          className="rounded-2xl p-5"
-          style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}
-        >
-          {/* Header */}
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-2">
-              <span style={{ fontSize: 20 }}>🧠</span>
-              <span className="font-semibold text-[13px]" style={{ color: "var(--text-2)" }}>
-                Behavioral compliance checks
-              </span>
-            </div>
-            <span
-              className="rounded-xl px-2.5 py-1 text-[9px] uppercase tracking-[0.15em] font-bold"
-              style={{ background: "rgba(34,197,94,0.12)", color: "var(--green)" }}
+      {/* Top Stats */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(4, 1fr)",
+          gap: "1rem",
+          marginBottom: "2rem",
+        }}
+      >
+        {TOP_STATS.map((stat, i) => (
+          <div key={i} className="glass-card p-4">
+            <p
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: "0.5625rem",
+                letterSpacing: "0.12em",
+                color: "var(--text-4)",
+                marginBottom: "0.5rem",
+              }}
             >
-              {SOUL_CHECKS.filter((c) => c.passing).length}/{SOUL_CHECKS.length} pass
-            </span>
+              {stat.label}
+            </p>
+            <p
+              style={{
+                fontFamily: "var(--font-display)",
+                fontSize: "1.5rem",
+                fontWeight: 700,
+                color: stat.alert ? "var(--amber)" : "var(--text-1)",
+                letterSpacing: "-0.02em",
+              }}
+            >
+              {stat.value}
+            </p>
           </div>
+        ))}
+      </div>
 
-          {/* Checks */}
-          <div className="flex flex-col gap-2">
-            {SOUL_CHECKS.map((check, idx) => (
+      {/* Pipeline Flow */}
+      <div className="glass-card p-4" style={{ marginBottom: "1.5rem" }}>
+        <p
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: "0.5625rem",
+            letterSpacing: "0.12em",
+            color: "var(--text-4)",
+            marginBottom: "1.25rem",
+          }}
+        >
+          COMPLIANCE PIPELINE
+        </p>
+
+        {/* Pipeline visual */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "stretch",
+            gap: "0",
+            overflowX: "auto",
+            paddingBottom: "0.5rem",
+          }}
+        >
+          {GATES.map((gate, idx) => (
+            <div
+              key={gate.id}
+              style={{ display: "flex", alignItems: "center", flex: 1 }}
+            >
+              {/* Gate node */}
               <div
-                key={idx}
-                className="flex items-start gap-3 rounded-2xl"
                 style={{
-                  padding: "12px 14px",
-                  background: "var(--bg)",
-                  border: `1px solid ${check.passing ? "var(--border)" : "rgba(234,179,8,0.3)"}`,
+                  flex: 1,
+                  background: "hsl(220 20% 4% / 0.5)",
+                  border: `1px solid ${STATUS_COLORS[gate.status]}`,
+                  borderRadius: "var(--radius)",
+                  padding: "1rem 0.75rem",
+                  position: "relative",
+                  minWidth: "140px",
                 }}
               >
-                <span className="flex-shrink-0 text-base mt-0.5">
-                  {check.passing ? "✅" : "⚠️"}
-                </span>
-                <div className="min-w-0">
-                  <p
-                    className="font-semibold text-[13px]"
-                    style={{ color: "var(--text-2)" }}
-                  >
-                    {check.check}
-                  </p>
-                  <p
-                    className="text-[13px] mt-0.5"
-                    style={{ color: "var(--text-4)" }}
-                  >
-                    {check.detail}
-                  </p>
-                </div>
-                <span
-                  className="flex-shrink-0 rounded-lg text-[9px] uppercase tracking-[0.15em] font-bold px-2 py-0.5 ml-auto"
+                {/* Status bar top */}
+                <div
                   style={{
-                    background: check.passing ? "rgba(34,197,94,0.12)" : "rgba(234,179,8,0.12)",
-                    color: check.passing ? "var(--green)" : "var(--amber)",
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    height: "2px",
+                    background: STATUS_COLORS[gate.status],
+                    borderRadius: "var(--radius) var(--radius) 0 0",
+                  }}
+                />
+
+                <div
+                  style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    marginBottom: "0.5rem",
                   }}
                 >
-                  {check.passing ? "PASS" : "WARN"}
-                </span>
+                  <p
+                    style={{
+                      fontFamily: "var(--font-display)",
+                      fontSize: "0.75rem",
+                      fontWeight: 700,
+                      color: "var(--text-1)",
+                      letterSpacing: "-0.01em",
+                    }}
+                  >
+                    {gate.name}
+                  </p>
+                  <span
+                    style={{
+                      fontFamily: "var(--font-mono)",
+                      fontSize: "0.4375rem",
+                      letterSpacing: "0.1em",
+                      color: STATUS_COLORS[gate.status],
+                      fontWeight: 700,
+                    }}
+                  >
+                    {gate.status}
+                  </span>
+                </div>
+
+                <p
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "0.4375rem",
+                    letterSpacing: "0.06em",
+                    color: "var(--text-4)",
+                    marginBottom: "0.75rem",
+                    lineHeight: 1.5,
+                  }}
+                >
+                  {gate.subtitle}
+                </p>
+
+                <div
+                  style={{
+                    display: "grid",
+                    gridTemplateColumns: "1fr 1fr",
+                    gap: "0.5rem",
+                    marginBottom: "0.5rem",
+                  }}
+                >
+                  <div>
+                    <p
+                      style={{
+                        fontFamily: "var(--font-mono)",
+                        fontSize: "0.375rem",
+                        letterSpacing: "0.1em",
+                        color: "var(--text-4)",
+                        marginBottom: "0.15rem",
+                      }}
+                    >
+                      CHECKS
+                    </p>
+                    <p
+                      style={{
+                        fontFamily: "var(--font-display)",
+                        fontSize: "0.875rem",
+                        fontWeight: 700,
+                        color: "var(--text-1)",
+                      }}
+                    >
+                      {gate.checksToday}
+                    </p>
+                  </div>
+                  <div>
+                    <p
+                      style={{
+                        fontFamily: "var(--font-mono)",
+                        fontSize: "0.375rem",
+                        letterSpacing: "0.1em",
+                        color: "var(--text-4)",
+                        marginBottom: "0.15rem",
+                      }}
+                    >
+                      PASS RATE
+                    </p>
+                    <p
+                      style={{
+                        fontFamily: "var(--font-display)",
+                        fontSize: "0.875rem",
+                        fontWeight: 700,
+                        color:
+                          gate.passRate >= 99
+                            ? "var(--accent)"
+                            : gate.passRate >= 96
+                            ? "var(--amber)"
+                            : "var(--red)",
+                      }}
+                    >
+                      {gate.passRate}%
+                    </p>
+                  </div>
+                </div>
+
+                <p
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "0.375rem",
+                    letterSpacing: "0.06em",
+                    color: "var(--text-4)",
+                  }}
+                >
+                  {gate.lastCheck}
+                </p>
+
+                {/* Description */}
+                <p
+                  style={{
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "0.4375rem",
+                    letterSpacing: "0.04em",
+                    color: "var(--text-3)",
+                    lineHeight: 1.6,
+                    marginTop: "0.75rem",
+                    paddingTop: "0.5rem",
+                    borderTop: "1px solid var(--border-subtle)",
+                  }}
+                >
+                  {gate.description}
+                </p>
               </div>
-            ))}
-          </div>
+
+              {/* Arrow connector */}
+              {idx < GATES.length - 1 && (
+                <div
+                  style={{
+                    flexShrink: 0,
+                    width: "2rem",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    position: "relative",
+                  }}
+                >
+                  <div
+                    style={{
+                      width: "100%",
+                      height: "1px",
+                      background: "var(--border-subtle)",
+                      position: "absolute",
+                    }}
+                  />
+                  <span
+                    style={{
+                      fontFamily: "var(--font-mono)",
+                      fontSize: "0.625rem",
+                      color: "var(--text-4)",
+                      position: "relative",
+                      background: "var(--bg)",
+                      paddingInline: "2px",
+                    }}
+                  >
+                    →
+                  </span>
+                </div>
+              )}
+            </div>
+          ))}
         </div>
-      </section>
+      </div>
+
+      {/* Gate Events Log */}
+      <div className="glass-card p-4">
+        <p
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: "0.5625rem",
+            letterSpacing: "0.12em",
+            color: "var(--text-4)",
+            marginBottom: "1rem",
+          }}
+        >
+          RECENT GATE EVENTS — ÚLTIMOS 10
+        </p>
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.35rem" }}>
+          {GATE_EVENTS.map((ev, i) => (
+            <div
+              key={i}
+              style={{
+                display: "grid",
+                gridTemplateColumns: "5rem 7rem 1fr auto",
+                gap: "1rem",
+                alignItems: "center",
+                padding: "0.5rem 0.75rem",
+                background: "hsl(220 20% 4% / 0.5)",
+                border: "1px solid var(--border-subtle)",
+                borderRadius: "var(--radius)",
+                borderLeft: `2px solid ${STATUS_COLORS[ev.status]}`,
+              }}
+            >
+              <span
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "0.5rem",
+                  letterSpacing: "0.08em",
+                  color: "var(--text-4)",
+                }}
+              >
+                {ev.time}
+              </span>
+              <span
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "0.5rem",
+                  letterSpacing: "0.06em",
+                  color: "var(--text-3)",
+                  fontWeight: 600,
+                }}
+              >
+                {ev.gate}
+              </span>
+              <span
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "0.5rem",
+                  letterSpacing: "0.04em",
+                  color: "var(--text-2)",
+                }}
+              >
+                {ev.event}
+              </span>
+              <span
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "0.4375rem",
+                  letterSpacing: "0.1em",
+                  color: STATUS_COLORS[ev.status],
+                  fontWeight: 700,
+                }}
+              >
+                {ev.status}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }

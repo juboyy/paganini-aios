@@ -1,384 +1,127 @@
 "use client";
 
-const TOKEN_DAYS = [
-  { day: "Mon", input: 84000, output: 22000 },
-  { day: "Tue", input: 67000, output: 18000 },
-  { day: "Wed", input: 112000, output: 31000 },
-  { day: "Thu", input: 95000, output: 26000 },
-  { day: "Fri", input: 143000, output: 41000 },
-  { day: "Sat", input: 38000, output: 11000 },
-  { day: "Sun", input: 51000, output: 14000 },
+const TOP_STATS = [
+  { label: "UPTIME", value: "99.97%", sub: "30d rolling", color: "var(--accent)" },
+  { label: "AVG RESPONSE", value: "1.2s", sub: "p50 latency", color: "var(--cyan)" },
+  { label: "TOKENS TODAY", value: "847K", sub: "across all agents", color: "var(--text-1)" },
+  { label: "COST TODAY", value: "$12.40", sub: "USD est.", color: "var(--amber)" },
 ];
 
-const PROVIDERS = [
-  { name: "Anthropic", icon: "🟣", cost: 12.40, total: 59.96, pct: 21 },
-  { name: "OpenAI", icon: "⚫", cost: 38.20, total: 59.96, pct: 64 },
-  { name: "Google", icon: "🔵", cost: 9.36, total: 59.96, pct: 15 },
-  { name: "Supabase", icon: "🟢", cost: 0.0, total: 59.96, pct: 0 },
+const TOKEN_AGENTS = [
+  { name: "compliance-agent", tokens: 180000, color: "var(--accent)" },
+  { name: "gestor-agent", tokens: 150000, color: "var(--cyan)" },
+  { name: "risk-agent", tokens: 120000, color: "var(--amber)" },
+  { name: "reporting-agent", tokens: 98000, color: "var(--text-2)" },
+  { name: "due-diligence-agent", tokens: 87000, color: "var(--text-3)" },
+  { name: "custody-agent", tokens: 72000, color: "var(--text-3)" },
+  { name: "pricing-agent", tokens: 60000, color: "var(--text-4)" },
+  { name: "ir-agent", tokens: 48000, color: "var(--text-4)" },
+  { name: "admin-agent", tokens: 32000, color: "var(--text-4)" },
 ];
 
-const PROVIDER_COLOR: Record<string, string> = {
-  Anthropic: "var(--accent)",
-  OpenAI: "var(--blue)",
-  Google: "var(--teal)",
-  Supabase: "var(--green)",
+const MAX_TOKENS = 180000;
+
+const MODEL_USAGE = [
+  { name: "Gemini 2.5 Flash", role: "primary", tokens: 720000, pct: 85, color: "var(--accent)" },
+  { name: "Gemini Pro", role: "fallback", tokens: 127000, pct: 15, color: "var(--cyan)" },
+];
+
+const LATENCY = [
+  { op: "Query", avg: 1.2, unit: "s", bar: 14, color: "var(--cyan)" },
+  { op: "Guardrail Check", avg: 0.3, unit: "s", bar: 4, color: "var(--accent)" },
+  { op: "Report Generation", avg: 8.5, unit: "s", bar: 100, color: "var(--amber)" },
+  { op: "Ingest", avg: 2.1, unit: "s", bar: 25, color: "var(--text-2)" },
+];
+
+const MAX_LATENCY = 8.5;
+
+const COST_TREND = [
+  { day: "MON", val: 8.2 },
+  { day: "TUE", val: 11.5 },
+  { day: "WED", val: 9.8 },
+  { day: "THU", val: 14.2 },
+  { day: "FRI", val: 10.3 },
+  { day: "SAT", val: 11.8 },
+  { day: "SUN", val: 12.4 },
+];
+
+const MAX_COST = 14.2;
+
+const HEALTH = [
+  { name: "ChromaDB", status: "healthy", meta: "5,640 docs", color: "var(--accent)" },
+  { name: "Moltis Gateway", status: "healthy", meta: "connected", color: "var(--accent)" },
+  { name: "API", status: "healthy", meta: "47 req/hr", color: "var(--accent)" },
+];
+
+const LABEL_STYLE = {
+  fontFamily: "var(--font-mono)",
+  fontSize: "0.5625rem",
+  letterSpacing: "0.12em",
+  color: "var(--text-4)",
+  textTransform: "uppercase" as const,
 };
 
-const PROVIDER_HEALTH = [
-  { name: "Anthropic", uptime: "99.98%", lastCheck: "2m ago" },
-  { name: "OpenAI", uptime: "99.91%", lastCheck: "2m ago" },
-  { name: "Google AI", uptime: "99.95%", lastCheck: "2m ago" },
-  { name: "Supabase", uptime: "100.0%", lastCheck: "2m ago" },
-];
+const VALUE_STYLE = {
+  fontFamily: "var(--font-display)",
+  fontSize: "1.5rem",
+  fontWeight: 700,
+  color: "var(--text-1)",
+  letterSpacing: "-0.02em",
+};
 
-const MAX_TOKENS = Math.max(...TOKEN_DAYS.map((d) => d.input + d.output));
-const BAR_MAX_PX = 180;
+const SECTION_TITLE = {
+  fontFamily: "var(--font-mono)",
+  fontSize: "0.625rem",
+  letterSpacing: "0.15em",
+  color: "var(--text-4)",
+  textTransform: "uppercase" as const,
+  marginBottom: "0.75rem",
+};
 
 export default function TelemetryPage() {
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 24,
-        padding: "16px",
-        maxWidth: 1024,
-        margin: "0 auto",
-        width: "100%",
-      }}
-    >
+    <div style={{ padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+
       {/* Header */}
-      <div>
-        <h1 style={{ color: "var(--text-1)", fontSize: 20, fontWeight: 700, lineHeight: 1.2 }}>Telemetry & ROI</h1>
-        <p style={{ color: "var(--text-3)", fontSize: 13, marginTop: 4 }}>
-          Usage metrics · cost tracking · provider health
-        </p>
-      </div>
-
-      {/* ROI Hero — Hours saved spans full on mobile */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 12 }}>
-        {/* Main hero — 701.2h */}
-        <div
-          style={{
-            background: "linear-gradient(135deg, rgba(124,58,237,0.18) 0%, rgba(124,58,237,0.06) 100%)",
-            border: "1px solid rgba(124,58,237,0.25)",
-            borderRadius: 20,
-            padding: "28px 24px",
-            display: "flex",
-            flexDirection: "column",
-            gap: 8,
-            position: "relative",
-            overflow: "hidden",
-          }}
-          className="col-span-full sm:col-span-1"
-        >
-          <div
-            style={{
-              position: "absolute",
-              top: -32,
-              right: -32,
-              width: 120,
-              height: 120,
-              borderRadius: "50%",
-              background: "var(--accent)",
-              opacity: 0.12,
-              filter: "blur(20px)",
-            }}
-          />
-          <span
-            style={{
-              fontSize: 9,
-              fontWeight: 700,
-              textTransform: "uppercase",
-              letterSpacing: "0.15em",
-              color: "var(--accent)",
-            }}
-          >
-            Hours Saved
-          </span>
-          <div style={{ fontSize: 48, fontWeight: 900, color: "var(--accent)", lineHeight: 1 }}>
-            701.2h
-          </div>
-          <div style={{ fontSize: 11, color: "var(--text-3)" }}>vs manual execution estimate</div>
-        </div>
-
-        {/* Total cost */}
-        <div
-          style={{
-            background: "linear-gradient(135deg, rgba(234,179,8,0.15) 0%, rgba(234,179,8,0.04) 100%)",
-            border: "1px solid rgba(234,179,8,0.2)",
-            borderRadius: 20,
-            padding: "24px",
-            display: "flex",
-            flexDirection: "column",
-            gap: 8,
-            position: "relative",
-            overflow: "hidden",
-          }}
-        >
-          <div
-            style={{
-              position: "absolute",
-              top: -20,
-              right: -20,
-              width: 80,
-              height: 80,
-              borderRadius: "50%",
-              background: "var(--amber)",
-              opacity: 0.12,
-              filter: "blur(16px)",
-            }}
-          />
-          <span
-            style={{
-              fontSize: 9,
-              fontWeight: 700,
-              textTransform: "uppercase",
-              letterSpacing: "0.15em",
-              color: "var(--amber)",
-            }}
-          >
-            Total Cost
-          </span>
-          <div style={{ fontSize: 36, fontWeight: 900, color: "var(--amber)", lineHeight: 1 }}>
-            $59.96
-          </div>
-          <div style={{ fontSize: 11, color: "var(--text-3)" }}>across all providers this sprint</div>
-        </div>
-
-        {/* Efficiency */}
-        <div
-          style={{
-            background: "linear-gradient(135deg, rgba(34,197,94,0.15) 0%, rgba(34,197,94,0.04) 100%)",
-            border: "1px solid rgba(34,197,94,0.2)",
-            borderRadius: 20,
-            padding: "24px",
-            display: "flex",
-            flexDirection: "column",
-            gap: 8,
-            position: "relative",
-            overflow: "hidden",
-          }}
-        >
-          <div
-            style={{
-              position: "absolute",
-              top: -20,
-              right: -20,
-              width: 80,
-              height: 80,
-              borderRadius: "50%",
-              background: "var(--green)",
-              opacity: 0.12,
-              filter: "blur(16px)",
-            }}
-          />
-          <span
-            style={{
-              fontSize: 9,
-              fontWeight: 700,
-              textTransform: "uppercase",
-              letterSpacing: "0.15em",
-              color: "var(--green)",
-            }}
-          >
-            Efficiency
-          </span>
-          <div style={{ fontSize: 36, fontWeight: 900, color: "var(--green)", lineHeight: 1 }}>
-            $0.09/h
-          </div>
-          <div style={{ fontSize: 11, color: "var(--text-3)" }}>cost per hour of work automated</div>
+      <div style={{ display: "flex", alignItems: "baseline", gap: "1rem" }}>
+        <h1 style={{ fontFamily: "var(--font-display)", fontSize: "1.25rem", fontWeight: 700, color: "var(--text-1)", letterSpacing: "-0.02em", margin: 0 }}>
+          TELEMETRY
+        </h1>
+        <span style={{ ...LABEL_STYLE, fontSize: "0.5rem" }}>SYSTEM METRICS &amp; PERFORMANCE</span>
+        <div style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          <span className="pulse-dot" style={{ background: "var(--accent)" }} />
+          <span style={LABEL_STYLE}>LIVE</span>
         </div>
       </div>
 
-      {/* Token usage bar chart */}
-      <div
-        style={{
-          background: "var(--bg-card)",
-          border: "1px solid var(--border)",
-          borderRadius: 16,
-          padding: "20px",
-          display: "flex",
-          flexDirection: "column",
-          gap: 20,
-        }}
-      >
-        <div>
-          <h2 style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)", textTransform: "uppercase", letterSpacing: "0.15em" }}>
-            Token Usage
-          </h2>
-          <p style={{ fontSize: 13, color: "var(--text-3)", marginTop: 4 }}>Last 7 days · input vs output</p>
-        </div>
-
-        {/* Legend */}
-        <div style={{ display: "flex", alignItems: "center", gap: 16 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ width: 12, height: 12, borderRadius: 3, background: "var(--accent)", display: "inline-block" }} />
-            <span style={{ fontSize: 12, color: "var(--text-3)" }}>Input</span>
+      {/* Top stats */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "0.75rem" }}>
+        {TOP_STATS.map((s) => (
+          <div key={s.label} className="glass-card p-4">
+            <div style={LABEL_STYLE}>{s.label}</div>
+            <div style={{ ...VALUE_STYLE, color: s.color, marginTop: "0.25rem" }}>{s.value}</div>
+            <div style={{ ...LABEL_STYLE, marginTop: "0.25rem", fontSize: "0.5rem" }}>{s.sub}</div>
           </div>
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <span style={{ width: 12, height: 12, borderRadius: 3, background: "var(--accent-light)", display: "inline-block" }} />
-            <span style={{ fontSize: 12, color: "var(--text-3)" }}>Output</span>
-          </div>
-        </div>
-
-        {/* Bars */}
-        <div
-          style={{
-            display: "flex",
-            alignItems: "flex-end",
-            gap: 8,
-            height: BAR_MAX_PX + 32,
-            paddingBottom: 0,
-          }}
-        >
-          {TOKEN_DAYS.map((day) => {
-            const total = day.input + day.output;
-            const barH = Math.round((total / MAX_TOKENS) * BAR_MAX_PX);
-            const inputH = Math.round((day.input / total) * barH);
-            const outputH = barH - inputH;
-
-            return (
-              <div
-                key={day.day}
-                style={{
-                  flex: 1,
-                  display: "flex",
-                  flexDirection: "column",
-                  alignItems: "center",
-                  gap: 6,
-                }}
-              >
-                {/* Label above */}
-                <span style={{ fontSize: 9, color: "var(--text-4)", fontFamily: "monospace", textAlign: "center" }}>
-                  {(total / 1000).toFixed(0)}k
-                </span>
-
-                {/* Stacked bar */}
-                <div
-                  style={{
-                    width: "100%",
-                    height: barH,
-                    display: "flex",
-                    flexDirection: "column",
-                    borderRadius: "6px 6px 0 0",
-                    overflow: "hidden",
-                    minHeight: 6,
-                  }}
-                >
-                  {/* Output (top, lighter) */}
-                  <div
-                    style={{
-                      height: outputH,
-                      background: "var(--accent-light)",
-                      opacity: 0.85,
-                    }}
-                  />
-                  {/* Input (bottom) */}
-                  <div
-                    style={{
-                      height: inputH,
-                      background: "var(--accent)",
-                    }}
-                  />
-                </div>
-
-                {/* Day label */}
-                <span style={{ fontSize: 10, color: "var(--text-4)", textAlign: "center", fontWeight: 600 }}>
-                  {day.day}
-                </span>
-              </div>
-            );
-          })}
-        </div>
-
-        {/* Summary */}
-        <div
-          style={{
-            display: "flex",
-            justifyContent: "space-between",
-            flexWrap: "wrap",
-            gap: 8,
-            paddingTop: 16,
-            borderTop: "1px solid var(--border)",
-          }}
-        >
-          <span style={{ fontSize: 12, color: "var(--text-4)" }}>
-            Total:{" "}
-            <strong style={{ color: "var(--text-2)" }}>
-              {(TOKEN_DAYS.reduce((s, d) => s + d.input + d.output, 0) / 1000).toFixed(0)}k tokens
-            </strong>
-          </span>
-          <span style={{ fontSize: 12, color: "var(--text-4)" }}>
-            Input:{" "}
-            <strong style={{ color: "var(--text-2)" }}>
-              {(TOKEN_DAYS.reduce((s, d) => s + d.input, 0) / 1000).toFixed(0)}k
-            </strong>
-            {" · "}Output:{" "}
-            <strong style={{ color: "var(--text-2)" }}>
-              {(TOKEN_DAYS.reduce((s, d) => s + d.output, 0) / 1000).toFixed(0)}k
-            </strong>
-          </span>
-        </div>
+        ))}
       </div>
 
-      {/* Cost breakdown + Provider health */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: 16 }}>
-        {/* Cost breakdown */}
-        <div
-          style={{
-            background: "var(--bg-card)",
-            border: "1px solid var(--border)",
-            borderRadius: 16,
-            padding: "20px",
-            display: "flex",
-            flexDirection: "column",
-            gap: 20,
-          }}
-        >
-          <div>
-            <h2 style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)", textTransform: "uppercase", letterSpacing: "0.15em" }}>
-              Cost Breakdown
-            </h2>
-            <p style={{ fontSize: 13, color: "var(--text-3)", marginTop: 4 }}>By provider · sprint total $59.96</p>
-          </div>
+      {/* Token usage + Model usage row */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 320px", gap: "0.75rem" }}>
 
-          <div style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-            {PROVIDERS.map((provider) => {
-              const color = PROVIDER_COLOR[provider.name] ?? "var(--text-4)";
+        {/* Token usage by agent */}
+        <div className="glass-card p-4">
+          <div style={SECTION_TITLE}>TOKEN USAGE — BY AGENT</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+            {TOKEN_AGENTS.map((a) => {
+              const pct = (a.tokens / MAX_TOKENS) * 100;
               return (
-                <div key={provider.name} style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-                  <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <span style={{ fontSize: 16 }}>{provider.icon}</span>
-                      <span style={{ fontSize: 13, fontWeight: 600, color: "var(--text-1)" }}>{provider.name}</span>
-                    </div>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                      <span style={{ fontSize: 11, color: "var(--text-4)" }}>{provider.pct}%</span>
-                      <span style={{ fontSize: 14, fontWeight: 800, color: "var(--text-1)", fontFamily: "monospace" }}>
-                        ${provider.cost.toFixed(2)}
-                      </span>
-                    </div>
+                <div key={a.name} style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                  <div style={{ ...LABEL_STYLE, width: "10rem", flexShrink: 0, fontSize: "0.5rem" }}>{a.name}</div>
+                  <div style={{ flex: 1, height: "6px", background: "hsl(220 20% 8%)", borderRadius: "var(--radius)", overflow: "hidden" }}>
+                    <div style={{ width: `${pct}%`, height: "100%", background: a.color, borderRadius: "var(--radius)", transition: "width 0.3s" }} />
                   </div>
-                  {/* Progress bar */}
-                  <div
-                    style={{
-                      height: 7,
-                      borderRadius: 999,
-                      background: "var(--accent-bg)",
-                      overflow: "hidden",
-                    }}
-                  >
-                    <div
-                      style={{
-                        height: "100%",
-                        width: `${provider.pct}%`,
-                        background: color,
-                        borderRadius: 999,
-                        minWidth: provider.pct > 0 ? 4 : 0,
-                        transition: "width 0.4s ease",
-                      }}
-                    />
+                  <div style={{ ...LABEL_STYLE, width: "3.5rem", textAlign: "right", fontSize: "0.5rem" }}>
+                    {a.tokens >= 1000 ? `${Math.round(a.tokens / 1000)}K` : a.tokens}
                   </div>
                 </div>
               );
@@ -386,63 +129,24 @@ export default function TelemetryPage() {
           </div>
         </div>
 
-        {/* Provider health */}
-        <div
-          style={{
-            background: "var(--bg-card)",
-            border: "1px solid var(--border)",
-            borderRadius: 16,
-            padding: "20px",
-            display: "flex",
-            flexDirection: "column",
-            gap: 20,
-          }}
-        >
-          <div>
-            <h2 style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)", textTransform: "uppercase", letterSpacing: "0.15em" }}>
-              Provider Health
-            </h2>
-            <p style={{ fontSize: 13, color: "var(--text-3)", marginTop: 4 }}>Real-time status · uptime this month</p>
-          </div>
-
-          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-            {PROVIDER_HEALTH.map((p) => (
-              <div
-                key={p.name}
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  gap: 14,
-                  padding: "14px 16px",
-                  borderRadius: 12,
-                  background: "var(--bg)",
-                  border: "1px solid var(--border)",
-                  minHeight: 44,
-                }}
-              >
-                {/* Large pulsing dot */}
-                <div
-                  style={{
-                    width: 14,
-                    height: 14,
-                    borderRadius: "50%",
-                    background: "var(--green)",
-                    flexShrink: 0,
-                    boxShadow: "0 0 8px var(--green)",
-                    animation: "pulse-dot 2s infinite",
-                  }}
-                />
-
-                {/* Name */}
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)" }}>{p.name}</div>
-                  <div style={{ fontSize: 10, color: "var(--text-4)", marginTop: 2 }}>Last check {p.lastCheck}</div>
+        {/* Model usage */}
+        <div className="glass-card p-4">
+          <div style={SECTION_TITLE}>MODEL USAGE</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+            {MODEL_USAGE.map((m) => (
+              <div key={m.name}>
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.4rem" }}>
+                  <div>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--text-2)", letterSpacing: "0.05em" }}>{m.name}</div>
+                    <span className={m.role === "primary" ? "tag-badge" : "tag-badge-cyan"} style={{ marginTop: "0.2rem", display: "inline-block" }}>{m.role}</span>
+                  </div>
+                  <div style={{ textAlign: "right" }}>
+                    <div style={{ ...VALUE_STYLE, fontSize: "1.125rem", color: m.color }}>{m.pct}%</div>
+                    <div style={{ ...LABEL_STYLE, fontSize: "0.5rem" }}>{Math.round(m.tokens / 1000)}K tokens</div>
+                  </div>
                 </div>
-
-                {/* Uptime */}
-                <div style={{ textAlign: "right" }}>
-                  <div style={{ fontSize: 17, fontWeight: 800, color: "var(--green)" }}>{p.uptime}</div>
-                  <div style={{ fontSize: 9, color: "var(--text-4)", textTransform: "uppercase", letterSpacing: "0.08em" }}>uptime</div>
+                <div style={{ height: "8px", background: "hsl(220 20% 8%)", borderRadius: "var(--radius)", overflow: "hidden" }}>
+                  <div style={{ width: `${m.pct}%`, height: "100%", background: m.color, borderRadius: "var(--radius)" }} />
                 </div>
               </div>
             ))}
@@ -450,12 +154,92 @@ export default function TelemetryPage() {
         </div>
       </div>
 
-      <style>{`
-        @keyframes pulse-dot {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.4; }
-        }
-      `}</style>
+      {/* Latency + Cost trend row */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.75rem" }}>
+
+        {/* Latency by operation */}
+        <div className="glass-card p-4">
+          <div style={SECTION_TITLE}>LATENCY — BY OPERATION</div>
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+            {LATENCY.map((l) => {
+              const pct = (l.avg / MAX_LATENCY) * 100;
+              return (
+                <div key={l.op}>
+                  <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.3rem" }}>
+                    <div style={LABEL_STYLE}>{l.op}</div>
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.625rem", color: l.color, letterSpacing: "0.05em" }}>
+                      avg {l.avg}{l.unit}
+                    </div>
+                  </div>
+                  <div style={{ height: "6px", background: "hsl(220 20% 8%)", borderRadius: "var(--radius)", overflow: "hidden" }}>
+                    <div style={{ width: `${pct}%`, height: "100%", background: l.color, borderRadius: "var(--radius)" }} />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        {/* Cost trend */}
+        <div className="glass-card p-4">
+          <div style={SECTION_TITLE}>COST PROJECTION — LAST 7 DAYS</div>
+          <div style={{ display: "flex", alignItems: "flex-end", gap: "0.5rem", height: "120px", paddingTop: "0.5rem" }}>
+            {COST_TREND.map((c, i) => {
+              const pct = (c.val / MAX_COST) * 100;
+              const isToday = i === COST_TREND.length - 1;
+              return (
+                <div key={c.day} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: "0.4rem", height: "100%" }}>
+                  <div style={{ flex: 1, display: "flex", alignItems: "flex-end", width: "100%" }}>
+                    <div
+                      style={{
+                        width: "100%",
+                        height: `${pct}%`,
+                        background: isToday ? "var(--accent)" : "hsl(220 20% 12%)",
+                        border: isToday ? "1px solid var(--accent)" : "1px solid var(--border-subtle)",
+                        borderRadius: "var(--radius)",
+                        position: "relative",
+                        transition: "height 0.3s",
+                      }}
+                    >
+                      <div style={{
+                        position: "absolute",
+                        top: "-1.2rem",
+                        left: "50%",
+                        transform: "translateX(-50%)",
+                        fontFamily: "var(--font-mono)",
+                        fontSize: "0.4375rem",
+                        color: isToday ? "var(--accent)" : "var(--text-4)",
+                        whiteSpace: "nowrap",
+                      }}>
+                        ${c.val}
+                      </div>
+                    </div>
+                  </div>
+                  <div style={{ ...LABEL_STYLE, fontSize: "0.4375rem" }}>{c.day}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </div>
+
+      {/* System health */}
+      <div className="glass-card p-4">
+        <div style={SECTION_TITLE}>SYSTEM HEALTH</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.75rem" }}>
+          {HEALTH.map((h) => (
+            <div key={h.name} style={{ display: "flex", alignItems: "center", gap: "0.75rem", padding: "0.75rem", background: "hsl(220 20% 4% / 0.5)", border: "1px solid var(--border-subtle)", borderRadius: "var(--radius)" }}>
+              <span className="pulse-dot" style={{ background: h.color }} />
+              <div>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--text-2)", letterSpacing: "0.05em" }}>{h.name}</div>
+                <div style={{ ...LABEL_STYLE, fontSize: "0.5rem", marginTop: "0.15rem" }}>{h.meta}</div>
+              </div>
+              <span className="tag-badge" style={{ marginLeft: "auto" }}>{h.status}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
     </div>
   );
 }

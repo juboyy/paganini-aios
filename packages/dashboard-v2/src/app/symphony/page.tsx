@@ -1,390 +1,328 @@
 "use client";
 
-const WORKSPACE_ITEMS = [
-  { id: "VIV-93", title: "Supabase capabilities table seed", status: "done", duration: "8m 14s", tokens: "12,440" },
-  { id: "VIV-94", title: "Dashboard v2 Telemetry page", status: "done", duration: "22m 07s", tokens: "38,820" },
-  { id: "VIV-95", title: "Revenue-OS auth session refresh", status: "done", duration: "11m 53s", tokens: "19,310" },
-  { id: "VIV-96", title: "Pipeline page BMAD-CE stages", status: "running", duration: "5m 41s", tokens: "9,640" },
-  { id: "VIV-97", title: "Capabilities graph semantic indexing", status: "running", duration: "2m 19s", tokens: "4,210" },
+type FlowStep = { name: string; active: boolean };
+
+interface OrchestraFlow {
+  id: string;
+  type: string;
+  steps: FlowStep[];
+  completionPct: number;
+  agents: number;
+  elapsed: string;
+  status: "running" | "stalled";
+}
+
+const ACTIVE_FLOWS: OrchestraFlow[] = [
+  {
+    id: "FLOW-091",
+    type: "Purchase Flow",
+    steps: [
+      { name: "Due Diligence", active: false },
+      { name: "Compliance", active: false },
+      { name: "Risk", active: true },
+      { name: "Pricing", active: false },
+      { name: "Admin", active: false },
+      { name: "Custody", active: false },
+    ],
+    completionPct: 42,
+    agents: 6,
+    elapsed: "2.1 min",
+    status: "running",
+  },
+  {
+    id: "FLOW-092",
+    type: "Report Flow",
+    steps: [
+      { name: "Admin", active: false },
+      { name: "Pricing", active: false },
+      { name: "Compliance", active: false },
+      { name: "Reporting", active: true },
+      { name: "IR", active: false },
+    ],
+    completionPct: 68,
+    agents: 5,
+    elapsed: "3.4 min",
+    status: "running",
+  },
+  {
+    id: "FLOW-093",
+    type: "Onboarding Flow",
+    steps: [
+      { name: "Due Diligence", active: false },
+      { name: "Compliance", active: true },
+      { name: "Risk", active: false },
+      { name: "Admin", active: false },
+    ],
+    completionPct: 25,
+    agents: 4,
+    elapsed: "0.8 min",
+    status: "running",
+  },
 ];
 
-const LOG_LINES = [
-  { time: "01:09:14", level: "INFO", msg: "Symphony daemon started · poll interval 30s" },
-  { time: "01:09:44", level: "INFO", msg: "Linear poll · 2 open issues found (VIV-96, VIV-97)" },
-  { time: "01:09:45", level: "INFO", msg: "Spawning pipeline for VIV-96 · tier=Feature" },
-  { time: "01:09:46", level: "INFO", msg: "Spawning pipeline for VIV-97 · tier=Quick" },
-  { time: "01:10:52", level: "WARN", msg: "VIV-97 context scout returned partial results" },
-  { time: "01:11:14", level: "ERROR", msg: "Rate limit hit on Anthropic · retrying in 5s" },
+const COORD_STATS = [
+  { label: "FLOWS TODAY", value: "23", delta: "+4 vs YSTD" },
+  { label: "AVG FLOW TIME", value: "3.8 min", delta: "-0.3 min" },
+  { label: "AGENT HANDOFFS", value: "89", delta: "+12 vs YSTD" },
+  { label: "CONFLICTS RESOLVED", value: "2", delta: "0 OPEN" },
 ];
 
-const LOG_COLORS: Record<string, string> = {
-  INFO: "var(--blue)",
-  WARN: "var(--amber)",
-  ERROR: "var(--red)",
+const RECENT_COMPLETIONS = [
+  { id: "FLOW-086", type: "Purchase Flow", duration: "3.9 min", agents: 6, result: "SETTLED" },
+  { id: "FLOW-087", type: "Report Flow", duration: "4.1 min", agents: 5, result: "DELIVERED" },
+  { id: "FLOW-088", type: "Purchase Flow", duration: "3.5 min", agents: 6, result: "SETTLED" },
+  { id: "FLOW-089", type: "Onboarding Flow", duration: "6.2 min", agents: 4, result: "ONBOARDED" },
+  { id: "FLOW-090", type: "Purchase Flow", duration: "3.7 min", agents: 6, result: "SETTLED" },
+];
+
+const FLOW_TYPE_COLOR: Record<string, string> = {
+  "Purchase Flow": "var(--accent)",
+  "Report Flow": "var(--cyan)",
+  "Onboarding Flow": "var(--amber)",
 };
 
-export default function SymphonyPage() {
-  const runningCount = WORKSPACE_ITEMS.filter((i) => i.status === "running").length;
-  const doneCount = WORKSPACE_ITEMS.filter((i) => i.status === "done").length;
+function FlowCard({ flow }: { flow: OrchestraFlow }) {
+  const accentColor = FLOW_TYPE_COLOR[flow.type] || "var(--accent)";
+  const activeIdx = flow.steps.findIndex((s) => s.active);
 
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 24,
-        padding: "16px",
-        maxWidth: 960,
-        margin: "0 auto",
-        width: "100%",
-      }}
-    >
-      {/* Header */}
-      <div>
-        <h1 style={{ color: "var(--text-1)", fontSize: 20, fontWeight: 700, lineHeight: 1.2 }}>Symphony</h1>
-        <p style={{ color: "var(--text-3)", fontSize: 13, marginTop: 4 }}>
-          Autonomous daemon · Linear issue poller · BMAD-CE orchestrator
-        </p>
-      </div>
-
-      {/* Hero stat cards */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))",
-          gap: 12,
-        }}
-      >
-        {/* Daemon status */}
-        <div
-          style={{
-            background: "var(--bg-card)",
-            border: "1px solid var(--border)",
-            borderRadius: 16,
-            padding: "20px",
-            display: "flex",
-            flexDirection: "column",
-            gap: 12,
-          }}
-        >
-          <span
-            style={{
-              fontSize: 9,
-              fontWeight: 700,
-              textTransform: "uppercase",
-              letterSpacing: "0.15em",
-              color: "var(--text-4)",
-            }}
-          >
-            Daemon Status
-          </span>
-          <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-            <div
-              style={{
-                width: 18,
-                height: 18,
-                borderRadius: "50%",
-                background: "var(--green)",
-                flexShrink: 0,
-                boxShadow: "0 0 10px var(--green)",
-                animation: "pulse-dot 2s infinite",
-              }}
-            />
-            <span style={{ fontSize: 22, fontWeight: 800, color: "var(--text-1)" }}>Running</span>
+    <div className="glass-card p-4" style={{ flex: 1 }}>
+      {/* Flow header */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
+        <div>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.45rem", color: "var(--text-4)", letterSpacing: "0.12em", marginBottom: 4 }}>
+            {flow.id}
           </div>
-          <span style={{ fontSize: 11, color: "var(--text-4)" }}>PID 89563 · 4h 32m uptime</span>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: "1rem", fontWeight: 700, color: "var(--text-1)", letterSpacing: "-0.02em" }}>
+            {flow.type}
+          </div>
         </div>
-
-        {/* Poll cycle */}
-        <div
-          style={{
-            background: "var(--bg-card)",
-            border: "1px solid var(--border)",
-            borderRadius: 16,
-            padding: "20px",
-            display: "flex",
-            flexDirection: "column",
-            gap: 12,
-          }}
-        >
-          <span
-            style={{
-              fontSize: 9,
-              fontWeight: 700,
-              textTransform: "uppercase",
-              letterSpacing: "0.15em",
-              color: "var(--text-4)",
-            }}
-          >
-            Poll Cycle
-          </span>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ fontSize: 24 }}>⏱</span>
-            <span style={{ fontSize: 28, fontWeight: 800, color: "var(--text-1)" }}>30s</span>
+        <div style={{ textAlign: "right" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: "flex-end", marginBottom: 4 }}>
+            <span className="pulse-dot" style={{ background: accentColor, boxShadow: `0 0 6px ${accentColor}` }} />
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.45rem", color: accentColor, letterSpacing: "0.08em" }}>
+              ACTIVE
+            </span>
           </div>
-          <span style={{ fontSize: 11, color: "var(--text-4)" }}>Linear → Jira sync interval</span>
-        </div>
-
-        {/* Completed */}
-        <div
-          style={{
-            background: "var(--bg-card)",
-            border: "1px solid var(--border)",
-            borderRadius: 16,
-            padding: "20px",
-            display: "flex",
-            flexDirection: "column",
-            gap: 12,
-          }}
-        >
-          <span
-            style={{
-              fontSize: 9,
-              fontWeight: 700,
-              textTransform: "uppercase",
-              letterSpacing: "0.15em",
-              color: "var(--text-4)",
-            }}
-          >
-            Completed
-          </span>
-          <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-            <span style={{ fontSize: 24 }}>✅</span>
-            <span style={{ fontSize: 28, fontWeight: 800, color: "var(--text-1)" }}>4</span>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", color: "var(--text-4)" }}>
+            T+{flow.elapsed}
           </div>
-          <span style={{ fontSize: 11, color: "var(--text-4)" }}>Issues this session</span>
         </div>
       </div>
 
-      {/* Summary pills */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 12,
-          flexWrap: "wrap",
-          padding: "12px 16px",
-          borderRadius: 12,
-          background: "var(--bg-card)",
-          border: "1px solid var(--border)",
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <span
-            style={{
-              width: 8,
-              height: 8,
-              borderRadius: "50%",
-              background: "var(--blue)",
-              display: "inline-block",
-              animation: "pulse-dot 2s infinite",
-            }}
-          />
-          <span style={{ fontSize: 13, color: "var(--text-2)" }}>
-            <strong style={{ color: "var(--text-1)" }}>{runningCount}</strong> running
-          </span>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-          <span style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--green)", display: "inline-block" }} />
-          <span style={{ fontSize: 13, color: "var(--text-2)" }}>
-            <strong style={{ color: "var(--text-1)" }}>{doneCount}</strong> done
-          </span>
-        </div>
-        <span style={{ marginLeft: "auto", fontSize: 11, color: "var(--text-4)" }}>Last poll: 12s ago</span>
-      </div>
-
-      {/* Active workspace cards */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        <h2
-          style={{
-            fontSize: 13,
-            fontWeight: 700,
-            color: "var(--text-1)",
-            textTransform: "uppercase",
-            letterSpacing: "0.15em",
-          }}
-        >
-          Active Workspaces
-        </h2>
-        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {WORKSPACE_ITEMS.map((item) => (
-            <div
-              key={item.id}
-              style={{
-                background: "var(--bg-card)",
-                border: "1px solid var(--border)",
-                borderRadius: 16,
-                padding: "16px 18px",
-                display: "flex",
-                alignItems: "center",
-                gap: 14,
-                flexWrap: "wrap",
-                borderLeftWidth: 3,
-                borderLeftColor: item.status === "done" ? "var(--green)" : "var(--blue)",
-                borderLeftStyle: "solid",
-                minHeight: 44,
-                transition: "transform 0.15s ease",
-              }}
-            >
-              {/* Identifier badge */}
-              <span
-                style={{
-                  fontSize: 10,
-                  fontWeight: 700,
-                  fontFamily: "monospace",
-                  background: item.status === "done" ? "rgba(34,197,94,0.12)" : "rgba(59,130,246,0.12)",
-                  color: item.status === "done" ? "var(--green)" : "var(--blue)",
-                  padding: "4px 8px",
-                  borderRadius: 6,
-                  flexShrink: 0,
-                }}
-              >
-                {item.id}
-              </span>
-
-              {/* Title */}
-              <span
-                style={{
-                  fontSize: 13,
-                  fontWeight: 600,
-                  color: "var(--text-1)",
-                  flex: "1 1 160px",
-                  minWidth: 0,
-                }}
-              >
-                {item.title}
-              </span>
-
-              {/* Status */}
-              <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
-                <span
-                  style={{
-                    width: 8,
-                    height: 8,
-                    borderRadius: "50%",
-                    background: item.status === "done" ? "var(--green)" : "var(--blue)",
-                    display: "inline-block",
-                    animation: item.status === "running" ? "pulse-dot 2s infinite" : "none",
-                  }}
-                />
-                <span
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 600,
-                    color: item.status === "done" ? "var(--green)" : "var(--blue)",
-                    textTransform: "uppercase",
-                    letterSpacing: "0.06em",
-                  }}
-                >
-                  {item.status}
-                </span>
+      {/* Steps timeline */}
+      <div style={{ marginBottom: 14 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 0, position: "relative" }}>
+          {/* Connector line */}
+          <div style={{
+            position: "absolute",
+            top: "50%", left: 0, right: 0,
+            height: 1,
+            background: "var(--border-subtle)",
+            zIndex: 0,
+          }} />
+          {/* Progress line */}
+          <div style={{
+            position: "absolute",
+            top: "50%", left: 0,
+            width: `${(activeIdx / (flow.steps.length - 1)) * 100}%`,
+            height: 1,
+            background: accentColor,
+            boxShadow: `0 0 4px ${accentColor}`,
+            zIndex: 1,
+          }} />
+          {flow.steps.map((step, i) => {
+            const done = i < activeIdx;
+            const isActive = step.active;
+            const upcoming = i > activeIdx;
+            return (
+              <div key={step.name} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", zIndex: 2, gap: 6 }}>
+                {/* Node */}
+                <div style={{
+                  width: isActive ? 14 : 8,
+                  height: isActive ? 14 : 8,
+                  borderRadius: "50%",
+                  background: done ? accentColor : isActive ? accentColor : "hsl(220 20% 10%)",
+                  border: `1.5px solid ${done || isActive ? accentColor : "var(--border-subtle)"}`,
+                  boxShadow: isActive ? `0 0 10px ${accentColor}, 0 0 20px ${accentColor}33` : "none",
+                  transition: "all 0.3s",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                }}>
+                  {done && (
+                    <svg width="5" height="5" viewBox="0 0 5 5" fill="none">
+                      <path d="M1 2.5L2 3.5L4 1.5" stroke="hsl(220 20% 4%)" strokeWidth="1.2" strokeLinecap="round"/>
+                    </svg>
+                  )}
+                </div>
+                {/* Label */}
+                <div style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "0.4rem",
+                  letterSpacing: "0.06em",
+                  color: isActive ? accentColor : done ? "var(--text-3)" : "var(--text-4)",
+                  textAlign: "center",
+                  maxWidth: 52,
+                  lineHeight: 1.3,
+                  fontWeight: isActive ? 700 : 400,
+                }}>
+                  {step.name}
+                </div>
               </div>
+            );
+          })}
+        </div>
+      </div>
 
-              {/* Duration */}
-              <span
-                style={{
-                  fontSize: 11,
-                  fontFamily: "monospace",
-                  color: "var(--text-3)",
-                  flexShrink: 0,
-                }}
-              >
-                ⏱ {item.duration}
-              </span>
+      {/* Progress + meta */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 4 }}>
+        {/* Progress bar */}
+        <div style={{ flex: 1, height: 4, background: "hsl(220 20% 10%)", borderRadius: 1, overflow: "hidden" }}>
+          <div style={{
+            height: "100%",
+            width: `${flow.completionPct}%`,
+            background: accentColor,
+            borderRadius: 1,
+            boxShadow: `0 0 6px ${accentColor}`,
+          }} />
+        </div>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", color: accentColor, minWidth: 28 }}>
+          {flow.completionPct}%
+        </span>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.45rem", color: "var(--text-4)" }}>
+          {flow.agents} AGENTS
+        </span>
+      </div>
+    </div>
+  );
+}
 
-              {/* Token count */}
-              <span
-                style={{
-                  fontSize: 11,
-                  fontFamily: "monospace",
-                  color: "var(--text-4)",
-                  flexShrink: 0,
-                }}
-              >
-                {item.tokens} tok
-              </span>
+export default function SymphonyPage() {
+  return (
+    <div style={{ padding: "24px 28px", minHeight: "100vh", fontFamily: "var(--font-mono)" }}>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 28 }}>
+        <span className="pulse-dot" style={{ background: "var(--accent)", boxShadow: "0 0 8px var(--accent)" }} />
+        <div>
+          <h1 style={{ fontFamily: "var(--font-display)", fontSize: "1.125rem", fontWeight: 700, color: "var(--text-1)", letterSpacing: "-0.02em", margin: 0 }}>
+            SYMPHONY
+          </h1>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginTop: 2 }}>
+            MULTI-AGENT ORCHESTRATION · LIVE CONDUCTOR VIEW
+          </div>
+        </div>
+        <div style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" }}>
+          <span className="tag-badge">{ACTIVE_FLOWS.length} ACTIVE FLOWS</span>
+        </div>
+      </div>
+
+      {/* Coordination Stats */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 20 }}>
+        {COORD_STATS.map((s) => (
+          <div key={s.label} className="glass-card p-4">
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: 8 }}>
+              {s.label}
             </div>
+            <div style={{ fontFamily: "var(--font-display)", fontSize: "1.5rem", fontWeight: 700, color: "var(--text-1)", letterSpacing: "-0.02em" }}>
+              {s.value}
+            </div>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.45rem", color: "var(--text-4)", marginTop: 6 }}>
+              {s.delta}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Active Flows — Orchestra */}
+      <div style={{ marginBottom: 12 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)" }}>
+            ACTIVE ORCHESTRATIONS
+          </div>
+          <div style={{ flex: 1, height: 1, background: "var(--border-subtle)" }} />
+        </div>
+        <div style={{ display: "flex", gap: 12 }}>
+          {ACTIVE_FLOWS.map((flow) => (
+            <FlowCard key={flow.id} flow={flow} />
           ))}
         </div>
       </div>
 
-      {/* Log tail */}
-      <div
-        style={{
-          background: "var(--bg-card)",
-          border: "1px solid var(--border)",
-          borderRadius: 16,
-          padding: "20px",
-          display: "flex",
-          flexDirection: "column",
-          gap: 12,
-        }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <h2
-            style={{
-              fontSize: 13,
-              fontWeight: 700,
-              color: "var(--text-1)",
-              textTransform: "uppercase",
-              letterSpacing: "0.15em",
-            }}
-          >
-            Daemon Log
-          </h2>
-          <span
-            style={{
-              width: 8,
-              height: 8,
-              borderRadius: "50%",
-              background: "var(--green)",
-              display: "inline-block",
-              animation: "pulse-dot 2s infinite",
-            }}
-          />
-        </div>
+      {/* Agent legend */}
+      <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
+        {Object.entries(FLOW_TYPE_COLOR).map(([type, color]) => (
+          <div key={type} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <div style={{ width: 8, height: 8, borderRadius: "50%", background: color, boxShadow: `0 0 4px ${color}` }} />
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.45rem", color: "var(--text-4)" }}>{type}</span>
+          </div>
+        ))}
+      </div>
 
-        <div
-          style={{
-            background: "#070b12",
-            borderRadius: 10,
-            padding: "14px 16px",
-            fontFamily: "monospace",
-            fontSize: 12,
-            display: "flex",
-            flexDirection: "column",
-            gap: 5,
-            overflowX: "auto",
-            maxHeight: 260,
-            overflowY: "auto",
-          }}
-        >
-          {LOG_LINES.map((line, i) => (
-            <div key={i} style={{ display: "flex", gap: 12, alignItems: "baseline", minWidth: "max-content" }}>
-              <span style={{ color: "#334155", flexShrink: 0 }}>{line.time}</span>
-              <span
-                style={{
-                  color: LOG_COLORS[line.level] ?? "#94a3b8",
-                  flexShrink: 0,
-                  minWidth: 40,
-                  fontWeight: 700,
-                  fontSize: 11,
-                }}
-              >
-                {line.level}
-              </span>
-              <span style={{ color: "#cbd5e1" }}>{line.msg}</span>
+      {/* Recent Completions */}
+      <div className="glass-card p-4">
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: 16 }}>
+          RECENT COMPLETIONS
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "70px 1fr auto auto auto", gap: "0 20px", alignItems: "center" }}>
+          {["ID", "FLOW TYPE", "DURATION", "AGENTS", "RESULT"].map((h) => (
+            <div key={h} style={{ fontFamily: "var(--font-mono)", fontSize: "0.45rem", letterSpacing: "0.12em", color: "var(--text-4)", paddingBottom: 8, borderBottom: "1px solid var(--border-subtle)" }}>
+              {h}
             </div>
           ))}
+          {RECENT_COMPLETIONS.map((c) => {
+            const typeColor = FLOW_TYPE_COLOR[c.type] || "var(--accent)";
+            return (
+              <>
+                <div key={c.id + "-id"} style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", color: "var(--text-4)", paddingTop: 10 }}>
+                  {c.id}
+                </div>
+                <div key={c.id + "-t"} style={{ paddingTop: 10, display: "flex", alignItems: "center", gap: 6 }}>
+                  <div style={{ width: 6, height: 6, borderRadius: "50%", background: typeColor, boxShadow: `0 0 4px ${typeColor}`, flexShrink: 0 }} />
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--text-1)" }}>
+                    {c.type}
+                  </span>
+                </div>
+                <div key={c.id + "-d"} style={{ fontFamily: "var(--font-display)", fontSize: "0.875rem", fontWeight: 700, color: "var(--text-1)", letterSpacing: "-0.02em", paddingTop: 10, textAlign: "right" }}>
+                  {c.duration}
+                </div>
+                <div key={c.id + "-a"} style={{ paddingTop: 10, textAlign: "center" }}>
+                  <span style={{
+                    fontFamily: "var(--font-mono)", fontSize: "0.45rem",
+                    background: "hsl(220 20% 4% / 0.5)", border: "1px solid var(--border-subtle)",
+                    borderRadius: "var(--radius)", padding: "2px 6px", color: "var(--text-3)",
+                  }}>
+                    {c.agents} AGT
+                  </span>
+                </div>
+                <div key={c.id + "-r"} style={{ paddingTop: 10, textAlign: "right" }}>
+                  <span className="tag-badge">{c.result}</span>
+                </div>
+              </>
+            );
+          })}
         </div>
       </div>
 
-      <style>{`
-        @keyframes pulse-dot {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.4; }
-        }
-      `}</style>
+      {/* Footer conductor pulse */}
+      <div style={{
+        marginTop: 20,
+        padding: "10px 16px",
+        background: "hsl(220 20% 4% / 0.5)",
+        border: "1px solid var(--border-subtle)",
+        borderRadius: "var(--radius)",
+        display: "flex",
+        alignItems: "center",
+        gap: 10,
+      }}>
+        <span className="pulse-dot" style={{ background: "var(--accent)", boxShadow: "0 0 8px var(--accent)" }} />
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", color: "var(--text-4)", letterSpacing: "0.08em" }}>
+          CONDUCTOR ONLINE · SYMPHONY ENGINE v2.4.1 · 3 FLOWS ORCHESTRATING · 15 AGENTS ACTIVE · ZERO DEADLOCKS
+        </span>
+        <div style={{ marginLeft: "auto" }}>
+          <span className="tag-badge-cyan">NOMINAL</span>
+        </div>
+      </div>
     </div>
   );
 }

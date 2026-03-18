@@ -1,286 +1,395 @@
 "use client";
 
-import { useState } from "react";
-
-const CAPABILITIES = [
-  { id: "1", name: "Jira", kind: "integration", status: "active", agents: ["oracli", "pm"], desc: "Requirements, sprints, stories" },
-  { id: "2", name: "Confluence", kind: "integration", status: "active", agents: ["docs", "general"], desc: "Documentation wiki" },
-  { id: "3", name: "Supabase", kind: "integration", status: "active", agents: ["data", "oracli"], desc: "DB schema, SQL, migrations, RLS" },
-  { id: "4", name: "Vercel", kind: "integration", status: "active", agents: ["infra"], desc: "Deploy, env vars, domains" },
-  { id: "5", name: "GitHub", kind: "integration", status: "active", agents: ["code", "infra"], desc: "Repos, PRs, branches, CI" },
-  { id: "6", name: "Stripe", kind: "integration", status: "active", agents: ["oracli"], desc: "Payments, webhooks, products" },
-  { id: "7", name: "Slack", kind: "integration", status: "active", agents: ["general"], desc: "Messaging, channels" },
-  { id: "8", name: "LinkedIn", kind: "integration", status: "active", agents: ["general"], desc: "Social posting" },
-  { id: "9", name: "Linear", kind: "api", status: "active", agents: ["oracli", "pm"], desc: "Review hub, production gate, GraphQL API" },
-  { id: "10", name: "GitNexus", kind: "tool", status: "active", agents: ["code", "oracli"], desc: "Code intelligence — 17K nodes, 46K edges" },
-  { id: "11", name: "Codex CLI", kind: "tool", status: "active", agents: ["code"], desc: "AI code execution engine (gpt-5.3-codex)" },
-  { id: "12", name: "PinchTab", kind: "tool", status: "active", agents: ["general"], desc: "Browser automation headless Chrome" },
-  { id: "13", name: "DesignKit", kind: "skill", status: "active", agents: ["general"], desc: "Extract design systems from live apps" },
-  { id: "14", name: "Humanizer", kind: "skill", status: "active", agents: ["docs"], desc: "Remove AI writing patterns from text" },
-  { id: "15", name: "WeatherSkill", kind: "skill", status: "active", agents: ["general"], desc: "Current weather and forecasts via wttr.in" },
-  { id: "16", name: "pipeline.py", kind: "script", status: "active", agents: ["oracli"], desc: "Full SDLC automation script" },
-  { id: "17", name: "roi-calculator.py", kind: "script", status: "active", agents: ["oracli"], desc: "Calculate ROI metrics from telemetry" },
-  { id: "18", name: "memory-reflection.py", kind: "script", status: "active", agents: ["oracli"], desc: "Periodic memory maintenance and distillation" },
-  { id: "19", name: "Visual Explainer", kind: "native", status: "active", agents: ["oracli", "general"], desc: "Generate HTML visual explanations" },
-  { id: "20", name: "Context Engine", kind: "native", status: "active", agents: ["oracli"], desc: "Enrich subagent spawns with relevant context" },
+const TOP_STATS = [
+  { label: "TOTAL SKILLS", value: "11", sub: "in lockfile", color: "var(--accent)" },
+  { label: "ACTIVE AGENTS", value: "9", sub: "specialist instances", color: "var(--cyan)" },
+  { label: "SKILL DEPS", value: "10", sub: "resolved edges", color: "var(--text-1)" },
+  { label: "CONTEXT BUDGET", value: "3,138", sub: "tokens total", color: "var(--amber)" },
 ];
 
-const KINDS = ["all", "integration", "api", "tool", "skill", "script", "native"] as const;
+type SkillType = "abstract" | "orchestrator" | "specialist";
 
-const KIND_COLOR: Record<string, string> = {
-  integration: "var(--blue)",
-  api: "var(--teal)",
-  tool: "var(--accent)",
-  skill: "var(--green)",
-  script: "var(--amber)",
-  native: "var(--red)",
+const SKILLS: {
+  id: string;
+  name: string;
+  version: string;
+  type: SkillType;
+  tokens: number;
+  deps: number;
+  implements: string[];
+}[] = [
+  {
+    id: "fidc-orchestrator",
+    name: "fidc-orchestrator",
+    version: "1.0.0",
+    type: "orchestrator",
+    tokens: 981,
+    deps: 10,
+    implements: ["orchestration", "routing", "coordination"],
+  },
+  {
+    id: "compliance-agent",
+    name: "compliance-agent",
+    version: "1.0.0",
+    type: "specialist",
+    tokens: 736,
+    deps: 1,
+    implements: ["compliance-check", "regulatory-validation"],
+  },
+  {
+    id: "pricing-agent",
+    name: "pricing-agent",
+    version: "1.0.0",
+    type: "specialist",
+    tokens: 147,
+    deps: 1,
+    implements: ["nav-calculation", "mark-to-market"],
+  },
+  {
+    id: "admin-agent",
+    name: "admin-agent",
+    version: "1.0.0",
+    type: "specialist",
+    tokens: 145,
+    deps: 1,
+    implements: ["fund-admin", "investor-registry"],
+  },
+  {
+    id: "due-diligence-agent",
+    name: "due-diligence-agent",
+    version: "1.0.0",
+    type: "specialist",
+    tokens: 148,
+    deps: 1,
+    implements: ["credit-analysis", "originator-review"],
+  },
+  {
+    id: "custody-agent",
+    name: "custody-agent",
+    version: "1.0.0",
+    type: "specialist",
+    tokens: 145,
+    deps: 1,
+    implements: ["asset-custody", "settlement"],
+  },
+  {
+    id: "risk-agent",
+    name: "risk-agent",
+    version: "1.0.0",
+    type: "specialist",
+    tokens: 144,
+    deps: 1,
+    implements: ["risk-metrics", "var-calculation"],
+  },
+  {
+    id: "reporting-agent",
+    name: "reporting-agent",
+    version: "1.0.0",
+    type: "specialist",
+    tokens: 150,
+    deps: 1,
+    implements: ["report-generation", "cvm-reporting"],
+  },
+  {
+    id: "ir-agent",
+    name: "ir-agent",
+    version: "1.0.0",
+    type: "specialist",
+    tokens: 151,
+    deps: 1,
+    implements: ["investor-relations", "quota-holder-comms"],
+  },
+  {
+    id: "regwatch-agent",
+    name: "regwatch-agent",
+    version: "1.0.0",
+    type: "specialist",
+    tokens: 150,
+    deps: 1,
+    implements: ["regulatory-monitoring", "normative-watch"],
+  },
+  {
+    id: "fidc-rules-base",
+    name: "fidc-rules-base",
+    version: "1.0.0",
+    type: "abstract",
+    tokens: 241,
+    deps: 0,
+    implements: ["base-rules", "fidc-core"],
+  },
+];
+
+const SPECIALISTS = SKILLS.filter((s) => s.type === "specialist");
+const ORCHESTRATOR = SKILLS.find((s) => s.type === "orchestrator")!;
+const BASE = SKILLS.find((s) => s.type === "abstract")!;
+
+const TYPE_COLOR: Record<SkillType, string> = {
+  abstract: "var(--amber)",
+  orchestrator: "var(--accent)",
+  specialist: "var(--cyan)",
 };
 
-const AGENT_COLOR: Record<string, string> = {
-  oracli: "var(--accent)",
-  code: "var(--blue)",
-  pm: "var(--teal)",
-  docs: "var(--green)",
-  general: "var(--amber)",
-  infra: "var(--red)",
-  data: "var(--teal)",
-  qa: "var(--green)",
+const LABEL_STYLE = {
+  fontFamily: "var(--font-mono)",
+  fontSize: "0.5625rem",
+  letterSpacing: "0.12em",
+  color: "var(--text-4)",
+  textTransform: "uppercase" as const,
 };
+
+const VALUE_STYLE = {
+  fontFamily: "var(--font-display)",
+  fontSize: "1.5rem",
+  fontWeight: 700,
+  color: "var(--text-1)",
+  letterSpacing: "-0.02em",
+};
+
+const SECTION_TITLE = {
+  fontFamily: "var(--font-mono)",
+  fontSize: "0.625rem",
+  letterSpacing: "0.15em",
+  color: "var(--text-4)",
+  textTransform: "uppercase" as const,
+  marginBottom: "0.75rem",
+};
+
+function SkillCard({ skill, highlight }: { skill: typeof SKILLS[0]; highlight?: boolean }) {
+  const typeColor = TYPE_COLOR[skill.type];
+  return (
+    <div style={{
+      background: "hsl(220 20% 4% / 0.5)",
+      border: `1px solid ${highlight ? typeColor : "var(--border-subtle)"}`,
+      borderRadius: "var(--radius)",
+      padding: "0.75rem",
+      display: "flex",
+      flexDirection: "column",
+      gap: "0.5rem",
+    }}>
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--text-2)", letterSpacing: "0.04em" }}>{skill.name}</div>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.4375rem", color: "var(--text-4)", letterSpacing: "0.08em" }}>v{skill.version}</span>
+      </div>
+
+      <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+        <span
+          className={skill.type === "specialist" ? "tag-badge-cyan" : "tag-badge"}
+          style={{ color: typeColor, borderColor: typeColor }}
+        >
+          {skill.type}
+        </span>
+      </div>
+
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "0.5rem" }}>
+        <div>
+          <div style={LABEL_STYLE}>TOKENS</div>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: "1rem", fontWeight: 700, color: typeColor, letterSpacing: "-0.02em" }}>{skill.tokens}</div>
+        </div>
+        <div>
+          <div style={LABEL_STYLE}>DEPS</div>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: "1rem", fontWeight: 700, color: "var(--text-2)", letterSpacing: "-0.02em" }}>{skill.deps}</div>
+        </div>
+      </div>
+
+      <div>
+        <div style={{ ...LABEL_STYLE, marginBottom: "0.3rem" }}>IMPLEMENTS</div>
+        <div style={{ display: "flex", flexWrap: "wrap" as const, gap: "0.25rem" }}>
+          {skill.implements.map((imp) => (
+            <span key={imp} style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: "0.4375rem",
+              color: "var(--text-4)",
+              background: "hsl(220 20% 8%)",
+              padding: "0.15rem 0.4rem",
+              borderRadius: "var(--radius)",
+              letterSpacing: "0.05em",
+            }}>
+              {imp}
+            </span>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
 
 export default function CapabilitiesPage() {
-  const [filter, setFilter] = useState<string>("all");
-  const [search, setSearch] = useState("");
-
-  const counts: Record<string, number> = { all: CAPABILITIES.length };
-  KINDS.slice(1).forEach((k) => {
-    counts[k] = CAPABILITIES.filter((c) => c.kind === k).length;
-  });
-
-  const filtered = CAPABILITIES.filter((c) => {
-    if (filter !== "all" && c.kind !== filter) return false;
-    if (
-      search &&
-      !c.name.toLowerCase().includes(search.toLowerCase()) &&
-      !c.desc.toLowerCase().includes(search.toLowerCase())
-    )
-      return false;
-    return true;
-  });
-
   return (
-    <div
-      style={{
-        display: "flex",
-        flexDirection: "column",
-        gap: 24,
-        padding: "16px",
-        maxWidth: 1100,
-        margin: "0 auto",
-        width: "100%",
-      }}
-    >
+    <div style={{ padding: "1.5rem", display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+
       {/* Header */}
-      <div>
-        <h1 style={{ color: "var(--text-1)", fontSize: 20, fontWeight: 700, lineHeight: 1.2 }}>Capabilities Graph</h1>
-        <p style={{ color: "var(--text-3)", fontSize: 13, marginTop: 4 }}>
-          {CAPABILITIES.length} capabilities · 6 kinds · semantic search via 3072d embeddings
-        </p>
+      <div style={{ display: "flex", alignItems: "baseline", gap: "1rem" }}>
+        <h1 style={{ fontFamily: "var(--font-display)", fontSize: "1.25rem", fontWeight: 700, color: "var(--text-1)", letterSpacing: "-0.02em", margin: 0 }}>
+          CAPABILITIES
+        </h1>
+        <span style={{ ...LABEL_STYLE, fontSize: "0.5rem" }}>SKILLS REGISTRY &amp; DEPENDENCY GRAPH</span>
       </div>
 
-      {/* Search bar */}
-      <div
-        style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 10,
-          background: "var(--bg-card)",
-          border: "1px solid var(--border)",
-          borderRadius: 14,
-          padding: "10px 16px",
-          minHeight: 44,
-        }}
-      >
-        <span style={{ fontSize: 18, flexShrink: 0, lineHeight: 1 }}>🔍</span>
-        <input
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          placeholder="Search capabilities..."
-          style={{
-            background: "transparent",
-            border: "none",
-            outline: "none",
-            color: "var(--text-1)",
-            fontSize: 13,
-            width: "100%",
-          }}
-        />
-        {search && (
-          <button
-            onClick={() => setSearch("")}
-            style={{
-              background: "none",
-              border: "none",
-              cursor: "pointer",
-              color: "var(--text-4)",
-              fontSize: 16,
-              padding: 0,
-              lineHeight: 1,
-            }}
-          >
-            ✕
-          </button>
-        )}
+      {/* Top stats */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "0.75rem" }}>
+        {TOP_STATS.map((s) => (
+          <div key={s.label} className="glass-card p-4">
+            <div style={LABEL_STYLE}>{s.label}</div>
+            <div style={{ ...VALUE_STYLE, color: s.color, marginTop: "0.25rem" }}>{s.value}</div>
+            <div style={{ ...LABEL_STYLE, marginTop: "0.25rem", fontSize: "0.5rem" }}>{s.sub}</div>
+          </div>
+        ))}
       </div>
 
-      {/* Filter pills */}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
-        {KINDS.map((k) => {
-          const isActive = filter === k;
-          const color = k === "all" ? "var(--accent)" : KIND_COLOR[k] ?? "var(--text-4)";
-          return (
-            <button
-              key={k}
-              onClick={() => setFilter(k)}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 6,
-                padding: "8px 14px",
-                borderRadius: 999,
-                border: `1px solid ${isActive ? color : "var(--border)"}`,
-                background: isActive ? color + "18" : "var(--bg-card)",
-                color: isActive ? color : "var(--text-3)",
-                fontSize: 12,
-                fontWeight: 600,
-                cursor: "pointer",
-                textTransform: "capitalize",
-                transition: "all 0.15s ease",
-                minHeight: 36,
-              }}
-            >
-              {k}
-              <span
-                style={{
-                  fontSize: 10,
-                  fontWeight: 800,
-                  background: isActive ? color + "28" : "var(--accent-bg)",
-                  color: isActive ? color : "var(--text-4)",
-                  padding: "1px 6px",
-                  borderRadius: 999,
-                  lineHeight: 1.5,
-                }}
-              >
-                {counts[k] ?? 0}
-              </span>
-            </button>
-          );
-        })}
-      </div>
+      {/* Dependency tree */}
+      <div className="glass-card p-4">
+        <div style={SECTION_TITLE}>SKILL DEPENDENCY TREE</div>
 
-      {/* Result count */}
-      {(filter !== "all" || search) && (
-        <div style={{ fontSize: 12, color: "var(--text-4)" }}>
-          Showing <strong style={{ color: "var(--text-2)" }}>{filtered.length}</strong> of {CAPABILITIES.length}
+        {/* Orchestrator */}
+        <div style={{ display: "flex", justifyContent: "center", marginBottom: "0.5rem" }}>
+          <div style={{
+            background: "hsl(220 20% 4% / 0.8)",
+            border: "1px solid var(--accent)",
+            borderRadius: "var(--radius)",
+            padding: "0.5rem 1.5rem",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "0.2rem",
+          }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--accent)", letterSpacing: "0.08em" }}>{ORCHESTRATOR.name}</div>
+            <div style={{ display: "flex", gap: "0.4rem", alignItems: "center" }}>
+              <span className="tag-badge">orchestrator</span>
+              <span style={{ ...LABEL_STYLE, fontSize: "0.4375rem" }}>{ORCHESTRATOR.tokens} tokens</span>
+            </div>
+          </div>
         </div>
-      )}
 
-      {/* Cards grid */}
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
-          gap: 12,
-        }}
-      >
-        {filtered.map((cap) => {
-          const kindColor = KIND_COLOR[cap.kind] ?? "var(--text-4)";
-          return (
-            <div
-              key={cap.id}
-              style={{
-                background: "var(--bg-card)",
-                border: "1px solid var(--border)",
-                borderRadius: 16,
-                padding: "16px 18px",
-                display: "flex",
-                flexDirection: "column",
-                gap: 12,
-                position: "relative",
-                borderLeftWidth: 3,
-                borderLeftColor: kindColor,
-                borderLeftStyle: "solid",
-                transition: "transform 0.15s ease, box-shadow 0.15s ease",
-              }}
-            >
-              {/* Kind badge top-right */}
-              <span
-                style={{
-                  position: "absolute",
-                  top: 14,
-                  right: 14,
-                  fontSize: 9,
-                  fontWeight: 700,
-                  textTransform: "uppercase",
-                  letterSpacing: "0.12em",
-                  padding: "3px 8px",
-                  borderRadius: 999,
-                  background: kindColor + "1a",
-                  color: kindColor,
-                }}
-              >
-                {cap.kind}
-              </span>
+        {/* Connector line down */}
+        <div style={{ display: "flex", justifyContent: "center", height: "1.5rem", position: "relative" }}>
+          <div style={{ width: "1px", height: "100%", background: "var(--border-subtle)" }} />
+        </div>
 
-              {/* Name */}
-              <div style={{ paddingRight: 64 }}>
-                <div style={{ fontSize: 15, fontWeight: 700, color: "var(--text-1)", lineHeight: 1.2 }}>
-                  {cap.name}
-                </div>
+        {/* Connector bar across specialists */}
+        <div style={{ position: "relative", display: "flex", justifyContent: "center", marginBottom: "0rem" }}>
+          <div style={{ width: "calc(100% - 4rem)", height: "1px", background: "var(--border-subtle)", position: "absolute", top: 0 }} />
+        </div>
+
+        {/* Drop lines + specialists */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(9, 1fr)", gap: "0.4rem", position: "relative" }}>
+          {/* Top connector lines */}
+          {SPECIALISTS.map((s) => (
+            <div key={s.id} style={{ display: "flex", justifyContent: "center", height: "1.25rem" }}>
+              <div style={{ width: "1px", height: "100%", background: "var(--border-subtle)" }} />
+            </div>
+          ))}
+        </div>
+
+        {/* Specialist cards */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(9, 1fr)", gap: "0.4rem" }}>
+          {SPECIALISTS.map((s) => (
+            <div key={s.id} style={{
+              background: "hsl(220 20% 4% / 0.5)",
+              border: "1px solid var(--border-subtle)",
+              borderRadius: "var(--radius)",
+              padding: "0.5rem 0.4rem",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "0.3rem",
+            }}>
+              <div style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: "0.4375rem",
+                color: "var(--cyan)",
+                letterSpacing: "0.04em",
+                textAlign: "center",
+              }}>
+                {s.name.replace("-agent", "")}
               </div>
+              <span className="tag-badge-cyan" style={{ fontSize: "0.375rem" }}>specialist</span>
+              <div style={{ ...LABEL_STYLE, fontSize: "0.4375rem" }}>{s.tokens}t</div>
+            </div>
+          ))}
+        </div>
 
-              {/* Description */}
-              <p style={{ fontSize: 13, color: "var(--text-3)", lineHeight: 1.5, margin: 0 }}>{cap.desc}</p>
+        {/* Lines down to base */}
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(9, 1fr)", gap: "0.4rem" }}>
+          {SPECIALISTS.map((s) => (
+            <div key={s.id} style={{ display: "flex", justifyContent: "center", height: "1.25rem" }}>
+              <div style={{ width: "1px", height: "100%", background: "var(--border-subtle)" }} />
+            </div>
+          ))}
+        </div>
 
-              {/* Agent tags */}
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginTop: "auto" }}>
-                {cap.agents.map((a) => {
-                  const agentColor = AGENT_COLOR[a] ?? "var(--accent)";
-                  return (
-                    <span
-                      key={a}
-                      style={{
-                        fontSize: 9,
-                        fontWeight: 700,
-                        textTransform: "uppercase",
-                        letterSpacing: "0.08em",
-                        padding: "3px 7px",
-                        borderRadius: 6,
-                        background: agentColor + "18",
-                        color: agentColor,
-                      }}
-                    >
-                      {a}
-                    </span>
-                  );
-                })}
+        {/* Base bar */}
+        <div style={{ position: "relative", display: "flex", justifyContent: "center", marginBottom: "0rem" }}>
+          <div style={{ width: "calc(100% - 4rem)", height: "1px", background: "var(--border-subtle)", position: "absolute", top: 0 }} />
+        </div>
+
+        {/* Line to base */}
+        <div style={{ display: "flex", justifyContent: "center", height: "1.25rem" }}>
+          <div style={{ width: "1px", height: "100%", background: "var(--border-subtle)" }} />
+        </div>
+
+        {/* Base */}
+        <div style={{ display: "flex", justifyContent: "center" }}>
+          <div style={{
+            background: "hsl(220 20% 4% / 0.8)",
+            border: "1px solid var(--amber)",
+            borderRadius: "var(--radius)",
+            padding: "0.5rem 1.5rem",
+            display: "flex",
+            flexDirection: "column",
+            alignItems: "center",
+            gap: "0.2rem",
+          }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--amber)", letterSpacing: "0.08em" }}>{BASE.name}</div>
+            <div style={{ display: "flex", gap: "0.4rem", alignItems: "center" }}>
+              <span className="tag-badge" style={{ color: "var(--amber)" }}>abstract</span>
+              <span style={{ ...LABEL_STYLE, fontSize: "0.4375rem" }}>{BASE.tokens} tokens</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* All skill cards */}
+      <div className="glass-card p-4">
+        <div style={SECTION_TITLE}>SKILL REGISTRY — ALL ENTRIES</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "0.5rem" }}>
+          {SKILLS.map((s) => (
+            <SkillCard key={s.id} skill={s} highlight={s.type === "orchestrator" || s.type === "abstract"} />
+          ))}
+        </div>
+      </div>
+
+      {/* Validation footer */}
+      <div className="glass-card p-4">
+        <div style={{ display: "flex", alignItems: "center", gap: "2rem", justifyContent: "space-between" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+            <span className="pulse-dot" style={{ background: "var(--accent)" }} />
+            <div>
+              <div style={LABEL_STYLE}>SKILL VALIDATION</div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--accent)", marginTop: "0.2rem" }}>All 11 skills valid ✓</div>
+            </div>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+            <span className="pulse-dot" style={{ background: "var(--accent)" }} />
+            <div>
+              <div style={LABEL_STYLE}>LOCKFILE INTEGRITY</div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--accent)", marginTop: "0.2rem" }}>SHA256 verified ✓</div>
+            </div>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+            <div>
+              <div style={LABEL_STYLE}>LOCKFILE HASH</div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.4375rem", color: "var(--text-4)", marginTop: "0.2rem", letterSpacing: "0.04em" }}>
+                sha256:a4f8c2e1b9d3f7a0c5e2b8d4f1a6c3e9b7d2f5a1c8e4b0d7f3a9c6e2b5d8f4a1
               </div>
             </div>
-          );
-        })}
+          </div>
+          <div style={{ marginLeft: "auto", display: "flex", gap: "0.5rem" }}>
+            <span className="tag-badge">dependencies resolved</span>
+            <span className="tag-badge-cyan">no conflicts</span>
+          </div>
+        </div>
       </div>
 
-      {filtered.length === 0 && (
-        <div
-          style={{
-            textAlign: "center",
-            padding: "48px 24px",
-            color: "var(--text-4)",
-            fontSize: 13,
-          }}
-        >
-          No capabilities match your search.
-        </div>
-      )}
     </div>
   );
 }

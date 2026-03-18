@@ -1,0 +1,638 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Paganini AIOS — Gap Analysis: Landing Page vs Product</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --font-body: 'Space Grotesk', system-ui, sans-serif;
+    --font-mono: 'IBM Plex Mono', 'SF Mono', Consolas, monospace;
+    --bg: #0a0a0f;
+    --bg2: #0f0f18;
+    --surface: #12121e;
+    --surface2: #1a1a2a;
+    --border: rgba(0, 255, 128, 0.08);
+    --border-bright: rgba(0, 255, 128, 0.2);
+    --text: #e8e8f0;
+    --text-dim: #6a6a80;
+    --green: #00ff80;
+    --green-dim: rgba(0, 255, 128, 0.08);
+    --cyan: #00e5ff;
+    --cyan-dim: rgba(0, 229, 255, 0.08);
+    --red: #ff4060;
+    --red-dim: rgba(255, 64, 96, 0.06);
+    --amber: #ffb020;
+    --amber-dim: rgba(255, 176, 32, 0.06);
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    background-image:
+      radial-gradient(ellipse at 20% 0%, var(--green-dim) 0%, transparent 40%),
+      radial-gradient(ellipse at 80% 100%, var(--cyan-dim) 0%, transparent 30%);
+    color: var(--text);
+    font-family: var(--font-body);
+    line-height: 1.6;
+    min-height: 100vh;
+  }
+
+  .container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 3rem 1.5rem;
+  }
+
+  /* Header */
+  .header {
+    text-align: center;
+    margin-bottom: 3rem;
+    padding-bottom: 2rem;
+    border-bottom: 1px solid var(--border);
+  }
+  .header h1 {
+    font-size: clamp(1.8rem, 4vw, 2.8rem);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    margin-bottom: 0.5rem;
+  }
+  .header h1 .accent { color: var(--green); }
+  .header .sub {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--text-dim);
+  }
+
+  /* KPI strip */
+  .kpi-strip {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+    gap: 1rem;
+    margin-bottom: 3rem;
+  }
+  .kpi {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 1.2rem;
+    text-align: center;
+  }
+  .kpi .num {
+    font-size: 2.2rem;
+    font-weight: 700;
+    line-height: 1;
+    margin-bottom: 0.3rem;
+  }
+  .kpi .num.green { color: var(--green); }
+  .kpi .num.amber { color: var(--amber); }
+  .kpi .num.red { color: var(--red); }
+  .kpi .num.cyan { color: var(--cyan); }
+  .kpi .label {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+  }
+
+  /* Section */
+  .section {
+    margin-bottom: 2.5rem;
+  }
+  .section-label {
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    letter-spacing: 0.12em;
+    color: var(--cyan);
+    margin-bottom: 0.8rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .section-label::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 1px;
+    background: var(--cyan);
+    display: inline-block;
+  }
+
+  /* Table */
+  .table-wrap {
+    overflow-x: auto;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+  thead {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+  th {
+    background: var(--surface2);
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--text-dim);
+    padding: 0.8rem 1rem;
+    text-align: left;
+    border-bottom: 1px solid var(--border-bright);
+    white-space: nowrap;
+  }
+  td {
+    padding: 0.7rem 1rem;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  tr:nth-child(even) td {
+    background: rgba(255,255,255,0.01);
+  }
+  tr:hover td {
+    background: var(--green-dim);
+  }
+
+  /* Status badges */
+  .badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-family: var(--font-mono);
+    font-size: 0.65rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    padding: 3px 8px;
+    border-radius: 2px;
+  }
+  .badge::before {
+    content: '';
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+  }
+  .badge.match {
+    background: var(--green-dim);
+    color: var(--green);
+  }
+  .badge.match::before { background: var(--green); }
+  .badge.partial {
+    background: var(--amber-dim);
+    color: var(--amber);
+  }
+  .badge.partial::before { background: var(--amber); }
+  .badge.gap {
+    background: var(--red-dim);
+    color: var(--red);
+  }
+  .badge.gap::before { background: var(--red); }
+  .badge.new {
+    background: var(--cyan-dim);
+    color: var(--cyan);
+  }
+  .badge.new::before { background: var(--cyan); }
+
+  .detail {
+    color: var(--text-dim);
+    font-size: 0.78rem;
+    margin-top: 0.3rem;
+    line-height: 1.4;
+  }
+  .feature-name {
+    font-weight: 600;
+    color: var(--text);
+  }
+  code {
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+    background: var(--surface2);
+    padding: 1px 5px;
+    border-radius: 2px;
+    color: var(--cyan);
+  }
+
+  /* Summary cards */
+  .summary-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 1rem;
+    margin-top: 2rem;
+  }
+  .summary-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    padding: 1.5rem;
+  }
+  .summary-card h3 {
+    font-size: 0.95rem;
+    font-weight: 600;
+    margin-bottom: 0.8rem;
+    color: var(--text);
+  }
+  .summary-card ul {
+    list-style: none;
+    padding: 0;
+  }
+  .summary-card li {
+    font-size: 0.82rem;
+    padding: 0.35rem 0;
+    border-bottom: 1px solid var(--border);
+    color: var(--text-dim);
+  }
+  .summary-card li:last-child { border-bottom: none; }
+  .summary-card li strong { color: var(--text); }
+
+  .priority-tag {
+    font-family: var(--font-mono);
+    font-size: 0.6rem;
+    padding: 1px 5px;
+    border-radius: 2px;
+    margin-left: 0.5rem;
+  }
+  .priority-tag.p0 { background: var(--red-dim); color: var(--red); }
+  .priority-tag.p1 { background: var(--amber-dim); color: var(--amber); }
+  .priority-tag.p2 { background: var(--cyan-dim); color: var(--cyan); }
+
+  @media (max-width: 768px) {
+    .container { padding: 1.5rem 1rem; }
+    th, td { padding: 0.5rem 0.6rem; font-size: 0.78rem; }
+    .kpi-strip { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  /* animations */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .kpi, .section, .summary-card {
+    animation: fadeUp 0.4s ease-out both;
+  }
+  .kpi:nth-child(1) { animation-delay: 0.05s; }
+  .kpi:nth-child(2) { animation-delay: 0.1s; }
+  .kpi:nth-child(3) { animation-delay: 0.15s; }
+  .kpi:nth-child(4) { animation-delay: 0.2s; }
+  .kpi:nth-child(5) { animation-delay: 0.25s; }
+  .section:nth-of-type(2) { animation-delay: 0.3s; }
+  .section:nth-of-type(3) { animation-delay: 0.35s; }
+  .section:nth-of-type(4) { animation-delay: 0.4s; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .kpi, .section, .summary-card { animation: none; }
+  }
+</style>
+</head>
+<body>
+<div class="container">
+
+  <div class="header">
+    <h1>Landing Page <span class="accent">vs</span> Product</h1>
+    <div class="sub">Paganini AIOS — Gap Analysis · Março 2026</div>
+  </div>
+
+  <div class="kpi-strip">
+    <div class="kpi">
+      <div class="num green">12</div>
+      <div class="label">Match</div>
+    </div>
+    <div class="kpi">
+      <div class="num amber">8</div>
+      <div class="label">Partial</div>
+    </div>
+    <div class="kpi">
+      <div class="num red">5</div>
+      <div class="label">Gap</div>
+    </div>
+    <div class="kpi">
+      <div class="num cyan">3</div>
+      <div class="label">Exceeds</div>
+    </div>
+    <div class="kpi">
+      <div class="num" style="color: var(--text);">28</div>
+      <div class="label">Total Claims</div>
+    </div>
+  </div>
+
+  <!-- SECTION 1: Agents -->
+  <div class="section">
+    <div class="section-label">Agentes Autônomos</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th style="width:30%">Landing Page diz</th><th style="width:12%">Status</th><th>Realidade no Código</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="feature-name">"19 agentes autônomos de IA"</span></td>
+            <td><span class="badge gap">Gap</span></td>
+            <td>
+              <strong>9 agent SOULs</strong> em <code>packages/agents/souls/</code> (admin, compliance, custódia, due diligence, gestor, IR, pricing, regwatch, reporting).
+              <div class="detail">Landing diz 19, produto tem 9. Os 10 extras nunca foram definidos. Corrigir landing para "9 agentes especializados" (como aparece em outra seção da mesma landing).</div>
+            </td>
+          </tr>
+          <tr>
+            <td><span class="feature-name">"9 especialistas que nunca param"</span></td>
+            <td><span class="badge match">Match</span></td>
+            <td>
+              9 SOULs definidos + <code>AgentRegistry</code> com parser + <code>AgentDispatcher</code> com routing.
+              <div class="detail">Framework existe, carrega SOULs de .md, faz semantic routing por keywords e domínio. Skills OOP (11) complementam.</div>
+            </td>
+          </tr>
+          <tr>
+            <td><span class="feature-name">"Eles colaboram, se monitoram e escalam"</span></td>
+            <td><span class="badge partial">Parcial</span></td>
+            <td>
+              <code>AgentDispatcher.route_multi()</code> retorna até 3 agentes por query.
+              <div class="detail">Routing multi-agent existe. Mas não há loop de monitoramento mútuo nem escalation automática entre agentes. O CognitiveRouter roteia, mas agentes não "se monitoram" ativamente.</div>
+            </td>
+          </tr>
+          <tr>
+            <td><span class="feature-name">"Cada agente domina uma função crítica"</span></td>
+            <td><span class="badge match">Match</span></td>
+            <td>
+              Cada SOUL tem role, system_prompt, domains, keywords, capabilities definidos. Skills OOP com <code>implements</code> e <code>delegates</code>.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- SECTION 2: Guardrails -->
+  <div class="section">
+    <div class="section-label">Guardrails & Compliance</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th style="width:30%">Landing Page diz</th><th style="width:12%">Status</th><th>Realidade no Código</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="feature-name">"6 portões automáticos"</span></td>
+            <td><span class="badge match">Match</span></td>
+            <td>
+              <code>GuardrailPipeline</code> em <code>packs/finance/guardrails/compliance.py</code> implementa 6 gates: eligibility, concentration, covenant, PLD/AML, compliance, risk.
+              <div class="detail">Cada gate retorna GateResult com status PASS/WARN/REJECT. Pipeline checa todos em sequência. Duplicado em <code>packages/shared/guardrails.py</code> (legacy).</div>
+            </td>
+          </tr>
+          <tr>
+            <td><span class="feature-name">"Sem intervenção humana"</span></td>
+            <td><span class="badge match">Match</span></td>
+            <td>
+              Pipeline é totalmente automática. <code>GuardrailPipeline.check()</code> roda todos os gates sem input humano.
+            </td>
+          </tr>
+          <tr>
+            <td><span class="feature-name">"Compliance automático CVM 175"</span></td>
+            <td><span class="badge partial">Parcial</span></td>
+            <td>
+              Gate 5 (<code>_gate_compliance</code>) verifica confidence > 0.4 e presença de source nos chunks.
+              <div class="detail">Não faz validação real contra artigos da CVM 175. Verifica se a resposta RAG tem fontes, mas não parseia o regulamento. É uma proxy de qualidade, não compliance real.</div>
+            </td>
+          </tr>
+          <tr>
+            <td><span class="feature-name">"Concentração de cedentes monitorada automaticamente"</span></td>
+            <td><span class="badge partial">Parcial</span></td>
+            <td>
+              <code>_gate_concentration</code> verifica se resposta menciona "concentração" e extrai percentuais via regex.
+              <div class="detail">Não conecta a dados reais de portfólio. Opera sobre texto da resposta LLM, não sobre dados financeiros reais. <code>cedente_monitor.py</code> existe mas é daemon offline, não integrado ao pipeline.</div>
+            </td>
+          </tr>
+          <tr>
+            <td><span class="feature-name">"PLD/AML automático"</span></td>
+            <td><span class="badge partial">Parcial</span></td>
+            <td>
+              <code>_gate_pld_aml</code> faz keyword matching (CPF, CNPJ, transferência, suspeita) + similarity check entre query e response.
+              <div class="detail">Heurístico. Não consulta listas OFAC, PEP, nem bases externas. É um guard de conteúdo, não due diligence real.</div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- SECTION 3: Capabilities -->
+  <div class="section">
+    <div class="section-label">Capabilities Técnicas</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th style="width:30%">Landing Page diz</th><th style="width:12%">Status</th><th>Realidade no Código</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="feature-name">"Query em linguagem natural"</span></td>
+            <td><span class="badge match">Match</span></td>
+            <td>
+              <code>paganini query</code> funciona. RAG pipeline (ChromaDB + BM25 hybrid) + LLM (Gemini/OpenAI) + CognitiveRouter.
+              <div class="detail">Testado no EC2 com Gemini 2.5 Flash. Retorna respostas com confiança e fontes regulatórias.</div>
+            </td>
+          </tr>
+          <tr>
+            <td><span class="feature-name">"Fontes regulatórias verificáveis"</span></td>
+            <td><span class="badge match">Match</span></td>
+            <td>
+              RAG retorna chunks com metadata (source, page). Resposta inclui <code>[Fonte: CVM 175, Art. X]</code>.
+            </td>
+          </tr>
+          <tr>
+            <td><span class="feature-name">"Instalação em 30 segundos"</span></td>
+            <td><span class="badge match">Match</span></td>
+            <td>
+              <code>curl | sh</code> one-liner. Testado no EC2 Ubuntu 24.04: instala Python deps + Moltis + ChromaDB. <code>paganini init → doctor (10/10) → ingest → query</code> funcional.
+            </td>
+          </tr>
+          <tr>
+            <td><span class="feature-name">"Due diligence por IA: 2 minutos"</span></td>
+            <td><span class="badge gap">Gap</span></td>
+            <td>
+              <code>packs/finance/integrations/onboard.py</code> existe (345 linhas) com <code>OnboardingPipeline</code>.
+              <div class="detail">Implementação inclui score de cedente e análise. Mas não está conectado ao CLI (<code>paganini onboard</code> não existe) nem ao fluxo de query. Precisa de endpoint CLI e integração com dados reais.</div>
+            </td>
+          </tr>
+          <tr>
+            <td><span class="feature-name">"PDD calculada em tempo real"</span></td>
+            <td><span class="badge partial">Parcial</span></td>
+            <td>
+              <code>daemons.py</code> → <code>pdd_calculator()</code> implementado (100 linhas). Calcula PDD por aging, marca a mercado.
+              <div class="detail">Funciona como daemon periódico, não real-time. Lê dados de JSON mock, não de sistema de custódia real. O cálculo está correto, a fonte de dados não.</div>
+            </td>
+          </tr>
+          <tr>
+            <td><span class="feature-name">"Dashboard em tempo real"</span></td>
+            <td><span class="badge partial">Parcial</span></td>
+            <td>
+              Dashboard Next.js existe com 10 páginas. 7 API routes retornam dados mock.
+              <div class="detail">UI completa e estilizada (cyberpunk enterprise). Dados são hardcoded nas API routes, não conectam ao backend Python. Não há WebSocket para real-time.</div>
+            </td>
+          </tr>
+          <tr>
+            <td><span class="feature-name">"Relatórios CVM automatizados"</span></td>
+            <td><span class="badge partial">Parcial</span></td>
+            <td>
+              <code>reports.py</code> → <code>ReportGenerator</code> com templates. <code>paganini report generate informe-mensal</code> existe no CLI.
+              <div class="detail">Gera relatórios via templates + RAG + LLM. Mas não produz PDF/XML nos formatos exatos exigidos pela CVM. É geração de conteúdo, não submissão regulatória.</div>
+            </td>
+          </tr>
+          <tr>
+            <td><span class="feature-name">"Integração com Slack"</span></td>
+            <td><span class="badge match">Match</span></td>
+            <td>
+              <code>SlackIRBot</code> em <code>integrations/slack_bot.py</code> (370 linhas). Slash commands, event handler, signature verification.
+              <div class="detail">Bot completo com /ask, /report, /guardrails, /status. Verifica signature Slack. Formata respostas em blocks.</div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- SECTION 4: Architecture claims -->
+  <div class="section">
+    <div class="section-label">Arquitetura & Infraestrutura</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th style="width:30%">Landing Page diz</th><th style="width:12%">Status</th><th>Realidade no Código</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="feature-name">"RAG com corpus próprio"</span></td>
+            <td><span class="badge match">Match</span></td>
+            <td>
+              <code>packages/rag/</code> — ChromaDB + BM25 hybrid retrieval. Ingest pipeline com chunking + embedding. EC2 corpus: 5640 docs.
+            </td>
+          </tr>
+          <tr>
+            <td><span class="feature-name">"CLI completa"</span></td>
+            <td><span class="badge match">Match</span></td>
+            <td>
+              <code>paganini</code> CLI com: init, ingest, query, agents, daemons, status, eval, doctor, up, pack, report, autoresearch, serve, rtk. 15+ commands.
+            </td>
+          </tr>
+          <tr>
+            <td><span class="feature-name">"Construído para escala e auditoria"</span></td>
+            <td><span class="badge partial">Parcial</span></td>
+            <td>
+              Docker Compose com 4 services. Daemons com logging JSON append-only.
+              <div class="detail">Não há Kubernetes/Helm real (infra/ tem configs mas não testado). Não há audit trail estruturado além dos daemon logs. Sem observability (APM, tracing).</div>
+            </td>
+          </tr>
+          <tr>
+            <td><span class="feature-name">"Deploy on-premise ou cloud privada" (Enterprise)</span></td>
+            <td><span class="badge gap">Gap</span></td>
+            <td>
+              Docker Compose funciona local/EC2. Não há Helm chart real, nem terraform, nem guia de deploy on-premise.
+              <div class="detail">É um docker compose, não uma infra enterprise. Para Enterprise tier a R$25K/mês, precisaria de IaC real.</div>
+            </td>
+          </tr>
+          <tr>
+            <td><span class="feature-name">"Integração com sistemas legados" (Enterprise)</span></td>
+            <td><span class="badge gap">Gap</span></td>
+            <td>
+              Zero conectores com sistemas externos (ERPs, custódia, clearing, CVM).
+              <div class="detail">Sem adapters para Vórtx, Oliveira Trust, B3, ou qualquer sistema legado real de FIDC.</div>
+            </td>
+          </tr>
+          <tr>
+            <td><span class="feature-name">"Agentes customizados ilimitados" (Enterprise)</span></td>
+            <td><span class="badge match">Match</span></td>
+            <td>
+              <code>AgentRegistry</code> carrega qualquer SOUL .md de um diretório. MetaClaw aprende skills dinamicamente. OOP Skills framework permite criar novos agentes como SKILL.md.
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- SECTION 5: Extras no produto que a landing não menciona -->
+  <div class="section">
+    <div class="section-label">Existe no produto, não na Landing</div>
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr><th style="width:30%">Feature</th><th style="width:12%">Status</th><th>Detalhes</th></tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><span class="feature-name">AutoResearch (eval loop)</span></td>
+            <td><span class="badge new">Novo</span></td>
+            <td>
+              <code>paganini autoresearch</code> — optimização iterativa de RAG params contra eval set. Inspirado em Karpathy.
+              <div class="detail">Feature diferenciadora. Landing não menciona. Poderia ser selling point contra competidores.</div>
+            </td>
+          </tr>
+          <tr>
+            <td><span class="feature-name">RTK Token Compression</span></td>
+            <td><span class="badge new">Novo</span></td>
+            <td>
+              <code>paganini rtk</code> — 60-90% savings. <code>packages/kernel/rtk.py</code> com exec_compressed para agentes.
+              <div class="detail">Reduz custo operacional. Nenhum competidor anuncia isso.</div>
+            </td>
+          </tr>
+          <tr>
+            <td><span class="feature-name">OOP Agent Skills</span></td>
+            <td><span class="badge new">Novo</span></td>
+            <td>
+              11 FIDC skills com dependency resolution, progressive loading, lockfiles, context budget (3138 tokens).
+              <div class="detail">Arquitetura sofisticada. Landing só menciona "agentes" genericamente.</div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- SUMMARY -->
+  <div class="section">
+    <div class="section-label">Ações Prioritárias</div>
+    <div class="summary-grid">
+      <div class="summary-card">
+        <h3 style="color: var(--red);">Corrigir na Landing <span class="priority-tag p0">P0</span></h3>
+        <ul>
+          <li><strong>"19 agentes"</strong> → mudar para "9 agentes especializados" (a própria landing se contradiz)</li>
+          <li><strong>"Due diligence em 2 min"</strong> → existe no código mas não tem endpoint CLI. Conectar ou remover claim</li>
+        </ul>
+      </div>
+      <div class="summary-card">
+        <h3 style="color: var(--amber);">Fechar Gaps no Produto <span class="priority-tag p1">P1</span></h3>
+        <ul>
+          <li><strong>Dashboard → backend real:</strong> API routes retornam mock. Conectar ao Python/Supabase</li>
+          <li><strong>Guardrails → dados reais:</strong> Gates operam sobre texto LLM, não dados financeiros reais</li>
+          <li><strong>Reports CVM:</strong> Gera conteúdo mas não nos formatos exatos exigidos</li>
+          <li><strong>Onboarding CLI:</strong> <code>paganini onboard &lt;cnpj&gt;</code> — pipeline existe, falta CLI command</li>
+          <li><strong>PDD real-time:</strong> Daemon periódico funciona, mas lê JSON mock</li>
+        </ul>
+      </div>
+      <div class="summary-card">
+        <h3 style="color: var(--cyan);">Adicionar na Landing <span class="priority-tag p2">P2</span></h3>
+        <ul>
+          <li><strong>AutoResearch:</strong> Feature killer que nenhum competidor tem. Merecer seção própria</li>
+          <li><strong>RTK Compression:</strong> "60-90% menos custo de tokens" é argumento de pricing</li>
+          <li><strong>OOP Skills:</strong> Extensibilidade auditável — cada skill com lockfile e integrity hash</li>
+          <li><strong>132 testes:</strong> Quality signal. Landing não menciona testes</li>
+          <li><strong>Cognitive Router:</strong> Routing inteligente por intent + domínio com learning loop</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+</div>
+</body>
+</html>

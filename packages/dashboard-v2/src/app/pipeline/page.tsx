@@ -1,446 +1,245 @@
 "use client";
 
-const ALL_STAGES = [
-  { num: 1, name: "Context", owner: "OraCLI" },
-  { num: 2, name: "PRD", owner: "PM" },
-  { num: 3, name: "Research", owner: "General" },
-  { num: 4, name: "Architect", owner: "Architect" },
-  { num: 5, name: "UX Design", owner: "General" },
-  { num: 6, name: "Biz Analyst", owner: "PM" },
-  { num: 7, name: "Scrum", owner: "PM" },
-  { num: 8, name: "Story", owner: "PM" },
-  { num: 9, name: "Review", owner: "Architect" },
-  { num: 10, name: "Specifier", owner: "Code" },
-  { num: 11, name: "Dev", owner: "Codex" },
-  { num: 12, name: "Code Review", owner: "Code" },
-  { num: 13, name: "QA", owner: "QA" },
-  { num: 14, name: "Deploy", owner: "Infra" },
-  { num: 15, name: "Stakeholder", owner: "Docs" },
-  { num: 16, name: "Retro", owner: "Docs" },
-  { num: 17, name: "Knowledge", owner: "Docs" },
-  { num: 18, name: "Metrics", owner: "Infra" },
+const PIPELINE_STAGES = [
+  { id: "ingest", label: "INGEST", queue: 12, avgTime: "0.3 min", successRate: 99.1 },
+  { id: "process", label: "PROCESS", queue: 7, avgTime: "0.8 min", successRate: 97.4 },
+  { id: "guardrails", label: "GUARDRAILS", queue: 4, avgTime: "1.2 min", successRate: 94.6 },
+  { id: "approve", label: "APPROVE", queue: 3, avgTime: "1.5 min", successRate: 97.2 },
+  { id: "settle", label: "SETTLE", queue: 1, avgTime: "0.4 min", successRate: 99.8 },
 ];
 
-const ACTIVE_PIPELINES = [
-  {
-    id: "pipe-001",
-    title: "Dashboard v2 — Telemetry page",
-    issueId: "VIV-94",
-    tier: "feature",
-    gateToken: "GATE-20260317T214432:54f7348e",
-    currentStage: 11,
-    stages: ALL_STAGES,
-  },
-  {
-    id: "pipe-002",
-    title: "Capabilities graph semantic indexing",
-    issueId: "VIV-97",
-    tier: "quick",
-    gateToken: "GATE-20260318T003812:a1c9f203",
-    currentStage: 4,
-    stages: ALL_STAGES.slice(0, 14),
-  },
+const PIPELINE_ITEMS = [
+  { id: "OP-0481", cedente: "Metalúrgica Bonfim SA", amount: "R$ 2.4M", stage: "guardrails", entryTime: "12:34", elapsed: "1.2 min" },
+  { id: "OP-0482", cedente: "Distribuidora Norte Ltda", amount: "R$ 890K", stage: "approve", entryTime: "12:36", elapsed: "0.8 min" },
+  { id: "OP-0483", cedente: "Frigorífico Sul Carne", amount: "R$ 1.1M", stage: "process", entryTime: "12:41", elapsed: "0.3 min" },
+  { id: "OP-0484", cedente: "Têxtil Paraná Ind.", amount: "R$ 3.2M", stage: "guardrails", entryTime: "12:42", elapsed: "0.5 min" },
+  { id: "OP-0485", cedente: "Agro Cerrado Export", amount: "R$ 670K", stage: "ingest", entryTime: "12:44", elapsed: "0.1 min" },
+  { id: "OP-0486", cedente: "Logística Brasília SA", amount: "R$ 1.8M", stage: "settle", entryTime: "12:30", elapsed: "3.9 min" },
+  { id: "OP-0487", cedente: "Químicos do Nordeste", amount: "R$ 540K", stage: "process", entryTime: "12:43", elapsed: "0.2 min" },
+  { id: "OP-0488", cedente: "Pharma Capital Ltda", amount: "R$ 2.1M", stage: "approve", entryTime: "12:38", elapsed: "0.6 min" },
 ];
 
-const HISTORY = [
-  { title: "Revenue-OS auth refresh", issueId: "VIV-88", tier: "quick", duration: "18m", cost: "$0.34", outcome: "success" },
-  { title: "Supabase RLS policy update", issueId: "VIV-85", tier: "micro", duration: "6m", cost: "$0.07", outcome: "success" },
-  { title: "Stripe webhook handler refactor", issueId: "VIV-79", tier: "feature", duration: "1h 42m", cost: "$1.82", outcome: "success" },
-  { title: "Linear approval poller crash fix", issueId: "VIV-72", tier: "quick", duration: "24m", cost: "$0.41", outcome: "failed" },
+const METRICS = [
+  { label: "PROCESSED TODAY", value: "47", unit: "ops" },
+  { label: "AVG END-TO-END", value: "4.2", unit: "min" },
+  { label: "REJECTION RATE", value: "2.8", unit: "%" },
+  { label: "AUTO-APPROVED", value: "89", unit: "%" },
 ];
 
-const GATE_LOG = [
-  { token: "GATE-20260318T003812:a1c9f203", task: "Capabilities graph semantic indexing", tier: "quick", time: "00:38", status: "active" },
-  { token: "GATE-20260317T214432:54f7348e", task: "Dashboard v2 — Telemetry page", tier: "feature", time: "21:44", status: "active" },
-  { token: "GATE-20260317T183021:b3d22f91", task: "Revenue-OS auth refresh", tier: "quick", time: "18:30", status: "closed" },
-  { token: "GATE-20260317T120948:77e8102c", task: "Supabase RLS policy update", tier: "micro", time: "12:09", status: "closed" },
-  { token: "GATE-20260316T221503:c0af6d3e", task: "Linear approval poller crash fix", tier: "quick", time: "22:15", status: "closed" },
-];
+// Throughput bars — hourly ops count (last 12h)
+const THROUGHPUT = [3, 5, 4, 7, 6, 8, 9, 7, 5, 4, 6, 8];
+const THROUGHPUT_LABELS = ["01", "02", "03", "04", "05", "06", "07", "08", "09", "10", "11", "12"];
 
-const TIER_COLOR: Record<string, string> = {
-  micro: "var(--teal)",
-  quick: "var(--blue)",
-  feature: "var(--accent)",
-  epic: "var(--red)",
-};
+const STAGE_ORDER = ["ingest", "process", "guardrails", "approve", "settle"];
 
-const TIER_LABEL: Record<string, string> = {
-  micro: "Micro",
-  quick: "Quick",
-  feature: "Feature",
-  epic: "Epic",
-};
-
-function TierBadge({ tier }: { tier: string }) {
-  const color = TIER_COLOR[tier] ?? "var(--text-4)";
-  return (
-    <span
-      style={{
-        fontSize: 9,
-        fontWeight: 700,
-        letterSpacing: "0.12em",
-        textTransform: "uppercase",
-        padding: "3px 8px",
-        borderRadius: 999,
-        background: color + "22",
-        color,
-        flexShrink: 0,
-      }}
-    >
-      {TIER_LABEL[tier] ?? tier}
-    </span>
-  );
+function stageIndex(stage: string) {
+  return STAGE_ORDER.indexOf(stage);
 }
 
-function StageCircle({ stage, currentStage }: { stage: (typeof ALL_STAGES)[0]; currentStage: number }) {
-  const isDone = stage.num < currentStage;
-  const isCurrent = stage.num === currentStage;
-  const isPending = stage.num > currentStage;
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, minWidth: 44 }}>
-      <div
-        style={{
-          width: 36,
-          height: 36,
-          borderRadius: "50%",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          fontSize: 12,
-          fontWeight: 700,
-          flexShrink: 0,
-          position: "relative",
-          background: isDone
-            ? "var(--green)"
-            : isCurrent
-            ? "var(--blue)"
-            : "transparent",
-          border: isPending
-            ? "2px solid var(--border)"
-            : isDone
-            ? "2px solid var(--green)"
-            : "2px solid var(--blue)",
-          color: isDone || isCurrent ? "#fff" : "var(--text-4)",
-          boxShadow: isCurrent ? "0 0 0 4px rgba(59,130,246,0.2)" : "none",
-          animation: isCurrent ? "pulse-ring 2s infinite" : "none",
-          zIndex: 1,
-        }}
-      >
-        {isDone ? "✓" : stage.num}
-      </div>
-      <span
-        style={{
-          fontSize: 9,
-          fontWeight: 600,
-          color: isDone ? "var(--green)" : isCurrent ? "var(--blue)" : "var(--text-4)",
-          textAlign: "center",
-          letterSpacing: "0.04em",
-          whiteSpace: "nowrap",
-          maxWidth: 48,
-          overflow: "hidden",
-          textOverflow: "ellipsis",
-        }}
-      >
-        {stage.name}
-      </span>
-    </div>
-  );
+function stageColor(stage: string) {
+  const idx = stageIndex(stage);
+  if (idx <= 1) return "var(--cyan)";
+  if (idx === 2) return "var(--amber)";
+  return "var(--accent)";
 }
 
 export default function PipelinePage() {
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 24, padding: "16px", maxWidth: 960, margin: "0 auto", width: "100%" }}>
-      {/* Header */}
-      <div>
-        <h1 style={{ color: "var(--text-1)", fontSize: 20, fontWeight: 700, lineHeight: 1.2 }}>BMAD-CE Pipeline</h1>
-        <p style={{ color: "var(--text-3)", fontSize: 13, marginTop: 4 }}>
-          18-stage methodology · Context Scout → Metrics Logger
-        </p>
-      </div>
+  const maxThroughput = Math.max(...THROUGHPUT);
 
-      {/* Active Pipelines */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-          <h2 style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)", textTransform: "uppercase", letterSpacing: "0.15em" }}>
-            Active Pipelines
-          </h2>
-          <span
-            style={{
-              fontSize: 11,
-              fontWeight: 700,
-              padding: "2px 8px",
-              borderRadius: 999,
-              background: "rgba(59,130,246,0.15)",
-              color: "var(--blue)",
-            }}
-          >
-            {ACTIVE_PIPELINES.length}
+  return (
+    <div style={{ padding: "24px 28px", minHeight: "100vh", fontFamily: "var(--font-mono)" }}>
+      {/* Header */}
+      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 28 }}>
+        <span className="pulse-dot" style={{ background: "var(--cyan)", boxShadow: "0 0 8px var(--cyan)" }} />
+        <div>
+          <h1 style={{ fontFamily: "var(--font-display)", fontSize: "1.125rem", fontWeight: 700, color: "var(--text-1)", letterSpacing: "-0.02em", margin: 0 }}>
+            PIPELINE
+          </h1>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginTop: 2 }}>
+            OPERATIONS FLOW · REAL-TIME
+          </div>
+        </div>
+        <div style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" }}>
+          <span className="tag-badge-cyan">LIVE</span>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", color: "var(--text-4)" }}>
+            {PIPELINE_ITEMS.length} ITEMS IN FLIGHT
           </span>
         </div>
+      </div>
 
-        {ACTIVE_PIPELINES.map((pipeline) => {
-          const currentStageObj = pipeline.stages.find((s) => s.num === pipeline.currentStage);
-          return (
-            <div
-              key={pipeline.id}
-              style={{
-                background: "var(--bg-card)",
-                border: "1px solid var(--border)",
-                borderRadius: 16,
-                padding: "20px",
-                display: "flex",
-                flexDirection: "column",
-                gap: 16,
-              }}
-            >
-              {/* Pipeline header */}
-              <div style={{ display: "flex", flexWrap: "wrap", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
-                <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
-                    <span style={{ fontSize: 15, fontWeight: 700, color: "var(--text-1)" }}>{pipeline.title}</span>
-                    <TierBadge tier={pipeline.tier} />
-                  </div>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <span
-                      style={{
-                        fontSize: 10,
-                        fontWeight: 700,
-                        color: "var(--text-4)",
-                        fontFamily: "monospace",
-                        background: "var(--accent-bg)",
-                        padding: "2px 6px",
-                        borderRadius: 4,
-                      }}
-                    >
-                      {pipeline.issueId}
-                    </span>
-                    <span style={{ fontSize: 12, color: "var(--text-4)" }}>
-                      Stage {pipeline.currentStage}/{pipeline.stages.length}
-                    </span>
-                  </div>
+      {/* Visual Pipeline */}
+      <div className="glass-card p-4" style={{ marginBottom: 16 }}>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: 16 }}>
+          PIPELINE STAGES
+        </div>
+        <div style={{ display: "flex", alignItems: "stretch", gap: 0 }}>
+          {PIPELINE_STAGES.map((stage, i) => (
+            <div key={stage.id} style={{ display: "flex", alignItems: "center", flex: 1 }}>
+              {/* Stage block */}
+              <div style={{
+                flex: 1,
+                background: "hsl(220 20% 4% / 0.5)",
+                border: "1px solid var(--border-subtle)",
+                borderRadius: "var(--radius)",
+                padding: "12px 14px",
+                position: "relative",
+              }}>
+                {/* Queue bubble */}
+                <div style={{
+                  position: "absolute",
+                  top: -8, right: 8,
+                  background: "var(--accent)",
+                  color: "hsl(220 20% 4%)",
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "0.45rem",
+                  fontWeight: 700,
+                  borderRadius: 999,
+                  padding: "1px 5px",
+                  boxShadow: "0 0 6px var(--accent)",
+                }}>
+                  {stage.queue}
                 </div>
-                <div
-                  style={{
-                    fontSize: 10,
-                    fontFamily: "monospace",
-                    color: "var(--text-3)",
-                    background: "var(--accent-bg)",
-                    padding: "6px 10px",
-                    borderRadius: 8,
-                    border: "1px solid var(--border)",
-                    letterSpacing: "0.04em",
-                    maxWidth: "100%",
-                    overflowX: "auto",
-                    whiteSpace: "nowrap",
-                  }}
-                >
-                  {pipeline.gateToken}
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: 8 }}>
+                  {stage.label}
+                </div>
+                <div style={{ fontFamily: "var(--font-display)", fontSize: "1rem", fontWeight: 700, color: "var(--text-1)", letterSpacing: "-0.02em", marginBottom: 6 }}>
+                  {stage.avgTime}
+                </div>
+                {/* Success rate bar */}
+                <div style={{ height: 3, background: "hsl(220 20% 10%)", borderRadius: 1, overflow: "hidden", marginBottom: 4 }}>
+                  <div style={{
+                    height: "100%",
+                    width: `${stage.successRate}%`,
+                    background: stage.successRate > 97 ? "var(--accent)" : "var(--amber)",
+                    boxShadow: `0 0 4px ${stage.successRate > 97 ? "var(--accent)" : "var(--amber)"}`,
+                  }} />
+                </div>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.45rem", color: "var(--text-4)" }}>
+                  {stage.successRate}% OK
                 </div>
               </div>
 
-              {/* Stage circles scrollable row */}
-              <div style={{ overflowX: "auto", paddingBottom: 4 }}>
-                <div style={{ display: "flex", alignItems: "flex-start", minWidth: "max-content", gap: 0 }}>
-                  {pipeline.stages.map((stage, i) => (
-                    <div key={stage.num} style={{ display: "flex", alignItems: "center" }}>
-                      <StageCircle stage={stage} currentStage={pipeline.currentStage} />
-                      {i < pipeline.stages.length - 1 && (
-                        <div
-                          style={{
-                            width: 20,
-                            height: 2,
-                            background: stage.num < pipeline.currentStage ? "var(--green)" : "var(--border)",
-                            marginBottom: 18,
-                            flexShrink: 0,
-                          }}
-                        />
-                      )}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Current stage callout */}
-              {currentStageObj && (
-                <div
-                  style={{
-                    display: "inline-flex",
-                    alignItems: "center",
-                    gap: 8,
-                    padding: "8px 14px",
-                    borderRadius: 10,
-                    background: "rgba(59,130,246,0.08)",
-                    border: "1px solid rgba(59,130,246,0.2)",
-                    alignSelf: "flex-start",
-                  }}
-                >
-                  <span
-                    style={{
-                      width: 8,
-                      height: 8,
-                      borderRadius: "50%",
-                      background: "var(--blue)",
-                      display: "inline-block",
-                      animation: "pulse-dot 2s infinite",
-                    }}
-                  />
-                  <span style={{ fontSize: 12, fontWeight: 600, color: "var(--blue)" }}>
-                    Stage {currentStageObj.num}: {currentStageObj.name}
-                  </span>
-                  <span style={{ fontSize: 11, color: "var(--text-4)" }}>→ {currentStageObj.owner}</span>
+              {/* Arrow connector */}
+              {i < PIPELINE_STAGES.length - 1 && (
+                <div style={{ display: "flex", alignItems: "center", padding: "0 4px", color: "var(--border-subtle)", fontSize: "0.75rem" }}>
+                  <svg width="20" height="12" viewBox="0 0 20 12" fill="none">
+                    <path d="M0 6H16M16 6L10 1M16 6L10 11" stroke="var(--text-4)" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+                  </svg>
                 </div>
               )}
             </div>
-          );
-        })}
-      </div>
-
-      {/* Pipeline History */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
-        <h2 style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)", textTransform: "uppercase", letterSpacing: "0.15em" }}>
-          Pipeline History
-        </h2>
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
-            gap: 12,
-          }}
-        >
-          {HISTORY.map((row, i) => (
-            <div
-              key={i}
-              style={{
-                background: "var(--bg-card)",
-                border: "1px solid var(--border)",
-                borderRadius: 16,
-                padding: "16px 18px",
-                display: "flex",
-                flexDirection: "column",
-                gap: 10,
-                borderLeftWidth: 3,
-                borderLeftColor: row.outcome === "success" ? "var(--green)" : "var(--red)",
-                borderLeftStyle: "solid",
-              }}
-            >
-              <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: "var(--text-1)", lineHeight: 1.3 }}>{row.title}</div>
-                  <div style={{ fontSize: 10, fontFamily: "monospace", color: "var(--text-4)", marginTop: 3 }}>{row.issueId}</div>
-                </div>
-                <span
-                  style={{
-                    fontSize: 11,
-                    fontWeight: 700,
-                    padding: "3px 8px",
-                    borderRadius: 999,
-                    background: row.outcome === "success" ? "rgba(34,197,94,0.15)" : "rgba(239,68,68,0.15)",
-                    color: row.outcome === "success" ? "var(--green)" : "var(--red)",
-                    flexShrink: 0,
-                    textTransform: "uppercase",
-                    letterSpacing: "0.06em",
-                  }}
-                >
-                  {row.outcome}
-                </span>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
-                <TierBadge tier={row.tier} />
-                <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                  <span style={{ fontSize: 12, color: "var(--text-3)" }}>⏱ {row.duration}</span>
-                  <span style={{ fontSize: 12, fontFamily: "monospace", fontWeight: 700, color: "var(--text-2)" }}>{row.cost}</span>
-                </div>
-              </div>
-            </div>
           ))}
         </div>
       </div>
 
-      {/* Gate Log */}
-      <div
-        style={{
-          background: "var(--bg-card)",
-          border: "1px solid var(--border)",
-          borderRadius: 16,
-          padding: "20px",
-          display: "flex",
-          flexDirection: "column",
-          gap: 16,
-        }}
-      >
-        <div>
-          <h2 style={{ fontSize: 13, fontWeight: 700, color: "var(--text-1)", textTransform: "uppercase", letterSpacing: "0.15em" }}>
-            Gate Log
-          </h2>
-          <p style={{ fontSize: 13, color: "var(--text-3)", marginTop: 4 }}>
-            Pre-execution gate tokens · mandatory per BMAD-CE
-          </p>
-        </div>
-
-        <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
-          {GATE_LOG.map((entry, i) => (
-            <div
-              key={i}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: 10,
-                padding: "10px 14px",
-                borderRadius: 10,
-                background: "var(--bg)",
-                border: "1px solid var(--border)",
-                flexWrap: "wrap",
-                minHeight: 44,
-              }}
-            >
-              {/* Status dot */}
-              <span
-                style={{
-                  width: 8,
-                  height: 8,
-                  borderRadius: "50%",
-                  background: entry.status === "active" ? "var(--green)" : "var(--text-4)",
-                  flexShrink: 0,
-                  boxShadow: entry.status === "active" ? "0 0 6px var(--green)" : "none",
-                }}
-              />
-              {/* Token */}
-              <code
-                style={{
-                  fontSize: 11,
-                  fontFamily: "monospace",
-                  color: entry.status === "active" ? "var(--accent)" : "var(--text-4)",
-                  flex: "1 1 180px",
-                  minWidth: 0,
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }}
-              >
-                {entry.token}
-              </code>
-              {/* Tier badge */}
-              <TierBadge tier={entry.tier} />
-              {/* Time */}
-              <span style={{ fontSize: 10, color: "var(--text-4)", fontFamily: "monospace", flexShrink: 0 }}>
-                {entry.time}
+      {/* Metrics */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 16 }}>
+        {METRICS.map((m) => (
+          <div key={m.label} className="glass-card p-4">
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: 8 }}>
+              {m.label}
+            </div>
+            <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
+              <span style={{ fontFamily: "var(--font-display)", fontSize: "1.5rem", fontWeight: 700, color: "var(--text-1)", letterSpacing: "-0.02em" }}>
+                {m.value}
+              </span>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--text-4)" }}>
+                {m.unit}
               </span>
             </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Items in flight */}
+      <div className="glass-card p-4" style={{ marginBottom: 16 }}>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: 16 }}>
+          ITEMS IN FLIGHT
+        </div>
+        <div style={{ display: "grid", gridTemplateColumns: "70px 1fr auto auto auto", gap: "0 20px", alignItems: "center" }}>
+          {["ID", "CEDENTE", "AMOUNT", "STAGE", "ELAPSED"].map((h) => (
+            <div key={h} style={{ fontFamily: "var(--font-mono)", fontSize: "0.45rem", letterSpacing: "0.12em", color: "var(--text-4)", paddingBottom: 8, borderBottom: "1px solid var(--border-subtle)" }}>
+              {h}
+            </div>
           ))}
+          {PIPELINE_ITEMS.map((item) => {
+            const color = stageColor(item.stage);
+            const stageIdx = stageIndex(item.stage);
+            return (
+              <>
+                <div key={item.id + "-id"} style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", color: "var(--cyan)", paddingTop: 10 }}>
+                  {item.id}
+                </div>
+                <div key={item.id + "-c"} style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--text-1)", paddingTop: 10 }}>
+                  {item.cedente}
+                </div>
+                <div key={item.id + "-a"} style={{ fontFamily: "var(--font-display)", fontSize: "0.875rem", fontWeight: 700, color: "var(--text-1)", letterSpacing: "-0.02em", paddingTop: 10, textAlign: "right" }}>
+                  {item.amount}
+                </div>
+                {/* Stage pip track */}
+                <div key={item.id + "-s"} style={{ paddingTop: 10, display: "flex", alignItems: "center", gap: 3 }}>
+                  {STAGE_ORDER.map((s, i) => (
+                    <div key={s} style={{
+                      width: i === stageIdx ? 14 : 6,
+                      height: 6,
+                      borderRadius: 1,
+                      background: i < stageIdx ? "var(--accent)" : i === stageIdx ? color : "hsl(220 20% 10%)",
+                      boxShadow: i === stageIdx ? `0 0 5px ${color}` : "none",
+                      transition: "all 0.3s",
+                    }} />
+                  ))}
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.45rem", color: color, marginLeft: 4 }}>
+                    {item.stage.toUpperCase()}
+                  </span>
+                </div>
+                <div key={item.id + "-e"} style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", color: "var(--text-3)", paddingTop: 10, textAlign: "right" }}>
+                  {item.elapsed}
+                </div>
+              </>
+            );
+          })}
         </div>
       </div>
 
-      <style>{`
-        @keyframes pulse-ring {
-          0%, 100% { box-shadow: 0 0 0 4px rgba(59,130,246,0.2); }
-          50% { box-shadow: 0 0 0 8px rgba(59,130,246,0.05); }
-        }
-        @keyframes pulse-dot {
-          0%, 100% { opacity: 1; }
-          50% { opacity: 0.4; }
-        }
-      `}</style>
+      {/* Throughput chart */}
+      <div className="glass-card p-4">
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 }}>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)" }}>
+            THROUGHPUT — LAST 12H
+          </div>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.45rem", color: "var(--text-4)" }}>ops/h</span>
+        </div>
+        <div style={{ display: "flex", alignItems: "flex-end", gap: 6, height: 64 }}>
+          {THROUGHPUT.map((v, i) => {
+            const barH = (v / maxThroughput) * 100;
+            const isLast = i === THROUGHPUT.length - 1;
+            return (
+              <div key={i} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 4, height: "100%" }}>
+                <div style={{ flex: 1, width: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end" }}>
+                  <div style={{
+                    width: "100%",
+                    height: `${barH}%`,
+                    background: isLast ? "var(--accent)" : "var(--cyan)",
+                    borderRadius: "var(--radius)",
+                    opacity: isLast ? 1 : 0.5 + (i / THROUGHPUT.length) * 0.5,
+                    boxShadow: isLast ? "0 0 8px var(--accent)" : "none",
+                    transition: "height 0.4s ease",
+                    position: "relative",
+                  }}>
+                    {isLast && (
+                      <div style={{
+                        position: "absolute", top: -14, left: "50%", transform: "translateX(-50%)",
+                        fontFamily: "var(--font-mono)", fontSize: "0.45rem", color: "var(--accent)",
+                      }}>{v}</div>
+                    )}
+                  </div>
+                </div>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.4rem", color: "var(--text-4)" }}>{THROUGHPUT_LABELS[i]}</span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }
