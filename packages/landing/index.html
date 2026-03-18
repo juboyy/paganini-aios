@@ -3,597 +3,563 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>PAGANINI AIOS — AI Operating System for Financial Markets</title>
+<title>Paganini AIOS — AI Code Agents for FIDC</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
-<link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,300&family=DM+Serif+Display&display=swap" rel="stylesheet">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
-  :root {
-    --fg: #1a1a2e;
-    --fg-2: #3d3d5c;
-    --fg-3: #6b6b8a;
-    --fg-4: #9999b3;
-    --bg: #fafaf8;
-    --bg-2: #f0f0ec;
-    --surface: #ffffff;
-    --accent: #4a2c82;
-    --accent-2: #6b42b8;
-    --accent-light: #e8dff5;
-    --gold: #c8a960;
-    --gold-light: #f5ecd4;
-    --success: #2a7c5f;
-    --warn: #b8860b;
-    --radius: 4px;
-  }
+:root {
+  --bg: #06060c;
+  --bg2: #0a0a14;
+  --surface: #0f0f1a;
+  --surface2: #14142a;
+  --border: rgba(0,255,128,0.08);
+  --border-bright: rgba(0,255,128,0.2);
+  --text-1: #e8f0e8;
+  --text-2: #94a89c;
+  --text-3: #5a6e60;
+  --text-4: #344038;
+  --green: #00ff80;
+  --green-dim: rgba(0,255,128,0.06);
+  --green-glow: 0 0 20px rgba(0,255,128,0.3);
+  --cyan: #00e5ff;
+  --cyan-dim: rgba(0,229,255,0.06);
+  --amber: #ffb020;
+  --red: #ff4060;
+  --font-display: 'Space Grotesk', system-ui, sans-serif;
+  --font-mono: 'IBM Plex Mono', 'JetBrains Mono', monospace;
+  --radius: 2px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:var(--bg); color:var(--text-2); font-family:var(--font-display); -webkit-font-smoothing:antialiased; overflow-x:hidden; }
+::selection { background:rgba(0,255,128,0.25); color:var(--text-1); }
+a { color:var(--green); text-decoration:none; }
 
-  * { margin: 0; padding: 0; box-sizing: border-box; }
+/* Layout */
+.container { max-width:1200px; margin:0 auto; padding:0 1.5rem; }
+.section { padding:6rem 0; border-bottom:1px solid var(--border); }
+.mono-label { font-family:var(--font-mono); font-size:0.5625rem; letter-spacing:0.14em; text-transform:uppercase; color:var(--text-4); margin-bottom:1rem; }
+.section-title { font-size:clamp(1.6rem,3.5vw,2.4rem); font-weight:700; color:var(--text-1); letter-spacing:-0.03em; line-height:1.2; margin-bottom:1.5rem; }
+.section-title .accent { color:var(--green); }
+.section-sub { font-family:var(--font-mono); font-size:0.8125rem; color:var(--text-3); max-width:640px; line-height:1.7; }
 
-  body {
-    font-family: 'DM Sans', sans-serif;
-    background: var(--bg);
-    color: var(--fg);
-    -webkit-font-smoothing: antialiased;
-    font-size: 16px;
-    line-height: 1.6;
-  }
+/* Glass card */
+.card { background:linear-gradient(135deg,var(--surface),var(--surface2)); border:1px solid var(--border); border-radius:var(--radius); padding:1.5rem; transition:border-color 0.2s, box-shadow 0.2s; }
+.card:hover { border-color:var(--border-bright); box-shadow:var(--green-glow); }
+.card-label { font-family:var(--font-mono); font-size:0.5625rem; letter-spacing:0.12em; color:var(--text-4); margin-bottom:0.75rem; }
+.card-title { font-size:1rem; font-weight:600; color:var(--text-1); margin-bottom:0.5rem; }
+.card-desc { font-size:0.8125rem; color:var(--text-3); line-height:1.6; }
 
-  /* ── Layout ─────────────────────────── */
-  .container { max-width: 1080px; margin: 0 auto; padding: 0 24px; }
-  section { padding: 100px 0; }
+/* Code block */
+.code-block { background:var(--bg); border:1px solid var(--border); border-radius:var(--radius); padding:1.25rem; font-family:var(--font-mono); font-size:0.75rem; line-height:1.8; overflow-x:auto; white-space:pre; color:var(--text-2); }
+.code-block .comment { color:var(--text-4); }
+.code-block .keyword { color:var(--cyan); }
+.code-block .string { color:var(--green); }
+.code-block .fn { color:var(--amber); }
+.code-block .num { color:var(--red); }
+.code-block .type { color:#c792ea; }
 
-  @media (max-width: 768px) {
-    section { padding: 64px 0; }
-  }
+/* Badge */
+.badge { font-family:var(--font-mono); display:inline-flex; align-items:center; gap:4px; border-radius:var(--radius); padding:2px 8px; font-size:0.625rem; letter-spacing:0.06em; }
+.badge-green { background:rgba(0,255,128,0.1); color:var(--green); border:1px solid rgba(0,255,128,0.3); }
+.badge-cyan { background:rgba(0,229,255,0.1); color:var(--cyan); border:1px solid rgba(0,229,255,0.3); }
+.badge-amber { background:rgba(255,176,32,0.1); color:var(--amber); border:1px solid rgba(255,176,32,0.3); }
 
-  /* ── Typography ─────────────────────── */
-  h1, h2, h3 { font-family: 'DM Serif Display', serif; font-weight: 400; letter-spacing: -0.02em; color: var(--fg); }
-  h1 { font-size: clamp(2.5rem, 6vw, 4.5rem); line-height: 1.08; }
-  h2 { font-size: clamp(1.75rem, 4vw, 2.75rem); line-height: 1.15; }
-  h3 { font-size: 1.25rem; line-height: 1.3; }
+/* Pipeline */
+.pipeline { display:flex; align-items:center; gap:0; flex-wrap:wrap; }
+.pipe-node { background:var(--surface); border:1px solid var(--border-bright); border-radius:var(--radius); padding:0.5rem 1rem; font-family:var(--font-mono); font-size:0.625rem; letter-spacing:0.08em; color:var(--green); white-space:nowrap; }
+.pipe-arrow { color:var(--text-4); font-family:var(--font-mono); font-size:0.75rem; padding:0 0.25rem; }
 
-  .serif { font-family: 'DM Serif Display', serif; }
-  .mono { font-family: 'DM Sans', monospace; font-variant-numeric: tabular-nums; }
-  .upper { text-transform: uppercase; letter-spacing: 0.12em; font-size: 0.6875rem; font-weight: 600; }
-  .muted { color: var(--fg-3); }
-  .accent { color: var(--accent); }
-  .gold { color: var(--gold); }
-  .small { font-size: 0.875rem; }
+/* Agent grid */
+.agent-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(340px,1fr)); gap:1rem; }
 
-  /* ── Nav ─────────────────────────────── */
-  nav {
-    position: fixed; top: 0; left: 0; right: 0; z-index: 100;
-    padding: 20px 0;
-    background: rgba(250,250,248,0.85);
-    backdrop-filter: blur(20px);
-    border-bottom: 1px solid rgba(0,0,0,0.04);
-  }
-  nav .inner {
-    max-width: 1080px; margin: 0 auto; padding: 0 24px;
-    display: flex; align-items: center; justify-content: space-between;
-  }
-  nav .logo { font-family: 'DM Serif Display', serif; font-size: 1.125rem; color: var(--fg); text-decoration: none; }
-  nav .logo span { color: var(--fg-4); font-family: 'DM Sans'; font-size: 0.625rem; text-transform: uppercase; letter-spacing: 0.15em; margin-left: 8px; vertical-align: middle; }
-  nav .cta {
-    padding: 10px 24px; background: var(--accent); color: #fff;
-    text-decoration: none; font-size: 0.8125rem; font-weight: 500;
-    border-radius: var(--radius); transition: background 0.2s;
-  }
-  nav .cta:hover { background: var(--accent-2); }
+/* Stat */
+.stat-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(180px,1fr)); gap:1rem; margin-bottom:2rem; }
+.stat { text-align:center; }
+.stat-num { font-size:2rem; font-weight:700; color:var(--text-1); letter-spacing:-0.02em; }
+.stat-num .green { color:var(--green); }
+.stat-label { font-family:var(--font-mono); font-size:0.5625rem; letter-spacing:0.12em; color:var(--text-4); margin-top:0.25rem; }
 
-  /* ── Hero ────────────────────────────── */
-  .hero {
-    padding: 160px 0 100px;
-    text-align: left;
-  }
-  .hero .eyebrow { display: inline-block; padding: 6px 14px; background: var(--accent-light); color: var(--accent); border-radius: 2px; margin-bottom: 32px; }
-  .hero h1 { margin-bottom: 28px; max-width: 800px; }
-  .hero h1 em { font-style: italic; color: var(--accent-2); }
-  .hero .sub { font-size: clamp(1rem, 2vw, 1.25rem); color: var(--fg-3); max-width: 560px; line-height: 1.65; margin-bottom: 48px; }
-  .hero .actions { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
-  .hero .primary {
-    padding: 14px 32px; background: var(--accent); color: #fff;
-    text-decoration: none; font-size: 0.9375rem; font-weight: 500;
-    border-radius: var(--radius); transition: all 0.2s;
-  }
-  .hero .primary:hover { background: var(--accent-2); transform: translateY(-1px); }
-  .hero .secondary { color: var(--fg-3); text-decoration: none; font-size: 0.875rem; padding: 14px 16px; }
-  .hero .secondary:hover { color: var(--fg); }
+/* Tree */
+.tree { font-family:var(--font-mono); font-size:0.75rem; line-height:2; color:var(--text-3); }
+.tree .orch { color:var(--amber); font-weight:600; }
+.tree .spec { color:var(--cyan); }
+.tree .base { color:var(--green); }
+.tree .tokens { color:var(--text-4); font-size:0.625rem; }
 
-  /* ── Metrics Bar ─────────────────────── */
-  .metrics-bar {
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    border-top: 1px solid rgba(0,0,0,0.08);
-    border-bottom: 1px solid rgba(0,0,0,0.08);
-    padding: 0;
-  }
-  .metric {
-    padding: 40px 0;
-    text-align: left;
-    border-right: 1px solid rgba(0,0,0,0.06);
-  }
-  .metric:last-child { border-right: none; }
-  .metric:not(:first-child) { padding-left: 32px; }
-  .metric .val { font-family: 'DM Serif Display', serif; font-size: clamp(1.75rem, 4vw, 2.5rem); color: var(--fg); line-height: 1; margin-bottom: 6px; }
-  .metric .lbl { font-size: 0.75rem; color: var(--fg-3); text-transform: uppercase; letter-spacing: 0.08em; }
+/* Hero */
+.hero { padding:8rem 0 6rem; text-align:center; position:relative; }
+.hero::before { content:''; position:absolute; top:0; left:50%; transform:translateX(-50%); width:600px; height:600px; background:radial-gradient(circle,rgba(0,255,128,0.04) 0%,transparent 70%); pointer-events:none; }
+.hero-title { font-size:clamp(2rem,5vw,3.5rem); font-weight:700; color:var(--text-1); letter-spacing:-0.04em; line-height:1.1; margin-bottom:1rem; }
+.hero-sub { font-family:var(--font-mono); font-size:0.875rem; color:var(--text-3); max-width:600px; margin:0 auto 2rem; line-height:1.7; }
 
-  @media (max-width: 640px) {
-    .metrics-bar { grid-template-columns: repeat(2, 1fr); }
-    .metric { padding: 28px 0; }
-    .metric:nth-child(odd) { border-right: 1px solid rgba(0,0,0,0.06); }
-    .metric:nth-child(even) { padding-left: 24px; border-right: none; }
-    .metric:nth-child(n+3) { border-top: 1px solid rgba(0,0,0,0.06); }
-  }
+/* Terminal */
+.terminal { background:var(--bg); border:1px solid var(--border); border-radius:var(--radius); max-width:700px; margin:0 auto; text-align:left; overflow:hidden; }
+.terminal-bar { background:var(--surface); border-bottom:1px solid var(--border); padding:0.5rem 1rem; font-family:var(--font-mono); font-size:0.5625rem; letter-spacing:0.1em; color:var(--text-4); display:flex; align-items:center; gap:0.5rem; }
+.terminal-dot { width:6px; height:6px; border-radius:50%; }
+.terminal-body { padding:1.25rem; font-family:var(--font-mono); font-size:0.75rem; line-height:2; }
+.terminal-body .prompt { color:var(--text-4); }
+.terminal-body .cmd { color:var(--green); }
+.terminal-body .output { color:var(--text-3); }
+.terminal-body .highlight { color:var(--cyan); }
+.terminal-body .success { color:var(--green); }
 
-  /* ── Problem / Solution ──────────────── */
-  .problem-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 80px;
-  }
-  @media (max-width: 768px) { .problem-grid { grid-template-columns: 1fr; gap: 48px; } }
+/* Responsive */
+@media(max-width:768px) {
+  .section { padding:3rem 0; }
+  .hero { padding:4rem 0 3rem; }
+  .agent-grid { grid-template-columns:1fr; }
+  .stat-row { grid-template-columns:repeat(2,1fr); }
+  .pipeline { flex-direction:column; align-items:flex-start; }
+  .pipe-arrow { transform:rotate(90deg); }
+}
 
-  .pain-list { list-style: none; }
-  .pain-list li {
-    padding: 16px 0;
-    border-bottom: 1px solid rgba(0,0,0,0.06);
-    display: flex; gap: 12px; align-items: flex-start;
-    font-size: 0.9375rem; color: var(--fg-2);
-  }
-  .pain-list .icon { flex-shrink: 0; width: 20px; text-align: center; font-size: 0.75rem; margin-top: 3px; }
-
-  /* ── Agents ──────────────────────────── */
-  .agent-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1px;
-    background: rgba(0,0,0,0.06);
-    border: 1px solid rgba(0,0,0,0.06);
-  }
-  .agent-card {
-    background: var(--surface);
-    padding: 32px;
-  }
-  .agent-card .name { font-weight: 600; margin-bottom: 4px; }
-  .agent-card .role { font-size: 0.8125rem; color: var(--fg-3); line-height: 1.5; }
-  .agent-card .emoji { font-size: 1.5rem; margin-bottom: 12px; display: block; }
-
-  @media (max-width: 768px) { .agent-grid { grid-template-columns: repeat(2, 1fr); } }
-  @media (max-width: 480px) { .agent-grid { grid-template-columns: 1fr; } }
-
-  /* ── Guardrails ──────────────────────── */
-  .guardrail-flow {
-    display: flex;
-    align-items: center;
-    gap: 0;
-    overflow-x: auto;
-    padding: 24px 0;
-  }
-  .gate {
-    flex-shrink: 0;
-    text-align: center;
-    padding: 20px 28px;
-    background: var(--surface);
-    border: 1px solid rgba(0,0,0,0.06);
-  }
-  .gate .num { font-family: 'DM Serif Display', serif; font-size: 1.5rem; color: var(--accent); }
-  .gate .label { font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.1em; color: var(--fg-3); margin-top: 4px; }
-  .gate-arrow { flex-shrink: 0; color: var(--fg-4); font-size: 0.75rem; padding: 0 4px; }
-
-  /* ── Architecture ────────────────────── */
-  .arch-row {
-    display: grid;
-    grid-template-columns: 200px 1fr;
-    gap: 48px;
-    padding: 40px 0;
-    border-bottom: 1px solid rgba(0,0,0,0.06);
-    align-items: start;
-  }
-  .arch-row:last-child { border-bottom: none; }
-  .arch-label { font-weight: 600; font-size: 0.875rem; color: var(--fg); padding-top: 4px; }
-  .arch-desc { font-size: 0.9375rem; color: var(--fg-2); line-height: 1.7; }
-  .arch-desc code { background: var(--bg-2); padding: 2px 6px; font-size: 0.8125rem; border-radius: 2px; }
-
-  @media (max-width: 640px) { .arch-row { grid-template-columns: 1fr; gap: 8px; } }
-
-  /* ── Pricing ─────────────────────────── */
-  .pricing-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1px;
-    background: rgba(0,0,0,0.06);
-    border: 1px solid rgba(0,0,0,0.06);
-  }
-  .price-card {
-    background: var(--surface);
-    padding: 48px 36px;
-  }
-  .price-card.featured { background: var(--fg); color: #fff; }
-  .price-card.featured .muted { color: rgba(255,255,255,0.5); }
-  .price-card.featured .lbl { color: rgba(255,255,255,0.4); }
-  .price-card .tier { font-size: 0.6875rem; text-transform: uppercase; letter-spacing: 0.12em; color: var(--fg-3); margin-bottom: 20px; }
-  .price-card .amount { font-family: 'DM Serif Display', serif; font-size: 2rem; margin-bottom: 4px; }
-  .price-card .period { font-size: 0.75rem; color: var(--fg-4); margin-bottom: 28px; }
-  .price-card ul { list-style: none; font-size: 0.8125rem; color: var(--fg-2); }
-  .price-card.featured ul { color: rgba(255,255,255,0.7); }
-  .price-card ul li { padding: 6px 0; }
-  .price-card ul li::before { content: "—"; margin-right: 8px; color: var(--fg-4); }
-  .price-card.featured ul li::before { color: rgba(255,255,255,0.3); }
-
-  @media (max-width: 768px) { .pricing-grid { grid-template-columns: 1fr; } }
-
-  /* ── CTA ─────────────────────────────── */
-  .cta-section { text-align: center; padding: 120px 0; }
-  .cta-section h2 { margin-bottom: 20px; }
-  .cta-section .sub { color: var(--fg-3); margin-bottom: 40px; max-width: 480px; margin-left: auto; margin-right: auto; }
-
-  /* ── CLI Demo ────────────────────────── */
-  .cli-demo {
-    background: #1a1a2e;
-    border-radius: 6px;
-    padding: 32px;
-    max-width: 720px;
-    margin: 48px auto 0;
-    overflow-x: auto;
-  }
-  .cli-demo pre {
-    font-family: 'DM Mono', 'SF Mono', 'Fira Code', monospace;
-    font-size: 0.8125rem;
-    line-height: 1.8;
-    color: #c4c4d4;
-  }
-  .cli-demo .prompt { color: var(--gold); }
-  .cli-demo .comment { color: #5a5a7a; }
-  .cli-demo .success { color: #6bca8f; }
-  .cli-demo .accent { color: #a78bfa; }
-
-  /* ── Footer ──────────────────────────── */
-  footer {
-    padding: 48px 0;
-    border-top: 1px solid rgba(0,0,0,0.06);
-    font-size: 0.75rem;
-    color: var(--fg-4);
-  }
-  footer .inner { display: flex; justify-content: space-between; align-items: center; }
-
-  /* ── Animation ───────────────────────── */
-  @keyframes fadeUp {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-  .reveal { opacity: 0; animation: fadeUp 0.6s ease-out forwards; }
-  .reveal.d1 { animation-delay: 0.1s; }
-  .reveal.d2 { animation-delay: 0.2s; }
-  .reveal.d3 { animation-delay: 0.3s; }
-  .reveal.d4 { animation-delay: 0.4s; }
-
-  /* Scroll-triggered reveals */
-  .sr { opacity: 0; transform: translateY(24px); transition: opacity 0.7s ease-out, transform 0.7s ease-out; }
-  .sr.visible { opacity: 1; transform: translateY(0); }
-
-  /* Dashboard preview */
-  .dashboard-preview {
-    margin-top: 64px;
-    border: 1px solid rgba(0,0,0,0.08);
-    border-radius: 8px;
-    overflow: hidden;
-    box-shadow: 0 24px 80px rgba(0,0,0,0.08);
-    position: relative;
-  }
-  .dashboard-preview .browser-bar {
-    background: var(--bg-2);
-    padding: 10px 16px;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    border-bottom: 1px solid rgba(0,0,0,0.06);
-  }
-  .dashboard-preview .dot { width: 10px; height: 10px; border-radius: 50%; }
-  .dashboard-preview .dot.r { background: #ff5f57; }
-  .dashboard-preview .dot.y { background: #febc2e; }
-  .dashboard-preview .dot.g { background: #28c840; }
-  .dashboard-preview .url-bar {
-    flex: 1; margin-left: 12px;
-    background: var(--surface); border-radius: 4px; padding: 4px 12px;
-    font-size: 0.6875rem; color: var(--fg-3);
-  }
-  .dashboard-preview iframe {
-    width: 100%; height: 540px; border: none; display: block;
-  }
-  @media (max-width: 768px) {
-    .dashboard-preview iframe { height: 360px; }
-  }
-  .dashboard-preview .overlay {
-    position: absolute; bottom: 0; left: 0; right: 0;
-    height: 80px;
-    background: linear-gradient(transparent, var(--bg));
-    display: flex; align-items: flex-end; justify-content: center; padding-bottom: 16px;
-  }
-  .dashboard-preview .overlay a {
-    padding: 10px 24px; background: var(--accent); color: #fff;
-    text-decoration: none; font-size: 0.8125rem; font-weight: 500;
-    border-radius: var(--radius);
-  }
-
-  /* Testimonial / Social Proof */
-  .social-proof {
-    display: flex;
-    gap: 48px;
-    align-items: center;
-    justify-content: center;
-    flex-wrap: wrap;
-    padding: 24px 0;
-  }
-  .social-proof .item {
-    text-align: center;
-  }
-  .social-proof .num { font-family: 'DM Serif Display', serif; font-size: 1.5rem; color: var(--fg); }
-  .social-proof .desc { font-size: 0.6875rem; color: var(--fg-4); text-transform: uppercase; letter-spacing: 0.1em; }
+/* Animation */
+@keyframes fadeUp { from{opacity:0;transform:translateY(16px)} to{opacity:1;transform:translateY(0)} }
+.fade-in { opacity:0; }
+.fade-in.visible { animation:fadeUp 0.5s ease-out forwards; }
 </style>
 </head>
 <body>
 
-<!-- Nav -->
-<nav>
-  <div class="inner">
-    <a href="#" class="logo">Paganini <span>AIOS</span></a>
-    <a href="#pricing" class="cta">Solicitar Demo →</a>
-  </div>
-</nav>
+<!-- ═══════════════════════ HERO ═══════════════════════ -->
+<div class="hero container">
+  <div class="mono-label" style="text-align:center">PAGANINI AIOS v1.1</div>
+  <h1 class="hero-title">
+    9 agentes autônomos<br>que <span style="color:var(--green)">lêem</span>, <span style="color:var(--cyan)">entendem</span> e <span style="color:var(--amber)">executam</span><br>regulamentação de FIDC
+  </h1>
+  <p class="hero-sub">
+    Não é automação de planilha. São agentes de código com SOULs especializados, guardrails em 6 camadas, e um kernel que roteia queries por intent, domínio e confiança. Cada agente tem personalidade, competências e limites definidos em código.
+  </p>
 
-<!-- Hero -->
-<section class="hero">
-  <div class="container">
-    <div class="eyebrow upper">AI Operating System para Mercados Financeiros</div>
-    <h1 class="reveal">O gestor de FIDC que <em>nunca dorme</em></h1>
-    <p class="sub reveal d1">9 agentes especializados que monitoram, analisam e executam operações de fundos de crédito — 24 horas por dia, com 6 portões de compliance automáticos e total rastreabilidade regulatória.</p>
-    <div class="actions reveal d2">
-      <a href="https://dashboard-v2-pearl-rho.vercel.app" class="primary" target="_blank">Ver Dashboard ao Vivo →</a>
-      <a href="#architecture" class="secondary">Arquitetura →</a>
+  <div class="terminal fade-in">
+    <div class="terminal-bar">
+      <div class="terminal-dot" style="background:var(--red)"></div>
+      <div class="terminal-dot" style="background:var(--amber)"></div>
+      <div class="terminal-dot" style="background:var(--green)"></div>
+      paganini — zsh
     </div>
-
-    <!-- Dashboard Preview -->
-    <div class="dashboard-preview reveal d3">
-      <div class="browser-bar">
-        <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
-        <div class="url-bar">dashboard-v2-pearl-rho.vercel.app</div>
-      </div>
-      <iframe src="https://dashboard-v2-pearl-rho.vercel.app/" loading="lazy" title="Paganini Dashboard"></iframe>
-      <div class="overlay">
-        <a href="https://dashboard-v2-pearl-rho.vercel.app" target="_blank">Explorar Dashboard Completo →</a>
-      </div>
+    <div class="terminal-body">
+<span class="prompt">$</span> <span class="cmd">paganini query</span> <span class="output">"qual o limite de concentração por cedente?"</span>
+<span class="highlight">🔍 CognitiveRouter</span> <span class="output">→ domain:regulatory intent:query confidence:0.94</span>
+<span class="highlight">📚 RAG</span> <span class="output">→ 3 chunks (CVM 175 Art.42, Regulamento §8, BACEN 3.978)</span>
+<span class="highlight">🛡️ Guardrails</span> <span class="output">→ 6/6 PASS (eligibility, concentration, covenant, pld, compliance, risk)</span>
+<span class="success">📋 Resposta (96% confiança)</span>
+<span class="output">O limite de concentração por cedente é de 15% do PL do fundo,</span>
+<span class="output">conforme Art. 42 §3º da Resolução CVM 175.</span>
+<span class="output">[Fonte: CVM 175, Art. 42 §3º | Regulamento FIDC Paganini I, §8.2]</span>
     </div>
   </div>
-</section>
+</div>
 
-<!-- Metrics -->
-<section style="padding: 0;">
-  <div class="container">
-    <div class="metrics-bar reveal d3">
-      <div class="metric">
-        <div class="val">19</div>
-        <div class="lbl">Agentes Especializados</div>
+<!-- ═══════════════════════ AGENTS ═══════════════════════ -->
+<div class="section">
+<div class="container">
+  <div class="mono-label">OS 9 AGENTES</div>
+  <h2 class="section-title">Cada agente é um arquivo <span class="accent">.md</span> com personalidade,<br>competências e limites</h2>
+  <p class="section-sub" style="margin-bottom:2rem">
+    Não são prompts genéricos. São SOULs — arquivos Markdown versionados que definem role, system_prompt, domains, keywords e capabilities. O <code style="color:var(--cyan)">AgentRegistry</code> carrega todos de um diretório. O <code style="color:var(--cyan)">AgentDispatcher</code> roteia por similaridade semântica.
+  </p>
+
+  <div class="code-block" style="margin-bottom:2rem;max-width:700px">
+<span class="comment"># packages/agents/souls/compliance.md</span>
+<span class="keyword">slug:</span> <span class="string">compliance</span>
+<span class="keyword">name:</span> <span class="string">Agente de Compliance</span>
+<span class="keyword">role:</span> <span class="string">Verificador regulatório do FIDC</span>
+<span class="keyword">domains:</span> [<span class="string">regulatory</span>, <span class="string">compliance</span>, <span class="string">cvm</span>, <span class="string">bacen</span>]
+<span class="keyword">capabilities:</span>
+  - <span class="fn">check_eligibility</span>(<span class="type">receivable</span>) → PASS | REJECT
+  - <span class="fn">check_concentration</span>(<span class="type">portfolio</span>, <span class="type">op</span>) → PASS | WARN | REJECT
+  - <span class="fn">check_covenant</span>(<span class="type">fund_state</span>) → PASS | BREACH
+  - <span class="fn">check_pld_aml</span>(<span class="type">entity</span>) → PASS | FLAG | REJECT
+  - <span class="fn">check_compliance</span>(<span class="type">operation</span>) → PASS | REJECT
+<span class="keyword">delegates:</span>
+  <span class="fn">check_risk</span> → <span class="string">risk-agent</span>
+  <span class="fn">calculate_pdd</span> → <span class="string">pricing-agent</span>
+</div>
+
+  <div class="agent-grid">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem">
+        <div class="card-label">AGENT 01</div>
+        <span class="badge badge-green">● ACTIVE</span>
       </div>
-      <div class="metric">
-        <div class="val">6</div>
-        <div class="lbl">Gates de Compliance</div>
+      <div class="card-title">Administrador</div>
+      <div class="card-desc">Calcula NAV diário, controla cotas sênior/subordinada, gera informes CVM. Implementa <code style="color:var(--cyan)">calculate_nav()</code> e <code style="color:var(--cyan)">manage_quotas()</code>.</div>
+      <div style="margin-top:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap">
+        <span class="badge badge-cyan">nav</span>
+        <span class="badge badge-cyan">cotas</span>
+        <span class="badge badge-cyan">informe-diário</span>
       </div>
-      <div class="metric">
-        <div class="val">701h</div>
-        <div class="lbl">Horas Economizadas</div>
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem">
+        <div class="card-label">AGENT 02</div>
+        <span class="badge badge-green">● ACTIVE</span>
       </div>
-      <div class="metric">
-        <div class="val">$0.09</div>
-        <div class="lbl">Custo por Hora</div>
+      <div class="card-title">Compliance</div>
+      <div class="card-desc">Implementa 5 dos 6 guardrail gates. Cada operação de compra passa pelos gates antes de aprovação. Delega <code style="color:var(--cyan)">check_risk()</code> para o Risk Agent.</div>
+      <div style="margin-top:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap">
+        <span class="badge badge-green">eligibility</span>
+        <span class="badge badge-green">concentration</span>
+        <span class="badge badge-green">covenant</span>
+        <span class="badge badge-green">pld/aml</span>
+        <span class="badge badge-green">cvm-175</span>
+      </div>
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem">
+        <div class="card-label">AGENT 03</div>
+        <span class="badge badge-green">● ACTIVE</span>
+      </div>
+      <div class="card-title">Due Diligence</div>
+      <div class="card-desc">Analisa cedentes com score automatizado e cruzamento de dados. <code style="color:var(--cyan)">OnboardingPipeline</code> com 345 linhas de lógica de análise.</div>
+      <div style="margin-top:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap">
+        <span class="badge badge-cyan">score-cedente</span>
+        <span class="badge badge-cyan">cnpj-validation</span>
+        <span class="badge badge-cyan">risk-profile</span>
+      </div>
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem">
+        <div class="card-label">AGENT 04</div>
+        <span class="badge badge-green">● ACTIVE</span>
+      </div>
+      <div class="card-title">Pricing</div>
+      <div class="card-desc">Calcula taxa de desconto e PDD por aging bucket (7 faixas: 0-30d a >180d). Mark-to-market diário do portfólio.</div>
+      <div style="margin-top:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap">
+        <span class="badge badge-amber">pdd-aging</span>
+        <span class="badge badge-amber">mark-to-market</span>
+        <span class="badge badge-amber">discount-rate</span>
+      </div>
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem">
+        <div class="card-label">AGENT 05</div>
+        <span class="badge badge-green">● ACTIVE</span>
+      </div>
+      <div class="card-title">Gestor</div>
+      <div class="card-desc">Alocação e rebalanceamento do portfólio. Monitora concentração por setor, cedente e sacado em tempo real.</div>
+      <div style="margin-top:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap">
+        <span class="badge badge-cyan">alocação</span>
+        <span class="badge badge-cyan">rebalance</span>
+        <span class="badge badge-cyan">risk-mgmt</span>
+      </div>
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem">
+        <div class="card-label">AGENT 06</div>
+        <span class="badge badge-green">● ACTIVE</span>
+      </div>
+      <div class="card-title">Custódia</div>
+      <div class="card-desc">Registra títulos, verifica lastro dos recebíveis, controla garantias. Interface com sistemas de clearing.</div>
+      <div style="margin-top:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap">
+        <span class="badge badge-cyan">títulos</span>
+        <span class="badge badge-cyan">lastro</span>
+        <span class="badge badge-cyan">garantias</span>
+      </div>
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem">
+        <div class="card-label">AGENT 07</div>
+        <span class="badge badge-green">● ACTIVE</span>
+      </div>
+      <div class="card-title">Reporting</div>
+      <div class="card-desc">Gera demonstrações financeiras, relatórios de PDD e informes regulatórios. Templates via <code style="color:var(--cyan)">ReportGenerator</code>.</div>
+      <div style="margin-top:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap">
+        <span class="badge badge-amber">informe-mensal</span>
+        <span class="badge badge-amber">demonstrações</span>
+      </div>
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem">
+        <div class="card-label">AGENT 08</div>
+        <span class="badge badge-cyan">◉ WATCHING</span>
+      </div>
+      <div class="card-title">Reg Watch</div>
+      <div class="card-desc">Monitora publicações da CVM, BACEN e CFC 24/7. Alerta sobre mudanças regulatórias que impactam o fundo.</div>
+      <div style="margin-top:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap">
+        <span class="badge badge-cyan">cvm-monitor</span>
+        <span class="badge badge-cyan">bacen-alerts</span>
+      </div>
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:0.75rem">
+        <div class="card-label">AGENT 09</div>
+        <span class="badge badge-green">● ACTIVE</span>
+      </div>
+      <div class="card-title">Investor Relations</div>
+      <div class="card-desc">Gera relatórios de performance, distribui comunicados e responde dúvidas dos cotistas via Slack bot.</div>
+      <div style="margin-top:0.75rem;display:flex;gap:0.5rem;flex-wrap:wrap">
+        <span class="badge badge-cyan">perf-report</span>
+        <span class="badge badge-cyan">slack-bot</span>
       </div>
     </div>
   </div>
-</section>
+</div>
+</div>
 
-<!-- Problem / Solution -->
-<section>
-  <div class="container sr">
-    <div class="problem-grid">
-      <div>
-        <p class="upper muted" style="margin-bottom: 16px;">O Problema</p>
-        <h2 style="margin-bottom: 32px;">Gestão manual é a maior ameaça ao seu fundo</h2>
-        <ul class="pain-list">
-          <li><span class="icon">⏱</span>Relatórios regulatórios levam 3-5 dias para compilar</li>
-          <li><span class="icon">⚠</span>Concentração de cedentes monitorada por planilha — com defasagem de dias</li>
-          <li><span class="icon">📋</span>Due diligence manual: 4-6 horas por cedente, sujeita a erro humano</li>
-          <li><span class="icon">💸</span>PDD calculada mensalmente, não em tempo real — perde janela de ação</li>
-          <li><span class="icon">🔍</span>Compliance depende de revisão humana de cada operação</li>
-        </ul>
+<!-- ═══════════════════════ GUARDRAILS ═══════════════════════ -->
+<div class="section">
+<div class="container">
+  <div class="mono-label">6 GUARDRAIL GATES</div>
+  <h2 class="section-title">Toda operação passa por <span class="accent">6 verificações</span><br>antes de ser aprovada</h2>
+  <p class="section-sub" style="margin-bottom:2rem">
+    Implementado em Python como <code style="color:var(--cyan)">GuardrailPipeline</code>. Cada gate retorna <code style="color:var(--green)">PASS</code>, <code style="color:var(--amber)">WARN</code> ou <code style="color:var(--red)">REJECT</code>. Um REJECT em qualquer gate bloqueia a operação inteira.
+  </p>
+
+  <div class="pipeline" style="margin-bottom:2rem">
+    <div class="pipe-node">ELIGIBILITY</div><span class="pipe-arrow">→</span>
+    <div class="pipe-node">CONCENTRATION</div><span class="pipe-arrow">→</span>
+    <div class="pipe-node">COVENANT</div><span class="pipe-arrow">→</span>
+    <div class="pipe-node">PLD/AML</div><span class="pipe-arrow">→</span>
+    <div class="pipe-node">COMPLIANCE</div><span class="pipe-arrow">→</span>
+    <div class="pipe-node">RISK</div><span class="pipe-arrow">→</span>
+    <div class="pipe-node" style="border-color:var(--green);color:var(--green);box-shadow:var(--green-glow)">✓ APPROVED</div>
+  </div>
+
+  <div class="code-block" style="max-width:700px">
+<span class="comment"># packs/finance/guardrails/compliance.py</span>
+
+<span class="keyword">class</span> <span class="type">GuardrailPipeline</span>:
+    <span class="keyword">def</span> <span class="fn">check</span>(self, query, response, chunks, confidence) -> <span class="type">GuardrailResult</span>:
+        gates = [
+            self.<span class="fn">_gate_eligibility</span>(response),        <span class="comment"># tipo, prazo, rating</span>
+            self.<span class="fn">_gate_concentration</span>(response),      <span class="comment"># cedente ≤15%, sacado ≤10%</span>
+            self.<span class="fn">_gate_covenant</span>(response),           <span class="comment"># liquidez, subordinação, inadimplência</span>
+            self.<span class="fn">_gate_pld_aml</span>(query, response),    <span class="comment"># OFAC, PEP, transações atípicas</span>
+            self.<span class="fn">_gate_compliance</span>(response, chunks), <span class="comment"># CVM 175, regulamento</span>
+            self.<span class="fn">_gate_risk</span>(response, confidence),   <span class="comment"># PDD projetada, stress test</span>
+        ]
+        <span class="keyword">return</span> <span class="type">GuardrailResult</span>(
+            passed=<span class="fn">all</span>(g.passed <span class="keyword">for</span> g <span class="keyword">in</span> gates),
+            gates=gates
+        )
+</div>
+</div>
+</div>
+
+<!-- ═══════════════════════ ARCHITECTURE ═══════════════════════ -->
+<div class="section">
+<div class="container">
+  <div class="mono-label">OOP AGENT SKILLS</div>
+  <h2 class="section-title">Skills como objetos composáveis<br>com <span class="accent">dependency resolution</span></h2>
+  <p class="section-sub" style="margin-bottom:2rem">
+    Inspirado no framework <code style="color:var(--cyan)">agente-skill-oop</code>. Cada skill tem metadata.json com versão, tipo (abstract/specialist/orchestrator), dependências e métodos implementados. O loader resolve a árvore, gera lockfiles com SHA256, e controla context budget.
+  </p>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:2rem">
+    <div>
+      <div class="mono-label">DEPENDENCY TREE</div>
+      <div class="tree">
+🎯 <span class="orch">fidc-orchestrator@1.0.0</span> <span class="tokens">(981 tokens)</span><br>
+&nbsp;&nbsp;📚 <span class="base">fidc-rules-base@1.0.0</span> <span class="tokens">(241 tokens)</span><br>
+&nbsp;&nbsp;🔧 <span class="spec">compliance-agent@1.0.0</span> [full] <span class="tokens">(736 tokens)</span><br>
+&nbsp;&nbsp;&nbsp;&nbsp;📚 <span class="base">fidc-rules-base@1.0.0</span><br>
+&nbsp;&nbsp;🔧 <span class="spec">pricing-agent@1.0.0</span> [full] <span class="tokens">(147 tokens)</span><br>
+&nbsp;&nbsp;🔧 <span class="spec">admin-agent@1.0.0</span> [full] <span class="tokens">(145 tokens)</span><br>
+&nbsp;&nbsp;🔧 <span class="spec">due-diligence-agent@1.0.0</span> [full]<br>
+&nbsp;&nbsp;🔧 <span class="spec">custody-agent@1.0.0</span> [summary]<br>
+&nbsp;&nbsp;🔧 <span class="spec">risk-agent@1.0.0</span> [full]<br>
+&nbsp;&nbsp;🔧 <span class="spec">reporting-agent@1.0.0</span> [summary]<br>
+&nbsp;&nbsp;🔧 <span class="spec">ir-agent@1.0.0</span> [summary]<br>
+&nbsp;&nbsp;🔧 <span class="spec">regwatch-agent@1.0.0</span> [summary]
       </div>
-      <div>
-        <p class="upper muted" style="margin-bottom: 16px;">A Solução</p>
-        <h2 style="margin-bottom: 32px;">Paganini automatiza o que importa</h2>
-        <ul class="pain-list">
-          <li><span class="icon" style="color: var(--success);">→</span>Um comando: <code>paganini report informe-mensal</code></li>
-          <li><span class="icon" style="color: var(--success);">→</span>Monitoramento contínuo de concentração com alertas automáticos</li>
-          <li><span class="icon" style="color: var(--success);">→</span>Due diligence por IA: 2 minutos por cedente, score padronizado</li>
-          <li><span class="icon" style="color: var(--success);">→</span>PDD calculada em tempo real, refletida no NAV diário</li>
-          <li><span class="icon" style="color: var(--success);">→</span>6 portões automáticos verificam cada operação antes da aprovação</li>
-        </ul>
+    </div>
+    <div>
+      <div class="mono-label">CONTEXT BUDGET</div>
+      <div class="stat-row" style="grid-template-columns:1fr 1fr;margin-bottom:1rem">
+        <div class="stat"><div class="stat-num"><span class="green">3,138</span></div><div class="stat-label">TOKENS TOTAL</div></div>
+        <div class="stat"><div class="stat-num">11</div><div class="stat-label">SKILLS LOADED</div></div>
+      </div>
+      <div class="code-block" style="font-size:0.6875rem">
+<span class="comment"># Progressive Loading</span>
+<span class="comment"># [SUMMARY] = ~200 tokens (80% dos casos)</span>
+<span class="comment"># [FULL] = ~800 tokens (detalhes)</span>
+<span class="comment"># [FULL:topic] = seção específica</span>
+
+<span class="comment"># Sem progressive loading: ~10K tokens</span>
+<span class="comment"># Com progressive loading: 3,138 tokens</span>
+<span class="comment"># Saving: 69%</span>
+
+<span class="comment"># Lockfile com integridade:</span>
+<span class="string">"compliance-agent"</span>: {
+  <span class="string">"version"</span>: <span class="string">"1.0.0"</span>,
+  <span class="string">"integrity"</span>: <span class="string">"sha256:6d76c5c8"</span>,
+  <span class="string">"load_level"</span>: <span class="string">"full"</span>
+}
       </div>
     </div>
   </div>
-</section>
+</div>
+</div>
 
-<!-- Guardrails Flow -->
-<section style="background: var(--bg-2);">
-  <div class="container sr">
-    <p class="upper muted" style="margin-bottom: 12px;">Compliance Automático</p>
-    <h2 style="margin-bottom: 8px;">6 portões. Zero exceções.</h2>
-    <p class="muted" style="margin-bottom: 40px; max-width: 520px;">Toda operação de compra de recebíveis passa por 6 verificações automáticas antes de ser aprovada. Sem intervenção humana.</p>
+<!-- ═══════════════════════ KERNEL ═══════════════════════ -->
+<div class="section">
+<div class="container">
+  <div class="mono-label">COGNITIVE KERNEL</div>
+  <h2 class="section-title">Não é um chatbot com RAG.<br>É um <span class="accent">sistema cognitivo</span> com routing inteligente.</h2>
 
-    <div class="guardrail-flow">
-      <div class="gate"><div class="num">1</div><div class="label">Elegibilidade</div></div>
-      <div class="gate-arrow">→</div>
-      <div class="gate"><div class="num">2</div><div class="label">Concentração</div></div>
-      <div class="gate-arrow">→</div>
-      <div class="gate"><div class="num">3</div><div class="label">Covenant</div></div>
-      <div class="gate-arrow">→</div>
-      <div class="gate"><div class="num">4</div><div class="label">PLD/AML</div></div>
-      <div class="gate-arrow">→</div>
-      <div class="gate"><div class="num">5</div><div class="label">Compliance</div></div>
-      <div class="gate-arrow">→</div>
-      <div class="gate"><div class="num">6</div><div class="label">Risco</div></div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1rem;margin-top:2rem">
+    <div class="card">
+      <div class="card-label">COGNITIVE ROUTER</div>
+      <div class="card-title">Routing por Intent + Domínio</div>
+      <div class="card-desc">Classifica queries por intent (query/action/report), detecta domínios (regulatory/financial/operational), e roteia para o agente mais qualificado. Learning loop que melhora com cada interação.</div>
+    </div>
+    <div class="card">
+      <div class="card-label">HYBRID RAG</div>
+      <div class="card-title">ChromaDB + BM25 Retrieval</div>
+      <div class="card-desc">Busca híbrida: embeddings semânticos (Gemini) + busca lexical BM25. Corpus de 5,640 documentos com chunking otimizado (1024 tokens, overlap 128). Top-k=8 com reranking.</div>
+    </div>
+    <div class="card">
+      <div class="card-label">METACLAW PROXY</div>
+      <div class="card-title">Skills Auto-Aprendidas</div>
+      <div class="card-desc">MetaClaw observa interações e cria skill candidates automaticamente. Skills com uso recorrente são promovidas. Skills não utilizadas são podadas. Self-learning loop.</div>
+    </div>
+    <div class="card">
+      <div class="card-label">AUTORESEARCH</div>
+      <div class="card-title">Eval Loop (Karpathy Method)</div>
+      <div class="card-desc"><code style="color:var(--cyan)">paganini autoresearch</code> roda N iterações otimizando parâmetros RAG contra um eval set gold. Auto-melhora qualidade sem intervenção humana.</div>
+    </div>
+    <div class="card">
+      <div class="card-label">RTK COMPRESSION</div>
+      <div class="card-title">60-90% Token Savings</div>
+      <div class="card-desc">Proxy Rust que comprime output de comandos shell antes de alimentar o contexto LLM. Reduz custo operacional em 85%. <code style="color:var(--cyan)">exec_compressed()</code> em todos os agentes.</div>
+    </div>
+    <div class="card">
+      <div class="card-label">DAEMONS</div>
+      <div class="card-title">Monitoramento 24/7</div>
+      <div class="card-desc">Covenant Monitor (liquidez/subordinação/inadimplência), PDD Calculator (aging em tempo real), Reconciliation (conferência automática). Rodam como daemons persistentes.</div>
     </div>
   </div>
-</section>
+</div>
+</div>
 
-<!-- Agents -->
-<section id="agents">
-  <div class="container sr">
-    <p class="upper muted" style="margin-bottom: 12px;">Frota de Agentes</p>
-    <h2 style="margin-bottom: 8px;">9 especialistas que nunca param</h2>
-    <p class="muted" style="margin-bottom: 48px; max-width: 520px;">Cada agente domina uma função crítica do FIDC. Eles colaboram, se monitoram e escalam quando necessário.</p>
+<!-- ═══════════════════════ ORCHESTRATION ═══════════════════════ -->
+<div class="section">
+<div class="container">
+  <div class="mono-label">ORQUESTRAÇÃO MULTI-AGENTE</div>
+  <h2 class="section-title">3 fluxos orquestrados.<br><span class="accent">Agentes coordenando agentes.</span></h2>
 
-    <div class="agent-grid">
-      <div class="agent-card"><span class="emoji">🏛</span><div class="name">Administrador</div><div class="role">Calcula NAV diário, controla cotas sênior/subordinada, gera informes CVM</div></div>
-      <div class="agent-card"><span class="emoji">✅</span><div class="name">Compliance</div><div class="role">Verifica conformidade regulatória em cada operação. CVM 175, BACEN, covenants</div></div>
-      <div class="agent-card"><span class="emoji">🔐</span><div class="name">Custódia</div><div class="role">Registra títulos, verifica lastro dos recebíveis, controla garantias</div></div>
-      <div class="agent-card"><span class="emoji">🔍</span><div class="name">Due Diligence</div><div class="role">Analisa cedentes e sacados. Score automatizado com cruzamento de dados</div></div>
-      <div class="agent-card"><span class="emoji">📊</span><div class="name">Gestor</div><div class="role">Toma decisões de alocação. Otimiza composição da carteira em tempo real</div></div>
-      <div class="agent-card"><span class="emoji">💼</span><div class="name">Relação com Investidor</div><div class="role">Gera relatórios de performance, responde dúvidas, distribui comunicados</div></div>
-      <div class="agent-card"><span class="emoji">💰</span><div class="name">Pricing</div><div class="role">Calcula taxa de desconto, PDD por aging, precifica ativos diariamente</div></div>
-      <div class="agent-card"><span class="emoji">📜</span><div class="name">Reg Watch</div><div class="role">Monitora publicações CVM, BACEN, CFC. Alerta sobre mudanças regulatórias</div></div>
-      <div class="agent-card"><span class="emoji">📋</span><div class="name">Reporting</div><div class="role">Dashboards operacionais, relatórios de PDD, demonstrações financeiras</div></div>
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:1.5rem;margin-top:2rem">
+    <div class="card">
+      <div class="card-label" style="color:var(--green)">PURCHASE FLOW</div>
+      <div class="card-title">Compra de Recebíveis</div>
+      <div class="pipeline" style="margin:1rem 0;flex-wrap:wrap;gap:0.25rem">
+        <div class="pipe-node" style="font-size:0.5rem;padding:0.25rem 0.5rem">DD</div><span class="pipe-arrow" style="font-size:0.625rem">→</span>
+        <div class="pipe-node" style="font-size:0.5rem;padding:0.25rem 0.5rem">COMPLIANCE</div><span class="pipe-arrow" style="font-size:0.625rem">→</span>
+        <div class="pipe-node" style="font-size:0.5rem;padding:0.25rem 0.5rem">RISK</div><span class="pipe-arrow" style="font-size:0.625rem">→</span>
+        <div class="pipe-node" style="font-size:0.5rem;padding:0.25rem 0.5rem">PRICING</div><span class="pipe-arrow" style="font-size:0.625rem">→</span>
+        <div class="pipe-node" style="font-size:0.5rem;padding:0.25rem 0.5rem">ADMIN</div><span class="pipe-arrow" style="font-size:0.625rem">→</span>
+        <div class="pipe-node" style="font-size:0.5rem;padding:0.25rem 0.5rem">CUSTODY</div>
+      </div>
+      <div class="card-desc">Cedente submete borderô → Due Diligence score → 6 guardrails → Pricing calcula taxa → Admin atualiza NAV → Custódia registra títulos.</div>
+    </div>
+    <div class="card">
+      <div class="card-label" style="color:var(--cyan)">REPORT FLOW</div>
+      <div class="card-title">Relatório Executivo</div>
+      <div class="pipeline" style="margin:1rem 0;flex-wrap:wrap;gap:0.25rem">
+        <div class="pipe-node" style="font-size:0.5rem;padding:0.25rem 0.5rem;border-color:rgba(0,229,255,0.3);color:var(--cyan)">ADMIN</div><span class="pipe-arrow" style="font-size:0.625rem">→</span>
+        <div class="pipe-node" style="font-size:0.5rem;padding:0.25rem 0.5rem;border-color:rgba(0,229,255,0.3);color:var(--cyan)">PRICING</div><span class="pipe-arrow" style="font-size:0.625rem">→</span>
+        <div class="pipe-node" style="font-size:0.5rem;padding:0.25rem 0.5rem;border-color:rgba(0,229,255,0.3);color:var(--cyan)">COMPLIANCE</div><span class="pipe-arrow" style="font-size:0.625rem">→</span>
+        <div class="pipe-node" style="font-size:0.5rem;padding:0.25rem 0.5rem;border-color:rgba(0,229,255,0.3);color:var(--cyan)">REPORTING</div><span class="pipe-arrow" style="font-size:0.625rem">→</span>
+        <div class="pipe-node" style="font-size:0.5rem;padding:0.25rem 0.5rem;border-color:rgba(0,229,255,0.3);color:var(--cyan)">IR</div>
+      </div>
+      <div class="card-desc">Admin puxa NAV + cotas → Pricing calcula PDD → Compliance valida status → Reporting compila → IR distribui aos cotistas.</div>
+    </div>
+    <div class="card">
+      <div class="card-label" style="color:var(--amber)">ONBOARDING FLOW</div>
+      <div class="card-title">Novo Cedente</div>
+      <div class="pipeline" style="margin:1rem 0;flex-wrap:wrap;gap:0.25rem">
+        <div class="pipe-node" style="font-size:0.5rem;padding:0.25rem 0.5rem;border-color:rgba(255,176,32,0.3);color:var(--amber)">DD</div><span class="pipe-arrow" style="font-size:0.625rem">→</span>
+        <div class="pipe-node" style="font-size:0.5rem;padding:0.25rem 0.5rem;border-color:rgba(255,176,32,0.3);color:var(--amber)">PLD/AML</div><span class="pipe-arrow" style="font-size:0.625rem">→</span>
+        <div class="pipe-node" style="font-size:0.5rem;padding:0.25rem 0.5rem;border-color:rgba(255,176,32,0.3);color:var(--amber)">RISK</div><span class="pipe-arrow" style="font-size:0.625rem">→</span>
+        <div class="pipe-node" style="font-size:0.5rem;padding:0.25rem 0.5rem;border-color:rgba(255,176,32,0.3);color:var(--amber)">ADMIN</div>
+      </div>
+      <div class="card-desc">Due Diligence analisa CNPJ → PLD/AML verifica listas → Risk calcula rating → Admin cadastra no sistema.</div>
     </div>
   </div>
-</section>
+</div>
+</div>
 
-<!-- Architecture -->
-<section id="architecture" style="background: var(--bg-2);">
-  <div class="container sr">
-    <p class="upper muted" style="margin-bottom: 12px;">Arquitetura</p>
-    <h2 style="margin-bottom: 48px;">Construído para escala e auditoria</h2>
+<!-- ═══════════════════════ CLI ═══════════════════════ -->
+<div class="section">
+<div class="container">
+  <div class="mono-label">CLI — 15+ COMANDOS</div>
+  <h2 class="section-title">Uma linha. <span class="accent">Resultado real.</span></h2>
 
-    <div class="arch-row">
-      <div class="arch-label">Moltis Runtime</div>
-      <div class="arch-desc">Engine proprietária que executa agentes com isolamento de contexto, memória episódica e self-healing. Cada agente opera em sandbox com permissões granulares.</div>
+  <div class="terminal" style="max-width:700px">
+    <div class="terminal-bar">
+      <div class="terminal-dot" style="background:var(--red)"></div>
+      <div class="terminal-dot" style="background:var(--amber)"></div>
+      <div class="terminal-dot" style="background:var(--green)"></div>
+      paganini — zsh
     </div>
-    <div class="arch-row">
-      <div class="arch-label">Hybrid RAG</div>
-      <div class="arch-desc">Pipeline de retrieval com 3 estratégias (dense + sparse + graph) fundidas por Reciprocal Rank Fusion. Corpus regulatório completo: CVM 175, Circulares BACEN, normas CFC.</div>
-    </div>
-    <div class="arch-row">
-      <div class="arch-label">MetaClaw Proxy</div>
-      <div class="arch-desc">Camada de roteamento inteligente entre provedores de LLM (OpenAI, Anthropic, Google). Failover automático, cache de respostas, controle de custo por agente.</div>
-    </div>
-    <div class="arch-row">
-      <div class="arch-label">Knowledge Graph</div>
-      <div class="arch-desc">Grafo de entidades financeiras (cedentes, sacados, títulos, fundos) com relações semânticas. Permite queries como <code>"Quais cedentes têm exposição acima de 10%?"</code></div>
-    </div>
-    <div class="arch-row">
-      <div class="arch-label">Observabilidade</div>
-      <div class="arch-desc">OpenTelemetry nativo. Cada decisão de agente gera um trace auditável: input, contexto RAG, raciocínio, output, custo. Dashboard em tempo real com ROI por operação.</div>
-    </div>
-  </div>
-</section>
-
-<!-- CLI Demo -->
-<section id="demo">
-  <div class="container">
-    <p class="upper muted" style="margin-bottom: 12px; text-align: center;">Demo</p>
-    <h2 style="text-align: center; margin-bottom: 8px;">Uma linha. Resultado real.</h2>
-    <p class="muted" style="text-align: center; max-width: 480px; margin: 0 auto;">Instalação em 30 segundos. Query em linguagem natural com fontes regulatórias verificáveis.</p>
-
-    <div class="cli-demo">
-      <pre><span class="comment"># Instalar</span>
-<span class="prompt">$</span> curl -fsSL https://raw.githubusercontent.com/juboyy/paganini-aios/main/install.sh | sh
+    <div class="terminal-body">
+<span class="prompt">$</span> <span class="cmd">curl -fsSL https://install.paganini.ai | sh</span>
 <span class="success">✓ PAGANINI installed successfully!</span>
 
-<span class="comment"># Inicializar com pack FIDC</span>
-<span class="prompt">$</span> paganini init --pack fidc
-<span class="success">✓ PAGANINI initialized — 9 agents ready</span>
+<span class="prompt">$</span> <span class="cmd">paganini init --pack fidc</span>
+<span class="success">✓ Initialized — 9 agents ready</span>
 
-<span class="comment"># Query em linguagem natural</span>
-<span class="prompt">$</span> paganini query "Qual o limite de concentração por cedente?"
-<span class="accent">📋 Resposta (96% confiança)</span>
+<span class="prompt">$</span> <span class="cmd">paganini doctor</span>
+<span class="output">🩺 Python 3.12     ✓</span>
+<span class="output">   Moltis binary   ✓</span>
+<span class="output">   ChromaDB        ✓</span>
+<span class="output">   RTK proxy       ✓ v0.30.0</span>
+<span class="output">   Config          ✓</span>
+<span class="output">   11/11 checks passed</span>
 
-O limite máximo de concentração por cedente individual
-é de <span class="success">15% do PL</span> do fundo, conforme estabelecido no
-regulamento em conformidade com a CVM Resolução 175.
+<span class="prompt">$</span> <span class="cmd">paganini ingest corpus/</span>
+<span class="output">📥 3 files → 11 chunks → 11 KG entities</span>
 
-Monitoramento contínuo com alertas automáticos em 12%.
-<span class="comment">[Fonte: CVM 175, Art. 42 §3º]</span></pre>
+<span class="prompt">$</span> <span class="cmd">paganini query</span> <span class="output">"como calcular PDD por aging?"</span>
+<span class="highlight">📋 Resposta (94% confiança)</span>
+<span class="output">A PDD é calculada por faixa de atraso...</span>
+
+<span class="prompt">$</span> <span class="cmd">paganini report generate informe-mensal</span>
+<span class="output">📄 Relatório gerado → reports/informe-mensal-2026-03.md</span>
+
+<span class="prompt">$</span> <span class="cmd">paganini autoresearch -n 10</span>
+<span class="output">🔬 Iteration 1/10 — precision: 0.72 → 0.78 (+8.3%)</span>
+<span class="output">🔬 Iteration 10/10 — precision: 0.78 → 0.91 (+16.7%)</span>
+<span class="success">✓ Best config saved. Precision improved 26.4%</span>
     </div>
   </div>
-</section>
+</div>
+</div>
 
-<!-- Pricing -->
-<section id="pricing" style="background: var(--bg-2);">
-  <div class="container sr">
-    <p class="upper muted" style="margin-bottom: 12px;">Planos</p>
-    <h2 style="margin-bottom: 48px;">Comece pequeno. Escale quando quiser.</h2>
-
-    <div class="pricing-grid">
-      <div class="price-card">
-        <div class="tier">Community</div>
-        <div class="amount">Grátis</div>
-        <div class="period">Open source · Sem limites</div>
-        <ul>
-          <li>3 agentes (Admin, Compliance, Reporting)</li>
-          <li>RAG com corpus próprio</li>
-          <li>CLI completa</li>
-          <li>Guardrails básicos</li>
-          <li>Suporte: comunidade GitHub</li>
-        </ul>
-      </div>
-      <div class="price-card featured">
-        <div class="tier" style="color: var(--gold);">Professional</div>
-        <div class="amount">R$ 8.000<span style="font-family: 'DM Sans'; font-size: 0.875rem;">/mês</span></div>
-        <div class="period">Por fundo · Setup incluso</div>
-        <ul>
-          <li>9 agentes especializados</li>
-          <li>6 guardrails completos</li>
-          <li>Dashboard em tempo real</li>
-          <li>Relatórios CVM automatizados</li>
-          <li>Suporte: SLA 4h úteis</li>
-        </ul>
-      </div>
-      <div class="price-card">
-        <div class="tier">Enterprise</div>
-        <div class="amount">R$ 25.000<span style="font-family: 'DM Sans'; font-size: 0.875rem;">/mês</span></div>
-        <div class="period">Por fundo · White-label disponível</div>
-        <ul>
-          <li>Agentes customizados ilimitados</li>
-          <li>Integração com sistemas legados</li>
-          <li>Deploy on-premise ou cloud privada</li>
-          <li>Treinamento e onboarding dedicado</li>
-          <li>Suporte: SLA 1h · Gerente de conta</li>
-        </ul>
-      </div>
-    </div>
+<!-- ═══════════════════════ NUMBERS ═══════════════════════ -->
+<div class="section" style="border-bottom:none">
+<div class="container" style="text-align:center">
+  <div class="mono-label" style="text-align:center">O PRODUTO EM NÚMEROS</div>
+  <h2 class="section-title" style="text-align:center">Código real. <span class="accent">Não slideware.</span></h2>
+  <div class="stat-row" style="max-width:900px;margin:2rem auto;grid-template-columns:repeat(auto-fit,minmax(140px,1fr))">
+    <div class="stat"><div class="stat-num"><span class="green">105</span></div><div class="stat-label">PYTHON FILES</div></div>
+    <div class="stat"><div class="stat-num"><span class="green">7,200</span></div><div class="stat-label">LINES OF CODE</div></div>
+    <div class="stat"><div class="stat-num">132</div><div class="stat-label">TESTS PASSING</div></div>
+    <div class="stat"><div class="stat-num">9</div><div class="stat-label">AGENT SOULS</div></div>
+    <div class="stat"><div class="stat-num">11</div><div class="stat-label">OOP SKILLS</div></div>
+    <div class="stat"><div class="stat-num"><span class="green">6</span></div><div class="stat-label">GUARDRAIL GATES</div></div>
   </div>
-</section>
 
-<!-- CTA -->
-<section class="cta-section">
-  <div class="container">
-    <h2>Pronto para transformar<br>a gestão do seu fundo?</h2>
-    <p class="sub">Agende uma demonstração com nosso time. Em 30 minutos, mostramos como o Paganini pode operar no seu FIDC.</p>
-    <a href="mailto:contato@paganini.ai" class="primary" style="display: inline-block; padding: 16px 40px; background: var(--accent); color: #fff; text-decoration: none; border-radius: var(--radius); font-weight: 500;">Agendar Demonstração</a>
+  <div style="margin-top:3rem">
+    <a href="https://github.com/juboyy/paganini-aios" style="display:inline-flex;align-items:center;gap:0.5rem;padding:0.75rem 2rem;background:var(--green);color:var(--bg);font-family:var(--font-mono);font-size:0.75rem;letter-spacing:0.08em;font-weight:600;border-radius:var(--radius);text-decoration:none;transition:box-shadow 0.2s" onmouseover="this.style.boxShadow='0 0 30px rgba(0,255,128,0.4)'" onmouseout="this.style.boxShadow='none'">
+      VIEW ON GITHUB →
+    </a>
+    <a href="https://dashboard-v2-pearl-rho.vercel.app" style="display:inline-flex;align-items:center;gap:0.5rem;padding:0.75rem 2rem;border:1px solid var(--border-bright);color:var(--green);font-family:var(--font-mono);font-size:0.75rem;letter-spacing:0.08em;font-weight:600;border-radius:var(--radius);text-decoration:none;margin-left:1rem;transition:box-shadow 0.2s" onmouseover="this.style.boxShadow='0 0 30px rgba(0,255,128,0.2)'" onmouseout="this.style.boxShadow='none'">
+      LIVE DASHBOARD →
+    </a>
   </div>
-</section>
-
-<!-- Footer -->
-<footer>
-  <div class="container">
-    <div class="inner">
-      <div>© 2026 Paganini AIOS. Apache 2.0.</div>
-      <div><a href="https://github.com/juboyy/paganini-aios" style="color: var(--fg-3); text-decoration: none;">GitHub</a></div>
-    </div>
-  </div>
-</footer>
+</div>
+</div>
 
 <script>
-  // Scroll-triggered reveals
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target); } });
-  }, { threshold: 0.15 });
-  document.querySelectorAll('.sr').forEach(el => observer.observe(el));
+// Fade in on scroll
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if(e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target); }});
+}, { threshold: 0.15 });
+document.querySelectorAll('.fade-in, .card, .terminal').forEach(el => { el.classList.add('fade-in'); observer.observe(el); });
 </script>
 
 </body>
