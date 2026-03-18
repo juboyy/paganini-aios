@@ -1,46 +1,46 @@
 "use client";
 
-import { useTheme } from "next-themes";
-import { useEffect, useState } from "react";
-
 export function Topbar() {
-  const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  useEffect(() => setMounted(true), []);
-
   return (
     <header
-      className="h-14 border-b flex items-center justify-between px-4 lg:px-6 shrink-0"
-      style={{ borderColor: "var(--border)", background: "var(--bg-card)" }}
+      className="sticky top-0 z-20 flex items-center justify-between px-4 lg:px-6"
+      style={{
+        height: "48px",
+        background: "hsl(220 20% 4% / 0.85)",
+        backdropFilter: "blur(16px)",
+        borderBottom: "1px solid var(--border)",
+      }}
     >
-      {/* Spacer for mobile hamburger */}
+      {/* Left spacer for mobile hamburger */}
       <div className="w-10 lg:hidden" />
 
-      <div className="flex items-center gap-3">
-        <span className="text-[10px] uppercase tracking-[0.15em] hidden sm:block" style={{ color: "var(--text-4)" }}>
-          AI Operating System for Financial Markets
-        </span>
-        <span className="text-[10px] uppercase tracking-[0.15em] sm:hidden" style={{ color: "var(--text-4)" }}>
-          PAGANINI AIOS
-        </span>
+      {/* Status line */}
+      <div className="flex items-center gap-3" style={{ fontFamily: "var(--font-mono)", fontSize: "0.625rem", color: "var(--text-4)", letterSpacing: "0.1em" }}>
+        <span>PAGANINI AIOS</span>
+        <span style={{ color: "var(--border)" }}>│</span>
+        <span>COMMAND CENTER</span>
       </div>
 
-      <div className="flex items-center gap-3">
-        <div className="flex items-center gap-1.5">
-          <span className="pulse-dot w-2 h-2 rounded-full" style={{ background: "var(--green)" }} />
-          <span className="text-[10px] hidden sm:inline" style={{ color: "var(--green)" }}>healthy</span>
+      {/* Right indicators */}
+      <div className="flex items-center gap-4" style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem" }}>
+        <div className="hidden sm:flex items-center gap-1.5" style={{ color: "var(--text-3)" }}>
+          <span className="tag-badge">9 AGENTS</span>
+          <span className="tag-badge-cyan">6 GATES</span>
         </div>
-
-        {mounted && (
-          <button
-            onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-            className="w-8 h-8 rounded-lg flex items-center justify-center text-sm transition-colors active:scale-95"
-            style={{ border: "1px solid var(--border)", color: "var(--text-3)" }}
-          >
-            {theme === "dark" ? "☀" : "◑"}
-          </button>
-        )}
+        <div className="flex items-center gap-1.5" style={{ color: "var(--accent)" }}>
+          <span
+            className="pulse-dot"
+            style={{
+              width: 5,
+              height: 5,
+              borderRadius: "50%",
+              background: "var(--accent)",
+              boxShadow: "0 0 6px var(--accent)",
+              display: "inline-block",
+            }}
+          />
+          <span style={{ letterSpacing: "0.1em" }}>LIVE</span>
+        </div>
       </div>
     </header>
   );

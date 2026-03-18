@@ -1,133 +1,160 @@
 "use client";
 
-import { STATS, ACTIVITY, GUARDRAIL_GATES, NAV_HISTORY } from "@/lib/mock-data";
-import { AreaChart, Area, ResponsiveContainer, Tooltip } from "recharts";
+const STATS = [
+  { label: "TOTAL NAV", value: "R$ 245.8M", delta: "+2.3%", color: "var(--accent)" },
+  { label: "AGENTS ACTIVE", value: "9/9", delta: "NOMINAL", color: "var(--cyan)" },
+  { label: "GUARDRAILS", value: "6/6", delta: "ALL PASS", color: "var(--accent)" },
+  { label: "COST/HOUR", value: "$0.09", delta: "-12%", color: "var(--cyan)" },
+];
 
-const STATUS_COLORS: Record<string, string> = {
-  success: "var(--green)",
-  info: "var(--blue)",
-  warning: "var(--amber)",
-  error: "var(--red)",
-};
+const AGENTS = [
+  { name: "Administrador", status: "active", tasks: 14, latency: "1.2s" },
+  { name: "Compliance", status: "active", tasks: 23, latency: "0.8s" },
+  { name: "Custódia", status: "active", tasks: 8, latency: "1.5s" },
+  { name: "Due Diligence", status: "active", tasks: 5, latency: "2.1s" },
+  { name: "Gestor", status: "active", tasks: 18, latency: "1.1s" },
+  { name: "IR", status: "idle", tasks: 3, latency: "—" },
+  { name: "Pricing", status: "active", tasks: 12, latency: "0.9s" },
+  { name: "Reg Watch", status: "watching", tasks: 2, latency: "—" },
+  { name: "Reporting", status: "active", tasks: 7, latency: "1.4s" },
+];
 
-const GATE_STYLES: Record<string, { bg: string; border: string; color: string; icon: string }> = {
-  pass: { bg: "rgba(34,197,94,0.08)", border: "rgba(34,197,94,0.2)", color: "var(--green)", icon: "✓" },
-  warn: { bg: "rgba(234,179,8,0.08)", border: "rgba(234,179,8,0.2)", color: "var(--amber)", icon: "⚠" },
-  block: { bg: "rgba(239,68,68,0.08)", border: "rgba(239,68,68,0.2)", color: "var(--red)", icon: "✗" },
-};
+const ACTIVITY = [
+  { time: "12:34", agent: "Compliance", action: "Covenant check passed — subordination ratio 28.5%", type: "pass" },
+  { time: "12:31", agent: "Pricing", action: "PDD recalculated — portfolio aging updated", type: "info" },
+  { time: "12:28", agent: "Due Diligence", action: "New cedente scored: CNPJ 12.345.678/0001-90 → Score 87", type: "info" },
+  { time: "12:25", agent: "Guardrail", action: "Concentration alert: Cedente ABC at 13.8% (limit 15%)", type: "warn" },
+  { time: "12:20", agent: "Gestor", action: "Allocation rebalanced — R$ 4.2M reallocated to lower risk", type: "info" },
+  { time: "12:15", agent: "Reg Watch", action: "New CVM publication detected — Circular 4.021", type: "alert" },
+];
 
-function HeroCard({ icon, label, value, sub, subColor, accent }: {
-  icon: string; label: string; value: string; sub: string; subColor?: string; accent?: boolean;
-}) {
-  return (
-    <div
-      className="rounded-2xl p-4 lg:p-5 relative overflow-hidden"
-      style={{
-        background: accent ? "linear-gradient(135deg, rgba(124,58,237,0.12), rgba(124,58,237,0.04))" : "var(--bg-card)",
-        border: `1px solid ${accent ? "rgba(124,58,237,0.2)" : "var(--border)"}`,
-      }}
-    >
-      <div className="flex items-start justify-between">
-        <div>
-          <div className="text-[9px] uppercase tracking-[0.15em] mb-1.5" style={{ color: "var(--text-4)" }}>{label}</div>
-          <div className="text-xl lg:text-2xl font-bold tracking-tight" style={{ color: accent ? "var(--accent)" : "var(--text-1)" }}>{value}</div>
-          <div className="text-[11px] mt-1 font-medium" style={{ color: subColor || "var(--text-4)" }}>{sub}</div>
-        </div>
-        <span className="text-2xl opacity-60">{icon}</span>
-      </div>
-    </div>
-  );
-}
-
-function MiniChart() {
-  return (
-    <div className="rounded-2xl p-4 lg:p-5" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
-      <div className="flex items-center justify-between mb-3">
-        <div className="text-[9px] uppercase tracking-[0.15em]" style={{ color: "var(--text-4)" }}>NAV · 12 months</div>
-        <div className="text-sm font-bold" style={{ color: "var(--green)" }}>+34.8%</div>
-      </div>
-      <div className="h-24 lg:h-28">
-        <ResponsiveContainer width="100%" height="100%">
-          <AreaChart data={NAV_HISTORY}>
-            <defs>
-              <linearGradient id="navGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#7c3aed" stopOpacity={0.3} />
-                <stop offset="100%" stopColor="#7c3aed" stopOpacity={0} />
-              </linearGradient>
-            </defs>
-            <Tooltip
-              contentStyle={{ background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: 12, fontSize: 11 }}
-              labelStyle={{ color: "var(--text-4)" }}
-              formatter={(v: number) => [`R$ ${v}M`, "NAV"]}
-            />
-            <Area type="monotone" dataKey="value" stroke="#7c3aed" strokeWidth={2} fill="url(#navGrad)" />
-          </AreaChart>
-        </ResponsiveContainer>
-      </div>
-    </div>
-  );
-}
+const GATES = [
+  { name: "ELIGIBILITY", status: "pass" },
+  { name: "CONCENTRATION", status: "pass" },
+  { name: "COVENANT", status: "pass" },
+  { name: "PLD/AML", status: "pass" },
+  { name: "COMPLIANCE", status: "pass" },
+  { name: "RISK", status: "pass" },
+];
 
 export default function OverviewPage() {
   return (
-    <div className="space-y-5">
-      {/* Hero stats */}
+    <div className="space-y-6">
+      {/* Hero Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <HeroCard icon="💰" label="Fund AUM" value={STATS.fundAum} sub={STATS.fundAumDelta} subColor="var(--green)" accent />
-        <HeroCard icon="🤖" label="Agents" value={STATS.agentsOnline} sub="3 idle" subColor="var(--amber)" />
-        <HeroCard icon="📚" label="RAG Chunks" value={STATS.ragChunks} sub="indexed" />
-        <HeroCard icon="⏱" label="ROI" value={STATS.roiHours} sub={STATS.roiCostPerHour} subColor="var(--green)" />
+        {STATS.map((s) => (
+          <div key={s.label} className="glass-card p-4">
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "8px" }}>
+              {s.label}
+            </div>
+            <div style={{ fontFamily: "var(--font-display)", fontSize: "1.5rem", fontWeight: 700, color: "var(--text-1)", letterSpacing: "-0.02em" }}>
+              {s.value}
+            </div>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.625rem", color: s.color, marginTop: "4px" }}>
+              {s.delta}
+            </div>
+          </div>
+        ))}
       </div>
 
-      {/* NAV Chart + Guardrails */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-        <MiniChart />
-
-        {/* Guardrail strip */}
-        <div className="rounded-2xl p-4 lg:p-5" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
-          <div className="text-[9px] uppercase tracking-[0.15em] mb-3" style={{ color: "var(--text-4)" }}>Guardrail Gates</div>
-          <div className="grid grid-cols-3 gap-2">
-            {GUARDRAIL_GATES.map((g) => {
-              const s = GATE_STYLES[g.status];
-              return (
-                <div key={g.gate} className="text-center p-2.5 rounded-xl" style={{ background: s.bg, border: `1px solid ${s.border}` }}>
-                  <div className="text-lg mb-0.5">{g.icon}</div>
-                  <div className="text-[10px] font-semibold" style={{ color: "var(--text-1)" }}>{g.label}</div>
-                  <div className="text-[9px] font-mono font-bold mt-0.5" style={{ color: s.color }}>{s.icon}</div>
-                </div>
-              );
-            })}
-          </div>
+      {/* Guardrail Gate Strip */}
+      <div className="glass-card p-4">
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "12px" }}>
+          GUARDRAIL GATES — REAL-TIME STATUS
+        </div>
+        <div className="flex flex-wrap gap-2">
+          {GATES.map((g, i) => (
+            <div key={g.name} className="flex items-center gap-2">
+              <div
+                className="flex items-center gap-1.5 px-3 py-1.5"
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "0.625rem",
+                  letterSpacing: "0.08em",
+                  background: "hsl(150 100% 50% / 0.06)",
+                  border: "1px solid hsl(150 100% 50% / 0.2)",
+                  borderRadius: "var(--radius)",
+                  color: "var(--accent)",
+                }}
+              >
+                <span style={{ fontSize: "0.5rem" }}>●</span>
+                {g.name}
+              </div>
+              {i < GATES.length - 1 && (
+                <span style={{ color: "var(--text-4)", fontSize: "0.625rem", fontFamily: "var(--font-mono)" }}>→</span>
+              )}
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Activity + Alerts */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-3">
-        <div className="lg:col-span-2 rounded-2xl p-4 lg:p-5" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
-          <div className="text-[9px] uppercase tracking-[0.15em] mb-3" style={{ color: "var(--text-4)" }}>Activity</div>
-          <div className="space-y-0.5">
-            {ACTIVITY.map((item) => (
-              <div key={item.id} className="flex items-center gap-3 py-2 text-[13px]" style={{ borderBottom: "1px solid var(--border)" }}>
-                <span className="w-2 h-2 rounded-full shrink-0" style={{ background: STATUS_COLORS[item.type] }} />
-                <span className="flex-1 truncate" style={{ color: "var(--text-2)" }}>{item.message}</span>
-                <span className="text-[9px] shrink-0 tabular-nums" style={{ color: "var(--text-4)" }}>{item.time}</span>
+        {/* Agent Fleet */}
+        <div className="lg:col-span-2 glass-card p-4">
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "12px" }}>
+            AGENT FLEET STATUS
+          </div>
+          <div className="space-y-1">
+            {AGENTS.map((a) => (
+              <div
+                key={a.name}
+                className="flex items-center justify-between py-2 px-3"
+                style={{
+                  borderRadius: "var(--radius)",
+                  background: "hsl(220 20% 4% / 0.5)",
+                  border: "1px solid var(--border-subtle)",
+                }}
+              >
+                <div className="flex items-center gap-2.5">
+                  <span
+                    className={a.status === "active" ? "pulse-dot" : ""}
+                    style={{
+                      width: 6, height: 6, borderRadius: "50%",
+                      background: a.status === "active" ? "var(--accent)" : a.status === "watching" ? "var(--cyan)" : "var(--text-4)",
+                      boxShadow: a.status === "active" ? "0 0 6px var(--accent)" : a.status === "watching" ? "0 0 6px var(--cyan)" : "none",
+                      display: "inline-block",
+                    }}
+                  />
+                  <span style={{ fontFamily: "var(--font-display)", fontSize: "0.8125rem", color: "var(--text-1)", fontWeight: 500 }}>
+                    {a.name}
+                  </span>
+                </div>
+                <div className="flex items-center gap-4" style={{ fontFamily: "var(--font-mono)", fontSize: "0.625rem" }}>
+                  <span style={{ color: "var(--text-3)" }}>{a.tasks} tasks</span>
+                  <span style={{ color: "var(--text-4)", width: "36px", textAlign: "right" }}>{a.latency}</span>
+                </div>
               </div>
             ))}
           </div>
         </div>
 
-        <div className="rounded-2xl p-4 lg:p-5" style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}>
-          <div className="text-[9px] uppercase tracking-[0.15em] mb-3" style={{ color: "var(--text-4)" }}>Alerts</div>
+        {/* Activity Feed */}
+        <div className="glass-card p-4">
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "12px" }}>
+            ACTIVITY LOG
+          </div>
           <div className="space-y-2">
-            <div className="p-3 rounded-xl text-[12px] leading-relaxed" style={{ background: "rgba(234,179,8,0.06)", border: "1px solid rgba(234,179,8,0.12)", color: "var(--text-2)" }}>
-              ⚠ Concentration nearing limit — Cedent ABC at <strong>14.2%</strong> (limit 15%)
-            </div>
-            <div className="p-3 rounded-xl text-[12px] leading-relaxed" style={{ background: "rgba(59,130,246,0.06)", border: "1px solid rgba(59,130,246,0.12)", color: "var(--text-2)" }}>
-              ℹ Codex token tracking: 0 tokens — parser bug
-            </div>
-            <div className="p-3 rounded-xl text-[12px] leading-relaxed" style={{ background: "rgba(34,197,94,0.06)", border: "1px solid rgba(34,197,94,0.12)", color: "var(--text-2)" }}>
-              ✓ All 47 tests passing
-            </div>
+            {ACTIVITY.map((a, i) => (
+              <div key={i} className="pb-2" style={{ borderBottom: i < ACTIVITY.length - 1 ? "1px solid var(--border-subtle)" : "none" }}>
+                <div className="flex items-center gap-2 mb-1">
+                  <span style={{
+                    fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--text-4)",
+                  }}>
+                    {a.time}
+                  </span>
+                  <span className={a.type === "warn" ? "tag-badge" : a.type === "alert" ? "tag-badge-cyan" : "tag-badge"} style={
+                    a.type === "warn" ? { background: "hsl(45 100% 50% / 0.1)", color: "var(--amber)", borderColor: "hsl(45 100% 50% / 0.3)" }
+                    : a.type === "alert" ? { background: "hsl(0 84% 60% / 0.1)", color: "var(--red)", borderColor: "hsl(0 84% 60% / 0.3)" }
+                    : {}
+                  }>
+                    {a.agent}
+                  </span>
+                </div>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--text-2)", lineHeight: 1.5 }}>
+                  {a.action}
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       </div>

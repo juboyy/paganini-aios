@@ -1,20 +1,19 @@
 "use client";
-
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
-const NAV_ITEMS = [
-  { href: "/", icon: "📊", label: "Overview" },
-  { href: "/agents", icon: "🤖", label: "Agents" },
-  { href: "/memory", icon: "🧠", label: "Memory" },
-  { href: "/guardrails", icon: "🛡", label: "Guardrails" },
-  { href: "/pipeline", icon: "⚡", label: "Pipeline" },
-  { href: "/symphony", icon: "🎵", label: "Symphony" },
-  { href: "/fund", icon: "💰", label: "Fund Ops" },
-  { href: "/telemetry", icon: "📈", label: "Telemetry" },
-  { href: "/capabilities", icon: "🔌", label: "Capabilities" },
-  { href: "/settings", icon: "⚙", label: "Settings" },
+const NAV = [
+  { href: "/", label: "OVERVIEW", icon: "◆" },
+  { href: "/agents", label: "AGENTS", icon: "◎" },
+  { href: "/guardrails", label: "GUARDRAILS", icon: "⬡" },
+  { href: "/memory", label: "MEMORY", icon: "◈" },
+  { href: "/fund", label: "FUND OPS", icon: "▣" },
+  { href: "/pipeline", label: "PIPELINE", icon: "◇" },
+  { href: "/symphony", label: "SYMPHONY", icon: "≋" },
+  { href: "/telemetry", label: "TELEMETRY", icon: "△" },
+  { href: "/capabilities", label: "CAPABILITIES", icon: "⊞" },
+  { href: "/settings", label: "SETTINGS", icon: "⚙" },
 ];
 
 export function Sidebar() {
@@ -26,79 +25,106 @@ export function Sidebar() {
       {/* Mobile hamburger */}
       <button
         onClick={() => setOpen(!open)}
-        className="fixed top-3 left-3 z-50 w-10 h-10 rounded-xl flex items-center justify-center lg:hidden"
-        style={{ background: "var(--bg-card)", border: "1px solid var(--border)" }}
+        className="fixed top-3 left-3 z-50 lg:hidden w-10 h-10 flex items-center justify-center"
+        style={{
+          background: "var(--bg-card)",
+          border: "1px solid var(--border)",
+          borderRadius: "var(--radius)",
+          color: "var(--accent)",
+          fontFamily: "var(--font-mono)",
+          fontSize: "0.875rem",
+        }}
         aria-label="Toggle menu"
       >
-        <span className="text-lg">{open ? "✕" : "☰"}</span>
+        {open ? "✕" : "≡"}
       </button>
 
       {/* Overlay */}
       {open && (
         <div
-          className="fixed inset-0 z-40 lg:hidden"
-          style={{ background: "rgba(0,0,0,0.5)", backdropFilter: "blur(4px)" }}
+          className="fixed inset-0 z-30 lg:hidden"
+          style={{ background: "rgba(0,0,0,0.7)", backdropFilter: "blur(4px)" }}
           onClick={() => setOpen(false)}
         />
       )}
 
       {/* Sidebar */}
       <aside
-        className={`
-          fixed lg:sticky top-0 left-0 z-40 h-screen w-64 lg:w-56
-          border-r flex flex-col shrink-0
-          transition-transform duration-300 ease-out
-          ${open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"}
-        `}
-        style={{ borderColor: "var(--border)", background: "var(--bg-card)" }}
+        className={`fixed lg:sticky top-0 left-0 z-40 h-screen flex flex-col transition-transform duration-200 ${
+          open ? "translate-x-0" : "-translate-x-full lg:translate-x-0"
+        }`}
+        style={{
+          width: "200px",
+          background: "var(--bg-card)",
+          borderRight: "1px solid var(--border)",
+        }}
       >
-        <div className="p-5 border-b" style={{ borderColor: "var(--border)" }}>
-          <Link href="/" className="flex items-center gap-2" onClick={() => setOpen(false)}>
-            <span className="text-2xl">🎻</span>
-            <div>
-              <div className="text-base font-bold tracking-tight" style={{ color: "var(--accent)" }}>PAGANINI</div>
-              <div className="text-[9px] uppercase tracking-[0.2em]" style={{ color: "var(--text-4)" }}>AIOS v2.0</div>
+        {/* Logo */}
+        <div
+          className="flex items-center gap-2 px-4 py-5"
+          style={{ borderBottom: "1px solid var(--border)" }}
+        >
+          <span style={{ fontSize: "1.25rem" }}>🎻</span>
+          <div>
+            <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "0.8125rem", color: "var(--text-1)", letterSpacing: "-0.02em" }}>
+              PAGANINI
             </div>
-          </Link>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--text-3)", letterSpacing: "0.12em" }}>
+              AIOS v0.1.0
+            </div>
+          </div>
         </div>
 
-        <nav className="flex-1 p-3 space-y-0.5 overflow-y-auto">
-          {NAV_ITEMS.map((item) => {
-            const isActive = item.href === "/" ? pathname === "/" : pathname.startsWith(item.href);
+        {/* Nav */}
+        <nav className="flex-1 py-3 px-2 overflow-y-auto">
+          {NAV.map((item) => {
+            const active = pathname === item.href;
             return (
               <Link
                 key={item.href}
                 href={item.href}
                 onClick={() => setOpen(false)}
-                className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all active:scale-[0.98]"
+                className="flex items-center gap-2.5 px-3 py-2 mb-0.5 transition-all duration-150"
                 style={{
-                  background: isActive ? "var(--accent-bg)" : "transparent",
-                  color: isActive ? "var(--accent)" : "var(--text-3)",
-                  fontWeight: isActive ? 600 : 400,
+                  borderRadius: "var(--radius)",
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "0.6875rem",
+                  letterSpacing: "0.08em",
+                  color: active ? "var(--accent)" : "var(--text-3)",
+                  background: active ? "var(--accent-bg)" : "transparent",
+                  borderLeft: active ? "2px solid var(--accent)" : "2px solid transparent",
+                  textShadow: active ? "0 0 10px hsl(150 100% 50% / 0.3)" : "none",
                 }}
               >
-                <span className="text-lg w-7 text-center">{item.icon}</span>
-                <span>{item.label}</span>
-                {isActive && (
-                  <span
-                    className="ml-auto w-1.5 h-1.5 rounded-full"
-                    style={{ background: "var(--accent)" }}
-                  />
-                )}
+                <span style={{ fontSize: "0.625rem", opacity: active ? 1 : 0.5 }}>{item.icon}</span>
+                {item.label}
               </Link>
             );
           })}
         </nav>
 
-        <div className="p-4 border-t" style={{ borderColor: "var(--border)" }}>
-          <div className="flex items-center gap-2 mb-2">
-            <span className="pulse-dot w-2 h-2 rounded-full" style={{ background: "var(--green)" }} />
-            <span className="text-[10px]" style={{ color: "var(--green)" }}>System healthy</span>
-          </div>
-          <div className="text-[9px] space-y-0.5" style={{ color: "var(--text-4)" }}>
-            <div>19 agents · 16 online</div>
-            <div>701.2h saved · $0.09/h</div>
-          </div>
+        {/* Footer */}
+        <div
+          className="px-4 py-3 flex items-center gap-2"
+          style={{
+            borderTop: "1px solid var(--border)",
+            fontFamily: "var(--font-mono)",
+            fontSize: "0.5625rem",
+            color: "var(--text-4)",
+          }}
+        >
+          <span
+            className="pulse-dot"
+            style={{
+              width: 6,
+              height: 6,
+              borderRadius: "50%",
+              background: "var(--accent)",
+              boxShadow: "0 0 8px var(--accent)",
+              display: "inline-block",
+            }}
+          />
+          SYSTEM ONLINE
         </div>
       </aside>
     </>
