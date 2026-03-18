@@ -191,11 +191,11 @@ function CollabHeatmap() {
           <linearGradient
             key={i}
             id={`collab-grad-${i}`}
-            x1={agentPos[pair.a].x / W}
-            y1={agentPos[pair.a].y / H}
-            x2={agentPos[pair.b].x / W}
-            y2={agentPos[pair.b].y / H}
-            gradientUnits="objectBoundingBox"
+            x1={agentPos[pair.a].x}
+            y1={agentPos[pair.a].y}
+            x2={agentPos[pair.b].x}
+            y2={agentPos[pair.b].y}
+            gradientUnits="userSpaceOnUse"
           >
             <stop offset="0%" stopColor={agentColors[pair.a]} stopOpacity="0.9" />
             <stop offset="100%" stopColor={agentColors[pair.b]} stopOpacity="0.9" />

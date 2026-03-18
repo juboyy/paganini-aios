@@ -8,6 +8,7 @@ const NAV = [
   { href: "/agents", label: "AGENT FLEET", icon: "◎" },
   { href: "/guardrails", label: "GUARDRAILS", icon: "⛊" },
   { href: "/memory", label: "KNOWLEDGE", icon: "◈" },
+  { href: "/learning", label: "LEARNING", icon: "🧠" },
   { href: "/pipeline", label: "EXECUTION", icon: "▷" },
   { href: "/symphony", label: "ORCHESTRA", icon: "≋" },
   { href: "/fund", label: "FIDC PACK", icon: "▣" },
@@ -89,7 +90,7 @@ export function Sidebar() {
             const active = pathname === item.href;
             return (
               <div key={item.href}>
-                {i === 6 && (
+                {i === 7 && (
                   <div
                     className="px-3 pt-4 pb-1"
                     style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", letterSpacing: "0.16em", color: "var(--text-4)" }}
