@@ -154,6 +154,7 @@ step "5" "Instalando CLI global"
 sudo tee /usr/local/bin/paganini > /dev/null << WRAPPER
 #!/usr/bin/env bash
 # PAGANINI AIOS — Global CLI wrapper
+export PYTHONPATH="${INSTALL_DIR}\${PYTHONPATH:+:\$PYTHONPATH}"
 cd "${INSTALL_DIR}"
 exec "${INSTALL_DIR}/.venv/bin/paganini" "\$@"
 WRAPPER
