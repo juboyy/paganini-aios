@@ -43,9 +43,37 @@ body {
 ::-webkit-scrollbar { width: 4px; }
 ::-webkit-scrollbar-thumb { background: var(--accent); border-radius: 2px; }
 
-/* Pulse animation */
+/* Animations */
 @keyframes pulse-dot {
   0%, 100% { opacity: 1; }
   50% { opacity: 0.4; }
 }
 .pulse-dot { animation: pulse-dot 2s cubic-bezier(0.4, 0, 0.6, 1) infinite; }
+
+@keyframes fade-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.fade-in { animation: fade-in 0.3s ease-out; }
+
+/* Glass card effect (dark mode) */
+.dark .glass {
+  backdrop-filter: blur(12px);
+  background: rgba(20, 20, 32, 0.65) !important;
+  border: 1px solid rgba(124, 58, 237, 0.08) !important;
+}
+
+/* Selection */
+::selection {
+  background: rgba(124, 58, 237, 0.3);
+  color: var(--text-1);
+}
+
+/* Focus */
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Link hover */
+a { transition: color 0.15s ease; }
