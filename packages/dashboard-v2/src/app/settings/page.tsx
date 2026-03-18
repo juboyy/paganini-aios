@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 
-type Tab = "KERNEL" | "LLM PROVIDERS" | "RAG CONFIG" | "AGENTS" | "SKILLS" | "RTK" | "HEALTH";
+type Tab = "KERNEL" | "PROVEDORES LLM" | "CONFIG RAG" | "AGENTES" | "SKILLS" | "RTK" | "SAÚDE";
 
 const CSS_VARS = {
   "--bg": "#06060c",
@@ -21,18 +21,23 @@ const CSS_VARS = {
   "--radius": "2px",
 } as React.CSSProperties;
 
-const TABS: Tab[] = ["KERNEL", "LLM PROVIDERS", "RAG CONFIG", "AGENTS", "SKILLS", "RTK", "HEALTH"];
+const TABS: Tab[] = ["KERNEL", "PROVEDORES LLM", "CONFIG RAG", "AGENTES", "SKILLS", "RTK", "SAÚDE"];
 
 const AGENTS_DATA = [
-  { slug: "fidc-orchestrator", soul: "agents/fidc-orchestrator/SOUL.md",  domains: ["orchestration","routing"],         status: "ACTIVE",  last: "2s ago" },
-  { slug: "compliance-agent",  soul: "agents/compliance-agent/SOUL.md",    domains: ["compliance","regulation"],         status: "ACTIVE",  last: "4s ago" },
-  { slug: "pricing-agent",     soul: "agents/pricing-agent/SOUL.md",       domains: ["pricing","valuation"],             status: "ACTIVE",  last: "12s ago" },
-  { slug: "risk-agent",        soul: "agents/risk-agent/SOUL.md",          domains: ["risk","portfolio"],                status: "ACTIVE",  last: "8s ago" },
-  { slug: "due-diligence",     soul: "agents/due-diligence/SOUL.md",       domains: ["due-diligence","cedente"],         status: "ACTIVE",  last: "31s ago" },
-  { slug: "custody-agent",     soul: "agents/custody-agent/SOUL.md",       domains: ["custody","settlement"],            status: "IDLE",    last: "2m ago" },
-  { slug: "reporting-agent",   soul: "agents/reporting-agent/SOUL.md",     domains: ["reporting","cvm","bacen"],         status: "IDLE",    last: "5m ago" },
-  { slug: "admin-agent",       soul: "agents/admin-agent/SOUL.md",         domains: ["admin","configuration"],           status: "IDLE",    last: "8m ago" },
-  { slug: "ir-agent",          soul: "agents/ir-agent/SOUL.md",            domains: ["investor-relations","reporting"],  status: "IDLE",    last: "12m ago" },
+  { slug: "orchestrator",       soul: "agents/orchestrator/SOUL.md",         domains: ["orquestração","roteamento"],            status: "ATIVO",  last: "2s atrás" },
+  { slug: "administrador",      soul: "agents/administrador/SOUL.md",         domains: ["administração","configuração"],         status: "ATIVO",  last: "4s atrás" },
+  { slug: "compliance",         soul: "agents/compliance/SOUL.md",            domains: ["compliance","regulação"],              status: "ATIVO",  last: "6s atrás" },
+  { slug: "custodia",           soul: "agents/custodia/SOUL.md",              domains: ["custódia","liquidação"],               status: "ATIVO",  last: "12s atrás" },
+  { slug: "due-diligence",      soul: "agents/due-diligence/SOUL.md",         domains: ["due-diligence","cedente"],             status: "ATIVO",  last: "31s atrás" },
+  { slug: "gestor",             soul: "agents/gestor/SOUL.md",                domains: ["gestão","portfólio","NAV"],            status: "ATIVO",  last: "8s atrás" },
+  { slug: "pricing",            soul: "agents/pricing/SOUL.md",               domains: ["pricing","avaliação"],                status: "ATIVO",  last: "15s atrás" },
+  { slug: "risk",               soul: "agents/risk/SOUL.md",                  domains: ["risco","concentração"],               status: "ATIVO",  last: "9s atrás" },
+  { slug: "treasury",           soul: "agents/treasury/SOUL.md",              domains: ["tesouraria","caixa"],                 status: "ATIVO",  last: "22s atrás" },
+  { slug: "auditor",            soul: "agents/auditor/SOUL.md",               domains: ["auditoria","trilha"],                 status: "ATIVO",  last: "45s atrás" },
+  { slug: "reporting",          soul: "agents/reporting/SOUL.md",             domains: ["relatórios","cvm","bacen"],           status: "ATIVO",  last: "5m atrás" },
+  { slug: "investor-relations", soul: "agents/investor-relations/SOUL.md",    domains: ["relação-cotistas","comunicação"],     status: "ATIVO",  last: "12m atrás" },
+  { slug: "regulatory-watch",   soul: "agents/regulatory-watch/SOUL.md",      domains: ["monitoramento-regulatório","alertas"], status: "ATIVO", last: "3m atrás" },
+  { slug: "knowledge-graph",    soul: "agents/knowledge-graph/SOUL.md",       domains: ["ingestão","grafo","chromadb"],        status: "ATIVO",  last: "1m atrás" },
 ];
 
 const RAG_CONFIG = [
@@ -54,7 +59,7 @@ const DOCTOR_OUTPUT = [
   { check: "ChromaDB",       result: "✓", detail: "connected",     ok: true },
   { check: "RTK proxy",      result: "✓", detail: "v0.30.0",       ok: true },
   { check: "Config",         result: "✓", detail: "valid",         ok: true },
-  { check: "Agents (9/9)",   result: "✓", detail: "all online",    ok: true },
+  { check: "Agentes (14/14)", result: "✓", detail: "todos online",   ok: true },
   { check: "Skills (11/11)", result: "✓", detail: "loaded",        ok: true },
   { check: "Guardrails (6/6)", result: "✓", detail: "enforced",   ok: true },
   { check: "Memory store",   result: "✓", detail: "healthy",       ok: true },
@@ -75,7 +80,7 @@ function TabKernel() {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
       <div className="glass-card" style={{ padding: "20px 24px", border: "1px solid var(--border)", borderRadius: "var(--radius)", background: "var(--bg-card)" }}>
-        <div style={{ fontSize: 10, letterSpacing: 2, color: "var(--text-3)", marginBottom: 16 }}>MOLTIS RUNTIME</div>
+        <div style={{ fontSize: 10, letterSpacing: 2, color: "var(--text-3)", marginBottom: 16 }}>RUNTIME MOLTIS</div>
         {[
           { k: "Engine",          v: "Moltis v2.4.1" },
           { k: "Python",          v: "3.12.3" },
@@ -89,7 +94,7 @@ function TabKernel() {
       </div>
       <div>
         <div className="glass-card" style={{ padding: "20px 24px", border: "1px solid var(--border)", borderRadius: "var(--radius)", background: "var(--bg-card)", marginBottom: 12 }}>
-          <div style={{ fontSize: 10, letterSpacing: 2, color: "var(--text-3)", marginBottom: 14 }}>MEMORY USAGE</div>
+          <div style={{ fontSize: 10, letterSpacing: 2, color: "var(--text-3)", marginBottom: 14 }}>USO DE MEMÓRIA</div>
           {[
             { label: "System RAM",   used: 62, total: "16 GB",  color: "var(--accent)" },
             { label: "Context pool", used: 31, total: "8 GB",   color: "var(--cyan)"   },
@@ -112,9 +117,9 @@ function TabKernel() {
         <div className="glass-card" style={{ padding: "16px 20px", border: "1px solid var(--border)", borderRadius: "var(--radius)", background: "var(--bg-card)" }}>
           <div style={{ fontSize: 10, letterSpacing: 2, color: "var(--text-3)", marginBottom: 10 }}>DAEMONS</div>
           {[
-            { name: "moltis-core",      status: "RUNNING", pid: "1842" },
-            { name: "rtk-proxy",        status: "RUNNING", pid: "1956" },
-            { name: "metaclaw-watcher", status: "RUNNING", pid: "2104" },
+            { name: "moltis-core",      status: "ATIVO", pid: "1842" },
+            { name: "rtk-proxy",        status: "ATIVO", pid: "1956" },
+            { name: "metaclaw-watcher", status: "ATIVO", pid: "2104" },
           ].map((d, i) => (
             <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 6 }}>
               <span style={{ fontSize: 10, color: "var(--text-2)", fontFamily: "'IBM Plex Mono', monospace" }}>{d.name}</span>
@@ -136,7 +141,7 @@ function TabLLM() {
       name: "Gemini 2.5 Flash",
       provider: "Google DeepMind",
       model: "gemini-2.5-flash-preview",
-      status: "ACTIVE",
+      status: "ATIVO",
       statusColor: "var(--accent)",
       statusBg: "rgba(0,255,128,0.1)",
       statusBorder: "rgba(0,255,128,0.25)",
@@ -153,11 +158,11 @@ function TabLLM() {
       name: "OpenAI GPT-4o",
       provider: "OpenAI",
       model: "gpt-4o-2024-11-20",
-      status: "INACTIVE",
+      status: "INATIVO",
       statusColor: "#ef4444",
       statusBg: "rgba(239,68,68,0.08)",
       statusBorder: "rgba(239,68,68,0.2)",
-      note: "No billing configured",
+      note: "Sem billing configurado",
       stats: [
         { k: "Requests today", v: "0" },
         { k: "Tokens in",      v: "—" },
@@ -171,11 +176,11 @@ function TabLLM() {
       name: "Anthropic Claude",
       provider: "Anthropic",
       model: "claude-3-5-sonnet-20241022",
-      status: "AVAILABLE",
+      status: "DISPONÍVEL",
       statusColor: "#f59e0b",
       statusBg: "rgba(245,158,11,0.08)",
       statusBorder: "rgba(245,158,11,0.2)",
-      note: "Ready to activate",
+      note: "Pronto para ativar",
       stats: [
         { k: "Requests today", v: "0" },
         { k: "Tokens in",      v: "—" },
@@ -220,7 +225,7 @@ function TabRAG() {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
       <div className="glass-card" style={{ border: "1px solid var(--border)", borderRadius: "var(--radius)", background: "var(--bg-card)", overflow: "hidden" }}>
-        <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--border)", fontSize: 10, letterSpacing: 2, color: "var(--text-3)" }}>RAG CONFIGURATION</div>
+        <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--border)", fontSize: 10, letterSpacing: 2, color: "var(--text-3)" }}>CONFIGURAÇÃO RAG</div>
         {RAG_CONFIG.map((r, i) => <ConfigRow key={i} k={r.key} v={r.value} highlight={i % 2 === 0} />)}
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
@@ -261,12 +266,12 @@ function TabRAG() {
 function TabAgents() {
   return (
     <div className="glass-card" style={{ border: "1px solid var(--border)", borderRadius: "var(--radius)", background: "var(--bg-card)", overflow: "hidden" }}>
-      <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--border)", fontSize: 10, letterSpacing: 2, color: "var(--text-3)" }}>AGENT ROSTER — 9 / 9 ACTIVE</div>
+      <div style={{ padding: "14px 18px", borderBottom: "1px solid var(--border)", fontSize: 10, letterSpacing: 2, color: "var(--text-3)" }}>ROSTER DE AGENTES — 14 / 14 ATIVOS</div>
       <div style={{ overflowX: "auto" }}>
         <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 11 }}>
           <thead>
             <tr style={{ borderBottom: "1px solid var(--border)" }}>
-              {["SLUG", "SOUL FILE", "DOMAINS", "STATUS", "LAST ACTIVE"].map(h => (
+              {["SLUG", "ARQUIVO SOUL", "DOMÍNIOS", "STATUS", "ÚLTIMO ATIVO"].map(h => (
                 <th key={h} style={{ padding: "8px 16px", textAlign: "left", fontSize: 9, letterSpacing: 1.5, color: "var(--text-3)", fontWeight: 500 }}>{h}</th>
               ))}
             </tr>
@@ -282,7 +287,7 @@ function TabAgents() {
                   </div>
                 </td>
                 <td style={{ padding: "10px 16px" }}>
-                  <span style={{ fontSize: 9, color: a.status === "ACTIVE" ? "var(--accent)" : "var(--text-3)", background: a.status === "ACTIVE" ? "rgba(0,255,128,0.08)" : "rgba(255,255,255,0.03)", padding: "2px 8px", borderRadius: "var(--radius)", border: `1px solid ${a.status === "ACTIVE" ? "rgba(0,255,128,0.2)" : "rgba(255,255,255,0.06)"}` }}>{a.status}</span>
+                  <span style={{ fontSize: 9, color: a.status === "ATIVO" ? "var(--accent)" : "var(--text-3)", background: a.status === "ATIVO" ? "rgba(0,255,128,0.08)" : "rgba(255,255,255,0.03)", padding: "2px 8px", borderRadius: "var(--radius)", border: `1px solid ${a.status === "ATIVO" ? "rgba(0,255,128,0.2)" : "rgba(255,255,255,0.06)"}` }}>{a.status}</span>
                 </td>
                 <td style={{ padding: "10px 16px", fontSize: 10, color: "var(--text-3)" }}>{a.last}</td>
               </tr>
@@ -299,7 +304,7 @@ function TabSkills() {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
       <div className="glass-card" style={{ padding: "20px 24px", border: "1px solid var(--border)", borderRadius: "var(--radius)", background: "var(--bg-card)" }}>
-        <div style={{ fontSize: 10, letterSpacing: 2, color: "var(--text-3)", marginBottom: 16 }}>INSTALLED PACKS</div>
+        <div style={{ fontSize: 10, letterSpacing: 2, color: "var(--text-3)", marginBottom: 16 }}>PACKS INSTALADOS</div>
         {[
           { name: "FIDC Core Pack",   version: "1.0.0", skills: 11, updated: "Mar 18" },
         ].map((p, i) => (
@@ -316,7 +321,7 @@ function TabSkills() {
         ))}
         <div style={{ marginTop: 16 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-            <span style={{ fontSize: 10, color: "var(--text-2)" }}>Auto-update</span>
+            <span style={{ fontSize: 10, color: "var(--text-2)" }}>Atualização automática</span>
             <div
               onClick={() => setAutoUpdate(x => !x)}
               style={{ width: 40, height: 20, borderRadius: 10, background: autoUpdate ? "rgba(0,255,128,0.3)" : "rgba(255,255,255,0.08)", cursor: "pointer", position: "relative", border: `1px solid ${autoUpdate ? "rgba(0,255,128,0.4)" : "rgba(255,255,255,0.12)"}`, transition: "background 0.2s" }}
@@ -355,7 +360,7 @@ function TabRTK() {
   return (
     <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}>
       <div className="glass-card" style={{ padding: "20px 24px", border: "1px solid var(--border)", borderRadius: "var(--radius)", background: "var(--bg-card)" }}>
-        <div style={{ fontSize: 10, letterSpacing: 2, color: "var(--text-3)", marginBottom: 16 }}>RTK COMPRESSION ENGINE</div>
+        <div style={{ fontSize: 10, letterSpacing: 2, color: "var(--text-3)", marginBottom: 16 }}>RTK — MOTOR DE COMPRESSÃO</div>
         <div style={{ display: "flex", alignItems: "center", gap: 20, marginBottom: 20 }}>
           <div style={{ width: 110, height: 110, borderRadius: "50%", background: `conic-gradient(hsl(150,100%,50%) 0deg ${85*3.6}deg, rgba(255,255,255,0.06) ${85*3.6}deg 360deg)`, display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0 }}>
             <div style={{ width: 78, height: 78, borderRadius: "50%", background: "var(--bg-card)", display: "flex", alignItems: "center", justifyContent: "center", flexDirection: "column" }}>
@@ -367,7 +372,7 @@ function TabRTK() {
             {[
               { k: "VERSION",         v: "v0.30.0",  c: "var(--text-1)" },
               { k: "BINARY PATH",     v: "~/.local/bin/rtk", c: "var(--text-2)" },
-              { k: "STATUS",          v: "ACTIVE",   c: "var(--accent)" },
+              { k: "STATUS",          v: "ATIVO",   c: "var(--accent)" },
               { k: "MODE",            v: "binary",   c: "var(--text-2)" },
             ].map((r, i) => (
               <div key={i} style={{ display: "flex", justifyContent: "space-between", padding: "5px 0", borderBottom: i < 3 ? "1px solid var(--border-subtle)" : "none" }}>
@@ -392,7 +397,7 @@ function TabRTK() {
         ))}
       </div>
       <div className="glass-card" style={{ padding: "20px 24px", border: "1px solid var(--border)", borderRadius: "var(--radius)", background: "var(--bg-card)" }}>
-        <div style={{ fontSize: 10, letterSpacing: 2, color: "var(--text-3)", marginBottom: 14 }}>RTK PROTOCOL INFO</div>
+        <div style={{ fontSize: 10, letterSpacing: 2, color: "var(--text-3)", marginBottom: 14 }}>RTK — INFORMAÇÕES DO PROTOCOLO</div>
         <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 10, color: "var(--text-2)", lineHeight: 1.9, background: "rgba(0,255,128,0.02)", padding: "16px", borderRadius: "var(--radius)", border: "1px solid var(--border-subtle)" }}>
           <div style={{ color: "var(--accent)", marginBottom: 8 }}>$ rtk --version</div>
           <div style={{ color: "var(--text-2)" }}>RTK (Runtime Token Kompressor) v0.30.0</div>
@@ -406,12 +411,12 @@ function TabRTK() {
           <div>mode: binary</div>
           <div>target: moltis-core</div>
           <div>intercept: stdout+stderr</div>
-          <div style={{ color: "var(--accent)", marginTop: 12 }}>Status: ● RUNNING</div>
+          <div style={{ color: "var(--accent)", marginTop: 12 }}>Status: ● ATIVO</div>
         </div>
         <div style={{ marginTop: 14, padding: "12px 14px", border: "1px solid rgba(0,255,128,0.12)", borderRadius: "var(--radius)", background: "rgba(0,255,128,0.04)" }}>
-          <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 13, fontWeight: 700, color: "var(--accent)", marginBottom: 4 }}>Monthly Savings Projection</div>
+          <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 13, fontWeight: 700, color: "var(--accent)", marginBottom: 4 }}>Projeção de Economia Mensal</div>
           <div style={{ fontFamily: "'Space Grotesk', sans-serif", fontSize: 32, fontWeight: 800, color: "var(--accent)" }}>$748</div>
-          <div style={{ fontSize: 9, color: "var(--text-3)", marginTop: 2 }}>at current compression ratio × daily volume</div>
+          <div style={{ fontSize: 9, color: "var(--text-3)", marginTop: 2 }}>à taxa de compressão atual × volume diário</div>
         </div>
       </div>
     </div>
@@ -442,9 +447,9 @@ function TabHealth() {
     <div className="glass-card" style={{ padding: "24px 28px", border: "1px solid var(--border)", borderRadius: "var(--radius)", background: "#060810" }}>
       <div style={{ fontFamily: "'IBM Plex Mono', monospace", fontSize: 12, color: "var(--text-2)", lineHeight: 2 }}>
         <div style={{ color: "var(--accent)", marginBottom: 8, fontSize: 11 }}>$ paganini doctor</div>
-        <div style={{ color: "var(--text-3)", marginBottom: 16, fontSize: 10 }}>Running system health checks...</div>
+        <div style={{ color: "var(--text-3)", marginBottom: 16, fontSize: 10 }}>Verificando saúde do sistema...</div>
         <div style={{ fontSize: 11 }}>
-          <div style={{ color: "var(--text-2)", marginBottom: 10 }}>🩺 PAGANINI AIOS — SYSTEM HEALTH</div>
+          <div style={{ color: "var(--text-2)", marginBottom: 10 }}>🩺 PAGANINI AIOS — SAÚDE DO SISTEMA</div>
           {DOCTOR_OUTPUT.slice(0, lines).map((c, i) => (
             <div key={i} style={{ display: "flex", alignItems: "center", gap: 0 }}>
               <span style={{ color: "var(--text-3)", minWidth: 220 }}>
@@ -457,8 +462,8 @@ function TabHealth() {
           {running && <div style={{ color: "var(--cyan)", animation: "blink 0.8s infinite" }}>▊</div>}
           {done && (
             <div style={{ marginTop: 20, padding: "12px 16px", border: "1px solid rgba(0,255,128,0.25)", borderRadius: "var(--radius)", background: "rgba(0,255,128,0.06)" }}>
-              <span style={{ color: "var(--accent)", fontWeight: 700, fontSize: 13 }}>✓ 11/11 checks passed</span>
-              <span style={{ color: "var(--text-3)", fontSize: 10, marginLeft: 16 }}>All systems operational</span>
+              <span style={{ color: "var(--accent)", fontWeight: 700, fontSize: 13 }}>✓ 11/11 verificações OK</span>
+              <span style={{ color: "var(--text-3)", fontSize: 10, marginLeft: 16 }}>Todos os sistemas operacionais</span>
             </div>
           )}
         </div>
@@ -482,9 +487,9 @@ export default function SettingsPage() {
       {/* PAGE HEADER */}
       <div style={{ marginBottom: 20 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 4 }}>
-          <span style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 700, letterSpacing: 1 }}>SETTINGS / KERNEL CONFIG</span>
+          <span style={{ fontFamily: "var(--font-display)", fontSize: 22, fontWeight: 700, letterSpacing: 1 }}>CONFIGURAÇÕES / KERNEL CONFIG</span>
         </div>
-        <p style={{ color: "var(--text-3)", fontSize: 11, letterSpacing: 1 }}>AIOS CONFIGURATION · RUNTIME · HEALTH</p>
+        <p style={{ color: "var(--text-3)", fontSize: 11, letterSpacing: 1 }}>CONFIGURAÇÃO AIOS · RUNTIME · SAÚDE</p>
       </div>
 
       {/* SYSTEM HEALTH HEADER */}
@@ -494,7 +499,7 @@ export default function SettingsPage() {
             <div style={{ width: 10, height: 10, borderRadius: "50%", background: "var(--accent)", position: "absolute", top: 3, left: 3, boxShadow: "0 0 10px var(--accent)" }} />
             <div style={{ width: 16, height: 16, borderRadius: "50%", border: "1px solid var(--accent)", position: "absolute", top: 0, left: 0, opacity: pulse ? 0.5 : 0, transition: "opacity 0.5s" }} />
           </div>
-          <span style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 800, color: "var(--accent)", letterSpacing: 0.5 }}>ALL SYSTEMS OPERATIONAL</span>
+          <span style={{ fontFamily: "var(--font-display)", fontSize: 20, fontWeight: 800, color: "var(--accent)", letterSpacing: 0.5 }}>TODOS OS SISTEMAS OPERACIONAIS</span>
         </div>
         <div style={{ width: 1, height: 28, background: "var(--border)" }} />
         <div style={{ display: "flex", gap: 28, flexWrap: "wrap" }}>
@@ -502,7 +507,7 @@ export default function SettingsPage() {
             { k: "KERNEL",  v: "Moltis v2.4.1" },
             { k: "PYTHON",  v: "3.12.3" },
             { k: "UPTIME",  v: "14d 6h 23m" },
-            { k: "AGENTS",  v: "9 / 9" },
+            { k: "AGENTES",  v: "14 / 14" },
             { k: "SKILLS",  v: "11 / 11" },
           ].map((s, i) => (
             <div key={i}>
@@ -540,12 +545,12 @@ export default function SettingsPage() {
       {/* TAB CONTENT */}
       <div>
         {activeTab === "KERNEL"        && <TabKernel />}
-        {activeTab === "LLM PROVIDERS" && <TabLLM />}
-        {activeTab === "RAG CONFIG"    && <TabRAG />}
-        {activeTab === "AGENTS"        && <TabAgents />}
+        {activeTab === "PROVEDORES LLM" && <TabLLM />}
+        {activeTab === "CONFIG RAG"    && <TabRAG />}
+        {activeTab === "AGENTES"        && <TabAgents />}
         {activeTab === "SKILLS"        && <TabSkills />}
         {activeTab === "RTK"           && <TabRTK />}
-        {activeTab === "HEALTH"        && <TabHealth />}
+        {activeTab === "SAÚDE"        && <TabHealth />}
       </div>
 
       <style>{`

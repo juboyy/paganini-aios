@@ -26,17 +26,17 @@ const SKILLS: Array<{
   hash: string; deps: string[]; tokens: number; load: "SUMMARY" | "FULL";
   color: string;
 }> = [
-  { name: "fidc-orchestrator",      version: "1.0.0", type: "ORCHESTRATOR", hash: "a3f8d2e1",  deps: ["fidc-rules-base","compliance-agent"], tokens: 981, load: "FULL",    color: "#f59e0b" },
+  { name: "fidc-orchestrator",      version: "1.0.0", type: "ORCHESTRATOR", hash: "a3f8d2e1",  deps: ["fidc-rules-base","compliance"], tokens: 981, load: "FULL",    color: "#f59e0b" },
   { name: "fidc-rules-base",        version: "1.0.0", type: "ABSTRACT",     hash: "7c2b1a9f",  deps: [],                                   tokens: 241, load: "SUMMARY", color: "#a78bfa" },
-  { name: "compliance-agent",       version: "1.0.0", type: "SPECIALIST",   hash: "d5e4c3b2",  deps: ["fidc-rules-base"],                  tokens: 736, load: "FULL",    color: "hsl(180,100%,50%)" },
-  { name: "pricing-agent",          version: "1.0.0", type: "SPECIALIST",   hash: "f1a0e9d8",  deps: [],                                   tokens: 147, load: "FULL",    color: "hsl(180,100%,50%)" },
-  { name: "admin-agent",            version: "1.0.0", type: "SPECIALIST",   hash: "e2b3c4d5",  deps: [],                                   tokens: 145, load: "FULL",    color: "hsl(180,100%,50%)" },
-  { name: "due-diligence-agent",    version: "1.0.0", type: "SPECIALIST",   hash: "c6d7e8f9",  deps: ["fidc-rules-base"],                  tokens: 189, load: "FULL",    color: "hsl(180,100%,50%)" },
-  { name: "custody-agent",          version: "1.0.0", type: "SPECIALIST",   hash: "b0a1b2c3",  deps: [],                                   tokens: 98,  load: "SUMMARY", color: "hsl(180,100%,50%)" },
-  { name: "risk-agent",             version: "1.0.0", type: "SPECIALIST",   hash: "9f8e7d6c",  deps: ["fidc-rules-base"],                  tokens: 312, load: "FULL",    color: "hsl(180,100%,50%)" },
-  { name: "reporting-agent",        version: "1.0.0", type: "SPECIALIST",   hash: "5b4a3b2c",  deps: [],                                   tokens: 87,  load: "SUMMARY", color: "hsl(180,100%,50%)" },
-  { name: "ir-agent",               version: "1.0.0", type: "SPECIALIST",   hash: "1c2d3e4f",  deps: [],                                   tokens: 78,  load: "SUMMARY", color: "hsl(180,100%,50%)" },
-  { name: "regwatch-agent",         version: "1.0.0", type: "SPECIALIST",   hash: "f6e5d4c3",  deps: ["fidc-rules-base"],                  tokens: 124, load: "SUMMARY", color: "hsl(180,100%,50%)" },
+  { name: "compliance",       version: "1.0.0", type: "SPECIALIST",   hash: "d5e4c3b2",  deps: ["fidc-rules-base"],                  tokens: 736, load: "FULL",    color: "hsl(180,100%,50%)" },
+  { name: "pricing",          version: "1.0.0", type: "SPECIALIST",   hash: "f1a0e9d8",  deps: [],                                   tokens: 147, load: "FULL",    color: "hsl(180,100%,50%)" },
+  { name: "administrador",            version: "1.0.0", type: "SPECIALIST",   hash: "e2b3c4d5",  deps: [],                                   tokens: 145, load: "FULL",    color: "hsl(180,100%,50%)" },
+  { name: "due-diligence",    version: "1.0.0", type: "SPECIALIST",   hash: "c6d7e8f9",  deps: ["fidc-rules-base"],                  tokens: 189, load: "FULL",    color: "hsl(180,100%,50%)" },
+  { name: "custodia",          version: "1.0.0", type: "SPECIALIST",   hash: "b0a1b2c3",  deps: [],                                   tokens: 98,  load: "SUMMARY", color: "hsl(180,100%,50%)" },
+  { name: "risk",             version: "1.0.0", type: "SPECIALIST",   hash: "9f8e7d6c",  deps: ["fidc-rules-base"],                  tokens: 312, load: "FULL",    color: "hsl(180,100%,50%)" },
+  { name: "reporting",        version: "1.0.0", type: "SPECIALIST",   hash: "5b4a3b2c",  deps: [],                                   tokens: 87,  load: "SUMMARY", color: "hsl(180,100%,50%)" },
+  { name: "investor-relations",               version: "1.0.0", type: "SPECIALIST",   hash: "1c2d3e4f",  deps: [],                                   tokens: 78,  load: "SUMMARY", color: "hsl(180,100%,50%)" },
+  { name: "regulatory-watch",         version: "1.0.0", type: "SPECIALIST",   hash: "f6e5d4c3",  deps: ["fidc-rules-base"],                  tokens: 124, load: "SUMMARY", color: "hsl(180,100%,50%)" },
 ];
 
 const TOTAL_BUDGET = 3138;
@@ -139,7 +139,7 @@ export default function CapabilitiesPage() {
 
       {/* SKILLS LIST */}
       <div className="glass-card" style={{ padding: "20px 24px", border: "1px solid var(--border)", borderRadius: "var(--radius)", background: "var(--bg-card)", marginBottom: 20 }}>
-        <div style={{ fontSize: 10, letterSpacing: 2, color: "var(--text-3)", marginBottom: 14 }}>INSTALLED SKILLS — 11 ACTIVE</div>
+        <div style={{ fontSize: 10, letterSpacing: 2, color: "var(--text-3)", marginBottom: 14 }}>SKILLS INSTALADAS — 11 ATIVAS</div>
         <div style={{ display: "flex", flexDirection: "column", gap: 2 }}>
           {SKILLS.map((sk, i) => {
             const tb = TYPE_BADGE[sk.type];
@@ -189,16 +189,16 @@ export default function CapabilitiesPage() {
           <div style={{ fontSize: 10, letterSpacing: 2, color: "var(--text-3)", marginBottom: 14 }}>DEPENDENCY TREE</div>
           <pre style={{ fontFamily: "var(--font-mono)", fontSize: 10.5, color: "var(--text-2)", lineHeight: 1.9, margin: 0, overflowX: "auto" }}>{`🎯 fidc-orchestrator@1.0.0 (981 tokens)
   📚 fidc-rules-base@1.0.0 (241 tokens) [SUMMARY]
-  🔧 compliance-agent@1.0.0 (736 tokens) [FULL]
+  🔧 compliance@1.0.0 (736 tokens) [FULL]
     📚 fidc-rules-base@1.0.0 (deduped)
-  🔧 pricing-agent@1.0.0 (147 tokens) [FULL]
-  🔧 admin-agent@1.0.0 (145 tokens) [FULL]
-  🔧 due-diligence-agent@1.0.0 [FULL]
-  🔧 custody-agent@1.0.0 [SUMMARY]
-  🔧 risk-agent@1.0.0 [FULL]
-  🔧 reporting-agent@1.0.0 [SUMMARY]
-  🔧 ir-agent@1.0.0 [SUMMARY]
-  🔧 regwatch-agent@1.0.0 [SUMMARY]`}
+  🔧 pricing@1.0.0 (147 tokens) [FULL]
+  🔧 administrador@1.0.0 (145 tokens) [FULL]
+  🔧 due-diligence@1.0.0 [FULL]
+  🔧 custodia@1.0.0 [SUMMARY]
+  🔧 risk@1.0.0 [FULL]
+  🔧 reporting@1.0.0 [SUMMARY]
+  🔧 investor-relations@1.0.0 [SUMMARY]
+  🔧 regulatory-watch@1.0.0 [SUMMARY]`}
           </pre>
         </div>
 
@@ -245,7 +245,7 @@ export default function CapabilitiesPage() {
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 16 }}>
           <div style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--cyan)", boxShadow: "0 0 10px var(--cyan)", opacity: pulse ? 1 : 0.4, transition: "opacity 0.3s" }} />
           <span style={{ fontFamily: "var(--font-display)", fontSize: 17, fontWeight: 700, letterSpacing: 1 }}>🧠 SELF-LEARNING ENGINE — METACLAW</span>
-          <div className="tag-badge-cyan" style={{ fontSize: 9 }}>ACTIVE</div>
+          <div className="tag-badge-cyan" style={{ fontSize: 9 }}>ATIVO</div>
         </div>
       </div>
 

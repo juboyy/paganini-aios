@@ -7,7 +7,7 @@ const GATES = [
     checks: ["Agente chamador tem permissões SOUL necessárias", "Escopo da operação corresponde ao papel do agente", "Nenhuma escalada de privilégio detectada"],
     passRate: 99.2,
     lastCheck: "13:04:19",
-    rejectExample: { agent: "report-agent", reason: "Tentativa de escrita em posições do fundo fora do escopo de relatório" },
+    rejectExample: { agent: "reporting", reason: "Tentativa de escrita em posições do fundo fora do escopo de relatório" },
   },
   {
     id: "SCHEMA",
@@ -15,7 +15,7 @@ const GATES = [
     checks: ["Payload de entrada corresponde à especificação OpenAPI", "Campos obrigatórios presentes e tipados", "Valores de enum dentro do conjunto permitido"],
     passRate: 98.7,
     lastCheck: "13:04:17",
-    rejectExample: { agent: "ingest-agent", reason: "Campo CNPJ falhou no regex: 'XX.XXX.XXX/0001-YY' não é um formato válido" },
+    rejectExample: { agent: "knowledge-graph", reason: "Campo CNPJ falhou no regex: 'XX.XXX.XXX/0001-YY' não é um formato válido" },
   },
   {
     id: "SEMANTIC",
@@ -39,7 +39,7 @@ const GATES = [
     checks: ["Critérios da Resolução BACEN 4.966 satisfeitos", "Limites ICVM 356 da CVM respeitados", "Triagem AML/COAF aprovada"],
     passRate: 97.8,
     lastCheck: "13:04:14",
-    rejectExample: { agent: "fund-manager", reason: "Limite de concentração excedido: cedente representa 24,1% vs máximo de 20%" },
+    rejectExample: { agent: "administrador", reason: "Limite de concentração excedido: cedente representa 24,1% vs máximo de 20%" },
   },
   {
     id: "AUDIT",
@@ -56,10 +56,10 @@ const RECENT_CHECKS = [
   { time: "13:04:18", agent: "due-diligence", gate: "RISK-GATE", result: "PASS", reason: "Pontuação DD 91/100, PEP limpo" },
   { time: "13:04:17", agent: "compliance", gate: "COMPLIANCE", result: "PASS", reason: "BACEN 4.966 + ICVM 356 satisfeitos" },
   { time: "13:04:16", agent: "external", gate: "SEMANTIC", result: "REJECT", reason: "Injeção adversarial detectada na entrada" },
-  { time: "13:04:14", agent: "risk-agent", gate: "RISK-GATE", result: "PASS", reason: "Posição dentro dos limites de concentração" },
-  { time: "13:04:12", agent: "ingest-agent", gate: "SCHEMA", result: "PASS", reason: "Payload validado contra schema de ingestão CVM" },
-  { time: "13:03:58", agent: "fund-manager", gate: "COMPLIANCE", result: "REJECT", reason: "Concentração 24,1% excede limite de 20%" },
-  { time: "13:03:44", agent: "report-agent", gate: "AUDIT", result: "PASS", reason: "Cadeia de rastreamento: orchestrator→report-agent, 2 saltos" },
+  { time: "13:04:14", agent: "risk", gate: "RISK-GATE", result: "PASS", reason: "Posição dentro dos limites de concentração" },
+  { time: "13:04:12", agent: "knowledge-graph", gate: "SCHEMA", result: "PASS", reason: "Payload validado contra schema de ingestão CVM" },
+  { time: "13:03:58", agent: "administrador", gate: "COMPLIANCE", result: "REJECT", reason: "Concentração 24,1% excede limite de 20%" },
+  { time: "13:03:44", agent: "reporting", gate: "AUDIT", result: "PASS", reason: "Cadeia de rastreamento: orchestrator→reporting, 2 saltos" },
 ];
 
 const ADVERSARIAL_BLOCKS = [

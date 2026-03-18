@@ -40,21 +40,21 @@ const RECENT_QUERIES = [
   },
   {
     query: "Como calcular NAV ajustado por perdas esperadas no portfólio do Paganini I?",
-    agent: "fund-manager",
+    agent: "gestor",
     confidence: 88,
     citations: 3,
     latency: "0.44s",
   },
   {
     query: "Quais empresas do grupo têm dívida com o INSS acima de R$500K?",
-    agent: "risk-agent",
+    agent: "risk",
     confidence: 91,
     citations: 5,
     latency: "0.37s",
   },
   {
     query: "Circular CVM 3.932 sobre informes periódicos de FIDCs — prazo de entrega",
-    agent: "report-agent",
+    agent: "reporting",
     confidence: 99,
     citations: 1,
     latency: "0.19s",
@@ -261,10 +261,10 @@ export default function MemoryPage() {
       {/* Linha de Estatísticas */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "1rem" }}>
         {[
-          { label: "DOCUMENTOS", value: "5.640", sub: "+280 hoje", color: "var(--text-1)" },
-          { label: "CHUNKS", value: "48.312", sub: "média 8,6 chunks/doc", color: "var(--accent)" },
-          { label: "ENTIDADES", value: "847", sub: "nós ChromaDB", color: "var(--cyan)" },
-          { label: "RELACIONAMENTOS", value: "2.193", sub: "arestas do grafo", color: "var(--text-1)" },
+          { label: "DOCUMENTOS INDEXADOS", value: "5.640", sub: "corpus ChromaDB EC2", color: "var(--text-1)" },
+          { label: "CHUNKS NO CHROMADB", value: "28.420", sub: "média 5,0 chunks/doc", color: "var(--accent)" },
+          { label: "TOTAL DE ENTIDADES", value: "1.847", sub: "nós do grafo", color: "var(--cyan)" },
+          { label: "TOTAL DE RELACIONAMENTOS", value: "4.231", sub: "arestas do grafo", color: "var(--text-1)" },
         ].map((s) => (
           <div key={s.label} className="glass-card" style={{ padding: "1rem 1.25rem" }}>
             <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "0.25rem" }}>
@@ -281,7 +281,8 @@ export default function MemoryPage() {
         <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "0.75rem" }}>
           GRAFO DE CONHECIMENTO 3D · RELACIONAMENTOS DE ENTIDADES
         </div>
-        <div style={{ height: 420, borderRadius: "var(--radius)", overflow: "hidden", background: "rgba(0,0,0,0.4)" }}>
+        <div style={{ overflowX: "auto" }}>
+        <div style={{ height: 420, borderRadius: "var(--radius)", overflow: "hidden", background: "rgba(0,0,0,0.4)", minWidth: "600px" }}>
           <Suspense fallback={
             <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--text-4)" }}>
               Carregando grafo de conhecimento…
@@ -289,6 +290,7 @@ export default function MemoryPage() {
           }>
             <KnowledgeGraph3D />
           </Suspense>
+        </div>
         </div>
       </div>
 
@@ -313,7 +315,7 @@ export default function MemoryPage() {
             }}
           >
             <span>CORPUS TOTAL</span>
-            <span style={{ color: "var(--accent)" }}>5.640 documentos · 48.312 chunks</span>
+            <span style={{ color: "var(--accent)" }}>5.640 documentos · 28.420 chunks · RAG Precisão 91,2%</span>
           </div>
         </div>
 
