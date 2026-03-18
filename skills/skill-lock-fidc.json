@@ -1,0 +1,154 @@
+{
+  "$schema": "https://agentskills.io/schemas/lockfile-v1.json",
+  "generated": "2026-03-18T12:11:02.334443+00:00",
+  "generator": "skill-loader@3.0.0",
+  "root": "fidc-orchestrator",
+  "resolved": {
+    "fidc-rules-base": {
+      "version": "1.0.0",
+      "path": "skills/fidc-rules-base",
+      "integrity": "sha256:6acfae87cf1126fb",
+      "dependencies": [],
+      "load_level": "summary",
+      "type": "abstract"
+    },
+    "compliance-agent": {
+      "version": "1.0.0",
+      "path": "skills/compliance-agent",
+      "integrity": "sha256:6d76c5c843954448",
+      "dependencies": [
+        "fidc-rules-base"
+      ],
+      "load_level": "full",
+      "type": "specialist"
+    },
+    "pricing-agent": {
+      "version": "1.0.0",
+      "path": "skills/pricing-agent",
+      "integrity": "sha256:353040e8422aee76",
+      "dependencies": [
+        "fidc-rules-base"
+      ],
+      "load_level": "full",
+      "type": "specialist"
+    },
+    "admin-agent": {
+      "version": "1.0.0",
+      "path": "skills/admin-agent",
+      "integrity": "sha256:7fc704bfbf28cfd1",
+      "dependencies": [
+        "fidc-rules-base"
+      ],
+      "load_level": "full",
+      "type": "specialist"
+    },
+    "due-diligence-agent": {
+      "version": "1.0.0",
+      "path": "skills/due-diligence-agent",
+      "integrity": "sha256:d754d741ba04c07d",
+      "dependencies": [
+        "fidc-rules-base"
+      ],
+      "load_level": "full",
+      "type": "specialist"
+    },
+    "custody-agent": {
+      "version": "1.0.0",
+      "path": "skills/custody-agent",
+      "integrity": "sha256:9251961f879a1d3a",
+      "dependencies": [
+        "fidc-rules-base"
+      ],
+      "load_level": "summary",
+      "type": "specialist"
+    },
+    "risk-agent": {
+      "version": "1.0.0",
+      "path": "skills/risk-agent",
+      "integrity": "sha256:823ae8043eb9b834",
+      "dependencies": [
+        "fidc-rules-base"
+      ],
+      "load_level": "full",
+      "type": "specialist"
+    },
+    "reporting-agent": {
+      "version": "1.0.0",
+      "path": "skills/reporting-agent",
+      "integrity": "sha256:6835bb966b5a12a6",
+      "dependencies": [
+        "fidc-rules-base"
+      ],
+      "load_level": "summary",
+      "type": "specialist"
+    },
+    "ir-agent": {
+      "version": "1.0.0",
+      "path": "skills/ir-agent",
+      "integrity": "sha256:d9597f8affe17038",
+      "dependencies": [
+        "fidc-rules-base"
+      ],
+      "load_level": "summary",
+      "type": "specialist"
+    },
+    "regwatch-agent": {
+      "version": "1.0.0",
+      "path": "skills/regwatch-agent",
+      "integrity": "sha256:07130fb89f455ea4",
+      "dependencies": [
+        "fidc-rules-base"
+      ],
+      "load_level": "summary",
+      "type": "specialist"
+    },
+    "fidc-orchestrator": {
+      "version": "1.0.0",
+      "path": "skills/fidc-orchestrator",
+      "integrity": "sha256:759a712253613ca4",
+      "dependencies": [
+        "fidc-rules-base",
+        "compliance-agent",
+        "pricing-agent",
+        "admin-agent",
+        "due-diligence-agent",
+        "custody-agent",
+        "risk-agent",
+        "reporting-agent",
+        "ir-agent",
+        "regwatch-agent"
+      ],
+      "load_level": "full",
+      "type": "orchestrator"
+    }
+  },
+  "context_budget": {
+    "total_tokens": 3138,
+    "by_skill": {
+      "fidc-rules-base:summary": 241,
+      "compliance-agent:full": 736,
+      "pricing-agent:full": 147,
+      "admin-agent:full": 145,
+      "due-diligence-agent:full": 148,
+      "custody-agent:summary": 145,
+      "risk-agent:full": 144,
+      "reporting-agent:summary": 150,
+      "ir-agent:summary": 151,
+      "regwatch-agent:summary": 150,
+      "fidc-orchestrator:full": 981
+    }
+  },
+  "composition_order": [
+    "fidc-rules-base",
+    "compliance-agent",
+    "pricing-agent",
+    "admin-agent",
+    "due-diligence-agent",
+    "custody-agent",
+    "risk-agent",
+    "reporting-agent",
+    "ir-agent",
+    "regwatch-agent",
+    "fidc-orchestrator"
+  ]
+}

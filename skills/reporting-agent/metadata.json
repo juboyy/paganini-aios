@@ -1,0 +1,16 @@
+{
+  "name": "reporting-agent",
+  "version": "1.0.0",
+  "type": "specialist",
+  "description": "Gera dashboards operacionais, relatórios de PDD e demonstrações financeiras.",
+  "author": "Paganini AIOS",
+  "license": "Apache-2.0",
+  "tags": ["fidc", "specialist"],
+  "dependencies": {
+    "fidc-rules-base": {
+      "version": "^1.0.0",
+      "load": "summary"
+    }
+  },
+  "implements": ["generate_report", "generate_dashboard"]
+}

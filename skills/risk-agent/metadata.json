@@ -1,0 +1,16 @@
+{
+  "name": "risk-agent",
+  "version": "1.0.0",
+  "type": "specialist",
+  "description": "Avalia risco de operações: PDD projetada, impacto no rating, stress testing.",
+  "author": "Paganini AIOS",
+  "license": "Apache-2.0",
+  "tags": ["fidc", "specialist"],
+  "dependencies": {
+    "fidc-rules-base": {
+      "version": "^1.0.0",
+      "load": "summary"
+    }
+  },
+  "implements": ["check_risk", "stress_test"]
+}

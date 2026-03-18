@@ -1,0 +1,25 @@
+{
+  "name": "fidc-rules-base",
+  "version": "1.0.0",
+  "type": "abstract",
+  "description": "Base de regras regulatórias para FIDCs brasileiros. CVM 175, BACEN, covenants, PDD, PLD/AML.",
+  "author": "Paganini AIOS",
+  "license": "Apache-2.0",
+  "tags": ["fidc", "regulatory", "base", "cvm", "bacen", "brazil"],
+  "dependencies": {},
+  "triggers": [],
+  "guard": "This is an abstract skill. Use a specialist (compliance-agent, pricing-agent, etc.) instead.",
+  "implements": [],
+  "abstract_methods": [
+    "check_eligibility",
+    "check_concentration",
+    "check_covenant",
+    "check_pld_aml",
+    "check_compliance",
+    "check_risk",
+    "calculate_nav",
+    "calculate_pdd",
+    "score_cedente",
+    "generate_report"
+  ]
+}

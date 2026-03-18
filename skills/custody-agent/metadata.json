@@ -1,0 +1,16 @@
+{
+  "name": "custody-agent",
+  "version": "1.0.0",
+  "type": "specialist",
+  "description": "Registra títulos, verifica lastro dos recebíveis, controla garantias.",
+  "author": "Paganini AIOS",
+  "license": "Apache-2.0",
+  "tags": ["fidc", "specialist"],
+  "dependencies": {
+    "fidc-rules-base": {
+      "version": "^1.0.0",
+      "load": "summary"
+    }
+  },
+  "implements": ["register_titles", "verify_collateral"]
+}

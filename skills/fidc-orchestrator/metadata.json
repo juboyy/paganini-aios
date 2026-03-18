@@ -1,0 +1,59 @@
+{
+  "name": "fidc-orchestrator",
+  "version": "1.0.0",
+  "type": "orchestrator",
+  "description": "Orquestra os 9 agentes especializados de FIDC, coordenando compliance, pricing, due diligence, e reporting.",
+  "author": "Paganini AIOS",
+  "license": "Apache-2.0",
+  "tags": ["fidc", "orchestrator", "aios", "paganini"],
+  "dependencies": {
+    "fidc-rules-base": {
+      "version": "^1.0.0",
+      "load": "summary"
+    },
+    "compliance-agent": {
+      "version": "^1.0.0",
+      "load": "full"
+    },
+    "pricing-agent": {
+      "version": "^1.0.0",
+      "load": "full"
+    },
+    "admin-agent": {
+      "version": "^1.0.0",
+      "load": "full"
+    },
+    "due-diligence-agent": {
+      "version": "^1.0.0",
+      "load": "full"
+    },
+    "custody-agent": {
+      "version": "^1.0.0",
+      "load": "summary"
+    },
+    "risk-agent": {
+      "version": "^1.0.0",
+      "load": "full"
+    },
+    "reporting-agent": {
+      "version": "^1.0.0",
+      "load": "summary"
+    },
+    "ir-agent": {
+      "version": "^1.0.0",
+      "load": "summary"
+    },
+    "regwatch-agent": {
+      "version": "^1.0.0",
+      "load": "summary"
+    }
+  },
+  "triggers": [
+    "operação de compra de recebíveis",
+    "processar borderô",
+    "análise completa do fundo",
+    "relatório executivo",
+    "orquestrar agentes fidc"
+  ],
+  "implements": ["orchestrate_operation", "orchestrate_report", "orchestrate_onboarding"]
+}

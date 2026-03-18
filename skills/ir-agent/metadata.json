@@ -1,0 +1,16 @@
+{
+  "name": "ir-agent",
+  "version": "1.0.0",
+  "type": "specialist",
+  "description": "Gera relatórios de performance, responde dúvidas, distribui comunicados aos cotistas.",
+  "author": "Paganini AIOS",
+  "license": "Apache-2.0",
+  "tags": ["fidc", "specialist"],
+  "dependencies": {
+    "fidc-rules-base": {
+      "version": "^1.0.0",
+      "load": "summary"
+    }
+  },
+  "implements": ["distribute_report", "answer_investor"]
+}

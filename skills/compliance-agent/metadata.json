@@ -1,0 +1,34 @@
+{
+  "name": "compliance-agent",
+  "version": "1.0.0",
+  "type": "specialist",
+  "description": "Verifica conformidade regulatória em operações de FIDC. Implementa 5 dos 6 guardrail gates.",
+  "author": "Paganini AIOS",
+  "license": "Apache-2.0",
+  "tags": ["fidc", "compliance", "guardrails", "cvm", "specialist"],
+  "dependencies": {
+    "fidc-rules-base": {
+      "version": "^1.0.0",
+      "load": "summary",
+      "optional_sections": ["full", "full:compliance"]
+    }
+  },
+  "triggers": [
+    "verificar compliance",
+    "checar conformidade",
+    "validar operação",
+    "compliance check",
+    "guardrail gate"
+  ],
+  "implements": [
+    "check_eligibility",
+    "check_concentration",
+    "check_covenant",
+    "check_pld_aml",
+    "check_compliance"
+  ],
+  "delegates": {
+    "check_risk": "risk-agent",
+    "calculate_pdd": "pricing-agent"
+  }
+}

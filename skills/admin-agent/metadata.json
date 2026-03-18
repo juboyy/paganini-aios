@@ -1,0 +1,16 @@
+{
+  "name": "admin-agent",
+  "version": "1.0.0",
+  "type": "specialist",
+  "description": "Calcula NAV diário, controla cotas sênior/subordinada, gera informes CVM.",
+  "author": "Paganini AIOS",
+  "license": "Apache-2.0",
+  "tags": ["fidc", "specialist"],
+  "dependencies": {
+    "fidc-rules-base": {
+      "version": "^1.0.0",
+      "load": "summary"
+    }
+  },
+  "implements": ["calculate_nav", "manage_quotas"]
+}
