@@ -83,6 +83,12 @@ class RAGPipeline:
         Returns stats about the ingestion.
         """
         corpus_path = Path(corpus_dir)
+        if not corpus_path.is_absolute():
+            # Try relative to package root
+            _root = Path(__file__).parent.parent.parent
+            alt_path = _root / corpus_dir
+            if alt_path.exists():
+                corpus_path = alt_path
         if not corpus_path.exists():
             raise FileNotFoundError(f"Corpus directory not found: {corpus_dir}")
 

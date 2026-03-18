@@ -443,7 +443,7 @@ def doctor():
             checks.append((f"Package: {pkg}", False, "missing"))
 
     # Config
-    config_exists = Path("config.yaml").exists()
+    config_exists = (PAGANINI_ROOT / "config.yaml").exists()
     checks.append(("Config", config_exists, "config.yaml" if config_exists else "run: paganini init"))
 
     # Moltis health

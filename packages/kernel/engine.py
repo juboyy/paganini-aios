@@ -7,6 +7,8 @@ from typing import Optional
 
 import yaml
 
+KERNEL_ROOT = Path(__file__).parent.parent
+
 
 DEFAULT_CONFIG = {
     "version": "0.1.0",
@@ -37,11 +39,11 @@ DEFAULT_CONFIG = {
 }
 
 
-def load_config(config_path: str = "config.yaml") -> dict:
+def load_config(config_path: str = None) -> dict:
     """Load config with defaults + env var resolution."""
     config = DEFAULT_CONFIG.copy()
 
-    path = Path(config_path)
+    path = Path(config_path) if config_path else (KERNEL_ROOT / "config.yaml")
     if path.exists():
         with open(path) as f:
             user_config = yaml.safe_load(f) or {}
@@ -53,9 +55,10 @@ def load_config(config_path: str = "config.yaml") -> dict:
     return config
 
 
-def save_config(config: dict, config_path: str = "config.yaml"):
+def save_config(config: dict, config_path: str = None):
     """Save config to YAML."""
-    with open(config_path, "w") as f:
+    _path = config_path or str(KERNEL_ROOT / "config.yaml")
+    with open(_path, "w") as f:
         yaml.dump(config, f, default_flow_style=False, allow_unicode=True)
 
 
