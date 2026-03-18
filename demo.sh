@@ -157,9 +157,9 @@ sudo chmod +x /usr/local/bin/paganini
 ok "paganini disponível globalmente (/usr/local/bin/paganini)"
 
 # ══════════════════════════════════════════════════════════
-# Step 6: Configure LLM
+# Step 6: Configure via paganini init (non-interactive)
 # ══════════════════════════════════════════════════════════
-step "6" "Configurando LLM"
+step "6" "Configurando sistema"
 
 API_KEY="${GOOGLE_API_KEY:-}"
 PROVIDER="google"; MODEL="gemini/gemini-2.5-flash"
@@ -170,33 +170,45 @@ elif [ -z "$API_KEY" ] && [ -n "${ANTHROPIC_API_KEY:-}" ]; then
     API_KEY="$ANTHROPIC_API_KEY"; PROVIDER="anthropic"; MODEL="claude-sonnet-4-20250514"
 fi
 
-cat > config.yaml << YAML
-provider:
-  type: $PROVIDER
-  model: $MODEL
-  api_key: "${API_KEY:-CONFIGURE_SUA_CHAVE}"
-
-metaclaw:
-  enabled: true
-  mode: skills_only
-  skill_store: runtime/skills
-YAML
-
+# Use paganini init for proper config generation
 if [ -n "$API_KEY" ]; then
-    ok "Provider: $PROVIDER ($MODEL)"
+    source .venv/bin/activate 2>/dev/null
+    paganini init --provider "$PROVIDER" --model "$MODEL" --api-key "$API_KEY" --pack fidc-starter 2>/dev/null || true
+    ok "Configurado via paganini init ($PROVIDER)"
 else
-    warn "Nenhuma API key. Defina GOOGLE_API_KEY e rode novamente."
+    warn "Nenhuma API key. Defina GOOGLE_API_KEY e rode: paganini init --provider google --api-key SUA_KEY"
 fi
 
 # ══════════════════════════════════════════════════════════
-# Step 7: Runtime dirs
+# Step 7: Runtime + Corpus Indexing
 # ══════════════════════════════════════════════════════════
-step "7" "Runtime"
+step "7" "Runtime + indexação de corpus"
 
 mkdir -p runtime/{data,logs,state,traces,funds,skills}
 mkdir -p runtime/logs/{daemons,guardrails}
 mkdir -p runtime/data/{market,reflections,cedente_monitor,chroma}
-ok "Diretórios criados"
+
+# Index corpus if available
+if [ -d "data/corpus" ] || [ -d "data/sample-corpus" ]; then
+    info "Indexando base de conhecimento..."
+    source .venv/bin/activate 2>/dev/null
+    python3 -c "
+from packages.rag.pipeline import RAGPipeline
+from packages.kernel.engine import load_config
+config = load_config()
+rag = RAGPipeline(config)
+count = rag.collection.count()
+if count == 0:
+    import os
+    corpus = 'data/corpus' if os.path.isdir('data/corpus') else 'data/sample-corpus'
+    rag.ingest(corpus)
+    count = rag.collection.count()
+print(f'{count} chunks indexados')
+" 2>/dev/null || warn "Indexação: corpus não encontrado"
+    ok "Base de conhecimento pronta"
+else
+    ok "Diretórios criados (adicione docs em data/corpus/ para RAG)"
+fi
 
 # ══════════════════════════════════════════════════════════
 # Step 8: Persist GOOGLE_API_KEY
