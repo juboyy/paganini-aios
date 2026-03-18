@@ -1,325 +1,201 @@
 #!/usr/bin/env bash
-# PAGANINI AIOS Installer — The Right Path
-# Downloads Moltis (runtime) + installs PAGANINI (domain layer)
+# PAGANINI AIOS — One-line installer
+# curl -fsSL https://raw.githubusercontent.com/juboyy/paganini-aios/main/install.sh | sh
 #
-# Usage: curl -fsSL https://paganini.sh | sh
-#    or: ./install.sh [--provider openai|anthropic|google|ollama]
+# Installs: Python 3.11+, git, paganini CLI
+# Supports: macOS (arm64/x86_64), Ubuntu/Debian, Fedora/RHEL, Alpine
 
 set -euo pipefail
 
-MOLTIS_VERSION="0.10.18"
-PAGANINI_VERSION="0.1.0"
-MOLTIS_REPO="moltis-org/moltis"
+VERSION="0.1.0"
+REPO="https://github.com/juboyy/paganini-aios.git"
+INSTALL_DIR="${PAGANINI_HOME:-$HOME/.paganini}"
+BIN_DIR="${PAGANINI_BIN:-/usr/local/bin}"
 
-# ── Colors ──────────────────────────────────────────
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-YELLOW='\033[1;33m'
-CYAN='\033[0;36m'
-GOLD='\033[0;33m'
-NC='\033[0m'
+# ── Colors ──────────────────────────────────────────────
+RED='\033[0;31m'; GREEN='\033[0;32m'; YELLOW='\033[1;33m'
+BLUE='\033[0;34m'; PURPLE='\033[0;35m'; NC='\033[0m'
 
-info()  { echo -e "${CYAN}▸${NC} $1"; }
-ok()    { echo -e "${GREEN}✓${NC} $1"; }
-warn()  { echo -e "${YELLOW}⚠${NC} $1"; }
-fail()  { echo -e "${RED}✗${NC} $1"; exit 1; }
+info()  { printf "${BLUE}▸${NC} %s\n" "$1"; }
+ok()    { printf "${GREEN}✓${NC} %s\n" "$1"; }
+warn()  { printf "${YELLOW}⚠${NC} %s\n" "$1"; }
+fail()  { printf "${RED}✗${NC} %s\n" "$1"; exit 1; }
 
-# ── Detect platform ─────────────────────────────────
-detect_platform() {
-    local os arch
-    os="$(uname -s | tr '[:upper:]' '[:lower:]')"
-    arch="$(uname -m)"
+# ── Banner ──────────────────────────────────────────────
+cat << 'BANNER'
 
-    case "$os" in
-        linux)  OS="linux" ;;
-        darwin) OS="darwin" ;;
-        *)      fail "Unsupported OS: $os" ;;
-    esac
+  ╔══════════════════════════════════════════════╗
+  ║                                              ║
+  ║   🎻  PAGANINI AIOS                          ║
+  ║   AI Operating System for Financial Markets  ║
+  ║                                              ║
+  ╚══════════════════════════════════════════════╝
 
-    case "$arch" in
-        x86_64|amd64) ARCH="x86_64" ;;
-        aarch64|arm64) ARCH="aarch64" ;;
-        *)             fail "Unsupported architecture: $arch" ;;
-    esac
+BANNER
 
-    # Package format
-    if [ "$OS" = "linux" ]; then
-        if command -v dpkg &>/dev/null; then
-            PKG_FMT="deb"
-            case "$ARCH" in
-                x86_64)  PKG_FILE="moltis_${MOLTIS_VERSION}-1_amd64.deb" ;;
-                aarch64) PKG_FILE="moltis_${MOLTIS_VERSION}-1_arm64.deb" ;;
-            esac
-        elif command -v rpm &>/dev/null; then
-            PKG_FMT="rpm"
-            PKG_FILE="moltis-${MOLTIS_VERSION}-1.${ARCH}.rpm"
-        else
-            PKG_FMT="tar"
-            PKG_FILE="moltis-${MOLTIS_VERSION}-${ARCH}-unknown-linux-gnu.tar.gz"
-        fi
-    elif [ "$OS" = "darwin" ]; then
-        PKG_FMT="tar"
-        PKG_FILE="moltis-${MOLTIS_VERSION}-${ARCH}-apple-darwin.tar.gz"
-    fi
+printf "  ${PURPLE}v${VERSION}${NC} · Installing...\n\n"
+
+# ── Detect OS ───────────────────────────────────────────
+detect_os() {
+  OS="$(uname -s)"
+  ARCH="$(uname -m)"
+  case "$OS" in
+    Linux*)  OS_TYPE="linux" ;;
+    Darwin*) OS_TYPE="macos" ;;
+    *)       fail "Unsupported OS: $OS" ;;
+  esac
+  info "Detected: $OS_TYPE ($ARCH)"
 }
 
-# ── Banner ───────────────────────────────────────────
-banner() {
-    echo ""
-    echo -e "${GOLD}  ╔══════════════════════════════════════════╗${NC}"
-    echo -e "${GOLD}  ║  🎻 PAGANINI AIOS v${PAGANINI_VERSION}                  ║${NC}"
-    echo -e "${GOLD}  ║  AI Operating System for Financial Markets║${NC}"
-    echo -e "${GOLD}  ╚══════════════════════════════════════════╝${NC}"
-    echo ""
-}
-
-# ── Step 1: Install Moltis (runtime) ────────────────
-install_moltis() {
-    if command -v moltis &>/dev/null; then
-        local ver
-        ver="$(moltis --version 2>/dev/null | head -1 || echo 'unknown')"
-        ok "Moltis already installed: $ver"
-        return
-    fi
-
-    info "Installing Moltis v${MOLTIS_VERSION} (AI runtime engine)..."
-    local url="https://github.com/${MOLTIS_REPO}/releases/download/v${MOLTIS_VERSION}/${PKG_FILE}"
-    local tmp_dir
-    tmp_dir="$(mktemp -d)"
-
-    info "Downloading ${PKG_FILE}..."
-    if command -v curl &>/dev/null; then
-        curl -fsSL "$url" -o "${tmp_dir}/${PKG_FILE}"
-    elif command -v wget &>/dev/null; then
-        wget -q "$url" -O "${tmp_dir}/${PKG_FILE}"
+# ── Check / Install Python ─────────────────────────────
+ensure_python() {
+  if command -v python3 &>/dev/null; then
+    PY_VERSION=$(python3 -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')
+    PY_MAJOR=$(echo "$PY_VERSION" | cut -d. -f1)
+    PY_MINOR=$(echo "$PY_VERSION" | cut -d. -f2)
+    if [ "$PY_MAJOR" -ge 3 ] && [ "$PY_MINOR" -ge 11 ]; then
+      ok "Python $PY_VERSION found"
+      return
     else
-        fail "Neither curl nor wget found. Install one and retry."
+      warn "Python $PY_VERSION found, but 3.11+ required"
     fi
+  fi
 
-    case "$PKG_FMT" in
-        deb)
-            info "Installing .deb package..."
-            sudo dpkg -i "${tmp_dir}/${PKG_FILE}" || sudo apt-get install -f -y
-            ;;
-        rpm)
-            info "Installing .rpm package..."
-            sudo rpm -i "${tmp_dir}/${PKG_FILE}"
-            ;;
-        tar)
-            info "Extracting to /usr/local/bin..."
-            tar -xzf "${tmp_dir}/${PKG_FILE}" -C "${tmp_dir}"
-            # Find the moltis binary in extracted files
-            local bin
-            bin="$(find "${tmp_dir}" -name 'moltis' -type f | head -1)"
-            if [ -n "$bin" ]; then
-                sudo install -m 755 "$bin" /usr/local/bin/moltis
-            else
-                fail "moltis binary not found in archive"
-            fi
-            ;;
-    esac
-
-    rm -rf "$tmp_dir"
-
-    if command -v moltis &>/dev/null; then
-        ok "Moltis installed: $(moltis --version 2>/dev/null | head -1)"
-    else
-        fail "Moltis installation failed"
-    fi
+  info "Installing Python 3.11+..."
+  case "$OS_TYPE" in
+    macos)
+      if command -v brew &>/dev/null; then
+        brew install python@3.11
+      else
+        fail "Install Homebrew first: https://brew.sh"
+      fi
+      ;;
+    linux)
+      if command -v apt-get &>/dev/null; then
+        sudo apt-get update -qq && sudo apt-get install -y -qq python3.11 python3.11-venv python3-pip
+      elif command -v dnf &>/dev/null; then
+        sudo dnf install -y python3.11 python3.11-pip
+      elif command -v apk &>/dev/null; then
+        sudo apk add python3 py3-pip
+      else
+        fail "Could not install Python. Install Python 3.11+ manually."
+      fi
+      ;;
+  esac
+  ok "Python installed"
 }
 
-# ── Step 2: Install PAGANINI (domain layer) ──────────
+# ── Check git ───────────────────────────────────────────
+ensure_git() {
+  if command -v git &>/dev/null; then
+    ok "git found"
+    return
+  fi
+
+  info "Installing git..."
+  case "$OS_TYPE" in
+    macos)  xcode-select --install 2>/dev/null || true ;;
+    linux)
+      if command -v apt-get &>/dev/null; then
+        sudo apt-get install -y -qq git
+      elif command -v dnf &>/dev/null; then
+        sudo dnf install -y git
+      elif command -v apk &>/dev/null; then
+        sudo apk add git
+      fi
+      ;;
+  esac
+  ok "git installed"
+}
+
+# ── Clone or update ────────────────────────────────────
 install_paganini() {
-    info "Installing PAGANINI AIOS domain layer..."
-
-    # Check Python
-    local python_cmd=""
-    for cmd in python3 python; do
-        if command -v "$cmd" &>/dev/null; then
-            local ver
-            ver="$($cmd -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')"
-            local major minor
-            major="${ver%%.*}"
-            minor="${ver#*.}"
-            if [ "$major" -ge 3 ] && [ "$minor" -ge 11 ]; then
-                python_cmd="$cmd"
-                break
-            fi
-        fi
-    done
-
-    if [ -z "$python_cmd" ]; then
-        fail "Python 3.11+ required. Install it and retry."
-    fi
-
-    ok "Python found: $($python_cmd --version)"
-
-    # Install from PyPI or git
-    info "Installing paganini-aios package..."
-    $python_cmd -m pip install --user paganini-aios 2>/dev/null \
-        || $python_cmd -m pip install --user "git+https://github.com/juboyy/paganini-aios.git" \
-        || fail "Failed to install paganini-aios"
-
-    ok "PAGANINI AIOS installed"
+  if [ -d "$INSTALL_DIR/.git" ]; then
+    info "Updating existing installation..."
+    cd "$INSTALL_DIR" && git pull --ff-only origin main
+    ok "Updated to latest"
+  else
+    info "Cloning paganini-aios..."
+    git clone --depth 1 "$REPO" "$INSTALL_DIR"
+    ok "Cloned to $INSTALL_DIR"
+  fi
 }
 
-# ── Step 3: Configure ───────────────────────────────
-configure() {
-    local config_dir="${PAGANINI_HOME:-$HOME/.paganini}"
-    mkdir -p "$config_dir"
+# ── Setup venv + install ───────────────────────────────
+setup_env() {
+  cd "$INSTALL_DIR"
 
-    if [ -f "$config_dir/config.yaml" ]; then
-        ok "Config already exists: $config_dir/config.yaml"
-        return
-    fi
+  if [ ! -d ".venv" ]; then
+    info "Creating virtual environment..."
+    python3 -m venv .venv
+  fi
 
-    # Generate moltis.yaml (runtime config)
-    cat > "$config_dir/moltis.yaml" <<'MOLTIS_YAML'
-# Moltis runtime configuration for PAGANINI AIOS
-# Docs: https://docs.moltis.org
-
-gateway:
-  port: 30000
-  host: 127.0.0.1
-
-providers:
-  # BYOK: uncomment your provider and set your API key
-  # openai:
-  #   api_key: ${OPENAI_API_KEY}
-  #   models: [gpt-4o-mini, gpt-4o]
-  # anthropic:
-  #   api_key: ${ANTHROPIC_API_KEY}
-  #   models: [claude-sonnet-4-20250514]
-  # google:
-  #   api_key: ${GEMINI_API_KEY}
-  #   models: [gemini-2.5-flash]
-
-telemetry:
-  enabled: true
-  otlp_endpoint: ""  # optional: http://localhost:4318
-
-sandbox:
-  enabled: true
-  network: none  # agents can't access network by default
-MOLTIS_YAML
-
-    # Generate paganini config
-    cat > "$config_dir/config.yaml" <<'PAGANINI_YAML'
-# PAGANINI AIOS Configuration
-version: "0.1.0"
-
-# Runtime engine
-runtime:
-  engine: moltis
-  moltis_config: moltis.yaml
-  gateway_url: http://127.0.0.1:30000
-
-# RAG Pipeline (tunable by AutoResearch)
-rag:
-  chunk_size: 384
-  chunk_overlap: 64
-  respect_headers: true
-  top_k: 5
-  embedding_model: all-MiniLM-L6-v2  # local, no API needed
-  vector_store: chroma  # chroma (embedded) | pgvector (external)
-
-# MetaClaw (skill evolution proxy)
-metaclaw:
-  enabled: false
-  skills_dir: skills/
-  auto_evolve: true
-  max_skills: 500
-
-# Guardrails (hard-stop, not warnings)
-guardrails:
-  eligibility: true
-  concentration: true
-  covenant: true
-  pld_aml: true
-  compliance: true
-  risk_assessment: true
-
-# Domain pack
-pack: fidc
-
-# Data
-data_dir: data/
-corpus_dir: data/corpus/fidc/
-PAGANINI_YAML
-
-    ok "Config created: $config_dir/"
+  info "Installing dependencies..."
+  .venv/bin/pip install --quiet --upgrade pip
+  .venv/bin/pip install --quiet -e .
+  ok "Dependencies installed"
 }
 
-# ── Step 4: Verify ──────────────────────────────────
+# ── Create wrapper script ──────────────────────────────
+create_wrapper() {
+  WRAPPER="$BIN_DIR/paganini"
+
+  # Try without sudo first, fall back to sudo
+  if [ -w "$BIN_DIR" ] 2>/dev/null; then
+    SUDO=""
+  else
+    SUDO="sudo"
+  fi
+
+  $SUDO tee "$WRAPPER" > /dev/null << EOF
+#!/usr/bin/env bash
+# PAGANINI AIOS wrapper — auto-generated by install.sh
+export PAGANINI_HOME="$INSTALL_DIR"
+exec "$INSTALL_DIR/.venv/bin/paganini" "\$@"
+EOF
+
+  $SUDO chmod +x "$WRAPPER"
+  ok "CLI available at: $WRAPPER"
+}
+
+# ── Verify ─────────────────────────────────────────────
 verify() {
-    echo ""
-    info "Verifying installation..."
-    echo ""
-
-    local all_ok=true
-
-    # Moltis
-    if command -v moltis &>/dev/null; then
-        ok "Moltis: $(moltis --version 2>/dev/null | head -1)"
-    else
-        warn "Moltis: not found (install manually or use --runtime python)"
-        all_ok=false
-    fi
-
-    # PAGANINI CLI
-    if command -v paganini &>/dev/null; then
-        ok "PAGANINI CLI: $(paganini --version 2>/dev/null)"
-    else
-        warn "PAGANINI CLI: not in PATH (try: export PATH=\$HOME/.local/bin:\$PATH)"
-        all_ok=false
-    fi
-
-    # Python
-    if command -v python3 &>/dev/null; then
-        ok "Python: $(python3 --version)"
-    fi
-
-    echo ""
-    if [ "$all_ok" = true ]; then
-        echo -e "${GREEN}═══════════════════════════════════════════${NC}"
-        echo -e "${GREEN}  ✓ PAGANINI AIOS installed successfully  ${NC}"
-        echo -e "${GREEN}═══════════════════════════════════════════${NC}"
-    else
-        echo -e "${YELLOW}═══════════════════════════════════════════${NC}"
-        echo -e "${YELLOW}  ⚠ Partial install — see warnings above  ${NC}"
-        echo -e "${YELLOW}═══════════════════════════════════════════${NC}"
-    fi
-
-    echo ""
-    echo "  Next steps:"
-    echo ""
-    echo "    1. Configure your LLM provider:"
-    echo "       export OPENAI_API_KEY=sk-..."
-    echo ""
-    echo "    2. Download a domain pack:"
-    echo "       paganini pack install fidc"
-    echo ""
-    echo "    3. Ingest your corpus:"
-    echo "       paganini ingest data/corpus/fidc/"
-    echo ""
-    echo "    4. Start querying:"
-    echo "       paganini query \"Qual o limite de concentração por cedente?\""
-    echo ""
-    echo "  Full docs: https://docs.paganini.aios.finance"
-    echo ""
+  if command -v paganini &>/dev/null; then
+    ok "Installation verified"
+  else
+    warn "paganini not in PATH. Add $BIN_DIR to your PATH or run:"
+    echo "    export PATH=\"$BIN_DIR:\$PATH\""
+  fi
 }
 
-# ── Main ─────────────────────────────────────────────
-main() {
-    banner
-    detect_platform
-    info "Platform: ${OS}/${ARCH} (${PKG_FMT})"
-    echo ""
+# ── Run ─────────────────────────────────────────────────
+detect_os
+ensure_python
+ensure_git
+install_paganini
+setup_env
+create_wrapper
+verify
 
-    install_moltis
-    install_paganini
-    configure
-    verify
-}
+cat << 'DONE'
 
-main "$@"
+  ┌──────────────────────────────────────────────┐
+  │                                              │
+  │   ✓ PAGANINI installed successfully!         │
+  │                                              │
+  │   Get started:                               │
+  │                                              │
+  │     paganini init --pack fidc                │
+  │     paganini up                              │
+  │                                              │
+  │   Or with Docker:                            │
+  │                                              │
+  │     paganini init --mode docker              │
+  │     docker compose up                        │
+  │                                              │
+  │   Docs: https://github.com/juboyy/           │
+  │         paganini-aios/tree/main/docs         │
+  │                                              │
+  └──────────────────────────────────────────────┘
+
+DONE

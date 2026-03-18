@@ -20,7 +20,7 @@
 ---
 
 ```bash
-curl -fsSL https://paganini.sh | sh && paganini init --pack fidc && paganini up
+curl -fsSL https://raw.githubusercontent.com/juboyy/paganini-aios/main/install.sh | sh && paganini init --pack fidc && paganini up
 ```
 
 > *"We don't sell a model. We sell a financial reasoning system that works with any model."*
@@ -463,7 +463,7 @@ override without human + justification
 
 ```bash
 # Install (downloads Moltis runtime + PAGANINI CLI)
-curl -fsSL https://paganini.sh | sh
+curl -fsSL https://raw.githubusercontent.com/juboyy/paganini-aios/main/install.sh | sh
 
 # Or manually:
 git clone https://github.com/juboyy/paganini-aios
