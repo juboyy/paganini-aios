@@ -4,17 +4,18 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 const NAV = [
-  { href: "/", label: "CENTRAL", icon: "⬡" },
-  { href: "/agents", label: "AGENTES", icon: "◎" },
-  { href: "/guardrails", label: "GUARDRAILS", icon: "⛊" },
-  { href: "/memory", label: "CONHECIMENTO", icon: "◈" },
-  { href: "/learning", label: "APRENDIZADO", icon: "🧠" },
-  { href: "/pipeline", label: "EXECUÇÃO", icon: "▷" },
-  { href: "/symphony", label: "ORQUESTRA", icon: "≋" },
-  { href: "/fund", label: "PACK FIDC", icon: "▣" },
-  { href: "/telemetry", label: "TELEMETRIA", icon: "△" },
-  { href: "/capabilities", label: "SKILLS", icon: "⊞" },
-  { href: "/settings", label: "CONFIGURAÇÃO", icon: "⚙" },
+  { href: "/",            label: "CENTRAL",      icon: "⬡" },
+  { href: "/agents",      label: "AGENTES",      icon: "◎" },
+  { href: "/guardrails",  label: "GUARDRAILS",   icon: "⛊" },
+  { href: "/memory",      label: "CONHECIMENTO", icon: "◈" },
+  { href: "/learning",    label: "APRENDIZADO",  icon: "🧠" },
+  { href: "/sprint",      label: "SPRINT",       icon: "⊡" },
+  { href: "/pipeline",    label: "EXECUÇÃO",     icon: "▷" },
+  { href: "/symphony",    label: "ORQUESTRA",    icon: "≋" },
+  { href: "/fund",        label: "PACK FIDC",    icon: "▣" },
+  { href: "/telemetry",   label: "TELEMETRIA",   icon: "△" },
+  { href: "/capabilities", label: "SKILLS",      icon: "⊞" },
+  { href: "/settings",    label: "CONFIGURAÇÃO", icon: "⚙" },
 ];
 
 export function Sidebar() {
@@ -67,10 +68,25 @@ export function Sidebar() {
         >
           <span style={{ fontSize: "1.25rem" }}>🎻</span>
           <div>
-            <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "0.8125rem", color: "var(--text-1)", letterSpacing: "-0.02em" }}>
+            <div
+              style={{
+                fontFamily: "var(--font-display)",
+                fontWeight: 700,
+                fontSize: "0.8125rem",
+                color: "var(--text-1)",
+                letterSpacing: "-0.02em",
+              }}
+            >
               PAGANINI
             </div>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", color: "var(--accent)", letterSpacing: "0.14em" }}>
+            <div
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: "0.5rem",
+                color: "var(--accent)",
+                letterSpacing: "0.14em",
+              }}
+            >
               SISTEMA OPERACIONAL IA
             </div>
           </div>
@@ -79,7 +95,12 @@ export function Sidebar() {
         {/* Section label */}
         <div
           className="px-4 pt-4 pb-1"
-          style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", letterSpacing: "0.16em", color: "var(--text-4)" }}
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: "0.5rem",
+            letterSpacing: "0.16em",
+            color: "var(--text-4)",
+          }}
         >
           PLATAFORMA
         </div>
@@ -90,10 +111,16 @@ export function Sidebar() {
             const active = pathname === item.href;
             return (
               <div key={item.href}>
-                {i === 7 && (
+                {/* Section divider before PACK FIDC */}
+                {i === 8 && (
                   <div
                     className="px-3 pt-4 pb-1"
-                    style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", letterSpacing: "0.16em", color: "var(--text-4)" }}
+                    style={{
+                      fontFamily: "var(--font-mono)",
+                      fontSize: "0.5rem",
+                      letterSpacing: "0.16em",
+                      color: "var(--text-4)",
+                    }}
                   >
                     VERTICAIS
                   </div>
@@ -113,7 +140,9 @@ export function Sidebar() {
                     textShadow: active ? "0 0 10px hsl(150 100% 50% / 0.3)" : "none",
                   }}
                 >
-                  <span style={{ fontSize: "0.625rem", opacity: active ? 1 : 0.5 }}>{item.icon}</span>
+                  <span style={{ fontSize: "0.625rem", opacity: active ? 1 : 0.5 }}>
+                    {item.icon}
+                  </span>
                   {item.label}
                 </Link>
               </div>
@@ -124,11 +153,16 @@ export function Sidebar() {
         {/* Footer */}
         <div
           className="px-4 py-3"
-          style={{
-            borderTop: "1px solid var(--border)",
-          }}
+          style={{ borderTop: "1px solid var(--border)" }}
         >
-          <div className="flex items-center gap-2" style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--text-4)" }}>
+          <div
+            className="flex items-center gap-2"
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: "0.5625rem",
+              color: "var(--text-4)",
+            }}
+          >
             <span
               className="pulse-dot"
               style={{
@@ -140,8 +174,16 @@ export function Sidebar() {
             />
             KERNEL ONLINE
           </div>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", color: "var(--text-4)", marginTop: "4px", opacity: 0.6 }}>
-            14 AGENTES • 15 SKILLS • 6 GATES
+          <div
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: "0.5rem",
+              color: "var(--text-4)",
+              marginTop: "4px",
+              opacity: 0.6,
+            }}
+          >
+            21 AGENTES • 52 CAPS • 6 GATES
           </div>
         </div>
       </aside>
