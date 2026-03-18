@@ -3,7 +3,7 @@
 import { useEffect, useState, useRef } from "react";
 
 const EXECUTION_LINES = [
-  { ts: "13:04:12", text: 'Orchestrator received: "onboard CNPJ 34.567.890/0001-22"', color: "var(--text-2)" },
+  { ts: "13:04:12", text: 'Orchestrator recebeu: "onboard CNPJ 34.567.890/0001-22"', color: "var(--text-2)" },
   { ts: "13:04:12", text: "→ spawn Agent:DD (depth=1)", color: "var(--accent)" },
   { ts: "13:04:13", text: "  → spawn SubAgent:ReceitaFederal (depth=2)", color: "var(--accent)" },
   { ts: "13:04:14", text: "  → spawn SubAgent:PEPCheck (depth=2)", color: "var(--accent)" },
@@ -11,26 +11,26 @@ const EXECUTION_LINES = [
   { ts: "13:04:15", text: "  ← PEPCheck: 0 matches", color: "var(--cyan)" },
   { ts: "13:04:16", text: "← Agent:DD: Score 91/100 (baixo risco)", color: "var(--cyan)" },
   { ts: "13:04:16", text: "→ spawn Agent:Compliance (depth=1)", color: "var(--accent)" },
-  { ts: "13:04:17", text: "  6 gates: ✓ ✓ ✓ ✓ ✓ ✓  ALL PASS", color: "var(--accent)" },
-  { ts: "13:04:17", text: "← Agent:Compliance: CLEAR", color: "var(--cyan)" },
+  { ts: "13:04:17", text: "  6 gates: ✓ ✓ ✓ ✓ ✓ ✓  TODOS APROVADOS", color: "var(--accent)" },
+  { ts: "13:04:17", text: "← Agent:Compliance: LIBERADO", color: "var(--cyan)" },
   { ts: "13:04:18", text: "→ spawn Agent:KG (depth=1)", color: "var(--accent)" },
-  { ts: "13:04:19", text: "  28 entities, 54 edges → ChromaDB", color: "var(--text-2)" },
-  { ts: "13:04:19", text: "✓ COMPLETE | 3 agents, 5 sub-agents, 7.2s | depth=2", color: "var(--accent)" },
+  { ts: "13:04:19", text: "  28 entidades, 54 arestas → ChromaDB", color: "var(--text-2)" },
+  { ts: "13:04:19", text: "✓ COMPLETO | 3 agentes, 5 sub-agentes, 7.2s | depth=2", color: "var(--accent)" },
 ];
 
 const HOURLY_TASKS = [4, 7, 9, 12, 18, 22, 19, 14, 11, 16, 20, 15, 17, 21, 19, 13, 10, 8, 6, 4, 5, 9, 14, 12];
 const DELIVERY_RATE = [96, 98, 97, 99, 98, 97, 99, 98, 99, 98, 97, 99, 98, 98, 99, 98, 97, 99, 98, 98, 99, 98, 99, 98];
 
 const AGENTS = [
-  { name: "orchestrator", task: "Coordinating CNPJ onboard batch #247", tokens: "142K", cost: "$0.021" },
-  { name: "due-diligence", task: "Analyzing CNPJ 45.234.120/0001-88", tokens: "89K", cost: "$0.013" },
-  { name: "compliance", task: "Running 6-gate pipeline on Fundo ABC", tokens: "67K", cost: "$0.010" },
-  { name: "knowledge-graph", task: "Ingesting CVM circular 3.822/2025", tokens: "203K", cost: "$0.031" },
-  { name: "risk-agent", task: "Scoring cedente batch — 12 positions", tokens: "55K", cost: "$0.008" },
-  { name: "fund-manager", task: "Calculating NAV for 4 funds", tokens: "38K", cost: "$0.006" },
-  { name: "report-agent", task: "Watching — no active tasks", tokens: "12K", cost: "$0.002" },
-  { name: "ingest-agent", task: "Watching — standby", tokens: "8K", cost: "$0.001" },
-  { name: "metaclaw", task: "Evaluating 3 pattern candidates", tokens: "44K", cost: "$0.007" },
+  { name: "orchestrator", task: "Coordenando lote de onboard CNPJ #247", tokens: "142K", cost: "$0.021" },
+  { name: "due-diligence", task: "Analisando CNPJ 45.234.120/0001-88", tokens: "89K", cost: "$0.013" },
+  { name: "compliance", task: "Executando pipeline 6-gate no Fundo ABC", tokens: "67K", cost: "$0.010" },
+  { name: "knowledge-graph", task: "Ingerindo circular CVM 3.822/2025", tokens: "203K", cost: "$0.031" },
+  { name: "risk-agent", task: "Pontuando lote de cedentes — 12 posições", tokens: "55K", cost: "$0.008" },
+  { name: "fund-manager", task: "Calculando NAV de 4 fundos", tokens: "38K", cost: "$0.006" },
+  { name: "report-agent", task: "Aguardando — sem tarefas ativas", tokens: "12K", cost: "$0.002" },
+  { name: "ingest-agent", task: "Aguardando — em standby", tokens: "8K", cost: "$0.001" },
+  { name: "metaclaw", task: "Avaliando 3 padrões candidatos", tokens: "44K", cost: "$0.007" },
 ];
 
 const GATES = ["AUTHZ", "SCHEMA", "SEMANTIC", "RISK-GATE", "COMPLIANCE", "AUDIT"];
@@ -115,50 +115,50 @@ export default function OverviewPage() {
   }, []);
 
   const now = new Date();
-  const timeStr = now.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  const timeStr = now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-      {/* Header */}
+      {/* Cabeçalho */}
       <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", flexWrap: "wrap", gap: "0.5rem" }}>
         <div>
           <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "0.25rem" }}>
-            PAGANINI AIOS · COMMAND CENTER
+            PAGANINI AIOS · CENTRO DE COMANDO
           </div>
           <h1 style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--text-1)", margin: 0 }}>
-            AI Operating System{" "}
+            Sistema Operacional de IA{" "}
             <span style={{ color: "var(--accent)", textShadow: "0 0 20px hsl(150 100% 50% / 0.4)" }}>v2.4.1</span>
           </h1>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
           <StatusDot />
           <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--accent)" }}>{timeStr}</span>
-          <span className="tag-badge">LIVE</span>
+          <span className="tag-badge">AO VIVO</span>
         </div>
       </div>
 
-      {/* Top Stats Row */}
+      {/* Linha de Estatísticas */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem" }}>
-        {/* Tasks Delivered */}
+        {/* Tarefas Entregues */}
         <div className="glass-card" style={{ padding: "1.25rem" }}>
           <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "0.5rem" }}>
-            TASKS DELIVERED TODAY
+            TAREFAS ENTREGUES HOJE
           </div>
           <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "0.5rem" }}>
             <div>
               <div style={{ fontSize: "2.25rem", fontWeight: 700, color: "var(--accent)", lineHeight: 1, fontFamily: "var(--font-mono)" }}>
                 {147 + (tick % 3 === 0 ? 1 : 0)}
               </div>
-              <div style={{ fontSize: "0.6875rem", color: "var(--text-3)", marginTop: "0.25rem" }}>+23 vs yesterday</div>
+              <div style={{ fontSize: "0.6875rem", color: "var(--text-3)", marginTop: "0.25rem" }}>+23 vs ontem</div>
             </div>
             <Sparkline data={HOURLY_TASKS} />
           </div>
         </div>
 
-        {/* Active Agents */}
+        {/* Agentes Ativos */}
         <div className="glass-card" style={{ padding: "1.25rem" }}>
           <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "0.5rem" }}>
-            ACTIVE AGENTS
+            AGENTES ATIVOS
           </div>
           <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "0.5rem" }}>
             <div>
@@ -166,7 +166,7 @@ export default function OverviewPage() {
                 <span style={{ color: "var(--accent)" }}>7</span>
                 <span style={{ color: "var(--text-4)", fontSize: "1.25rem" }}>/9</span>
               </div>
-              <div style={{ fontSize: "0.6875rem", color: "var(--text-3)", marginTop: "0.25rem" }}>2 watching</div>
+              <div style={{ fontSize: "0.6875rem", color: "var(--text-3)", marginTop: "0.25rem" }}>2 aguardando</div>
             </div>
             <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", maxWidth: 60 }}>
               {AGENTS.map((a, i) => (
@@ -176,18 +176,18 @@ export default function OverviewPage() {
           </div>
         </div>
 
-        {/* Recursive Depth */}
+        {/* Profundidade Recursiva */}
         <div className="glass-card" style={{ padding: "1.25rem" }}>
           <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "0.5rem" }}>
-            RECURSIVE DEPTH
+            PROFUNDIDADE RECURSIVA
           </div>
           <div>
             <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem" }}>
               <div style={{ fontSize: "2.25rem", fontWeight: 700, color: "var(--cyan)", lineHeight: 1, fontFamily: "var(--font-mono)" }}>2.3</div>
-              <div style={{ fontSize: "0.6875rem", color: "var(--text-3)" }}>avg</div>
+              <div style={{ fontSize: "0.6875rem", color: "var(--text-3)" }}>média</div>
             </div>
             <div style={{ fontSize: "0.6875rem", color: "var(--text-3)", marginTop: "0.25rem" }}>
-              max this session: <span style={{ color: "var(--cyan)" }}>6</span>
+              máx. nesta sessão: <span style={{ color: "var(--cyan)" }}>6</span>
             </div>
             {/* mini depth bar */}
             <div style={{ marginTop: "0.75rem", display: "flex", gap: "3px", alignItems: "flex-end", height: 20 }}>
@@ -206,10 +206,10 @@ export default function OverviewPage() {
           </div>
         </div>
 
-        {/* Delivery Rate */}
+        {/* Taxa de Entrega */}
         <div className="glass-card" style={{ padding: "1.25rem" }}>
           <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "0.5rem" }}>
-            DELIVERY RATE
+            TAXA DE ENTREGA
           </div>
           <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "0.5rem" }}>
             <div>
@@ -221,20 +221,20 @@ export default function OverviewPage() {
         </div>
       </div>
 
-      {/* Main grid: trace + right column */}
+      {/* Grid principal: trace + coluna direita */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: "1rem", alignItems: "start" }}>
-        {/* Live Execution Trace */}
+        {/* Trace de Execução Ao Vivo */}
         <div className="glass-card scanline" style={{ padding: "1.25rem" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem" }}>
             <div>
               <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)" }}>
-                LIVE EXECUTION TRACE
+                TRACE DE EXECUÇÃO AO VIVO
               </div>
-              <div style={{ color: "var(--text-1)", fontWeight: 600, fontSize: "0.875rem", marginTop: "2px" }}>Recursive Agent Orchestration</div>
+              <div style={{ color: "var(--text-1)", fontWeight: 600, fontSize: "0.875rem", marginTop: "2px" }}>Orquestração Recursiva de Agentes</div>
             </div>
             <div style={{ display: "flex", gap: "6px" }}>
               <StatusDot />
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--accent)" }}>STREAMING</span>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--accent)" }}>TRANSMITINDO</span>
             </div>
           </div>
 
@@ -264,9 +264,9 @@ export default function OverviewPage() {
           </div>
         </div>
 
-        {/* Right column */}
+        {/* Coluna direita */}
         <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-          {/* Cost Efficiency Banner */}
+          {/* Banner de Eficiência de Custo */}
           <div
             className="glass-card"
             style={{
@@ -275,10 +275,10 @@ export default function OverviewPage() {
             }}
           >
             <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "0.5rem" }}>
-              COST EFFICIENCY
+              EFICIÊNCIA DE CUSTO
             </div>
             <div style={{ fontSize: "1.25rem", fontWeight: 700, color: "var(--accent)", marginBottom: "0.5rem" }}>
-              555× cheaper
+              555× mais barato
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -289,7 +289,7 @@ export default function OverviewPage() {
                 <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.625rem", color: "var(--accent)", width: 48, textAlign: "right" }}>$0.09/h</div>
               </div>
               <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.625rem", color: "var(--text-3)", width: 60 }}>HUMAN</div>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.625rem", color: "var(--text-3)", width: 60 }}>HUMANO</div>
                 <div style={{ flex: 1, height: 8, background: "rgba(0,255,128,0.08)", borderRadius: "1px", overflow: "hidden" }}>
                   <div style={{ width: "100%", height: "100%", background: "hsl(0 84% 60% / 0.6)", borderRadius: "1px" }} />
                 </div>
@@ -298,22 +298,22 @@ export default function OverviewPage() {
             </div>
           </div>
 
-          {/* MetaClaw Self-Learning */}
+          {/* MetaClaw Autoaprendizado */}
           <div className="glass-card" style={{ padding: "1.25rem" }}>
             <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "0.5rem" }}>
-              METACLAW · SELF-LEARNING
+              METACLAW · AUTOAPRENDIZADO
             </div>
             <div style={{ display: "flex", gap: "0.5rem", alignItems: "flex-start", marginBottom: "0.75rem" }}>
               <span style={{ fontSize: "1.25rem" }}>🧠</span>
               <div>
-                <div style={{ color: "var(--text-1)", fontSize: "0.875rem", fontWeight: 600 }}>3 patterns discovered</div>
-                <div style={{ color: "var(--text-3)", fontSize: "0.6875rem" }}>2 skills promoted today</div>
+                <div style={{ color: "var(--text-1)", fontSize: "0.875rem", fontWeight: 600 }}>3 padrões descobertos</div>
+                <div style={{ color: "var(--text-3)", fontSize: "0.6875rem" }}>2 skills promovidas hoje</div>
               </div>
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
               {[
-                { skill: "pdd-risk-check", score: "0.31→0.89", status: "PROMOTED" },
-                { skill: "covenant-eval", score: "0.54→0.82", status: "PROMOTED" },
+                { skill: "pdd-risk-check", score: "0.31→0.89", status: "PROMOVIDA" },
+                { skill: "covenant-eval", score: "0.54→0.82", status: "PROMOVIDA" },
                 { skill: "cnpj-pep-fast", score: "0.61→0.74", status: "STAGING" },
               ].map((s) => (
                 <div
@@ -331,7 +331,7 @@ export default function OverviewPage() {
                   <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.625rem", color: "var(--text-2)" }}>{s.skill}</span>
                   <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
                     <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--accent)" }}>{s.score}</span>
-                    <span className={s.status === "PROMOTED" ? "tag-badge" : "tag-badge-cyan"} style={{ fontSize: "0.5rem", padding: "1px 5px" }}>
+                    <span className={s.status === "PROMOVIDA" ? "tag-badge" : "tag-badge-cyan"} style={{ fontSize: "0.5rem", padding: "1px 5px" }}>
                       {s.status}
                     </span>
                   </div>
@@ -342,13 +342,13 @@ export default function OverviewPage() {
         </div>
       </div>
 
-      {/* Guardrail Pipeline Strip */}
+      {/* Faixa do Pipeline de Guardrails */}
       <div className="glass-card" style={{ padding: "1.25rem" }}>
         <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "1rem" }}>
-          GUARDRAIL PIPELINE · 6-GATE HARD-STOP
+          PIPELINE DE GUARDRAILS · 6-GATE HARD-STOP
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "0px", overflowX: "auto", paddingBottom: "4px" }}>
-          {/* INPUT */}
+          {/* OPERAÇÃO */}
           <div
             style={{
               flexShrink: 0,
@@ -361,12 +361,12 @@ export default function OverviewPage() {
               background: "rgba(0,0,0,0.4)",
             }}
           >
-            OPERATION
+            OPERAÇÃO
           </div>
 
           {GATES.map((gate, i) => (
             <div key={gate} style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
-              {/* Arrow */}
+              {/* Seta */}
               <svg width={28} height={12} style={{ flexShrink: 0 }}>
                 <line x1={2} y1={6} x2={22} y2={6} stroke="var(--accent)" strokeWidth={1} strokeOpacity={0.5} />
                 <polygon points="22,3 28,6 22,9" fill="var(--accent)" fillOpacity={0.5} />
@@ -409,13 +409,13 @@ export default function OverviewPage() {
             </div>
           ))}
 
-          {/* Arrow to APPROVED */}
+          {/* Seta para APROVADO */}
           <svg width={28} height={12} style={{ flexShrink: 0 }}>
             <line x1={2} y1={6} x2={22} y2={6} stroke="var(--accent)" strokeWidth={1} strokeOpacity={0.5} />
             <polygon points="22,3 28,6 22,9" fill="var(--accent)" fillOpacity={0.5} />
           </svg>
 
-          {/* APPROVED */}
+          {/* APROVADO */}
           <div
             style={{
               flexShrink: 0,
@@ -432,21 +432,21 @@ export default function OverviewPage() {
               animation: "pulse-neon 2s ease-in-out infinite",
             }}
           >
-            ✓ APPROVED
+            ✓ APROVADO
           </div>
         </div>
       </div>
 
-      {/* Agent Fleet Table */}
+      {/* Tabela da Frota de Agentes */}
       <div className="glass-card" style={{ padding: "1.25rem" }}>
         <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "1rem" }}>
-          AGENT FLEET · LIVE STATUS
+          FROTA DE AGENTES · STATUS AO VIVO
         </div>
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "var(--font-mono)", fontSize: "0.6875rem" }}>
             <thead>
               <tr style={{ borderBottom: "1px solid var(--border)" }}>
-                {["AGENT", "STATUS", "CURRENT TASK", "TOKENS", "COST"].map((h) => (
+                {["AGENTE", "STATUS", "TAREFA ATUAL", "TOKENS", "CUSTO"].map((h) => (
                   <th
                     key={h}
                     style={{
@@ -465,7 +465,7 @@ export default function OverviewPage() {
             </thead>
             <tbody>
               {AGENTS.map((agent, i) => {
-                const isWatching = agent.task.startsWith("Watching");
+                const isWatching = agent.task.startsWith("Aguardando");
                 return (
                   <tr
                     key={agent.name}
@@ -479,7 +479,7 @@ export default function OverviewPage() {
                       <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
                         <StatusDot active={!isWatching} />
                         <span style={{ color: isWatching ? "var(--text-4)" : "var(--text-2)", fontSize: "0.5625rem" }}>
-                          {isWatching ? "WATCHING" : "ACTIVE"}
+                          {isWatching ? "AGUARDANDO" : "ATIVO"}
                         </span>
                       </div>
                     </td>
@@ -506,7 +506,7 @@ export default function OverviewPage() {
         </div>
         <div style={{ marginTop: "0.75rem", display: "flex", justifyContent: "flex-end", gap: "1rem" }}>
           <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.625rem", color: "var(--text-4)" }}>
-            TOTAL TODAY:{" "}
+            TOTAL HOJE:{" "}
             <span style={{ color: "var(--accent)" }}>1.24M tokens</span> ·{" "}
             <span style={{ color: "var(--accent)" }}>$0.19</span>
           </div>

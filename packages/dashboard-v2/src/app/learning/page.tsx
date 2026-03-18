@@ -1,7 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 
-/* ── MetaClaw Skill Evolution Data ── */
+/* ── Dados de Evolução de Skills MetaClaw ── */
 const SKILLS_EVOLUTION = [
   {
     name: "compliance-pdd-check",
@@ -69,7 +69,7 @@ const SKILLS_EVOLUTION = [
   },
 ];
 
-/* ── AutoResearch Iterations ── */
+/* ── Iterações AutoResearch ── */
 const AUTORESEARCH_RUNS = [
   {
     id: "AR-007",
@@ -80,9 +80,9 @@ const AUTORESEARCH_RUNS = [
     best_params: { chunk_size: 1024, overlap: 128, top_k: 8, similarity: 0.75 },
     duration: "4m 23s",
     improvements: [
-      "chunk_size 512→1024: +8.3% precision",
-      "top_k 5→8: +4.1% precision",
-      "similarity 0.70→0.75: +2.8% precision",
+      "chunk_size 512→1024: +8,3% de precisão",
+      "top_k 5→8: +4,1% de precisão",
+      "similarity 0,70→0,75: +2,8% de precisão",
     ],
   },
   {
@@ -93,7 +93,7 @@ const AUTORESEARCH_RUNS = [
     end_precision: 0.72,
     best_params: { chunk_size: 512, overlap: 64, top_k: 5, similarity: 0.70 },
     duration: "3m 12s",
-    improvements: ["overlap 32→64: +2.1% precision", "Removed low-quality chunks: +1.9%"],
+    improvements: ["overlap 32→64: +2,1% de precisão", "Remoção de chunks de baixa qualidade: +1,9%"],
   },
   {
     id: "AR-005",
@@ -104,14 +104,14 @@ const AUTORESEARCH_RUNS = [
     best_params: { chunk_size: 512, overlap: 32, top_k: 5, similarity: 0.65 },
     duration: "6m 45s",
     improvements: [
-      "Added BM25 hybrid: +5.2% precision",
-      "chunk_size 256→512: +3.1% precision",
-      "Reranking enabled: +1.4% precision",
+      "Adição de híbrido BM25: +5,2% de precisão",
+      "chunk_size 256→512: +3,1% de precisão",
+      "Reranking habilitado: +1,4% de precisão",
     ],
   },
 ];
 
-/* ── Research Topics ── */
+/* ── Tópicos de Pesquisa ── */
 const RESEARCH_TOPICS = [
   {
     topic: "CVM 175 — Impacto na Subordinação Mínima",
@@ -120,7 +120,7 @@ const RESEARCH_TOPICS = [
     findings: 4,
     date: "2026-03-16",
     summary:
-      "Identificou que Art. 42 §3º permite subordinação mínima de 20% para fundos com rating AA+. Fundo atual opera com 28.5% — dentro do limite com margem.",
+      "Identificou que Art. 42 §3º permite subordinação mínima de 20% para fundos com rating AA+. Fundo atual opera com 28,5% — dentro do limite com margem.",
   },
   {
     topic: "Padrões de Inadimplência por Setor — Q1 2026",
@@ -129,7 +129,7 @@ const RESEARCH_TOPICS = [
     findings: 2,
     date: "2026-03-17",
     summary:
-      "Setor de varejo mostra aumento de 1.8% na inadimplência. Setor de serviços estável. Recomendação: reduzir exposição a varejo para ≤15% do PL.",
+      "Setor de varejo mostra aumento de 1,8% na inadimplência. Setor de serviços estável. Recomendação: reduzir exposição a varejo para ≤15% do PL.",
   },
   {
     topic: "Otimização de Pricing por Safra",
@@ -151,10 +151,10 @@ const RESEARCH_TOPICS = [
 ];
 
 const STATUS_CONFIG: Record<string, { color: string; label: string; bg: string }> = {
-  promoted: { color: "var(--accent)", label: "PROMOTED", bg: "hsl(150 100% 50% / 0.1)" },
-  learning: { color: "var(--cyan)", label: "LEARNING", bg: "hsl(180 100% 50% / 0.1)" },
-  observing: { color: "var(--text-3)", label: "OBSERVING", bg: "hsl(220 10% 48% / 0.1)" },
-  pruned: { color: "hsl(0 84% 60%)", label: "PRUNED", bg: "hsl(0 84% 60% / 0.1)" },
+  promoted: { color: "var(--accent)", label: "PROMOVIDA", bg: "hsl(150 100% 50% / 0.1)" },
+  learning: { color: "var(--cyan)", label: "APRENDENDO", bg: "hsl(180 100% 50% / 0.1)" },
+  observing: { color: "var(--text-3)", label: "OBSERVANDO", bg: "hsl(220 10% 48% / 0.1)" },
+  pruned: { color: "hsl(0 84% 60%)", label: "PODADA", bg: "hsl(0 84% 60% / 0.1)" },
   completed: { color: "var(--accent)", label: "COMPLETO", bg: "hsl(150 100% 50% / 0.1)" },
   in_progress: { color: "var(--cyan)", label: "EM ANDAMENTO", bg: "hsl(180 100% 50% / 0.1)" },
   queued: { color: "var(--text-3)", label: "NA FILA", bg: "hsl(220 10% 48% / 0.1)" },
@@ -171,7 +171,7 @@ export default function LearningPage() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
+      {/* Cabeçalho */}
       <div>
         <h1
           style={{
@@ -182,7 +182,7 @@ export default function LearningPage() {
             marginBottom: "0.5rem",
           }}
         >
-          Autoaprendizado & Pesquisa
+          Autoaprendizado &amp; Pesquisa
         </h1>
         <p className="section-help">
           O Paganini aprende continuamente. O MetaClaw descobre padrões de uso e promove skills
@@ -191,7 +191,7 @@ export default function LearningPage() {
         </p>
       </div>
 
-      {/* Stats */}
+      {/* Estatísticas */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         {[
           { label: "SKILLS DESCOBERTAS", value: String(SKILLS_EVOLUTION.length), sub: `${promoted} promovidas, ${learning} aprendendo` },
@@ -213,7 +213,7 @@ export default function LearningPage() {
         ))}
       </div>
 
-      {/* Tabs */}
+      {/* Abas */}
       <div className="flex gap-1" style={{ borderBottom: "1px solid var(--border)" }}>
         {(["metaclaw", "autoresearch", "research"] as const).map((tab) => (
           <button
@@ -237,12 +237,12 @@ export default function LearningPage() {
         ))}
       </div>
 
-      {/* MetaClaw Tab */}
+      {/* Aba MetaClaw */}
       {activeTab === "metaclaw" && (
         <div className="space-y-4">
           <p className="section-help">
             O MetaClaw observa interações dos agentes e identifica padrões recorrentes. Quando um
-            padrão atinge score &gt; 0.80, é promovido a skill permanente. Skills com baixo uso são
+            padrão atinge pontuação &gt; 0,80, é promovido a skill permanente. Skills com baixo uso são
             podadas. É como o sistema imunológico do AIOS — aprende o que funciona e descarta o que
             não funciona.
           </p>
@@ -300,10 +300,10 @@ export default function LearningPage() {
                       </div>
                     </div>
 
-                    {/* Score Progression */}
+                    {/* Progressão da Pontuação */}
                     <div style={{ minWidth: "280px" }}>
                       <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--text-4)", marginBottom: "6px" }}>
-                        EVOLUÇÃO DO SCORE
+                        EVOLUÇÃO DA PONTUAÇÃO
                       </div>
                       <div className="flex items-end gap-1" style={{ height: "40px" }}>
                         {skill.scores.map((score, i) => (
@@ -340,7 +340,7 @@ export default function LearningPage() {
         </div>
       )}
 
-      {/* AutoResearch Tab */}
+      {/* Aba AutoResearch */}
       {activeTab === "autoresearch" && (
         <div className="space-y-4">
           <p className="section-help">
@@ -350,7 +350,7 @@ export default function LearningPage() {
             Inspirado no método Karpathy de auto-melhoria.
           </p>
 
-          {/* Precision Over Time Chart */}
+          {/* Gráfico de Precisão ao Longo do Tempo */}
           <div className="glass-card p-5">
             <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", letterSpacing: "0.1em", color: "var(--text-4)", marginBottom: "16px" }}>
               EVOLUÇÃO DA PRECISÃO DO RAG
@@ -362,7 +362,7 @@ export default function LearningPage() {
                   <stop offset="100%" stopColor="hsl(150 100% 50%)" stopOpacity="0" />
                 </linearGradient>
               </defs>
-              {/* Grid lines */}
+              {/* Linhas de grade */}
               {[0.6, 0.7, 0.8, 0.9, 1.0].map((v) => {
                 const y = 140 - (v - 0.5) * 280;
                 return (
@@ -374,7 +374,7 @@ export default function LearningPage() {
                   </g>
                 );
               })}
-              {/* Data points: AR-005 (0.58→0.68), AR-006 (0.68→0.72), AR-007 (0.72→0.91) */}
+              {/* Pontos de dados */}
               <path
                 d={`M80,${140 - (0.58 - 0.5) * 280} L180,${140 - (0.68 - 0.5) * 280} L320,${140 - (0.72 - 0.5) * 280} L520,${140 - (0.91 - 0.5) * 280} L520,140 L80,140 Z`}
                 fill="url(#precGrad)"
@@ -385,7 +385,6 @@ export default function LearningPage() {
                 stroke="hsl(150 100% 50%)"
                 strokeWidth="2.5"
               />
-              {/* Dots */}
               {[
                 { x: 80, p: 0.58, label: "AR-005" },
                 { x: 180, p: 0.68, label: "AR-006" },
@@ -408,7 +407,7 @@ export default function LearningPage() {
             </div>
           </div>
 
-          {/* Run History */}
+          {/* Histórico de Execuções */}
           <div className="space-y-3">
             {AUTORESEARCH_RUNS.map((run) => (
               <div
@@ -493,13 +492,13 @@ export default function LearningPage() {
         </div>
       )}
 
-      {/* Research Tab */}
+      {/* Aba Pesquisa */}
       {activeTab === "research" && (
         <div className="space-y-4">
           <p className="section-help">
             Agentes de pesquisa investigam temas regulatórios e financeiros de forma autônoma. O
             RegWatch monitora publicações da CVM e BACEN. O Risk analisa padrões de mercado. O
-            Pricing otimiza modelos. Os resultados alimentam o knowledge graph e melhoram as
+            Pricing otimiza modelos. Os resultados alimentam o grafo de conhecimento e melhoram as
             respostas do sistema.
           </p>
 

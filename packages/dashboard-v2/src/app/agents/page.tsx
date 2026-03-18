@@ -5,154 +5,227 @@ import { useState } from "react";
 const AGENTS_DATA = [
   {
     slug: "orchestrator",
+    emoji: "🎯",
     status: "active",
-    role: "Central coordinator — routes tasks to specialized agents via DELEGATION_MAP",
-    domains: ["orchestration", "routing", "meta"],
-    capabilities: ["route_task()", "spawn_agent()", "aggregate_results()", "monitor_fleet()", "handle_timeout()"],
-    delegates: [
-      { fn: "onboard_cedente", to: "due-diligence" },
-      { fn: "run_compliance", to: "compliance" },
-      { fn: "ingest_docs", to: "knowledge-graph" },
-    ],
+    role: "Coordenador central — decompõe tarefas, executa fluxos (Purchase/Report/Onboard), resolve conflitos",
+    domains: ["orquestração", "roteamento"],
+    capabilities: ["decompose_task()", "execute_flow()", "aggregate_results()", "resolve_conflicts()"],
     tasks: 1284,
     avgLatency: "1.2s",
     tokens: "2.1M",
   },
   {
-    slug: "due-diligence",
+    slug: "administrador",
+    emoji: "📊",
     status: "active",
-    role: "Automated DD pipeline for cedentes — Receita Federal + PEP + scoring",
-    domains: ["dd", "cnpj", "risk"],
-    capabilities: ["score_cedente()", "check_pep()", "query_receita()", "analyze_socios()", "calc_dd_score()"],
-    delegates: [
-      { fn: "pep_check", to: "compliance" },
-      { fn: "risk_score", to: "risk-agent" },
-    ],
+    role: "Cálculo de NAV (PL), gestão de cotas sênior/subordinada, relatórios ANBIMA",
+    domains: ["nav", "cotas", "relatórios"],
+    capabilities: ["calculate_nav()", "calculate_quota_price()", "issue_quotas()", "process_redemption()", "generate_daily_report()"],
     tasks: 847,
-    avgLatency: "7.2s",
+    avgLatency: "4.8s",
     tokens: "890K",
   },
   {
     slug: "compliance",
+    emoji: "🛡️",
     status: "active",
-    role: "6-gate hard-stop pipeline — BACEN, CVM, AML, PEP, COAF validation",
-    domains: ["compliance", "aml", "regulation"],
-    capabilities: ["run_pipeline()", "check_aml()", "validate_coaf()", "check_pep()", "gate_approve()", "gate_reject()"],
-    delegates: [{ fn: "audit_log", to: "report-agent" }],
+    role: "Pipeline de 6 portões: Elegibilidade → Concentração → Covenant → PLD/AML → CVM 175 → Risco",
+    domains: ["compliance", "aml", "regulação"],
+    capabilities: ["check_eligibility()", "check_concentration()", "check_covenant()", "check_pld_aml()", "check_compliance()", "check_risk()", "run_pipeline()"],
     tasks: 1847,
     avgLatency: "3.1s",
     tokens: "1.4M",
   },
   {
-    slug: "risk-agent",
+    slug: "custodia",
+    emoji: "🔐",
     status: "active",
-    role: "Credit risk scoring for positions, cedentes, and fund portfolios",
-    domains: ["risk", "credit", "scoring"],
-    capabilities: ["score_cedente()", "check_covenant()", "calc_var()", "check_eligibility()", "flag_concentration()"],
-    delegates: [{ fn: "fund_metrics", to: "fund-manager" }],
+    role: "Registro de títulos, verificação de lastro, reconciliação D+2, liquidação",
+    domains: ["custódia", "lastro", "liquidação"],
+    capabilities: ["register_title()", "verify_collateral()", "reconcile_portfolio()", "process_settlement()"],
     tasks: 622,
-    avgLatency: "4.8s",
-    tokens: "670K",
-  },
-  {
-    slug: "fund-manager",
-    status: "active",
-    role: "NAV calculation, covenant monitoring, and fund reporting",
-    domains: ["fund", "nav", "reporting"],
-    capabilities: ["calculate_nav()", "check_covenant()", "gen_report()", "calc_pl()", "monitor_gates()"],
-    delegates: [{ fn: "compliance_check", to: "compliance" }],
-    tasks: 413,
-    avgLatency: "9.4s",
+    avgLatency: "2.2s",
     tokens: "520K",
   },
   {
-    slug: "knowledge-graph",
+    slug: "due-diligence",
+    emoji: "🔍",
     status: "active",
-    role: "Entity extraction, graph building, and ChromaDB vector management",
-    domains: ["kg", "rag", "embeddings"],
-    capabilities: ["extract_entities()", "build_graph()", "embed_docs()", "query_chroma()", "merge_entities()"],
-    delegates: [],
-    tasks: 284,
-    avgLatency: "12.3s",
-    tokens: "3.2M",
+    role: "Scoring de cedentes (5 critérios), validação CNPJ mod-11, análise financeira",
+    domains: ["dd", "cnpj", "scoring"],
+    capabilities: ["score_cedente()", "validate_cnpj()", "check_pep()", "analyze_financials()", "run_onboarding_pipeline()"],
+    tasks: 413,
+    avgLatency: "7.2s",
+    tokens: "670K",
   },
   {
-    slug: "report-agent",
+    slug: "gestor",
+    emoji: "📈",
     status: "active",
-    role: "Generates CVM reports, QMD docs, and compliance audit trails",
-    domains: ["reporting", "docs", "audit"],
-    capabilities: ["gen_cvm_report()", "gen_qmd()", "export_pdf()", "audit_trail()", "send_slack()"],
-    delegates: [],
+    role: "Alocação de carteira, limites de concentração (HHI), rebalanceamento, stress test",
+    domains: ["portfolio", "concentração", "risco"],
+    capabilities: ["calculate_portfolio_allocation()", "check_concentration_limits()", "rebalance_portfolio()", "stress_test()"],
+    tasks: 534,
+    avgLatency: "4.2s",
+    tokens: "780K",
+  },
+  {
+    slug: "pricing",
+    emoji: "💰",
+    status: "active",
+    role: "PDD BACEN 2682/99 (7 buckets), mark-to-market (DCF), yield anualizado",
+    domains: ["pricing", "pdd", "mtm"],
+    capabilities: ["calculate_pdd_aging()", "mark_to_market()", "calculate_discount_rate()", "calculate_yield()"],
+    tasks: 956,
+    avgLatency: "3.8s",
+    tokens: "1.1M",
+  },
+  {
+    slug: "risk",
+    emoji: "⚡",
+    status: "active",
+    role: "VaR histórico e paramétrico, Expected/Unexpected Loss (Basel II), concentração HHI",
+    domains: ["risco", "var", "stress"],
+    capabilities: ["calculate_var()", "stress_test()", "calculate_expected_loss()", "concentration_risk()", "risk_rating()"],
+    tasks: 478,
+    avgLatency: "5.1s",
+    tokens: "890K",
+  },
+  {
+    slug: "treasury",
+    emoji: "🏦",
+    status: "active",
+    role: "Projeção de fluxo de caixa 90d, índice LCR, duration gap, aprovação de resgates",
+    domains: ["tesouraria", "liquidez", "caixa"],
+    capabilities: ["project_cash_flow()", "calculate_liquidity_ratio()", "duration_gap()", "process_redemption_request()"],
+    tasks: 312,
+    avgLatency: "3.4s",
+    tokens: "440K",
+  },
+  {
+    slug: "auditor",
+    emoji: "🔬",
+    status: "active",
+    role: "Validação aritmética de NAV, detecção de anomalias (2σ), auditoria cruzada entre agentes",
+    domains: ["auditoria", "qa", "anomalias"],
+    capabilities: ["validate_nav()", "cross_validate_agents()", "detect_anomalies()", "audit_execution_trace()"],
+    tasks: 267,
+    avgLatency: "6.3s",
+    tokens: "520K",
+  },
+  {
+    slug: "reporting",
+    emoji: "📋",
+    status: "active",
+    role: "Informes CVM 175, cartas ao investidor, relatórios por cedente, formatação BRL",
+    domains: ["relatórios", "cvm", "documentos"],
+    capabilities: ["generate_monthly_report()", "generate_cvm_filing()", "generate_investor_letter()"],
     tasks: 196,
     avgLatency: "15.2s",
     tokens: "440K",
   },
   {
-    slug: "ingest-agent",
+    slug: "investor-relations",
+    emoji: "🤝",
+    status: "active",
+    role: "Performance MTD/YTD, Sharpe vs CDI, max drawdown, distribuição de rendimentos",
+    domains: ["ir", "performance", "investidor"],
+    capabilities: ["calculate_performance()", "calculate_sharpe_ratio()", "generate_factsheet()", "calculate_distribution()"],
+    tasks: 178,
+    avgLatency: "4.5s",
+    tokens: "380K",
+  },
+  {
+    slug: "regulatory-watch",
+    emoji: "📡",
     status: "watching",
-    role: "Document ingestion pipeline — PDF, CVM circulars, fund regs",
-    domains: ["ingest", "pdf", "etl"],
-    capabilities: ["ingest_pdf()", "parse_cvm()", "chunk_doc()", "queue_embed()", "dedup_check()"],
-    delegates: [{ fn: "embed_chunks", to: "knowledge-graph" }],
-    tasks: 142,
-    avgLatency: "22.1s",
+    role: "Monitoramento CVM/BACEN, calendário de obrigações (CADOC 3040, AGO), alertas",
+    domains: ["regulatório", "cvm", "bacen"],
+    capabilities: ["check_cvm_publications()", "assess_impact()", "check_compliance_calendar()"],
+    tasks: 89,
+    avgLatency: "8.1s",
     tokens: "280K",
   },
   {
-    slug: "metaclaw",
-    status: "watching",
-    role: "Self-learning engine — discovers patterns, scores skills, promotes winners",
-    domains: ["ml", "meta", "learning"],
-    capabilities: ["discover_pattern()", "score_skill()", "promote_skill()", "run_eval()", "update_weights()"],
-    delegates: [],
-    tasks: 89,
-    avgLatency: "45.0s",
-    tokens: "920K",
+    slug: "knowledge-graph",
+    emoji: "🧠",
+    status: "active",
+    role: "Extração de entidades, grafo de relacionamentos, resolução de entidades, ChromaDB",
+    domains: ["kg", "rag", "embeddings"],
+    capabilities: ["extract_entities()", "build_relationships()", "query_graph()", "entity_resolution()"],
+    tasks: 284,
+    avgLatency: "12.3s",
+    tokens: "3.2M",
   },
 ];
 
 const SPAWN_HISTORY = [
-  { ts: "13:04:19", parent: "orchestrator", child: "due-diligence", depth: 1, duration: "7.2s", status: "OK" },
-  { ts: "13:04:13", parent: "due-diligence", child: "ReceitaFederal", depth: 2, duration: "1.8s", status: "OK" },
-  { ts: "13:04:14", parent: "due-diligence", child: "PEPCheck", depth: 2, duration: "0.9s", status: "OK" },
-  { ts: "13:04:17", parent: "orchestrator", child: "compliance", depth: 1, duration: "3.1s", status: "OK" },
-  { ts: "13:03:51", parent: "orchestrator", child: "fund-manager", depth: 1, duration: "9.4s", status: "OK" },
-  { ts: "13:03:44", parent: "orchestrator", child: "risk-agent", depth: 1, duration: "4.8s", status: "OK" },
-  { ts: "13:03:22", parent: "risk-agent", child: "compliance", depth: 2, duration: "2.9s", status: "OK" },
-  { ts: "13:02:58", parent: "orchestrator", child: "knowledge-graph", depth: 1, duration: "12.3s", status: "OK" },
-  { ts: "13:02:31", parent: "ingest-agent", child: "knowledge-graph", depth: 2, duration: "8.7s", status: "WARN" },
-  { ts: "13:01:44", parent: "metaclaw", child: "compliance", depth: 2, duration: "3.4s", status: "OK" },
+  { ts: "14:08:31", parent: "orchestrator",     child: "due-diligence",     depth: 1, duration: "7.2s",  status: "OK" },
+  { ts: "14:08:22", parent: "due-diligence",    child: "compliance",        depth: 2, duration: "3.1s",  status: "OK" },
+  { ts: "14:08:19", parent: "compliance",       child: "auditor",           depth: 3, duration: "6.3s",  status: "OK" },
+  { ts: "14:07:55", parent: "orchestrator",     child: "pricing",           depth: 1, duration: "3.8s",  status: "OK" },
+  { ts: "14:07:48", parent: "pricing",          child: "risk",              depth: 2, duration: "5.1s",  status: "OK" },
+  { ts: "14:07:41", parent: "orchestrator",     child: "gestor",            depth: 1, duration: "4.2s",  status: "OK" },
+  { ts: "14:07:30", parent: "orchestrator",     child: "treasury",          depth: 1, duration: "3.4s",  status: "OK" },
+  { ts: "14:07:22", parent: "orchestrator",     child: "administrador",     depth: 1, duration: "4.8s",  status: "OK" },
+  { ts: "14:07:10", parent: "administrador",    child: "custodia",          depth: 2, duration: "2.2s",  status: "OK" },
+  { ts: "14:06:58", parent: "orchestrator",     child: "reporting",         depth: 1, duration: "15.2s", status: "OK" },
+  { ts: "14:06:41", parent: "reporting",        child: "investor-relations",depth: 2, duration: "4.5s",  status: "OK" },
+  { ts: "14:06:20", parent: "regulatory-watch", child: "compliance",        depth: 2, duration: "3.1s",  status: "WARN" },
+  { ts: "14:05:59", parent: "orchestrator",     child: "knowledge-graph",   depth: 1, duration: "12.3s", status: "OK" },
+  { ts: "14:05:38", parent: "due-diligence",    child: "knowledge-graph",   depth: 2, duration: "8.7s",  status: "OK" },
 ];
 
-// SVG Delegation Topology
+// SVG topology — 14 nodes in radial layout
 const TOPOLOGY_AGENTS = [
-  { id: "orchestrator", label: "ORCH", x: 300, y: 160 },
-  { id: "due-diligence", label: "DD", x: 160, y: 90 },
-  { id: "compliance", label: "COMP", x: 440, y: 90 },
-  { id: "risk-agent", label: "RISK", x: 80, y: 200 },
-  { id: "fund-manager", label: "FUND", x: 520, y: 200 },
-  { id: "knowledge-graph", label: "KG", x: 160, y: 300 },
-  { id: "report-agent", label: "RPT", x: 440, y: 300 },
-  { id: "ingest-agent", label: "INGEST", x: 300, y: 360 },
-  { id: "metaclaw", label: "META", x: 300, y: 60 },
+  { id: "orchestrator",       label: "ORCH",  x: 360, y: 220 },
+  { id: "administrador",      label: "ADMIN", x: 360, y: 105 },
+  { id: "compliance",         label: "COMP",  x: 490, y: 148 },
+  { id: "custodia",           label: "CUST",  x: 530, y: 275 },
+  { id: "due-diligence",      label: "DD",    x: 445, y: 375 },
+  { id: "gestor",             label: "GEST",  x: 280, y: 390 },
+  { id: "pricing",            label: "PRICE", x: 192, y: 308 },
+  { id: "risk",               label: "RISK",  x: 192, y: 148 },
+  { id: "treasury",           label: "TREAS", x: 600, y: 88  },
+  { id: "auditor",            label: "AUDIT", x: 648, y: 200 },
+  { id: "reporting",          label: "RPT",   x: 625, y: 358 },
+  { id: "investor-relations", label: "IR",    x: 488, y: 460 },
+  { id: "regulatory-watch",   label: "REGW",  x: 78,  y: 98  },
+  { id: "knowledge-graph",    label: "KG",    x: 78,  y: 338 },
 ];
 
-const ACTIVE_EDGES = [
-  ["orchestrator", "due-diligence"],
+const ACTIVE_EDGES: [string, string][] = [
+  ["orchestrator", "administrador"],
   ["orchestrator", "compliance"],
-  ["orchestrator", "risk-agent"],
-  ["orchestrator", "fund-manager"],
+  ["orchestrator", "due-diligence"],
+  ["orchestrator", "pricing"],
+  ["orchestrator", "gestor"],
+  ["orchestrator", "treasury"],
   ["orchestrator", "knowledge-graph"],
+  ["orchestrator", "reporting"],
   ["due-diligence", "compliance"],
-  ["risk-agent", "compliance"],
-  ["ingest-agent", "knowledge-graph"],
-  ["knowledge-graph", "report-agent"],
-  ["metaclaw", "compliance"],
+  ["due-diligence", "knowledge-graph"],
+  ["compliance", "auditor"],
+  ["pricing", "risk"],
+  ["administrador", "custodia"],
+  ["reporting", "investor-relations"],
+  ["regulatory-watch", "compliance"],
+  ["risk", "gestor"],
 ];
 
 function StatusBadge({ status }: { status: string }) {
-  const color = status === "active" ? "var(--accent)" : status === "watching" ? "var(--cyan)" : "var(--text-4)";
-  const bg = status === "active" ? "hsl(150 100% 50% / 0.1)" : status === "watching" ? "hsl(180 100% 50% / 0.1)" : "transparent";
+  const color =
+    status === "active"
+      ? "var(--accent)"
+      : status === "watching"
+      ? "var(--cyan)"
+      : "var(--text-4)";
+  const bg =
+    status === "active"
+      ? "hsl(150 100% 50% / 0.1)"
+      : status === "watching"
+      ? "hsl(180 100% 50% / 0.1)"
+      : "transparent";
   return (
     <span
       style={{
@@ -180,7 +253,7 @@ function StatusBadge({ status }: { status: string }) {
           flexShrink: 0,
         }}
       />
-      {status.toUpperCase()}
+      {status === "active" ? "ATIVO" : status === "watching" ? "MONIT." : status.toUpperCase()}
     </span>
   );
 }
@@ -188,40 +261,79 @@ function StatusBadge({ status }: { status: string }) {
 export default function AgentsPage() {
   const [selectedAgent, setSelectedAgent] = useState<string | null>(null);
 
-  const getNodePos = (id: string) => TOPOLOGY_AGENTS.find((a) => a.id === id) || { x: 0, y: 0 };
+  const getNodePos = (id: string) =>
+    TOPOLOGY_AGENTS.find((a) => a.id === id) || { x: 0, y: 0 };
+
+  const totalTasks = AGENTS_DATA.reduce((acc, a) => acc + a.tasks, 0);
+  const activeCount = AGENTS_DATA.filter((a) => a.status === "active").length;
+  const watchingCount = AGENTS_DATA.filter((a) => a.status === "watching").length;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-      {/* Header */}
+      {/* Cabeçalho */}
       <div>
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "0.25rem" }}>
-          PAGANINI AIOS · AGENT FLEET
+        <div
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: "0.5625rem",
+            letterSpacing: "0.12em",
+            color: "var(--text-4)",
+            marginBottom: "0.25rem",
+          }}
+        >
+          PAGANINI AIOS · FROTA DE AGENTES
         </div>
         <h1 style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--text-1)", margin: 0 }}>
-          Agent Fleet{" "}
-          <span style={{ color: "var(--accent)" }}>+ Delegation Topology</span>
+          14 Agentes{" "}
+          <span style={{ color: "var(--accent)" }}>+ Topologia de Delegação</span>
         </h1>
+        <p style={{ color: "var(--text-3)", fontSize: 13, marginTop: 4, marginBottom: 0 }}>
+          Frota especializada operando em tempo real — fluxos Purchase, Report e Onboard
+        </p>
       </div>
 
-      {/* Hero Stats */}
+      {/* Métricas principais */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "1rem" }}>
         {[
-          { label: "TOTAL AGENTS", value: "9", color: "var(--text-1)" },
-          { label: "ACTIVE", value: "7", color: "var(--accent)" },
-          { label: "WATCHING", value: "2", color: "var(--cyan)" },
-          { label: "TEST FUNCTIONS", value: "136", color: "var(--text-1)" },
+          { label: "TOTAL DE AGENTES", value: "14",                                       color: "var(--text-1)" },
+          { label: "ATIVOS",            value: String(activeCount),                        color: "var(--accent)" },
+          { label: "MONITORANDO",       value: String(watchingCount),                      color: "var(--cyan)" },
+          { label: "TAREFAS HOJE",      value: totalTasks.toLocaleString("pt-BR"),         color: "var(--text-1)" },
         ].map((s) => (
           <div key={s.label} className="glass-card" style={{ padding: "1rem 1.25rem" }}>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "0.25rem" }}>
+            <div
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: "0.5625rem",
+                letterSpacing: "0.12em",
+                color: "var(--text-4)",
+                marginBottom: "0.25rem",
+              }}
+            >
               {s.label}
             </div>
-            <div style={{ fontSize: "2rem", fontWeight: 700, color: s.color, fontFamily: "var(--font-mono)" }}>{s.value}</div>
+            <div
+              style={{
+                fontSize: "2rem",
+                fontWeight: 700,
+                color: s.color,
+                fontFamily: "var(--font-mono)",
+              }}
+            >
+              {s.value}
+            </div>
           </div>
         ))}
       </div>
 
-      {/* Agent Cards Grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))", gap: "1rem" }}>
+      {/* Grade de cards de agentes */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))",
+          gap: "1rem",
+        }}
+      >
         {AGENTS_DATA.map((agent) => (
           <div
             key={agent.slug}
@@ -230,32 +342,75 @@ export default function AgentsPage() {
               padding: "1.25rem",
               cursor: "pointer",
               border: selectedAgent === agent.slug ? "1px solid var(--accent)" : undefined,
-              boxShadow: selectedAgent === agent.slug ? "0 0 20px hsl(150 100% 50% / 0.2)" : undefined,
+              boxShadow:
+                selectedAgent === agent.slug ? "0 0 20px hsl(150 100% 50% / 0.2)" : undefined,
             }}
-            onClick={() => setSelectedAgent(selectedAgent === agent.slug ? null : agent.slug)}
+            onClick={() =>
+              setSelectedAgent(selectedAgent === agent.slug ? null : agent.slug)
+            }
           >
-            {/* Header */}
-            <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "0.75rem" }}>
+            {/* Cabeçalho do card */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "flex-start",
+                justifyContent: "space-between",
+                marginBottom: "0.75rem",
+              }}
+            >
               <div>
-                <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.875rem", color: "var(--accent)", fontWeight: 600 }}>
-                  {agent.slug}
+                <div
+                  style={{ display: "flex", alignItems: "center", gap: "0.5rem", marginBottom: "2px" }}
+                >
+                  <span style={{ fontSize: "1rem" }}>{agent.emoji}</span>
+                  <span
+                    style={{
+                      fontFamily: "var(--font-mono)",
+                      fontSize: "0.875rem",
+                      color: "var(--accent)",
+                      fontWeight: 600,
+                    }}
+                  >
+                    {agent.slug}
+                  </span>
                 </div>
-                <div style={{ fontSize: "0.6875rem", color: "var(--text-3)", marginTop: "2px", lineHeight: 1.4 }}>{agent.role}</div>
+                <div
+                  style={{
+                    fontSize: "0.6875rem",
+                    color: "var(--text-3)",
+                    marginTop: "2px",
+                    lineHeight: 1.4,
+                  }}
+                >
+                  {agent.role}
+                </div>
               </div>
               <StatusBadge status={agent.status} />
             </div>
 
-            {/* Domains */}
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", marginBottom: "0.75rem" }}>
+            {/* Domínios */}
+            <div
+              style={{ display: "flex", flexWrap: "wrap", gap: "4px", marginBottom: "0.75rem" }}
+            >
               {agent.domains.map((d) => (
-                <span key={d} className="tag-badge-cyan">{d}</span>
+                <span key={d} className="tag-badge-cyan">
+                  {d}
+                </span>
               ))}
             </div>
 
-            {/* Capabilities */}
+            {/* Capacidades */}
             <div style={{ marginBottom: "0.75rem" }}>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "4px" }}>
-                CAPABILITIES
+              <div
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "0.5625rem",
+                  letterSpacing: "0.12em",
+                  color: "var(--text-4)",
+                  marginBottom: "4px",
+                }}
+              >
+                CAPACIDADES
               </div>
               <div style={{ display: "flex", flexWrap: "wrap", gap: "4px" }}>
                 {agent.capabilities.map((cap) => (
@@ -277,28 +432,7 @@ export default function AgentsPage() {
               </div>
             </div>
 
-            {/* Delegates */}
-            {agent.delegates.length > 0 && (
-              <div style={{ marginBottom: "0.75rem" }}>
-                <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "4px" }}>
-                  DELEGATES
-                </div>
-                <div style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
-                  {agent.delegates.map((d) => (
-                    <div key={d.fn} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                      <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--text-3)" }}>{d.fn}</span>
-                      <svg width={20} height={8}>
-                        <line x1={0} y1={4} x2={16} y2={4} stroke="var(--accent)" strokeWidth={1} strokeOpacity={0.6} />
-                        <polygon points="16,1 20,4 16,7" fill="var(--accent)" fillOpacity={0.6} />
-                      </svg>
-                      <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--accent)" }}>{d.to}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Stats Footer */}
+            {/* Rodapé de métricas */}
             <div
               style={{
                 display: "grid",
@@ -309,13 +443,32 @@ export default function AgentsPage() {
               }}
             >
               {[
-                { label: "TASKS", value: agent.tasks.toLocaleString() },
-                { label: "AVG LATENCY", value: agent.avgLatency },
-                { label: "TOKENS", value: agent.tokens },
+                { label: "TAREFAS",      value: agent.tasks.toLocaleString("pt-BR") },
+                { label: "LATÊNCIA MÉD.", value: agent.avgLatency },
+                { label: "TOKENS",       value: agent.tokens },
               ].map((s) => (
                 <div key={s.label}>
-                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.4375rem", letterSpacing: "0.1em", color: "var(--text-4)" }}>{s.label}</div>
-                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-1)", fontWeight: 600, marginTop: "2px" }}>{s.value}</div>
+                  <div
+                    style={{
+                      fontFamily: "var(--font-mono)",
+                      fontSize: "0.4375rem",
+                      letterSpacing: "0.1em",
+                      color: "var(--text-4)",
+                    }}
+                  >
+                    {s.label}
+                  </div>
+                  <div
+                    style={{
+                      fontFamily: "var(--font-mono)",
+                      fontSize: "0.75rem",
+                      color: "var(--text-1)",
+                      fontWeight: 600,
+                      marginTop: "2px",
+                    }}
+                  >
+                    {s.value}
+                  </div>
                 </div>
               ))}
             </div>
@@ -323,63 +476,119 @@ export default function AgentsPage() {
         ))}
       </div>
 
-      {/* Delegation Topology SVG */}
+      {/* SVG de Topologia */}
       <div className="glass-card" style={{ padding: "1.25rem" }}>
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "1rem" }}>
-          DELEGATION TOPOLOGY · LIVE PATHS
+        <div
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: "0.5625rem",
+            letterSpacing: "0.12em",
+            color: "var(--text-4)",
+            marginBottom: "0.5rem",
+          }}
+        >
+          TOPOLOGIA DE DELEGAÇÃO · 14 NÓS · CAMINHOS ATIVOS
         </div>
+        <p style={{ color: "var(--text-4)", fontSize: 11, marginBottom: "1rem" }}>
+          Clique num agente para destacar suas conexões
+        </p>
         <div style={{ overflowX: "auto" }}>
           <svg
-            width="600"
-            height="420"
-            viewBox="0 0 600 420"
+            width="730"
+            height="530"
+            viewBox="0 0 730 530"
             style={{ display: "block", margin: "0 auto", maxWidth: "100%" }}
           >
             <defs>
-              <marker id="arrowhead-active" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+              <marker id="arrow-active" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
                 <polygon points="0 0, 8 3, 0 6" fill="hsl(150 100% 50% / 0.8)" />
               </marker>
-              <marker id="arrowhead-dim" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
-                <polygon points="0 0, 8 3, 0 6" fill="hsl(150 100% 50% / 0.15)" />
+              <marker id="arrow-dim" markerWidth="8" markerHeight="6" refX="8" refY="3" orient="auto">
+                <polygon points="0 0, 8 3, 0 6" fill="hsl(150 100% 50% / 0.12)" />
               </marker>
-              <radialGradient id="node-glow" cx="50%" cy="50%" r="50%">
+              <radialGradient id="glow-green" cx="50%" cy="50%" r="50%">
                 <stop offset="0%" stopColor="hsl(150 100% 50% / 0.3)" />
+                <stop offset="100%" stopColor="transparent" />
+              </radialGradient>
+              <radialGradient id="glow-cyan" cx="50%" cy="50%" r="50%">
+                <stop offset="0%" stopColor="hsl(180 100% 50% / 0.25)" />
                 <stop offset="100%" stopColor="transparent" />
               </radialGradient>
             </defs>
 
-            {/* Edges */}
             {ACTIVE_EDGES.map(([from, to]) => {
               const f = getNodePos(from);
               const t = getNodePos(to);
+              const highlighted =
+                selectedAgent === null ||
+                selectedAgent === from ||
+                selectedAgent === to;
               return (
                 <line
                   key={`${from}-${to}`}
-                  x1={f.x} y1={f.y}
-                  x2={t.x} y2={t.y}
-                  stroke="hsl(150 100% 50% / 0.5)"
+                  x1={f.x}
+                  y1={f.y}
+                  x2={t.x}
+                  y2={t.y}
+                  stroke={highlighted ? "hsl(150 100% 50% / 0.55)" : "hsl(150 100% 50% / 0.07)"}
                   strokeWidth="1.5"
-                  markerEnd="url(#arrowhead-active)"
+                  markerEnd={highlighted ? "url(#arrow-active)" : "url(#arrow-dim)"}
+                  style={{ transition: "stroke 0.2s" }}
                 />
               );
             })}
 
-            {/* Nodes */}
             {TOPOLOGY_AGENTS.map((node) => {
-              const agent = AGENTS_DATA.find((a) => a.id === node.id);
+              const agent = AGENTS_DATA.find((a) => a.slug === node.id);
               const isActive = agent?.status === "active";
               const isSelected = selectedAgent === node.id;
+              const isDimmed =
+                selectedAgent !== null &&
+                !isSelected &&
+                !ACTIVE_EDGES.some(
+                  ([f, t]) =>
+                    (f === selectedAgent && t === node.id) ||
+                    (t === selectedAgent && f === node.id)
+                );
+
               return (
-                <g key={node.id} onClick={() => setSelectedAgent(isSelected ? null : node.id)} style={{ cursor: "pointer" }}>
+                <g
+                  key={node.id}
+                  onClick={() => setSelectedAgent(isSelected ? null : node.id)}
+                  style={{
+                    cursor: "pointer",
+                    opacity: isDimmed ? 0.3 : 1,
+                    transition: "opacity 0.2s",
+                  }}
+                >
                   {isActive && (
-                    <circle cx={node.x} cy={node.y} r={28} fill="url(#node-glow)" />
+                    <circle
+                      cx={node.x}
+                      cy={node.y}
+                      r={30}
+                      fill="url(#glow-green)"
+                    />
+                  )}
+                  {!isActive && (
+                    <circle
+                      cx={node.x}
+                      cy={node.y}
+                      r={28}
+                      fill="url(#glow-cyan)"
+                    />
                   )}
                   <circle
                     cx={node.x}
                     cy={node.y}
                     r={isSelected ? 24 : 20}
                     fill={isSelected ? "hsl(150 100% 50% / 0.2)" : "hsl(220 18% 9%)"}
-                    stroke={isActive ? "hsl(150 100% 50% / 0.8)" : "hsl(180 100% 50% / 0.5)"}
+                    stroke={
+                      isSelected
+                        ? "hsl(150 100% 50%)"
+                        : isActive
+                        ? "hsl(150 100% 50% / 0.8)"
+                        : "hsl(180 100% 50% / 0.5)"
+                    }
                     strokeWidth={isSelected ? 2 : 1}
                   />
                   <text
@@ -388,9 +597,9 @@ export default function AgentsPage() {
                     textAnchor="middle"
                     style={{
                       fontFamily: "var(--font-mono)",
-                      fontSize: "0.5rem",
+                      fontSize: "0.44rem",
                       fill: isActive ? "hsl(150 100% 50%)" : "hsl(180 100% 50%)",
-                      fontWeight: 600,
+                      fontWeight: 700,
                       pointerEvents: "none",
                     }}
                   >
@@ -401,32 +610,92 @@ export default function AgentsPage() {
             })}
           </svg>
         </div>
-        <div style={{ display: "flex", gap: "1.5rem", justifyContent: "center", marginTop: "0.75rem" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            <div style={{ width: 20, height: 1.5, background: "hsl(150 100% 50% / 0.8)" }} />
-            <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--text-4)" }}>ACTIVE PATH</span>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            <div style={{ width: 12, height: 12, borderRadius: "50%", border: "1px solid var(--accent)", background: "hsl(150 100% 50% / 0.15)" }} />
-            <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--text-4)" }}>ACTIVE NODE</span>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-            <div style={{ width: 12, height: 12, borderRadius: "50%", border: "1px solid var(--cyan)", background: "transparent" }} />
-            <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--text-4)" }}>WATCHING</span>
-          </div>
+
+        {/* Legenda */}
+        <div
+          style={{
+            display: "flex",
+            gap: "1.5rem",
+            justifyContent: "center",
+            marginTop: "0.75rem",
+            flexWrap: "wrap",
+          }}
+        >
+          {[
+            {
+              el: <div style={{ width: 20, height: 1.5, background: "hsl(150 100% 50% / 0.8)" }} />,
+              label: "CAMINHO ATIVO",
+            },
+            {
+              el: (
+                <div
+                  style={{
+                    width: 12,
+                    height: 12,
+                    borderRadius: "50%",
+                    border: "1px solid var(--accent)",
+                    background: "hsl(150 100% 50% / 0.15)",
+                  }}
+                />
+              ),
+              label: "AGENTE ATIVO",
+            },
+            {
+              el: (
+                <div
+                  style={{
+                    width: 12,
+                    height: 12,
+                    borderRadius: "50%",
+                    border: "1px solid var(--cyan)",
+                    background: "transparent",
+                  }}
+                />
+              ),
+              label: "MONITORANDO",
+            },
+          ].map(({ el, label }) => (
+            <div key={label} style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+              {el}
+              <span
+                style={{
+                  fontFamily: "var(--font-mono)",
+                  fontSize: "0.5625rem",
+                  color: "var(--text-4)",
+                }}
+              >
+                {label}
+              </span>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* Spawn History */}
+      {/* Histórico de spawn */}
       <div className="glass-card" style={{ padding: "1.25rem" }}>
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "1rem" }}>
-          SPAWN HISTORY · RECENT RECURSIVE CALLS
+        <div
+          style={{
+            fontFamily: "var(--font-mono)",
+            fontSize: "0.5625rem",
+            letterSpacing: "0.12em",
+            color: "var(--text-4)",
+            marginBottom: "1rem",
+          }}
+        >
+          HISTÓRICO DE SPAWN · CHAMADAS RECURSIVAS RECENTES
         </div>
         <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "var(--font-mono)", fontSize: "0.6875rem" }}>
+          <table
+            style={{
+              width: "100%",
+              borderCollapse: "collapse",
+              fontFamily: "var(--font-mono)",
+              fontSize: "0.6875rem",
+            }}
+          >
             <thead>
               <tr style={{ borderBottom: "1px solid var(--border)" }}>
-                {["TIME", "PARENT", "CHILD", "DEPTH", "DURATION", "RESULT"].map((h) => (
+                {["HORÁRIO", "PAI", "FILHO", "PROFUNDIDADE", "DURAÇÃO", "RESULTADO"].map((h) => (
                   <th
                     key={h}
                     style={{
@@ -452,9 +721,15 @@ export default function AgentsPage() {
                     background: i % 2 === 0 ? "rgba(0,0,0,0.15)" : "transparent",
                   }}
                 >
-                  <td style={{ padding: "0.5rem 0.75rem", color: "var(--text-4)" }}>{row.ts}</td>
-                  <td style={{ padding: "0.5rem 0.75rem", color: "var(--accent)" }}>{row.parent}</td>
-                  <td style={{ padding: "0.5rem 0.75rem", color: "var(--cyan)" }}>{row.child}</td>
+                  <td style={{ padding: "0.5rem 0.75rem", color: "var(--text-4)" }}>
+                    {row.ts}
+                  </td>
+                  <td style={{ padding: "0.5rem 0.75rem", color: "var(--accent)" }}>
+                    {row.parent}
+                  </td>
+                  <td style={{ padding: "0.5rem 0.75rem", color: "var(--cyan)" }}>
+                    {row.child}
+                  </td>
                   <td style={{ padding: "0.5rem 0.75rem", color: "var(--text-2)" }}>
                     <span
                       style={{
@@ -469,7 +744,9 @@ export default function AgentsPage() {
                       depth={row.depth}
                     </span>
                   </td>
-                  <td style={{ padding: "0.5rem 0.75rem", color: "var(--text-3)" }}>{row.duration}</td>
+                  <td style={{ padding: "0.5rem 0.75rem", color: "var(--text-3)" }}>
+                    {row.duration}
+                  </td>
                   <td style={{ padding: "0.5rem 0.75rem" }}>
                     <span
                       style={{
@@ -477,8 +754,11 @@ export default function AgentsPage() {
                         borderRadius: "var(--radius)",
                         fontFamily: "var(--font-mono)",
                         fontSize: "0.5625rem",
-                        background: row.status === "OK" ? "hsl(150 100% 50% / 0.1)" : "hsl(45 100% 50% / 0.1)",
-                        color: row.status === "OK" ? "var(--accent)" : "var(--amber)",
+                        background:
+                          row.status === "OK"
+                            ? "hsl(150 100% 50% / 0.1)"
+                            : "hsl(45 100% 50% / 0.1)",
+                        color: row.status === "OK" ? "var(--accent)" : "#f59e0b",
                         border: `1px solid ${row.status === "OK" ? "hsl(150 100% 50% / 0.3)" : "hsl(45 100% 50% / 0.3)"}`,
                       }}
                     >

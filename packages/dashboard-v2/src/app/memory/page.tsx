@@ -6,21 +6,21 @@ import { Suspense } from "react";
 const KnowledgeGraph3D = dynamic(() => import("../../components/charts/knowledge-graph-3d"), { ssr: false });
 
 const CORPUS_SOURCES = [
-  { label: "CVM Publications", value: 2140, total: 5640 },
-  { label: "Fund Regulations", value: 1850, total: 5640 },
-  { label: "BACEN Norms", value: 890, total: 5640 },
-  { label: "Internal Policies", value: 480, total: 5640 },
-  { label: "Cedente Docs", value: 280, total: 5640 },
+  { label: "Publicações CVM", value: 2140, total: 5640 },
+  { label: "Regulamentos de Fundos", value: 1850, total: 5640 },
+  { label: "Normas BACEN", value: 890, total: 5640 },
+  { label: "Políticas Internas", value: 480, total: 5640 },
+  { label: "Documentos de Cedentes", value: 280, total: 5640 },
 ];
 
 const RAG_NODES = [
-  { id: "query", label: "QUERY", x: 0 },
+  { id: "query", label: "CONSULTA", x: 0 },
   { id: "embed", label: "EMBED", x: 1 },
-  { id: "vector", label: "VECTOR SEARCH", x: 2 },
+  { id: "vector", label: "BUSCA VETORIAL", x: 2 },
   { id: "bm25", label: "BM25", x: 3 },
   { id: "rerank", label: "RERANK", x: 4 },
   { id: "topk", label: "TOP-K", x: 5 },
-  { id: "agent", label: "AGENT", x: 6 },
+  { id: "agent", label: "AGENTE", x: 6 },
 ];
 
 const RECENT_QUERIES = [
@@ -64,7 +64,7 @@ const RECENT_QUERIES = [
 const INGEST_HISTORY = [
   { company: "Cimento Norte Ltda", cnpj: "34.567.890/0001-22", docs: 12, chunks: 847, entities: 38, time: "7.2s", ts: "13:04:19" },
   { company: "Fundo Paganini I", cnpj: "N/A", docs: 28, chunks: 2140, entities: 124, time: "18.4s", ts: "12:51:33" },
-  { company: "BACEN Res. 4.966 Update", cnpj: "N/A", docs: 5, chunks: 412, entities: 67, time: "5.1s", ts: "12:34:07" },
+  { company: "BACEN Res. 4.966 Atualização", cnpj: "N/A", docs: 5, chunks: 412, entities: 67, time: "5.1s", ts: "12:34:07" },
   { company: "Metalúrgica ABC S/A", cnpj: "12.345.678/0001-99", docs: 8, chunks: 544, entities: 29, time: "4.8s", ts: "11:22:44" },
   { company: "CVM ICVM 356 (Rev.2025)", cnpj: "N/A", docs: 3, chunks: 188, entities: 41, time: "2.9s", ts: "10:08:12" },
 ];
@@ -74,9 +74,9 @@ const SKILL_EVOLUTION = [
     skill: "compliance-pdd-check",
     scoreFrom: 0.31,
     scoreTo: 0.87,
-    status: "PROMOTED",
+    status: "PROMOVIDA",
     date: "2025-03-18",
-    desc: "Detects PDD incompatibilities in fund docs",
+    desc: "Detecta incompatibilidades de PDD em documentos do fundo",
   },
   {
     skill: "cnpj-pep-fast",
@@ -84,23 +84,23 @@ const SKILL_EVOLUTION = [
     scoreTo: 0.76,
     status: "STAGING",
     date: "2025-03-17",
-    desc: "Combined CNPJ + PEP lookup in single call",
+    desc: "Consulta combinada de CNPJ + PEP em uma única chamada",
   },
   {
     skill: "covenant-breach-alert",
     scoreFrom: 0.44,
     scoreTo: 0.91,
-    status: "PROMOTED",
+    status: "PROMOVIDA",
     date: "2025-03-15",
-    desc: "Early warning on covenant threshold proximity",
+    desc: "Alerta antecipado sobre proximidade de limites de covenant",
   },
   {
     skill: "nav-delta-explain",
     scoreFrom: 0.62,
     scoreTo: 0.69,
-    status: "EVAL",
+    status: "AVALIAÇÃO",
     date: "2025-03-14",
-    desc: "Natural language explanation of NAV movements",
+    desc: "Explicação em linguagem natural dos movimentos de NAV",
   },
 ];
 
@@ -164,7 +164,7 @@ function RAGPipeline() {
 
           return (
             <g key={node.id}>
-              {/* Arrow to next */}
+              {/* Seta para o próximo */}
               {i < RAG_NODES.length - 1 && (
                 <line
                   x1={x + nodeW}
@@ -176,7 +176,7 @@ function RAGPipeline() {
                   markerEnd="url(#rag-arrow)"
                 />
               )}
-              {/* Node box */}
+              {/* Caixa do nó */}
               <rect
                 x={x}
                 y={cy - nodeH / 2}
@@ -187,7 +187,7 @@ function RAGPipeline() {
                 stroke={i === RAG_NODES.length - 1 ? "var(--accent)" : "hsl(150 100% 50% / 0.25)"}
                 strokeWidth={i === RAG_NODES.length - 1 ? 1.5 : 1}
               />
-              {/* Label */}
+              {/* Rótulo */}
               <text
                 x={x + nodeW / 2}
                 y={textY}
@@ -215,7 +215,7 @@ function ScoreBar({ from, to }: { from: number; to: number }) {
     <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
       <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--text-4)", width: 28 }}>{from.toFixed(2)}</span>
       <div style={{ flex: 1, height: 6, background: "rgba(0,0,0,0.4)", borderRadius: "1px", overflow: "hidden", position: "relative" }}>
-        {/* from marker */}
+        {/* marcador de origem */}
         <div
           style={{
             position: "absolute",
@@ -226,7 +226,7 @@ function ScoreBar({ from, to }: { from: number; to: number }) {
             background: "hsl(150 100% 50% / 0.2)",
           }}
         />
-        {/* to fill */}
+        {/* preenchimento de destino */}
         <div
           style={{
             position: "absolute",
@@ -247,24 +247,24 @@ function ScoreBar({ from, to }: { from: number; to: number }) {
 export default function MemoryPage() {
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-      {/* Header */}
+      {/* Cabeçalho */}
       <div>
         <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "0.25rem" }}>
-          PAGANINI AIOS · KNOWLEDGE ENGINE
+          PAGANINI AIOS · MOTOR DE CONHECIMENTO
         </div>
         <h1 style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--text-1)", margin: 0 }}>
-          Memory{" "}
-          <span style={{ color: "var(--accent)" }}>+ Knowledge Graph</span>
+          Memória{" "}
+          <span style={{ color: "var(--accent)" }}>+ Grafo de Conhecimento</span>
         </h1>
       </div>
 
-      {/* Stats Row */}
+      {/* Linha de Estatísticas */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "1rem" }}>
         {[
-          { label: "DOCUMENTS", value: "5,640", sub: "+280 today", color: "var(--text-1)" },
-          { label: "CHUNKS", value: "48,312", sub: "avg 8.6 chunks/doc", color: "var(--accent)" },
-          { label: "ENTITIES", value: "847", sub: "ChromaDB nodes", color: "var(--cyan)" },
-          { label: "RELATIONSHIPS", value: "2,193", sub: "graph edges", color: "var(--text-1)" },
+          { label: "DOCUMENTOS", value: "5.640", sub: "+280 hoje", color: "var(--text-1)" },
+          { label: "CHUNKS", value: "48.312", sub: "média 8,6 chunks/doc", color: "var(--accent)" },
+          { label: "ENTIDADES", value: "847", sub: "nós ChromaDB", color: "var(--cyan)" },
+          { label: "RELACIONAMENTOS", value: "2.193", sub: "arestas do grafo", color: "var(--text-1)" },
         ].map((s) => (
           <div key={s.label} className="glass-card" style={{ padding: "1rem 1.25rem" }}>
             <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "0.25rem" }}>
@@ -276,15 +276,15 @@ export default function MemoryPage() {
         ))}
       </div>
 
-      {/* 3D Knowledge Graph */}
+      {/* Grafo de Conhecimento 3D */}
       <div className="glass-card" style={{ padding: "1.25rem" }}>
         <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "0.75rem" }}>
-          3D KNOWLEDGE GRAPH · ENTITY RELATIONSHIPS
+          GRAFO DE CONHECIMENTO 3D · RELACIONAMENTOS DE ENTIDADES
         </div>
         <div style={{ height: 420, borderRadius: "var(--radius)", overflow: "hidden", background: "rgba(0,0,0,0.4)" }}>
           <Suspense fallback={
             <div style={{ height: "100%", display: "flex", alignItems: "center", justifyContent: "center", fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--text-4)" }}>
-              Loading knowledge graph…
+              Carregando grafo de conhecimento…
             </div>
           }>
             <KnowledgeGraph3D />
@@ -292,12 +292,12 @@ export default function MemoryPage() {
         </div>
       </div>
 
-      {/* Corpus Analytics + RAG Pipeline */}
+      {/* Análise do Corpus + Pipeline RAG */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem", alignItems: "start" }}>
-        {/* Corpus Analytics */}
+        {/* Análise do Corpus */}
         <div className="glass-card" style={{ padding: "1.25rem" }}>
           <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "1rem" }}>
-            CORPUS ANALYTICS · DOCUMENT SOURCES
+            ANÁLISE DO CORPUS · FONTES DE DOCUMENTOS
           </div>
           <CorpusBarChart />
           <div
@@ -312,24 +312,24 @@ export default function MemoryPage() {
               color: "var(--text-4)",
             }}
           >
-            <span>TOTAL CORPUS</span>
-            <span style={{ color: "var(--accent)" }}>5,640 documents · 48,312 chunks</span>
+            <span>CORPUS TOTAL</span>
+            <span style={{ color: "var(--accent)" }}>5.640 documentos · 48.312 chunks</span>
           </div>
         </div>
 
-        {/* RAG Pipeline */}
+        {/* Pipeline RAG */}
         <div className="glass-card" style={{ padding: "1.25rem" }}>
           <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "1rem" }}>
-            RAG PIPELINE FLOW · QUERY → AGENT
+            FLUXO DO PIPELINE RAG · CONSULTA → AGENTE
           </div>
           <RAGPipeline />
           <div style={{ marginTop: "1.25rem", display: "flex", flexDirection: "column", gap: "8px" }}>
             {[
               { stage: "EMBED", detail: "text-embedding-3-large · 3072d", color: "var(--cyan)" },
-              { stage: "VECTOR", detail: "ChromaDB · cosine similarity · top-20", color: "var(--accent)" },
-              { stage: "BM25", detail: "BM25 sparse retrieval · top-10 merge", color: "var(--accent)" },
-              { stage: "RERANK", detail: "Cohere rerank-v3 · threshold 0.7", color: "var(--accent)" },
-              { stage: "TOP-K", detail: "k=5 · context window: 8K tokens", color: "var(--accent)" },
+              { stage: "VECTOR", detail: "ChromaDB · similaridade de cosseno · top-20", color: "var(--accent)" },
+              { stage: "BM25", detail: "Recuperação esparsa BM25 · mesclagem top-10", color: "var(--accent)" },
+              { stage: "RERANK", detail: "Cohere rerank-v3 · limiar 0,7", color: "var(--accent)" },
+              { stage: "TOP-K", detail: "k=5 · janela de contexto: 8K tokens", color: "var(--accent)" },
             ].map((s) => (
               <div key={s.stage} style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
                 <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", color: s.color, width: 52, flexShrink: 0, letterSpacing: "0.08em" }}>
@@ -342,16 +342,16 @@ export default function MemoryPage() {
         </div>
       </div>
 
-      {/* Recent Queries */}
+      {/* Consultas Recentes */}
       <div className="glass-card" style={{ padding: "1.25rem" }}>
         <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "1rem" }}>
-          RECENT RAG QUERIES · LIVE
+          CONSULTAS RAG RECENTES · AO VIVO
         </div>
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "var(--font-mono)", fontSize: "0.6875rem" }}>
             <thead>
               <tr style={{ borderBottom: "1px solid var(--border)" }}>
-                {["QUERY", "AGENT", "CONFIDENCE", "CITATIONS", "LATENCY"].map((h) => (
+                {["CONSULTA", "AGENTE", "CONFIANÇA", "CITAÇÕES", "LATÊNCIA"].map((h) => (
                   <th
                     key={h}
                     style={{
@@ -405,7 +405,7 @@ export default function MemoryPage() {
                       <span style={{ color: "var(--accent)" }}>{row.confidence}%</span>
                     </div>
                   </td>
-                  <td style={{ padding: "0.6rem 0.75rem", color: "var(--cyan)" }}>{row.citations} src</td>
+                  <td style={{ padding: "0.6rem 0.75rem", color: "var(--cyan)" }}>{row.citations} fontes</td>
                   <td style={{ padding: "0.6rem 0.75rem", color: "var(--text-3)" }}>{row.latency}</td>
                 </tr>
               ))}
@@ -414,16 +414,16 @@ export default function MemoryPage() {
         </div>
       </div>
 
-      {/* Ingest History */}
+      {/* Histórico de Ingestão */}
       <div className="glass-card" style={{ padding: "1.25rem" }}>
         <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "1rem" }}>
-          INGEST HISTORY · paganini ingest [--cnpj] [--source]
+          HISTÓRICO DE INGESTÃO · paganini ingest [--cnpj] [--source]
         </div>
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "var(--font-mono)", fontSize: "0.6875rem" }}>
             <thead>
               <tr style={{ borderBottom: "1px solid var(--border)" }}>
-                {["TIME", "COMPANY", "CNPJ", "DOCS", "CHUNKS", "ENTITIES", "ELAPSED"].map((h) => (
+                {["HORA", "EMPRESA", "CNPJ", "DOCS", "CHUNKS", "ENTIDADES", "TEMPO"].map((h) => (
                   <th
                     key={h}
                     style={{
@@ -463,29 +463,29 @@ export default function MemoryPage() {
         </div>
       </div>
 
-      {/* MetaClaw Skill Evolution */}
+      {/* Evolução de Skills MetaClaw */}
       <div className="glass-card" style={{ padding: "1.25rem" }}>
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem" }}>
           <div>
             <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "2px" }}>
-              METACLAW · SKILL EVOLUTION
+              METACLAW · EVOLUÇÃO DE SKILLS
             </div>
-            <div style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--text-1)" }}>Self-Learning Timeline</div>
+            <div style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--text-1)" }}>Linha do Tempo de Autoaprendizado</div>
           </div>
           <div style={{ display: "flex", gap: "6px" }}>
-            <span className="tag-badge">2 PROMOTED</span>
-            <span className="tag-badge-cyan">2 IN EVAL</span>
+            <span className="tag-badge">2 PROMOVIDAS</span>
+            <span className="tag-badge-cyan">2 EM AVALIAÇÃO</span>
           </div>
         </div>
 
         <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
           {SKILL_EVOLUTION.map((skill, i) => {
             const statusColor =
-              skill.status === "PROMOTED" ? "var(--accent)" :
+              skill.status === "PROMOVIDA" ? "var(--accent)" :
               skill.status === "STAGING" ? "var(--cyan)" :
               "hsl(45 100% 50%)";
             const statusBg =
-              skill.status === "PROMOTED" ? "hsl(150 100% 50% / 0.1)" :
+              skill.status === "PROMOVIDA" ? "hsl(150 100% 50% / 0.1)" :
               skill.status === "STAGING" ? "hsl(180 100% 50% / 0.1)" :
               "hsl(45 100% 50% / 0.1)";
 
@@ -500,7 +500,7 @@ export default function MemoryPage() {
                   borderBottom: i < SKILL_EVOLUTION.length - 1 ? "1px solid var(--border)" : "none",
                 }}
               >
-                {/* Timeline dot */}
+                {/* Ponto da linha do tempo */}
                 <div style={{ display: "flex", flexDirection: "column", alignItems: "center", flexShrink: 0 }}>
                   <div
                     style={{
@@ -508,7 +508,7 @@ export default function MemoryPage() {
                       height: 12,
                       borderRadius: "50%",
                       background: statusColor,
-                      boxShadow: skill.status === "PROMOTED" ? `0 0 8px ${statusColor}` : "none",
+                      boxShadow: skill.status === "PROMOVIDA" ? `0 0 8px ${statusColor}` : "none",
                       marginTop: "2px",
                     }}
                   />
@@ -517,7 +517,7 @@ export default function MemoryPage() {
                   )}
                 </div>
 
-                {/* Content */}
+                {/* Conteúdo */}
                 <div style={{ flex: 1 }}>
                   <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "4px" }}>
                     <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
@@ -543,7 +543,7 @@ export default function MemoryPage() {
                   </div>
                   <div style={{ fontSize: "0.5625rem", color: "var(--text-3)", marginBottom: "8px" }}>{skill.desc}</div>
                   <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                    <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", color: "var(--text-4)", flexShrink: 0 }}>SCORE</span>
+                    <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", color: "var(--text-4)", flexShrink: 0 }}>PONTUAÇÃO</span>
                     <ScoreBar from={skill.scoreFrom} to={skill.scoreTo} />
                     <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--text-4)", flexShrink: 0 }}>
                       {skill.scoreFrom.toFixed(2)}→{skill.scoreTo.toFixed(2)}

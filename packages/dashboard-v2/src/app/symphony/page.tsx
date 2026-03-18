@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 
-// ── Types ─────────────────────────────────────────────────────────────────────
+// ── Tipos ─────────────────────────────────────────────────────────────────────
 type FlowNode = {
   name: string;
   agent: string;
@@ -17,31 +17,31 @@ type Flow = {
   nodes: FlowNode[];
 };
 
-// ── Orchestration flows ───────────────────────────────────────────────────────
+// ── Fluxos de orquestração ───────────────────────────────────────────────────
 const flows: Flow[] = [
   {
-    name: "PURCHASE",
+    name: "COMPRA",
     color: "#00ff80",
     colorVar: "var(--accent)",
     nodes: [
-      { name: "Cedente Submit", agent: "API Gateway", time: "0.1s", status: "ok" },
-      { name: "DD Score", agent: "DD Agent", time: "3.1s", status: "ok" },
+      { name: "Envio Cedente", agent: "API Gateway", time: "0.1s", status: "ok" },
+      { name: "Pontuação DD", agent: "Agente DD", time: "3.1s", status: "ok" },
       { name: "6 Guardrails", agent: "Compliance", time: "1.8s", status: "ok" },
-      { name: "Pricing", agent: "Pricing Agent", time: "0.6s", status: "ok" },
-      { name: "Admin", agent: "Admin Agent", time: "0.4s", status: "ok" },
-      { name: "Custody", agent: "Custody Agent", time: "0.2s", status: "ok" },
+      { name: "Pricing", agent: "Agente Pricing", time: "0.6s", status: "ok" },
+      { name: "Admin", agent: "Agente Admin", time: "0.4s", status: "ok" },
+      { name: "Custódia", agent: "Agente Custódia", time: "0.2s", status: "ok" },
     ],
   },
   {
-    name: "REPORT",
+    name: "RELATÓRIO",
     color: "#00ffff",
     colorVar: "var(--cyan)",
     nodes: [
-      { name: "Admin NAV", agent: "Admin Agent", time: "0.3s", status: "ok" },
-      { name: "Pricing PDD", agent: "Pricing Agent", time: "1.2s", status: "ok" },
-      { name: "Compliance Status", agent: "Compliance", time: "0.8s", status: "ok" },
-      { name: "Reporting Compile", agent: "Reporting Agent", time: "2.4s", status: "ok" },
-      { name: "IR Distribute", agent: "IR Agent", time: "0.5s", status: "ok" },
+      { name: "NAV Admin", agent: "Agente Admin", time: "0.3s", status: "ok" },
+      { name: "PDD Pricing", agent: "Agente Pricing", time: "1.2s", status: "ok" },
+      { name: "Status Compliance", agent: "Compliance", time: "0.8s", status: "ok" },
+      { name: "Compilação Relatório", agent: "Agente Relatório", time: "2.4s", status: "ok" },
+      { name: "Distribuição IR", agent: "Agente IR", time: "0.5s", status: "ok" },
     ],
   },
   {
@@ -49,33 +49,33 @@ const flows: Flow[] = [
     color: "#f59e0b",
     colorVar: "#f59e0b",
     nodes: [
-      { name: "DD Analyze", agent: "DD Agent", time: "3.1s", status: "ok" },
-      { name: "PLD/AML Screen", agent: "Compliance", time: "0.8s", status: "ok" },
-      { name: "Risk Rate", agent: "Risk Agent", time: "1.1s", status: "ok" },
-      { name: "Admin Register", agent: "Admin Agent", time: "0.3s", status: "ok" },
+      { name: "Análise DD", agent: "Agente DD", time: "3.1s", status: "ok" },
+      { name: "Triagem PLD/AML", agent: "Compliance", time: "0.8s", status: "ok" },
+      { name: "Classificação Risco", agent: "Agente Risco", time: "1.1s", status: "ok" },
+      { name: "Registro Admin", agent: "Agente Admin", time: "0.3s", status: "ok" },
     ],
   },
 ];
 
-// ── Agent names for delegation matrix ────────────────────────────────────────
-const agents = ["DD", "Compliance", "Pricing", "Risk", "Admin", "Custody", "Reporting", "IR", "KG"];
+// ── Nomes dos agentes para matriz de delegação ────────────────────────────────
+const agents = ["DD", "Compliance", "Pricing", "Risco", "Admin", "Custódia", "Relatório", "IR", "KG"];
 
-// Delegation pairs [from, to, reason]
+// Pares de delegação [de, para, motivo]
 const delegations: [number, number, string][] = [
-  [0, 1, "DD → Compliance: sends score for gate validation"],
-  [0, 8, "DD → KG: extracts entities for knowledge graph"],
-  [1, 4, "Compliance → Admin: cleared cedente for registration"],
-  [2, 3, "Pricing → Risk: requests risk rating for PDD"],
-  [3, 2, "Risk → Pricing: returns risk factor for curve"],
-  [4, 5, "Admin → Custody: triggers custody registration"],
-  [4, 7, "Admin → IR: sends investor distribution request"],
-  [6, 2, "Reporting → Pricing: requests PDD provision calc"],
-  [6, 1, "Reporting → Compliance: requests compliance status"],
-  [7, 4, "IR → Admin: confirms distribution executed"],
+  [0, 1, "DD → Compliance: envia pontuação para validação no gate"],
+  [0, 8, "DD → KG: extrai entidades para o grafo de conhecimento"],
+  [1, 4, "Compliance → Admin: cedente liberado para registro"],
+  [2, 3, "Pricing → Risco: solicita classificação de risco para PDD"],
+  [3, 2, "Risco → Pricing: retorna fator de risco para curva"],
+  [4, 5, "Admin → Custódia: aciona registro de custódia"],
+  [4, 7, "Admin → IR: envia requisição de distribuição ao investidor"],
+  [6, 2, "Relatório → Pricing: solicita cálculo de provisão PDD"],
+  [6, 1, "Relatório → Compliance: solicita status de compliance"],
+  [7, 4, "IR → Admin: confirma execução da distribuição"],
   [0, 1, ""],
-  [1, 0, "Compliance → DD: requests rerun on flag"],
-  [2, 4, "Pricing → Admin: sends NAV calculation result"],
-  [5, 4, "Custody → Admin: confirms custody status"],
+  [1, 0, "Compliance → DD: solicita nova execução por flag"],
+  [2, 4, "Pricing → Admin: envia resultado do cálculo de NAV"],
+  [5, 4, "Custódia → Admin: confirma status de custódia"],
 ];
 
 const delegationSet = new Set(delegations.map(([f, t]) => `${f}-${t}`));
@@ -84,25 +84,25 @@ delegations.forEach(([f, t, r]) => {
   if (r) delegationReason[`${f}-${t}`] = r;
 });
 
-// ── Orchestration timeline ────────────────────────────────────────────────────
+// ── Linha do tempo de orquestração ────────────────────────────────────────────
 const timeline = [
   {
-    flow: "PURCHASE",
+    flow: "COMPRA",
     color: "#00ff80",
     badge: "tag-badge",
     agents: [0, 1, 2, 3, 4, 5],
     duration: "6.2s",
     status: "ok",
-    detail: "DD(3.1s) → Compliance(1.8s) → Pricing(0.6s) → Admin(0.4s) → Custody(0.2s)",
+    detail: "DD(3.1s) → Compliance(1.8s) → Pricing(0.6s) → Admin(0.4s) → Custódia(0.2s)",
   },
   {
-    flow: "REPORT",
+    flow: "RELATÓRIO",
     color: "#00ffff",
     badge: "tag-badge-cyan",
     agents: [4, 2, 1, 6, 7],
     duration: "5.2s",
     status: "ok",
-    detail: "Admin(0.3s) → Pricing(1.2s) → Compliance(0.8s) → Reporting(2.4s) → IR(0.5s)",
+    detail: "Admin(0.3s) → Pricing(1.2s) → Compliance(0.8s) → Relatório(2.4s) → IR(0.5s)",
   },
   {
     flow: "ONBOARD",
@@ -111,16 +111,16 @@ const timeline = [
     agents: [0, 1, 3, 4],
     duration: "5.3s",
     status: "ok",
-    detail: "DD(3.1s) → Compliance(0.8s) → Risk(1.1s) → Admin(0.3s)",
+    detail: "DD(3.1s) → Compliance(0.8s) → Risco(1.1s) → Admin(0.3s)",
   },
   {
-    flow: "PURCHASE",
+    flow: "COMPRA",
     color: "#00ff80",
     badge: "tag-badge",
     agents: [0, 1, 2, 3, 4, 5],
     duration: "5.9s",
     status: "ok",
-    detail: "DD(2.8s) → Compliance(1.7s) → Pricing(0.7s) → Admin(0.4s) → Custody(0.2s)",
+    detail: "DD(2.8s) → Compliance(1.7s) → Pricing(0.7s) → Admin(0.4s) → Custódia(0.2s)",
   },
   {
     flow: "ONBOARD",
@@ -129,26 +129,26 @@ const timeline = [
     agents: [0, 1, 3, 4],
     duration: "6.1s",
     status: "warn",
-    detail: "DD(3.4s) → Compliance(1.2s) ⚠ PLD flag → Risk(1.1s) → Admin(0.4s)",
+    detail: "DD(3.4s) → Compliance(1.2s) ⚠ flag PLD → Risco(1.1s) → Admin(0.4s)",
   },
   {
-    flow: "REPORT",
+    flow: "RELATÓRIO",
     color: "#00ffff",
     badge: "tag-badge-cyan",
     agents: [4, 2, 1, 6, 7],
     duration: "4.9s",
     status: "ok",
-    detail: "Admin(0.2s) → Pricing(1.1s) → Compliance(0.7s) → Reporting(2.3s) → IR(0.6s)",
+    detail: "Admin(0.2s) → Pricing(1.1s) → Compliance(0.7s) → Relatório(2.3s) → IR(0.6s)",
   },
 ];
 
-// ── Agent collaboration heatmap data ─────────────────────────────────────────
+// ── Dados do mapa de calor de colaboração ─────────────────────────────────────
 type CollabPair = { a: number; b: number; freq: number; label: string };
 const collabPairs: CollabPair[] = [
   { a: 0, b: 1, freq: 312, label: "DD ↔ Compliance" },
-  { a: 2, b: 3, freq: 289, label: "Pricing ↔ Risk" },
-  { a: 4, b: 5, freq: 264, label: "Admin ↔ Custody" },
-  { a: 6, b: 1, freq: 187, label: "Reporting ↔ Compliance" },
+  { a: 2, b: 3, freq: 289, label: "Pricing ↔ Risco" },
+  { a: 4, b: 5, freq: 264, label: "Admin ↔ Custódia" },
+  { a: 6, b: 1, freq: 187, label: "Relatório ↔ Compliance" },
   { a: 0, b: 8, freq: 156, label: "DD ↔ KG" },
   { a: 7, b: 4, freq: 134, label: "IR ↔ Admin" },
   { a: 2, b: 4, freq: 118, label: "Pricing ↔ Admin" },
@@ -167,7 +167,7 @@ const agentColors = [
   "#f59e0b",
 ];
 
-// ── Collaboration Heatmap SVG ─────────────────────────────────────────────────
+// ── Mapa de Calor de Colaboração SVG ─────────────────────────────────────────
 function CollabHeatmap() {
   const W = 520;
   const H = 260;
@@ -175,7 +175,6 @@ function CollabHeatmap() {
   const cy = H / 2;
   const R = 100;
 
-  // Position agents in a circle
   const agentPos = agents.map((_, i) => {
     const angle = (i / agents.length) * Math.PI * 2 - Math.PI / 2;
     return {
@@ -203,7 +202,7 @@ function CollabHeatmap() {
         ))}
       </defs>
 
-      {/* Connection lines */}
+      {/* Linhas de conexão */}
       {collabPairs.map((pair, i) => {
         const strokeW = 1 + (pair.freq / maxFreq) * 6;
         const isTop3 = i < 3;
@@ -222,7 +221,7 @@ function CollabHeatmap() {
         );
       })}
 
-      {/* Nodes */}
+      {/* Nós */}
       {agents.map((name, i) => (
         <g key={name}>
           <circle
@@ -249,7 +248,7 @@ function CollabHeatmap() {
         </g>
       ))}
 
-      {/* Top 3 labels */}
+      {/* Rótulos dos top 3 */}
       {collabPairs.slice(0, 3).map((pair, i) => {
         const mx = (agentPos[pair.a].x + agentPos[pair.b].x) / 2;
         const my = (agentPos[pair.a].y + agentPos[pair.b].y) / 2;
@@ -282,7 +281,7 @@ function CollabHeatmap() {
   );
 }
 
-// ── Main page ─────────────────────────────────────────────────────────────────
+// ── Página principal ─────────────────────────────────────────────────────────
 export default function SymphonyPage() {
   const [expandedRow, setExpandedRow] = useState<number | null>(null);
   const [hoveredCell, setHoveredCell] = useState<string | null>(null);
@@ -292,21 +291,21 @@ export default function SymphonyPage() {
       className="min-h-screen p-4 md:p-6 space-y-6"
       style={{ background: "var(--bg)", fontFamily: "var(--font-display)" }}
     >
-      {/* Header */}
+      {/* Cabeçalho */}
       <div className="flex items-center justify-between">
         <div>
           <div className="flex items-center gap-3 mb-1">
             <span className="tag-badge">SYMPHONY</span>
-            <span className="tag-badge-cyan">AGENT ORCHESTRA</span>
+            <span className="tag-badge-cyan">ORQUESTRA DE AGENTES</span>
           </div>
           <h1
             className="text-2xl font-bold"
             style={{ color: "var(--text-1)", letterSpacing: "-0.03em" }}
           >
-            Multi-Agent Orchestration
+            Orquestração Multi-Agente
           </h1>
           <p style={{ color: "var(--text-3)", fontSize: 13, marginTop: 2 }}>
-            Delegation flows, coordination patterns, and collaboration heatmaps
+            Fluxos de delegação, padrões de coordenação e mapas de calor de colaboração
           </p>
         </div>
         <div className="flex items-center gap-2">
@@ -322,12 +321,12 @@ export default function SymphonyPage() {
             }}
           />
           <span style={{ color: "var(--accent)", fontSize: 12, fontFamily: "var(--font-mono)" }}>
-            LIVE
+            AO VIVO
           </span>
         </div>
       </div>
 
-      {/* 3 Orchestration Flows */}
+      {/* 3 Fluxos de Orquestração */}
       <div className="space-y-4">
         {flows.map((flow) => (
           <div
@@ -350,7 +349,7 @@ export default function SymphonyPage() {
                   letterSpacing: "0.08em",
                 }}
               >
-                {flow.name} FLOW
+                FLUXO {flow.name}
               </span>
               <div
                 style={{
@@ -361,11 +360,11 @@ export default function SymphonyPage() {
               />
             </div>
 
-            {/* Flow nodes */}
+            {/* Nós do fluxo */}
             <div className="flex flex-wrap items-center gap-1">
               {flow.nodes.map((node, ni) => (
                 <div key={ni} className="flex items-center gap-1">
-                  {/* Node card */}
+                  {/* Card do nó */}
                   <div
                     style={{
                       background: "var(--bg)",
@@ -375,7 +374,7 @@ export default function SymphonyPage() {
                       position: "relative",
                     }}
                   >
-                    {/* Status dot */}
+                    {/* Ponto de status */}
                     <div
                       style={{
                         position: "absolute",
@@ -427,7 +426,7 @@ export default function SymphonyPage() {
                     </div>
                   </div>
 
-                  {/* Arrow */}
+                  {/* Seta */}
                   {ni < flow.nodes.length - 1 && (
                     <span
                       style={{
@@ -447,9 +446,9 @@ export default function SymphonyPage() {
         ))}
       </div>
 
-      {/* Delegation Matrix + Collab Heatmap (side by side) */}
+      {/* Matriz de Delegação + Mapa de Calor de Colaboração */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Delegation Matrix */}
+        {/* Matriz de Delegação */}
         <div className="glass-card p-5" style={{ borderRadius: "var(--radius)" }}>
           <h2
             style={{
@@ -462,10 +461,10 @@ export default function SymphonyPage() {
               marginBottom: 12,
             }}
           >
-            Delegation Matrix
+            Matriz de Delegação
           </h2>
           <p style={{ color: "var(--text-4)", fontSize: 11, marginBottom: 12 }}>
-            Hover cells to see delegation reason
+            Passe o mouse sobre as células para ver o motivo da delegação
           </p>
 
           {/* Tooltip */}
@@ -501,7 +500,7 @@ export default function SymphonyPage() {
                       paddingRight: 6,
                     }}
                   >
-                    FROM→
+                    DE→
                   </th>
                   {agents.map((a) => (
                     <th
@@ -586,7 +585,7 @@ export default function SymphonyPage() {
           </div>
         </div>
 
-        {/* Collaboration Heatmap */}
+        {/* Mapa de Calor de Colaboração */}
         <div className="glass-card p-5" style={{ borderRadius: "var(--radius)" }}>
           <h2
             style={{
@@ -599,14 +598,14 @@ export default function SymphonyPage() {
               marginBottom: 4,
             }}
           >
-            Agent Collaboration Graph
+            Grafo de Colaboração entre Agentes
           </h2>
           <p style={{ color: "var(--text-4)", fontSize: 11, marginBottom: 12 }}>
-            Line thickness = frequency. Top 3 pairs highlighted.
+            Espessura da linha = frequência. Top 3 pares em destaque.
           </p>
           <CollabHeatmap />
 
-          {/* Legend */}
+          {/* Legenda */}
           <div className="flex flex-col gap-1 mt-2">
             {collabPairs.slice(0, 3).map((pair, i) => (
               <div key={i} className="flex items-center justify-between">
@@ -643,7 +642,7 @@ export default function SymphonyPage() {
         </div>
       </div>
 
-      {/* Orchestration Timeline */}
+      {/* Linha do Tempo de Orquestração */}
       <div className="glass-card p-5" style={{ borderRadius: "var(--radius)" }}>
         <h2
           style={{
@@ -656,7 +655,7 @@ export default function SymphonyPage() {
             marginBottom: 16,
           }}
         >
-          Orchestration Timeline
+          Linha do Tempo de Orquestração
         </h2>
 
         <div className="space-y-2">
@@ -675,7 +674,7 @@ export default function SymphonyPage() {
                 }}
                 onClick={() => setExpandedRow(expandedRow === i ? null : i)}
               >
-                {/* Flow badge */}
+                {/* Badge do fluxo */}
                 <span
                   style={{
                     display: "inline-block",
@@ -694,7 +693,7 @@ export default function SymphonyPage() {
                   {row.flow}
                 </span>
 
-                {/* Agent dots */}
+                {/* Pontos dos agentes */}
                 <div className="flex items-center gap-1 flex-1">
                   {row.agents.map((ai) => (
                     <div
@@ -720,7 +719,7 @@ export default function SymphonyPage() {
                   ))}
                 </div>
 
-                {/* Duration */}
+                {/* Duração */}
                 <span
                   style={{
                     color: "var(--accent)",
@@ -752,10 +751,10 @@ export default function SymphonyPage() {
                     textAlign: "center",
                   }}
                 >
-                  {row.status === "ok" ? "✓ OK" : "⚠ WARN"}
+                  {row.status === "ok" ? "✓ OK" : "⚠ ALERTA"}
                 </span>
 
-                {/* Expand indicator */}
+                {/* Indicador de expansão */}
                 <span
                   style={{
                     color: "var(--text-4)",
@@ -768,7 +767,7 @@ export default function SymphonyPage() {
                 </span>
               </div>
 
-              {/* Expanded detail */}
+              {/* Detalhe expandido */}
               {expandedRow === i && (
                 <div
                   style={{
