@@ -162,7 +162,7 @@ export default function TelemetryPage() {
           </div>
           <div style={{ display: "flex", gap: "1rem", alignItems: "center" }}>
             <span className="mono-label" style={{ fontSize: "0.6875rem", color: "var(--text-3)", fontFamily: "var(--font-mono)" }}>
-              Total: <span style={{ color: "var(--accent)" }}>12.4K LOC</span>
+              Total: <span style={{ color: "var(--accent)" }}>57.6K LOC</span>
             </span>
             <span className="tag-badge">26 AGENTES</span>
           </div>

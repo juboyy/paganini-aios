@@ -205,7 +205,7 @@ export function Sidebar() {
               opacity: 0.6,
             }}
           >
-            9 AGENTES • 12 SKILLS • 6 GATES
+            12 AGENTES • 52 CAPS • 6 GATES
           </div>
         </div>
       </aside>

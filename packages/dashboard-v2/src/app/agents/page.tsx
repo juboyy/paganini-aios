@@ -1,121 +1,74 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
-// ─── 9 AGENTES FIDC ──────────────────────────────────────────────────────────
+// ─── FIDC AGENTS (Pack vertical) ─────────────────────────────────────────────
 const FIDC_AGENTS = [
-  {
-    slug: "administrador",
-    name: "Administrador Fiduciário",
-    emoji: "📋",
-    domains: ["regulatório", "compliance", "risco", "reporting", "investidores"],
-    confidence: 97,
-    exampleQuery: "Qual o PL atual do fundo e a razão de subordinação das cotas sênior?",
-    status: "active",
-  },
-  {
-    slug: "compliance",
-    name: "Compliance",
-    emoji: "⚖️",
-    domains: ["regulatório", "compliance", "reporting", "investidores"],
-    confidence: 95,
-    exampleQuery: "O fundo está dentro dos limites de concentração por cedente da CVM 175?",
-    status: "active",
-  },
-  {
-    slug: "custodiante",
-    name: "Custodiante",
-    emoji: "🔐",
-    domains: ["custódia"],
-    confidence: 98,
-    exampleQuery: "Qual o status de reconciliação D+2 dos títulos registrados hoje?",
-    status: "active",
-  },
-  {
-    slug: "due-diligence",
-    name: "Due Diligence",
-    emoji: "🔍",
-    domains: ["compliance", "reporting", "due_diligence"],
-    confidence: 93,
-    exampleQuery: "Qual o score de elegibilidade do cedente CNPJ 12.345.678/0001-99?",
-    status: "active",
-  },
-  {
-    slug: "gestor",
-    name: "Gestor",
-    emoji: "📊",
-    domains: ["contabilidade", "due_diligence"],
-    confidence: 94,
-    exampleQuery: "Como está a alocação da carteira e há concentração acima do limite HHI?",
-    status: "active",
-  },
-  {
-    slug: "investor-relations",
-    name: "Investor Relations",
-    emoji: "💬",
-    domains: ["compliance", "reporting", "investidores"],
-    confidence: 96,
-    exampleQuery: "Qual a rentabilidade MTD das cotas sênior comparada ao CDI?",
-    status: "active",
-  },
-  {
-    slug: "pricing",
-    name: "Pricing Engine",
-    emoji: "💰",
-    domains: ["regulatório", "risco", "pricing"],
-    confidence: 99,
-    exampleQuery: "Qual o PDD da carteira usando aging BACEN 2682/99 com o bucket de 31-60 dias?",
-    status: "active",
-  },
-  {
-    slug: "regulatory-watch",
-    name: "Regulatory Watch",
-    emoji: "📡",
-    domains: ["regulatório", "compliance"],
-    confidence: 91,
-    exampleQuery: "Houve novas publicações CVM ou BACEN relevantes para FIDCs esta semana?",
-    status: "active",
-  },
-  {
-    slug: "reporting",
-    name: "Reporting",
-    emoji: "📄",
-    domains: ["regulatório", "contabilidade", "reporting", "investidores"],
-    confidence: 96,
-    exampleQuery: "Gere o informe mensal CVM 175 do fundo Paganini I FIDC para Fev/2026.",
-    status: "active",
-  },
+  { name: "Administrador Fiduciário", emoji: "📋", domain: "Regulatório & Compliance" },
+  { name: "Compliance", emoji: "⚖️", domain: "Regulatório & Reporting" },
+  { name: "Custodiante", emoji: "🔐", domain: "Custódia de Ativos" },
+  { name: "Due Diligence", emoji: "🔍", domain: "Análise de Cedentes" },
+  { name: "Gestor", emoji: "📊", domain: "Gestão de Carteira" },
+  { name: "Investor Relations", emoji: "💬", domain: "Comunicação com Cotistas" },
+  { name: "Pricing Engine", emoji: "💰", domain: "Precificação & PDD" },
+  { name: "Regulatory Watch", emoji: "📡", domain: "Monitoramento CVM/BACEN" },
+  { name: "Reporting", emoji: "📄", domain: "Informes & Relatórios" },
 ];
 
-// ─── PLATAFORMA (dev agents, collapsible) ────────────────────────────────────
-const PLATAFORMA_AGENTS = [
-  { name: "OraCLI", emoji: "🧠", role: "Chief Orchestrator", model: "claude-opus-4-6-thinking" },
-  { name: "Code Agent", emoji: "💻", role: "CTO / Codex Supervisor", model: "claude-sonnet-4-6" },
-  { name: "Docs Agent", emoji: "📝", role: "Docs Lead", model: "claude-sonnet-4-6" },
-  { name: "Infra Agent", emoji: "🏗️", role: "DevOps Lead", model: "claude-sonnet-4-6" },
-  { name: "General Agent", emoji: "🤖", role: "Generalist", model: "claude-sonnet-4-6" },
-  { name: "Architect Agent", emoji: "🏛️", role: "System Architect", model: "claude-opus-4-6-thinking" },
-  { name: "PM Agent", emoji: "📋", role: "Project Manager", model: "claude-sonnet-4-6" },
-  { name: "Data Agent", emoji: "📊", role: "Data Engineer", model: "claude-sonnet-4-6" },
-  { name: "QA Agent", emoji: "🧪", role: "QA Lead", model: "claude-sonnet-4-6" },
-  { name: "Security Agent", emoji: "🛡️", role: "Security Lead", model: "claude-sonnet-4-6" },
-  { name: "Codex", emoji: "⚡", role: "Code Execution Engine", model: "gpt-5.3-codex" },
-  { name: "João CEO", emoji: "👔", role: "Founder (Aprovações)", model: "human" },
-];
+// ─── MODEL BADGE ─────────────────────────────────────────────────────────────
+function ModelBadge({ model }: { model: string }) {
+  let color = "hsl(150 100% 55%)";
+  let bg = "hsl(150 100% 55% / 0.08)";
+  let border = "hsl(150 100% 55% / 0.25)";
 
-const DOMAIN_COLOR: Record<string, string> = {
-  regulatório:   "hsl(150 100% 50%)",
-  compliance:    "hsl(180 100% 50%)",
-  risco:         "hsl(45 100% 55%)",
-  reporting:     "hsl(260 100% 70%)",
-  investidores:  "hsl(320 80% 65%)",
-  custódia:      "hsl(195 100% 60%)",
-  due_diligence: "hsl(38 100% 60%)",
-  contabilidade: "hsl(155 80% 55%)",
-  pricing:       "hsl(45 100% 65%)",
-};
+  if (model === "claude-opus-4-6-thinking") {
+    color = "hsl(270 80% 70%)";
+    bg = "hsl(270 80% 70% / 0.1)";
+    border = "hsl(270 80% 70% / 0.3)";
+  } else if (model === "claude-sonnet-4-6") {
+    color = "hsl(190 100% 60%)";
+    bg = "hsl(190 100% 60% / 0.08)";
+    border = "hsl(190 100% 60% / 0.25)";
+  } else if (model === "gpt-5.3-codex") {
+    color = "hsl(45 100% 60%)";
+    bg = "hsl(45 100% 60% / 0.1)";
+    border = "hsl(45 100% 60% / 0.3)";
+  } else if (model === "human") {
+    color = "hsl(25 100% 65%)";
+    bg = "hsl(25 100% 65% / 0.1)";
+    border = "hsl(25 100% 65% / 0.3)";
+  }
 
-function AgentHeroCard({ agent }: { agent: typeof FIDC_AGENTS[0] }) {
+  return (
+    <span
+      style={{
+        fontFamily: "var(--font-mono)",
+        fontSize: "0.4375rem",
+        padding: "2px 8px",
+        borderRadius: "var(--radius)",
+        background: bg,
+        border: `1px solid ${border}`,
+        color,
+        letterSpacing: "0.08em",
+        whiteSpace: "nowrap",
+      }}
+    >
+      {model}
+    </span>
+  );
+}
+
+// ─── CODE AGENT CARD ─────────────────────────────────────────────────────────
+interface CodeAgent {
+  emoji: string;
+  name: string;
+  title: string;
+  model: string;
+  responsibilities: string[];
+  skills: string[];
+}
+
+function CodeAgentCard({ agent, featured }: { agent: CodeAgent; featured?: boolean }) {
   return (
     <div
       className="glass-card"
@@ -123,42 +76,61 @@ function AgentHeroCard({ agent }: { agent: typeof FIDC_AGENTS[0] }) {
         padding: "1.5rem",
         position: "relative",
         overflow: "hidden",
-        borderTop: "2px solid hsl(150 100% 50% / 0.5)",
+        borderTop: featured
+          ? "2px solid hsl(150 100% 50% / 0.8)"
+          : "2px solid hsl(150 100% 50% / 0.35)",
       }}
     >
-      {/* Glow accent */}
-      <div
-        style={{
-          position: "absolute", top: 0, left: 0, right: 0, height: 80,
-          background: "linear-gradient(180deg, hsl(150 100% 50% / 0.05), transparent)",
-          pointerEvents: "none",
-        }}
-      />
+      {/* Glow */}
+      {featured && (
+        <div
+          style={{
+            position: "absolute",
+            top: 0, left: 0, right: 0, height: 80,
+            background: "linear-gradient(180deg, hsl(150 100% 50% / 0.07), transparent)",
+            pointerEvents: "none",
+          }}
+        />
+      )}
 
       {/* Header */}
       <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: "1rem" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-          <span style={{ fontSize: "2rem", lineHeight: 1 }}>{agent.emoji}</span>
+          <span style={{ fontSize: featured ? "2.25rem" : "1.75rem", lineHeight: 1 }}>{agent.emoji}</span>
           <div>
             <div
               style={{
-                fontFamily: "var(--font-mono)", fontSize: "0.9375rem",
-                color: "var(--text-1)", fontWeight: 700, letterSpacing: "-0.02em",
+                fontFamily: "var(--font-mono)",
+                fontSize: featured ? "1rem" : "0.875rem",
+                color: "var(--text-1)",
+                fontWeight: 700,
+                letterSpacing: "-0.02em",
               }}
             >
               {agent.name}
             </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 3 }}>
+            <div
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: "0.5625rem",
+                color: "var(--text-4)",
+                marginTop: 2,
+                letterSpacing: "0.06em",
+              }}
+            >
+              {agent.title}
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: 5 }}>
               <span
                 style={{
                   width: 6, height: 6, borderRadius: "50%",
                   background: "var(--accent)", boxShadow: "0 0 8px var(--accent)",
-                  display: "inline-block", animation: "pulse-neon 2s ease-in-out infinite",
+                  display: "inline-block",
                 }}
               />
               <span
                 style={{
-                  fontFamily: "var(--font-mono)", fontSize: "0.5625rem",
+                  fontFamily: "var(--font-mono)", fontSize: "0.5rem",
                   color: "var(--accent)", letterSpacing: "0.12em",
                 }}
               >
@@ -167,122 +139,82 @@ function AgentHeroCard({ agent }: { agent: typeof FIDC_AGENTS[0] }) {
             </div>
           </div>
         </div>
-        <div
-          style={{
-            fontFamily: "var(--font-mono)", fontSize: "0.625rem",
-            color: "hsl(150 100% 50%)", letterSpacing: "0.1em",
-            background: "hsl(150 100% 50% / 0.08)",
-            border: "1px solid hsl(150 100% 50% / 0.25)",
-            borderRadius: "var(--radius)", padding: "3px 10px",
-          }}
-        >
-          {agent.confidence}% conf.
-        </div>
+        <ModelBadge model={agent.model} />
       </div>
 
-      {/* Confidence bar */}
-      <div style={{ marginBottom: "1rem" }}>
-        <div
-          style={{
-            fontFamily: "var(--font-mono)", fontSize: "0.5rem",
-            color: "var(--text-4)", letterSpacing: "0.12em", marginBottom: 5,
-          }}
-        >
-          CONFIANÇA
-        </div>
-        <div
-          style={{
-            height: 4, background: "hsl(150 100% 50% / 0.1)",
-            borderRadius: 2, overflow: "hidden",
-          }}
-        >
-          <div
-            style={{
-              height: "100%", width: `${agent.confidence}%`,
-              background: `linear-gradient(90deg, hsl(150 100% 40%), hsl(150 100% 60%))`,
-              borderRadius: 2,
-              boxShadow: "0 0 8px hsl(150 100% 50% / 0.6)",
-            }}
-          />
-        </div>
-      </div>
-
-      {/* Domains */}
-      <div style={{ display: "flex", flexWrap: "wrap", gap: 5, marginBottom: "1rem" }}>
-        {agent.domains.map((d) => (
-          <span
-            key={d}
-            style={{
-              fontFamily: "var(--font-mono)", fontSize: "0.5625rem",
-              padding: "2px 8px", borderRadius: "var(--radius)",
-              background: `${DOMAIN_COLOR[d] ?? "hsl(150 100% 50%)"}14`,
-              border: `1px solid ${DOMAIN_COLOR[d] ?? "hsl(150 100% 50%)"}40`,
-              color: DOMAIN_COLOR[d] ?? "hsl(150 100% 50%)",
-              letterSpacing: "0.08em",
-            }}
-          >
-            {d}
-          </span>
-        ))}
-      </div>
-
-      {/* Example query */}
-      <div
+      {/* Responsibilities */}
+      <ul
         style={{
-          borderTop: "1px solid var(--border)", paddingTop: "0.75rem",
-          marginTop: "0.25rem",
+          margin: "0 0 1rem 0",
+          padding: 0,
+          listStyle: "none",
+          display: "flex",
+          flexDirection: "column",
+          gap: 4,
         }}
       >
-        <div
-          style={{
-            fontFamily: "var(--font-mono)", fontSize: "0.5rem",
-            color: "var(--text-4)", letterSpacing: "0.12em", marginBottom: 6,
-          }}
-        >
-          EXEMPLO DE CONSULTA
-        </div>
-        <div
-          style={{
-            fontFamily: "var(--font-mono)", fontSize: "0.6875rem",
-            color: "var(--text-3)", lineHeight: 1.5,
-            background: "rgba(0,0,0,0.3)", border: "1px solid var(--border)",
-            borderRadius: "var(--radius)", padding: "8px 12px",
-            fontStyle: "italic",
-          }}
-        >
-          &ldquo;{agent.exampleQuery}&rdquo;
-        </div>
+        {agent.responsibilities.map((r, i) => (
+          <li
+            key={i}
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: "0.625rem",
+              color: "var(--text-3)",
+              display: "flex",
+              gap: 6,
+              lineHeight: 1.5,
+            }}
+          >
+            <span style={{ color: "var(--accent)", flexShrink: 0 }}>▸</span>
+            {r}
+          </li>
+        ))}
+      </ul>
+
+      {/* Skills */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
+        {agent.skills.map((s) => (
+          <span key={s} className="tag-badge-cyan" style={{ fontSize: "0.4375rem" }}>
+            {s}
+          </span>
+        ))}
       </div>
     </div>
   );
 }
 
-// ─── SVG ROUTING DIAGRAM ─────────────────────────────────────────────────────
-function RoutingDiagram() {
-  const agentNames = FIDC_AGENTS.map((a) => `${a.emoji} ${a.name}`);
-  const boxW = 160, boxH = 28, colX = 520;
-  const startY = 30;
-  const gap = 36;
-  const totalH = startY * 2 + agentNames.length * gap;
-  const svgH = Math.max(totalH, 380);
-  const midY = svgH / 2;
+// ─── PIPELINE DIAGRAM ────────────────────────────────────────────────────────
+function PipelineDiagram() {
+  const nodes = [
+    { emoji: "👔", label: "João", role: "task", color: "hsl(25 100% 65%)" },
+    { emoji: "🧠", label: "OraCLI", role: "decompose", color: "hsl(270 80% 70%)" },
+    { emoji: "💻", label: "Code Agent", role: "spec", color: "hsl(190 100% 60%)" },
+    { emoji: "⚡", label: "Codex", role: "implement", color: "hsl(45 100% 60%)" },
+    { emoji: "🧪", label: "QA Agent", role: "test", color: "hsl(190 100% 60%)" },
+    { emoji: "🛡️", label: "Security", role: "scan", color: "hsl(190 100% 60%)" },
+    { emoji: "🏗️", label: "Infra", role: "deploy", color: "hsl(190 100% 60%)" },
+    { emoji: "📝", label: "Docs", role: "document", color: "hsl(190 100% 60%)" },
+  ];
+
+  const nodeW = 76;
+  const nodeH = 72;
+  const gap = 18;
+  const totalW = nodes.length * nodeW + (nodes.length - 1) * gap;
+  const svgW = totalW + 40;
+  const svgH = nodeH + 60;
 
   return (
     <div style={{ overflowX: "auto" }}>
       <svg
-        viewBox={`0 0 760 ${svgH}`}
-        width="760"
-        style={{ display: "block", margin: "0 auto", maxWidth: "100%" }}
+        viewBox={`0 0 ${svgW} ${svgH}`}
+        style={{ display: "block", margin: "0 auto", maxWidth: "100%", minWidth: 480 }}
       >
         <defs>
-          <marker id="arr" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
-            <polygon points="0 0, 7 2.5, 0 5" fill="hsl(150 100% 50% / 0.7)" />
+          <marker id="pipe-arr" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+            <polygon points="0 0, 7 2.5, 0 5" fill="hsl(150 100% 50% / 0.6)" />
           </marker>
-          <marker id="arr-g" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
-            <polygon points="0 0, 7 2.5, 0 5" fill="hsl(150 100% 50% / 0.4)" />
-          </marker>
-          <filter id="glow">
-            <feGaussianBlur stdDeviation="3" result="coloredBlur" />
+          <filter id="node-glow">
+            <feGaussianBlur stdDeviation="2" result="coloredBlur" />
             <feMerge>
               <feMergeNode in="coloredBlur" />
               <feMergeNode in="SourceGraphic" />
@@ -290,278 +222,785 @@ function RoutingDiagram() {
           </filter>
         </defs>
 
-        {/* CONSULTA box */}
-        <rect x="10" y={midY - 22} width="110" height="44" rx="6"
-          fill="hsl(150 100% 50% / 0.08)" stroke="hsl(150 100% 50% / 0.5)" strokeWidth="1.2" />
-        <text x="65" y={midY - 5} textAnchor="middle"
-          style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", fill: "hsl(150 100% 60%)", fontWeight: 700 }}>
-          CONSULTA
-        </text>
-        <text x="65" y={midY + 10} textAnchor="middle"
-          style={{ fontFamily: "var(--font-mono)", fontSize: "0.4375rem", fill: "hsl(150 100% 50% / 0.6)" }}>
-          do usuário
-        </text>
-
-        {/* Arrow: CONSULTA → ROUTER */}
-        <line x1="120" y1={midY} x2="170" y2={midY}
-          stroke="hsl(150 100% 50% / 0.7)" strokeWidth="1.5" markerEnd="url(#arr)" />
-
-        {/* ROUTER box */}
-        <rect x="170" y={midY - 30} width="145" height="60" rx="6"
-          fill="hsl(150 100% 50% / 0.12)" stroke="hsl(150 100% 50% / 0.7)" strokeWidth="1.5"
-          filter="url(#glow)" />
-        <text x="242" y={midY - 10} textAnchor="middle"
-          style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", fill: "hsl(150 100% 65%)", fontWeight: 700, letterSpacing: "0.08em" }}>
-          ROUTER COGNITIVO
-        </text>
-        <text x="242" y={midY + 6} textAnchor="middle"
-          style={{ fontFamily: "var(--font-mono)", fontSize: "0.4375rem", fill: "hsl(150 100% 50% / 0.7)" }}>
-          embeddings + pgvector
-        </text>
-        <text x="242" y={midY + 20} textAnchor="middle"
-          style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", fill: "hsl(45 100% 60%)", fontWeight: 700 }}>
-          85.4% accuracy
-        </text>
-
-        {/* Lines: ROUTER → each agent */}
-        {agentNames.map((_, i) => {
-          const ay = startY + i * gap + boxH / 2;
+        {/* Arrows between nodes */}
+        {nodes.map((_, i) => {
+          if (i === nodes.length - 1) return null;
+          const x1 = 20 + i * (nodeW + gap) + nodeW;
+          const x2 = 20 + (i + 1) * (nodeW + gap);
+          const y = svgH / 2 - 10;
           return (
             <line
               key={i}
-              x1="315" y1={midY}
-              x2={colX} y2={ay}
-              stroke="hsl(150 100% 50% / 0.25)" strokeWidth="1"
-              markerEnd="url(#arr-g)"
+              x1={x1} y1={y} x2={x2 - 2} y2={y}
+              stroke="hsl(150 100% 50% / 0.5)"
+              strokeWidth="1.5"
+              markerEnd="url(#pipe-arr)"
             />
           );
         })}
 
-        {/* Agent boxes */}
-        {agentNames.map((name, i) => {
-          const ay = startY + i * gap;
+        {/* Nodes */}
+        {nodes.map((node, i) => {
+          const x = 20 + i * (nodeW + gap);
+          const y = 20;
           return (
             <g key={i}>
-              <rect x={colX} y={ay} width={boxW} height={boxH} rx="4"
-                fill="hsl(150 100% 50% / 0.06)" stroke="hsl(150 100% 50% / 0.3)" strokeWidth="1" />
-              <text x={colX + 8} y={ay + 18}
-                style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", fill: "hsl(150 100% 55%)" }}>
-                {name}
+              <rect
+                x={x} y={y} width={nodeW} height={nodeH}
+                rx="6"
+                fill={`${node.color}12`}
+                stroke={`${node.color}50`}
+                strokeWidth="1.2"
+                filter="url(#node-glow)"
+              />
+              <text x={x + nodeW / 2} y={y + 22} textAnchor="middle" style={{ fontSize: "1.25rem" }}>
+                {node.emoji}
+              </text>
+              <text
+                x={x + nodeW / 2} y={y + 42}
+                textAnchor="middle"
+                style={{ fontFamily: "var(--font-mono)", fontSize: "0.4375rem", fill: "hsl(0 0% 80%)", fontWeight: 700 }}
+              >
+                {node.label}
+              </text>
+              <text
+                x={x + nodeW / 2} y={y + 55}
+                textAnchor="middle"
+                style={{ fontFamily: "var(--font-mono)", fontSize: "0.375rem", fill: node.color, letterSpacing: "0.06em" }}
+              >
+                {node.role}
               </text>
             </g>
           );
         })}
-
-        {/* Arrow: agents → GUARDRAILS */}
-        <line x1={colX + boxW} y1={midY} x2={colX + boxW + 10} y2={midY}
-          stroke="hsl(150 100% 50% / 0.7)" strokeWidth="1.5" markerEnd="url(#arr)" />
-
-        {/* GUARDRAILS box */}
-        <rect x={colX + boxW + 10} y={midY - 22} width="100" height="44" rx="6"
-          fill="hsl(45 100% 50% / 0.08)" stroke="hsl(45 100% 50% / 0.5)" strokeWidth="1.2" />
-        <text x={colX + boxW + 60} y={midY - 5} textAnchor="middle"
-          style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", fill: "hsl(45 100% 60%)", fontWeight: 700 }}>
-          GUARDRAILS
-        </text>
-        <text x={colX + boxW + 60} y={midY + 10} textAnchor="middle"
-          style={{ fontFamily: "var(--font-mono)", fontSize: "0.4375rem", fill: "hsl(45 100% 50% / 0.6)" }}>
-          6 portões
-        </text>
-
-        {/* Arrow: GUARDRAILS → RESPOSTA */}
-        <line x1={colX + boxW + 110} y1={midY} x2={colX + boxW + 155} y2={midY}
-          stroke="hsl(150 100% 50% / 0.7)" strokeWidth="1.5" markerEnd="url(#arr)" />
-
-        {/* RESPOSTA box */}
-        <rect x={colX + boxW + 155} y={midY - 22} width="100" height="44" rx="6"
-          fill="hsl(150 100% 50% / 0.08)" stroke="hsl(150 100% 50% / 0.5)" strokeWidth="1.2" />
-        <text x={colX + boxW + 205} y={midY - 5} textAnchor="middle"
-          style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", fill: "hsl(150 100% 60%)", fontWeight: 700 }}>
-          RESPOSTA
-        </text>
-        <text x={colX + boxW + 205} y={midY + 10} textAnchor="middle"
-          style={{ fontFamily: "var(--font-mono)", fontSize: "0.4375rem", fill: "hsl(150 100% 50% / 0.6)" }}>
-          auditada
-        </text>
       </svg>
     </div>
   );
 }
 
-// ─── PAGE ─────────────────────────────────────────────────────────────────────
-export default function AgentsPage() {
-  const [plataformaOpen, setPlataformaOpen] = useState(false);
+// ─── MODEL DISTRIBUTION CHART ─────────────────────────────────────────────────
+function ModelChart() {
+  const [mounted, setMounted] = useState(false);
+  const [hoveredSegment, setHoveredSegment] = useState<number | null>(null);
+  const [hoveredCard, setHoveredCard] = useState<number | null>(null);
+
+  useEffect(() => {
+    const t = setTimeout(() => setMounted(true), 80);
+    return () => clearTimeout(t);
+  }, []);
+
+  const models = [
+    {
+      emoji: "🟣",
+      name: "claude-opus-4-6-thinking",
+      provider: "Anthropic",
+      tagline: "Raciocínio Avançado",
+      color: "#a855f7",
+      agents: 2,
+      total: 12,
+      agentNames: "OraCLI, Architect Agent",
+      context: "200K tokens",
+      capability: "Pensamento em cadeia",
+      cost: "~$15/M tokens",
+      uso: "Orquestração e Design de Sistemas",
+    },
+    {
+      emoji: "🔵",
+      name: "claude-sonnet-4-6",
+      provider: "Anthropic",
+      tagline: "Execução Rápida",
+      color: "#22d3ee",
+      agents: 8,
+      total: 12,
+      agentNames: "Code, PM, Docs, Infra, Data, General, QA, Security",
+      context: "200K tokens",
+      capability: "Velocidade + Qualidade",
+      cost: "~$3/M tokens",
+      uso: "Implementação, Review, QA, Deploy",
+    },
+    {
+      emoji: "🟡",
+      name: "gpt-5.3-codex",
+      provider: "OpenAI",
+      tagline: "Motor de Código",
+      color: "#eab308",
+      agents: 1,
+      total: 12,
+      agentNames: "Codex",
+      context: "192K tokens",
+      capability: "Multi-agent parallelism",
+      cost: "~$2/M tokens (ChatGPT Team)",
+      uso: "Escrita de código a partir de specs",
+    },
+    {
+      emoji: "🟠",
+      name: "human",
+      provider: "Homo Sapiens",
+      tagline: "Gate de Aprovação",
+      color: "#f97316",
+      agents: 1,
+      total: 12,
+      agentNames: "João CEO",
+      context: "∞",
+      capability: "Julgamento, Intuição, Visão",
+      cost: "Inestimável",
+      uso: "Aprovação final de produção",
+    },
+  ];
+
+  // Donut geometry
+  const cx = 80; const cy = 80; const rOuter = 60; const rInner = 38;
+  const total = models.reduce((s, m) => s + m.agents, 0);
+  const gap = 0.05; // radians gap between segments
+  let cumAngle = -Math.PI / 2;
+
+  const segments = models.map((m) => {
+    const angle = (m.agents / total) * Math.PI * 2;
+    const start = cumAngle + gap / 2;
+    const end = cumAngle + angle - gap / 2;
+    cumAngle += angle;
+    return { ...m, start, end, angle };
+  });
+
+  function arcPath(r: number, startA: number, endA: number) {
+    const x1 = cx + r * Math.cos(startA);
+    const y1 = cy + r * Math.sin(startA);
+    const x2 = cx + r * Math.cos(endA);
+    const y2 = cy + r * Math.sin(endA);
+    const large = endA - startA > Math.PI ? 1 : 0;
+    return `M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2}`;
+  }
+
+  function segmentPath(m: typeof segments[0], i: number) {
+    const hover = hoveredSegment === i;
+    const rO = hover ? rOuter + 5 : rOuter;
+    const rI = rInner;
+    const outer = arcPath(rO, m.start, m.end);
+    const innerRev = arcPath(rI, m.end, m.start);
+    return `${outer} ${innerRev.replace("M", "L")} Z`;
+  }
+
+  const providers = [
+    { label: "Anthropic", agents: 10, pct: 83, color: "#a855f7" },
+    { label: "OpenAI",    agents: 1,  pct: 8,  color: "#eab308" },
+    { label: "Humano",    agents: 1,  pct: 8,  color: "#f97316" },
+  ];
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
 
-      {/* ── Header ── */}
-      <div>
-        <div className="mono-label" style={{ marginBottom: "0.25rem" }}>
-          PAGANINI AIOS · AGENTES ESPECIALIZADOS
-        </div>
-        <h1 style={{ fontSize: "1.75rem", fontWeight: 700, color: "var(--text-1)", margin: 0 }}>
-          9 Agentes{" "}
-          <span style={{ color: "var(--accent)" }}>FIDC</span>
-        </h1>
-        <p className="section-help" style={{ marginTop: 6 }}>
-          Agentes especializados em regulação, compliance e operações de fundos de investimento em direitos creditórios. Cada agente é treinado com o corpus regulatório completo: CVM 175, BACEN 2682/99, ANBIMA e documentação específica do fundo.
-        </p>
-      </div>
-
-      {/* ── Section 1: FIDC Agent Cards ── */}
-      <div>
-        <div
-          style={{
-            display: "flex", alignItems: "center", gap: "1rem", marginBottom: "1.25rem",
-          }}
-        >
-          <div
-            style={{
-              flex: 1, height: 1,
-              background: "linear-gradient(90deg, hsl(150 100% 50% / 0.4), transparent)",
-            }}
-          />
-          <span
-            style={{
-              fontFamily: "var(--font-mono)", fontSize: "0.5625rem",
-              letterSpacing: "0.18em", color: "var(--accent)",
-              padding: "4px 14px", border: "1px solid hsl(150 100% 50% / 0.3)",
-              borderRadius: "var(--radius)", background: "hsl(150 100% 50% / 0.06)",
-              whiteSpace: "nowrap",
-            }}
+      {/* Donut */}
+      <div style={{ display: "flex", flexWrap: "wrap", gap: "1.5rem", alignItems: "center" }}>
+        <div style={{ position: "relative", flexShrink: 0 }}>
+          <svg
+            viewBox="0 0 160 160"
+            style={{ width: 160, height: 160, display: "block" }}
           >
-            AGENTES ESPECIALIZADOS FIDC · 9 AGENTES
-          </span>
-          <div
-            style={{
-              flex: 1, height: 1,
-              background: "linear-gradient(90deg, transparent, hsl(150 100% 50% / 0.4))",
-            }}
-          />
+            <defs>
+              {segments.map((seg, i) => (
+                <filter key={i} id={`seg-glow-${i}`} x="-30%" y="-30%" width="160%" height="160%">
+                  <feGaussianBlur stdDeviation="3" result="blur" />
+                  <feFlood floodColor={seg.color} floodOpacity="0.7" result="color" />
+                  <feComposite in="color" in2="blur" operator="in" result="glow" />
+                  <feMerge>
+                    <feMergeNode in="glow" />
+                    <feMergeNode in="SourceGraphic" />
+                  </feMerge>
+                </filter>
+              ))}
+            </defs>
+            {segments.map((seg, i) => {
+              const isHov = hoveredSegment === i;
+              return (
+                <path
+                  key={i}
+                  d={segmentPath(seg, i)}
+                  fill={seg.color}
+                  opacity={isHov ? 1 : hoveredSegment !== null ? 0.3 : 0.75}
+                  filter={isHov ? `url(#seg-glow-${i})` : undefined}
+                  style={{
+                    cursor: "pointer",
+                    transition: "opacity 0.2s, d 0.2s",
+                    strokeDashoffset: mounted ? 0 : 300,
+                    strokeDasharray: 300,
+                  }}
+                  onMouseEnter={() => setHoveredSegment(i)}
+                  onMouseLeave={() => setHoveredSegment(null)}
+                />
+              );
+            })}
+            {/* Center text */}
+            <text
+              x={cx} y={cy - 7}
+              textAnchor="middle"
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: "0.625rem",
+                fontWeight: 900,
+                fill: hoveredSegment !== null ? segments[hoveredSegment].color : "var(--text-1)",
+                transition: "fill 0.2s",
+                letterSpacing: "-0.02em",
+              }}
+            >
+              {hoveredSegment !== null ? `${segments[hoveredSegment].agents} AGT` : "12 AGENTES"}
+            </text>
+            <text
+              x={cx} y={cy + 8}
+              textAnchor="middle"
+              style={{
+                fontFamily: "var(--font-mono)",
+                fontSize: "0.3125rem",
+                fill: "var(--text-4)",
+                letterSpacing: "0.1em",
+              }}
+            >
+              {hoveredSegment !== null ? segments[hoveredSegment].name.slice(0, 14) : "4 MODELOS"}
+            </text>
+          </svg>
         </div>
 
-        <div
-          style={{
-            display: "grid",
-            gridTemplateColumns: "repeat(auto-fill, minmax(340px, 1fr))",
-            gap: "1rem",
-          }}
-        >
-          {FIDC_AGENTS.map((agent) => (
-            <AgentHeroCard key={agent.slug} agent={agent} />
+        {/* Donut legend */}
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", flex: 1, minWidth: 160 }}>
+          {segments.map((seg, i) => (
+            <div
+              key={i}
+              onMouseEnter={() => setHoveredSegment(i)}
+              onMouseLeave={() => setHoveredSegment(null)}
+              style={{
+                display: "flex", alignItems: "center", gap: "0.5rem",
+                cursor: "pointer",
+                opacity: hoveredSegment !== null && hoveredSegment !== i ? 0.35 : 1,
+                transition: "opacity 0.2s",
+              }}
+            >
+              <div style={{ width: 8, height: 8, borderRadius: 2, background: seg.color, flexShrink: 0 }} />
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.4375rem", color: seg.color, flex: 1, letterSpacing: "0.04em" }}>
+                {seg.name.length > 18 ? seg.name.slice(0, 18) + "…" : seg.name}
+              </span>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", color: "var(--text-3)", fontWeight: 700 }}>
+                {seg.agents}
+              </span>
+            </div>
           ))}
         </div>
       </div>
 
-      {/* ── Section 2: Routing Diagram ── */}
-      <div className="glass-card" style={{ padding: "1.5rem" }}>
-        <div className="mono-label" style={{ marginBottom: "0.25rem" }}>
-          ROTEAMENTO COGNITIVO
-        </div>
-        <h2 style={{ fontSize: "1.125rem", fontWeight: 700, color: "var(--text-1)", margin: "0 0 0.5rem" }}>
-          Como suas consultas chegam ao agente certo
-        </h2>
-        <p className="section-help" style={{ marginBottom: "1.25rem" }}>
-          O Router Cognitivo usa embeddings semânticos para identificar o domínio da consulta e rotear para o agente especializado correto — com 85.4% de acerto sem qualquer configuração manual.
-        </p>
-        <RoutingDiagram />
+      {/* Model Cards */}
+      <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
+        {models.map((m, i) => {
+          const pct = Math.round((m.agents / m.total) * 100);
+          const isHov = hoveredCard === i;
+          return (
+            <div
+              key={m.name}
+              onMouseEnter={() => setHoveredCard(i)}
+              onMouseLeave={() => setHoveredCard(null)}
+              style={{
+                background: isHov ? `${m.color}0d` : "#ffffff04",
+                border: `1px solid ${isHov ? m.color + "50" : m.color + "20"}`,
+                borderRadius: 8,
+                padding: "1rem 1.125rem",
+                cursor: "default",
+                transition: "all 0.25s",
+                position: "relative",
+                overflow: "hidden",
+              }}
+            >
+              {/* Left accent bar */}
+              <div style={{
+                position: "absolute", left: 0, top: 0, bottom: 0, width: 3,
+                background: `linear-gradient(180deg, ${m.color}, ${m.color}40)`,
+                borderRadius: "8px 0 0 8px",
+              }} />
+
+              {/* Subtle glow on hover */}
+              {isHov && (
+                <div style={{
+                  position: "absolute", inset: 0,
+                  background: `radial-gradient(ellipse 80% 60% at 0% 50%, ${m.color}06, transparent 70%)`,
+                  pointerEvents: "none",
+                }} />
+              )}
+
+              <div style={{ paddingLeft: 4, position: "relative" }}>
+                {/* Header */}
+                <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem", marginBottom: "0.25rem" }}>
+                  <span style={{ fontSize: "1rem" }}>{m.emoji}</span>
+                  <span style={{
+                    fontFamily: "var(--font-mono)", fontSize: "0.625rem",
+                    color: m.color, fontWeight: 700, letterSpacing: "-0.01em",
+                  }}>
+                    {m.name}
+                  </span>
+                </div>
+                <div style={{
+                  fontFamily: "var(--font-mono)", fontSize: "0.4375rem",
+                  color: "var(--text-4)", letterSpacing: "0.06em", marginBottom: "0.75rem",
+                }}>
+                  {m.provider} · {m.tagline}
+                </div>
+
+                {/* Details grid */}
+                <div style={{ display: "grid", gridTemplateColumns: "auto 1fr", gap: "0.2rem 0.75rem", marginBottom: "0.875rem" }}>
+                  {[
+                    { key: "Agentes",     val: m.agentNames },
+                    { key: "Contexto",    val: m.context },
+                    { key: "Capacidade",  val: m.capability },
+                    { key: "Custo",       val: m.cost },
+                    { key: "Uso",         val: m.uso },
+                  ].map(row => (
+                    <>
+                      <span key={`k-${row.key}`} style={{ fontFamily: "var(--font-mono)", fontSize: "0.375rem", color: "var(--text-4)", letterSpacing: "0.06em", whiteSpace: "nowrap" }}>
+                        {row.key}:
+                      </span>
+                      <span key={`v-${row.key}`} style={{ fontFamily: "var(--font-mono)", fontSize: "0.4375rem", color: "var(--text-2)", lineHeight: 1.4 }}>
+                        {row.val}
+                      </span>
+                    </>
+                  ))}
+                </div>
+
+                {/* Progress bar */}
+                <div style={{ display: "flex", alignItems: "center", gap: "0.625rem" }}>
+                  <div style={{
+                    flex: 1, height: 6, background: "#ffffff06",
+                    borderRadius: 3, overflow: "hidden", border: "1px solid #ffffff08",
+                  }}>
+                    <div style={{
+                      height: "100%",
+                      width: mounted ? `${pct}%` : "0%",
+                      background: `linear-gradient(90deg, ${m.color}70, ${m.color})`,
+                      borderRadius: 3,
+                      boxShadow: `0 0 8px ${m.color}60`,
+                      transition: `width ${1.2 + i * 0.15}s ease`,
+                    }} />
+                  </div>
+                  <span style={{
+                    fontFamily: "var(--font-mono)", fontSize: "0.4375rem",
+                    color: m.color, fontWeight: 700, minWidth: 120, letterSpacing: "0.04em",
+                  }}>
+                    {pct}% dos agentes
+                  </span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
       </div>
 
-      {/* ── Section 3: Agent Metrics ── */}
-      <div>
-        <div className="mono-label" style={{ marginBottom: "0.75rem" }}>
-          MÉTRICAS DOS AGENTES
+      {/* Provider Summary */}
+      <div style={{
+        display: "flex", flexWrap: "wrap", gap: "0.625rem",
+        paddingTop: "0.75rem",
+        borderTop: "1px solid var(--border)",
+      }}>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.4375rem", color: "var(--text-4)", letterSpacing: "0.08em", alignSelf: "center", marginRight: 4 }}>
+          PROVEDORES:
+        </span>
+        {providers.map(p => (
+          <div key={p.label} style={{
+            display: "flex", alignItems: "center", gap: 5,
+            padding: "3px 10px",
+            background: `${p.color}0c`, border: `1px solid ${p.color}30`,
+            borderRadius: "var(--radius)",
+          }}>
+            <div style={{ width: 6, height: 6, borderRadius: "50%", background: p.color }} />
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.4375rem", color: p.color, letterSpacing: "0.05em" }}>
+              {p.label}
+            </span>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.4375rem", color: "var(--text-3)" }}>
+              {p.agents} {p.agents === 1 ? "agente" : "agentes"} ({p.pct}%)
+            </span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── TIER DIVIDER ─────────────────────────────────────────────────────────────
+function TierLabel({ label, sub }: { label: string; sub?: string }) {
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "1rem", marginTop: "0.5rem" }}>
+      <div
+        style={{
+          flex: 1, height: 1,
+          background: "linear-gradient(90deg, hsl(150 100% 50% / 0.3), transparent)",
+        }}
+      />
+      <div style={{ textAlign: "center" }}>
+        <span
+          style={{
+            fontFamily: "var(--font-mono)", fontSize: "0.5625rem",
+            letterSpacing: "0.18em", color: "var(--accent)",
+            padding: "4px 14px", border: "1px solid hsl(150 100% 50% / 0.3)",
+            borderRadius: "var(--radius)", background: "hsl(150 100% 50% / 0.06)",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {label}
+        </span>
+        {sub && (
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.4375rem", color: "var(--text-4)", marginTop: 4, letterSpacing: "0.12em" }}>
+            {sub}
+          </div>
+        )}
+      </div>
+      <div
+        style={{
+          flex: 1, height: 1,
+          background: "linear-gradient(90deg, transparent, hsl(150 100% 50% / 0.3))",
+        }}
+      />
+    </div>
+  );
+}
+
+// ─── AGENT DATA ───────────────────────────────────────────────────────────────
+const TIER1: CodeAgent[] = [
+  {
+    emoji: "👔",
+    name: "João CEO",
+    title: "Founder & Decisor Final",
+    model: "human",
+    responsibilities: [
+      "Aprova deploys de produção — gate humano do sistema.",
+      "Define prioridades estratégicas e visão do produto.",
+      "Decisão final em conflitos e mudanças de arquitetura.",
+    ],
+    skills: ["strategy", "leadership", "product"],
+  },
+  {
+    emoji: "🧠",
+    name: "OraCLI",
+    title: "Orquestrador Chefe",
+    model: "claude-opus-4-6-thinking",
+    responsibilities: [
+      "Decompõe tarefas e delega para agentes especializados.",
+      "Garante qualidade via pipeline BMAD-CE de 18 estágios.",
+      "Context Scout: busca memória antes de qualquer ação.",
+    ],
+    skills: ["Orchestration", "Context Scout", "Pipeline Management"],
+  },
+];
+
+const TIER2: CodeAgent[] = [
+  {
+    emoji: "💻",
+    name: "Code Agent",
+    title: "CTO / Supervisor Codex",
+    model: "claude-sonnet-4-6",
+    responsibilities: [
+      "Escreve specs técnicas e supervisiona implementação via Codex.",
+      "Code review automatizado com padrões de qualidade.",
+      "Bridge entre produto e execução de código.",
+    ],
+    skills: ["TypeScript", "React", "Node.js", "Code Review"],
+  },
+  {
+    emoji: "🏗️",
+    name: "Architect Agent",
+    title: "Arquiteto de Sistemas",
+    model: "claude-opus-4-6-thinking",
+    responsibilities: [
+      "Design de sistemas distribuídos e API contracts.",
+      "Data models, decisões de arquitetura e ADRs.",
+      "Pre-dev quality gate e revisão de blueprints.",
+    ],
+    skills: ["System Design", "API Design", "Data Modeling"],
+  },
+  {
+    emoji: "📋",
+    name: "PM Agent",
+    title: "Gerente de Projeto",
+    model: "claude-sonnet-4-6",
+    responsibilities: [
+      "Sprint planning, decomposição de stories e priorização.",
+      "Tradução de requisitos de negócio para specs técnicas.",
+      "Gerenciamento de backlog e status no Linear.",
+    ],
+    skills: ["Requirements", "Sprint Planning", "Story Decomposition"],
+  },
+  {
+    emoji: "📝",
+    name: "Docs Agent",
+    title: "Líder de Documentação",
+    model: "claude-sonnet-4-6",
+    responsibilities: [
+      "Documentação técnica, Confluence e knowledge base.",
+      "QMD reports, retrospectivas e lições aprendidas.",
+      "Persistência de conhecimento em pgvector/memória.",
+    ],
+    skills: ["Technical Writing", "Confluence", "Knowledge Management"],
+  },
+  {
+    emoji: "🏗️",
+    name: "Infra & DevOps Agent",
+    title: "Líder de Infraestrutura",
+    model: "claude-sonnet-4-6",
+    responsibilities: [
+      "Deploy, Docker, monitoring, CI/CD e Vercel.",
+      "Cloud management, smoke tests pós-deploy.",
+      "Security gate de produção junto ao Security Agent.",
+    ],
+    skills: ["Docker", "Vercel", "CI/CD", "Monitoring"],
+  },
+  {
+    emoji: "📊",
+    name: "Data Agent",
+    title: "Agente de Dados",
+    model: "claude-sonnet-4-6",
+    responsibilities: [
+      "Schemas de banco, migrations e qualidade de dados.",
+      "Analytics, métricas de ROI no Supabase.",
+      "Suporte a Data Modeling e decisões de schema.",
+    ],
+    skills: ["SQL", "Supabase", "Migrations", "Analytics"],
+  },
+  {
+    emoji: "🤖",
+    name: "General Agent",
+    title: "Generalista",
+    model: "claude-sonnet-4-6",
+    responsibilities: [
+      "Triagem de tarefas e roteamento para o agente correto.",
+      "UX review, pesquisa técnica e competitive analysis.",
+      "Comunicação Slack/Telegram e suporte operacional.",
+    ],
+    skills: ["Triage", "UX", "Research", "Communication"],
+  },
+];
+
+const TIER3: CodeAgent[] = [
+  {
+    emoji: "⚡",
+    name: "Codex",
+    title: "Motor de Execução de Código",
+    model: "gpt-5.3-codex",
+    responsibilities: [
+      "Recebe specs do Code Agent e implementa código completo.",
+      "Multi-agent parallelism — o braço que escreve o código.",
+      "Executa em sandbox isolado: sem APIs externas, sem deploy.",
+    ],
+    skills: ["Implementation", "Testing", "Security Audit"],
+  },
+  {
+    emoji: "🧪",
+    name: "QA Agent",
+    title: "Agente de Qualidade",
+    model: "claude-sonnet-4-6",
+    responsibilities: [
+      "Estratégia de testes, execução E2E e cobertura.",
+      "Regressão automatizada a cada PR e deploy.",
+      "Relatório de qualidade e critérios de aceite.",
+    ],
+    skills: ["E2E Testing", "Test Strategy", "Coverage"],
+  },
+  {
+    emoji: "🛡️",
+    name: "Security Agent",
+    title: "Agente de Segurança",
+    model: "claude-sonnet-4-6",
+    responsibilities: [
+      "Scan de vulnerabilidades em código e dependências.",
+      "Gestão de secrets, controle de acesso e audit trail.",
+      "Security gate pré-produção com relatório detalhado.",
+    ],
+    skills: ["Security Audit", "Vuln Scanning", "Access Control"],
+  },
+];
+
+// ─── PAGE ─────────────────────────────────────────────────────────────────────
+export default function AgentsPage() {
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: "2.5rem" }}>
+
+      {/* ── SECTION 1: Header ── */}
+      <div
+        className="glass-card"
+        style={{
+          padding: "2.5rem 2rem",
+          position: "relative",
+          overflow: "hidden",
+          borderTop: "2px solid hsl(150 100% 50% / 0.6)",
+        }}
+      >
+        <div
+          style={{
+            position: "absolute", inset: 0,
+            background: "radial-gradient(ellipse 70% 80% at 50% 0%, hsl(150 100% 50% / 0.06) 0%, transparent 70%)",
+            pointerEvents: "none",
+          }}
+        />
+        <div style={{ position: "relative", zIndex: 1 }}>
+          <div className="mono-label" style={{ marginBottom: "0.5rem", color: "var(--accent)" }}>
+            PAGANINI AIOS · PLATAFORMA DE DESENVOLVIMENTO
+          </div>
+          <h1
+            style={{
+              fontFamily: "var(--font-display)",
+              fontWeight: 900,
+              fontSize: "clamp(1.75rem, 4vw, 3rem)",
+              color: "var(--text-1)",
+              letterSpacing: "-0.03em",
+              margin: "0 0 0.75rem 0",
+              lineHeight: 1.1,
+            }}
+          >
+            Fábrica de Código{" "}
+            <span style={{ color: "var(--accent)", textShadow: "0 0 30px hsl(150 100% 50% / 0.4)" }}>
+              Autônoma
+            </span>
+          </h1>
+          <p className="section-help" style={{ fontSize: "0.875rem", marginBottom: "1.5rem", maxWidth: 600 }}>
+            12 agentes especializados que escrevem, testam, revisam e deployam código — autonomamente.
+          </p>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+            <span className="tag-badge">12 AGENTES</span>
+            <span className="tag-badge-cyan">AUTÔNOMOS</span>
+            <span className="tag-badge" style={{ background: "hsl(270 80% 70% / 0.08)", color: "hsl(270 80% 70%)", borderColor: "hsl(270 80% 70% / 0.25)" }}>
+              MULTI-MODEL
+            </span>
+          </div>
         </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "1rem" }}>
+      </div>
+
+      {/* ── SECTION 2: Stats ── */}
+      <div>
+        <div className="mono-label" style={{ marginBottom: "0.75rem" }}>MÉTRICAS DA FÁBRICA</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem" }}>
           {[
-            { label: "QUERIES PROCESSADAS",      value: "12.847",  color: "var(--text-1)", unit: "" },
-            { label: "TEMPO MÉD. DE RESPOSTA",   value: "2.3",     color: "var(--accent)", unit: "s" },
-            { label: "TAXA DE ACERTO DO ROUTER", value: "85.4",    color: "hsl(180 100% 55%)", unit: "%" },
-            { label: "CONFIANÇA MÉDIA",          value: "93.7",    color: "hsl(45 100% 60%)", unit: "%" },
-          ].map((stat) => (
-            <div key={stat.label} className="glass-card" style={{ padding: "1.25rem 1.5rem" }}>
-              <div className="mono-label" style={{ marginBottom: "0.5rem" }}>{stat.label}</div>
-              <div style={{ display: "flex", alignItems: "baseline", gap: 4 }}>
-                <span className="stat-value" style={{ color: stat.color, fontSize: "2.5rem" }}>
-                  {stat.value}
-                </span>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: "1rem", color: stat.color, opacity: 0.7 }}>
-                  {stat.unit}
-                </span>
+            { label: "Linhas de Código Geradas", value: "57,625", color: "var(--accent)", icon: "📦" },
+            { label: "Commits Gerados", value: "256", color: "hsl(190 100% 60%)", icon: "🔀" },
+            { label: "Dias de Operação", value: "6", color: "hsl(270 80% 70%)", icon: "🚀" },
+            { label: "Taxa de Sucesso", value: "98.3%", color: "hsl(150 100% 55%)", icon: "✅" },
+          ].map((s) => (
+            <div key={s.label} className="glass-card" style={{ padding: "1.5rem", textAlign: "center" }}>
+              <div style={{ fontSize: "1.75rem", marginBottom: "0.5rem" }}>{s.icon}</div>
+              <div className="stat-value" style={{ fontSize: "2rem", color: s.color }}>{s.value}</div>
+              <div
+                style={{
+                  fontFamily: "var(--font-mono)", fontSize: "0.5625rem",
+                  color: "var(--text-4)", marginTop: "0.5rem", letterSpacing: "0.1em",
+                }}
+              >
+                {s.label.toUpperCase()}
               </div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* ── Section 4: Plataforma (collapsible) ── */}
+      {/* ── SECTION 3: Hierarquia de Agentes ── */}
       <div>
-        <button
-          onClick={() => setPlataformaOpen(!plataformaOpen)}
-          style={{
-            display: "flex", alignItems: "center", gap: "0.75rem", width: "100%",
-            background: "transparent", border: "1px solid var(--border)",
-            borderRadius: "var(--radius)", padding: "0.75rem 1rem", cursor: "pointer",
-            fontFamily: "var(--font-mono)", fontSize: "0.5625rem",
-            color: "var(--text-4)", letterSpacing: "0.12em",
-          }}
-        >
-          <span style={{ color: "var(--text-3)" }}>{plataformaOpen ? "▼" : "▶"}</span>
-          <span>PLATAFORMA DE DESENVOLVIMENTO</span>
-          <span style={{ marginLeft: "auto", color: "var(--text-4)" }}>12 agentes internos</span>
-        </button>
+        <div className="mono-label" style={{ marginBottom: "0.75rem" }}>HIERARQUIA DE AGENTES</div>
 
-        {plataformaOpen && (
-          <div
+        {/* TIER 1 */}
+        <TierLabel label="TIER 1 — LIDERANÇA" sub="Gate humano + Orquestrador Chefe" />
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "1rem", marginBottom: "2rem" }}>
+          {TIER1.map((a) => <CodeAgentCard key={a.name} agent={a} featured />)}
+        </div>
+
+        {/* TIER 2 */}
+        <TierLabel label="TIER 2 — LÍDERES TÉCNICOS" sub="7 especialistas de domínio" />
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "1rem", marginBottom: "2rem" }}>
+          {TIER2.map((a) => <CodeAgentCard key={a.name} agent={a} />)}
+        </div>
+
+        {/* TIER 3 */}
+        <TierLabel label="TIER 3 — ESPECIALISTAS" sub="Execução, qualidade e segurança" />
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(300px, 1fr))", gap: "1rem" }}>
+          {TIER3.map((a) => <CodeAgentCard key={a.name} agent={a} />)}
+        </div>
+      </div>
+
+      {/* ── SECTION 4: Pipeline de Execução ── */}
+      <div className="glass-card" style={{ padding: "1.5rem" }}>
+        <div className="mono-label" style={{ marginBottom: "0.25rem" }}>PIPELINE DE EXECUÇÃO</div>
+        <h2 style={{ fontSize: "1.125rem", fontWeight: 700, color: "var(--text-1)", margin: "0 0 0.5rem" }}>
+          BMAD-CE · Do Comando ao Deploy
+        </h2>
+        <p className="section-help" style={{ marginBottom: "1.25rem" }}>
+          Cada tarefa flui por um pipeline estruturado de 18 estágios. Do pedido do João até o deploy em produção — tudo orquestrado autonomamente.
+        </p>
+        <PipelineDiagram />
+      </div>
+
+      {/* ── SECTION 5: Vertical Pack FIDC ── */}
+      <div>
+        <div style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "1rem" }}>
+          <div style={{ flex: 1, height: 1, background: "linear-gradient(90deg, hsl(45 100% 60% / 0.3), transparent)" }} />
+          <span
             style={{
-              marginTop: "0.5rem", border: "1px solid var(--border)",
-              borderRadius: "var(--radius)", overflow: "hidden",
+              fontFamily: "var(--font-mono)", fontSize: "0.5625rem",
+              letterSpacing: "0.18em", color: "hsl(45 100% 60%)",
+              padding: "4px 14px", border: "1px solid hsl(45 100% 60% / 0.3)",
+              borderRadius: "var(--radius)", background: "hsl(45 100% 60% / 0.06)",
+              whiteSpace: "nowrap",
             }}
           >
-            <div
-              className="section-help"
-              style={{ padding: "0.75rem 1rem", borderBottom: "1px solid var(--border)" }}
-            >
-              Agentes internos do time de desenvolvimento — não fazem parte do produto FIDC. Responsáveis pela infraestrutura, código, documentação e operações da plataforma Paganini.
-            </div>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: 0 }}>
-              {PLATAFORMA_AGENTS.map((agent, i) => (
-                <div
-                  key={agent.name}
-                  style={{
-                    display: "flex", alignItems: "center", gap: "0.75rem",
-                    padding: "0.625rem 1rem",
-                    borderBottom: i < PLATAFORMA_AGENTS.length - 1 ? "1px solid var(--border)" : "none",
-                    borderRight: i % 2 === 0 ? "1px solid var(--border)" : "none",
-                  }}
-                >
-                  <span style={{ fontSize: "1rem" }}>{agent.emoji}</span>
-                  <div>
-                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--text-2)" }}>
-                      {agent.name}
-                    </div>
-                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", color: "var(--text-4)" }}>
-                      {agent.role}
-                    </div>
-                  </div>
-                  <div
-                    style={{
-                      marginLeft: "auto", fontFamily: "var(--font-mono)", fontSize: "0.4375rem",
-                      color: agent.model === "human" ? "#fb923c" : "var(--text-4)",
-                      background: agent.model === "human" ? "rgba(251,146,60,0.1)" : "rgba(0,0,0,0.2)",
-                      border: `1px solid ${agent.model === "human" ? "rgba(251,146,60,0.3)" : "var(--border)"}`,
-                      padding: "2px 6px", borderRadius: "var(--radius)", whiteSpace: "nowrap",
-                    }}
-                  >
-                    {agent.model}
-                  </div>
-                </div>
-              ))}
+            14 AGENTES DE DOMÍNIO
+          </span>
+          <div style={{ flex: 1, height: 1, background: "linear-gradient(90deg, transparent, hsl(45 100% 60% / 0.3))" }} />
+        </div>
+
+        <div className="glass-card" style={{ padding: "1.5rem", borderTop: "2px solid hsl(45 100% 60% / 0.4)" }}>
+          <div style={{ display: "flex", alignItems: "flex-start", gap: "1.5rem", flexWrap: "wrap", marginBottom: "1.25rem" }}>
+            <div style={{ flex: 1, minWidth: 240 }}>
+              <div className="mono-label" style={{ marginBottom: "0.25rem", color: "hsl(45 100% 60%)" }}>
+                VERTICAL: PACK FIDC
+              </div>
+              <p className="section-help" style={{ margin: 0 }}>
+                A fábrica de código alimenta packs verticais especializados. O Pack FIDC é o primeiro: 9 agentes treinados com o corpus regulatório completo — CVM 175, BACEN 2682/99, ANBIMA.
+              </p>
             </div>
           </div>
-        )}
+
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(180px, 1fr))", gap: "0.625rem" }}>
+            {FIDC_AGENTS.map((a) => (
+              <div
+                key={a.name}
+                style={{
+                  display: "flex", alignItems: "center", gap: "0.625rem",
+                  padding: "0.625rem 0.875rem",
+                  background: "hsl(45 100% 60% / 0.04)",
+                  border: "1px solid hsl(45 100% 60% / 0.15)",
+                  borderRadius: "var(--radius)",
+                }}
+              >
+                <span style={{ fontSize: "1.125rem" }}>{a.emoji}</span>
+                <div>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--text-2)", fontWeight: 700 }}>
+                    {a.name}
+                  </div>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.4375rem", color: "hsl(45 100% 60% / 0.7)", letterSpacing: "0.06em" }}>
+                    {a.domain}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
+
+      {/* ── SECTION 6: Modelos em Uso ── */}
+      <div className="glass-card" style={{ padding: "1.5rem" }}>
+        <div className="mono-label" style={{ marginBottom: "0.25rem" }}>MODELOS EM USO</div>
+        <h2 style={{ fontSize: "1.125rem", fontWeight: 700, color: "var(--text-1)", margin: "0 0 1rem" }}>
+          Distribuição por Modelo de IA
+        </h2>
+        <ModelChart />
+        <div
+          style={{
+            marginTop: "1rem", paddingTop: "1rem", borderTop: "1px solid var(--border)",
+            fontFamily: "var(--font-mono)", fontSize: "0.5625rem",
+            color: "var(--text-4)", letterSpacing: "0.08em",
+          }}
+        >
+          Total: 12 agentes · Maior cluster: claude-sonnet-4-6 (67%) · Reasoning habilitado: Opus + Architect
+        </div>
+      </div>
+
     </div>
   );
 }

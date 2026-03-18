@@ -18,14 +18,14 @@ export function Topbar() {
       <div className="flex items-center gap-3" style={{ fontFamily: "var(--font-mono)", fontSize: "0.625rem", color: "var(--text-4)", letterSpacing: "0.1em" }}>
         <span>PAGANINI AIOS</span>
         <span style={{ color: "var(--border)" }}>│</span>
-        <span style={{ color: "var(--text-3)" }}>AI OPERATING SYSTEM PARA FUNDOS DE INVESTIMENTO</span>
+        <span style={{ color: "var(--text-3)" }}>PLATAFORMA DE AGENTES AUTÔNOMOS DE CÓDIGO</span>
       </div>
 
       {/* Right indicators */}
       <div className="flex items-center gap-4" style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem" }}>
         <div className="hidden sm:flex items-center gap-1.5">
-          <span className="tag-badge">9 AGENTES FIDC</span>
-          <span className="tag-badge-cyan">12 SKILLS</span>
+          <span className="tag-badge">12 AGENTES DE CÓDIGO</span>
+          <span className="tag-badge-cyan">52 CAPACIDADES</span>
           <span className="tag-badge" style={{ background: "hsl(45 100% 50% / 0.08)", color: "hsl(45 100% 50%)", borderColor: "hsl(45 100% 50% / 0.25)" }}>6 GATES</span>
         </div>
         <div className="flex items-center gap-1.5" style={{ color: "var(--accent)" }}>

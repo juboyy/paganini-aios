@@ -1,896 +1,1156 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 
-// ─── Dados ───────────────────────────────────────────────────────────────────
+// ─── TYPES ────────────────────────────────────────────────────────────────────
+type NodeType = "EMPRESA" | "FUNDO" | "REGULAÇÃO" | "PESSOA" | "OBRIGAÇÃO" | "MÓDULO" | "SKILL";
 
-const STATS = [
-  { label: "ENTIDADES", value: "1.847", sub: "nós do grafo de conhecimento", color: "var(--accent)" },
-  { label: "RELACIONAMENTOS", value: "4.231", sub: "arestas do grafo", color: "#22d3ee" },
-  { label: "DOCUMENTOS", value: "5.640", sub: "corpus ChromaDB EC2", color: "#a855f7" },
-  { label: "CHUNKS", value: "28.420", sub: "média 5,0 chunks/doc", color: "#f59e0b" },
-];
+interface GraphNode {
+  id: string;
+  label: string;
+  type: NodeType;
+  x: number;
+  y: number;
+  detail: string;
+  lastUpdated: string;
+}
 
-// Nós do grafo
-const NODES: NodeData[] = [
-  // EMPRESA (green)
-  { id: "n1",  label: "Cimento Norte Ltda",   type: "EMPRESA",   x: 180, y: 120, detail: "CNPJ 34.567.890/0001-22 · Setor: Construção Civil · Sócios: 3" },
-  { id: "n2",  label: "Metalúrgica ABC S/A",  type: "EMPRESA",   x: 720, y: 150, detail: "CNPJ 12.345.678/0001-99 · Setor: Metalurgia · Sócios: 5" },
-  { id: "n3",  label: "Transportes Globo",    type: "EMPRESA",   x: 120, y: 350, detail: "CNPJ 45.678.901/0001-33 · Setor: Logística · Sócios: 2" },
-  { id: "n4",  label: "Têxtil Paraná",        type: "EMPRESA",   x: 650, y: 380, detail: "CNPJ 56.789.012/0001-44 · Setor: Têxtil · Sócios: 4" },
-  { id: "n5",  label: "Agro Cerrado",         type: "EMPRESA",   x: 350, y: 500, detail: "CNPJ 67.890.123/0001-55 · Setor: Agronegócio · Sócios: 2" },
-  { id: "n6",  label: "Plásticos Delta",      type: "EMPRESA",   x: 550, y: 480, detail: "CNPJ 78.901.234/0001-66 · Setor: Plásticos · Sócios: 3" },
-  { id: "n7",  label: "Engenharia Sigma",     type: "EMPRESA",   x: 100, y: 220, detail: "CNPJ 89.012.345/0001-77 · Setor: Engenharia · Sócios: 2" },
-  { id: "n8",  label: "Farmácia Beta",        type: "EMPRESA",   x: 780, y: 280, detail: "CNPJ 90.123.456/0001-88 · Setor: Saúde · Sócios: 1" },
-  // FUNDO (cyan)
-  { id: "n9",  label: "Paganini I FIDC",      type: "FUNDO",     x: 450, y: 250, detail: "CNPJ 11.222.333/0001-00 · PL: R$ 480M · Cotas: Sênior + Sub." },
-  { id: "n10", label: "Paganini II FIDC",     type: "FUNDO",     x: 380, y: 150, detail: "CNPJ 22.333.444/0001-11 · PL: R$ 210M · Cotas: Sênior" },
-  { id: "n11", label: "Paganini III FIDC",    type: "FUNDO",     x: 520, y: 350, detail: "CNPJ 33.444.555/0001-22 · PL: R$ 95M · Cotas: Único" },
-  // REGULAÇÃO (amber)
-  { id: "n12", label: "CVM 175",              type: "REGULAÇÃO", x: 300, y: 60,  detail: "Resolução CVM 175/2022 · FIDCs em geral · Vigência: 2023" },
-  { id: "n13", label: "BACEN 4.966",          type: "REGULAÇÃO", x: 600, y: 60,  detail: "Resolução BACEN 4.966/2021 · PDD obrigatório · Risco de crédito" },
-  { id: "n14", label: "BACEN 3.978",          type: "REGULAÇÃO", x: 250, y: 440, detail: "Resolução BACEN 3.978/2020 · PLD/FT · KYC cedentes" },
-  { id: "n15", label: "Lei 14.430",           type: "REGULAÇÃO", x: 750, y: 450, detail: "Lei 14.430/2022 · Securitização · Regime jurídico FIDCs" },
-  { id: "n16", label: "CMN 4.557",            type: "REGULAÇÃO", x: 450, y: 550, detail: "Resolução CMN 4.557/2017 · Gestão de riscos · Governança" },
-  // PESSOA (purple)
-  { id: "n17", label: "Carlos Silva",         type: "PESSOA",    x: 200, y: 180, detail: "CPF 123.456.789-00 · Gestor Principal · CFA Level III" },
-  { id: "n18", label: "Ana Costa",            type: "PESSOA",    x: 500, y: 100, detail: "CPF 234.567.890-11 · Administradora Fiduciária · ANCORD" },
-  { id: "n19", label: "Roberto Lima",         type: "PESSOA",    x: 700, y: 200, detail: "CPF 345.678.901-22 · Custodiante · Banco XYZ" },
-  { id: "n20", label: "Marina Santos",        type: "PESSOA",    x: 350, y: 350, detail: "CPF 456.789.012-33 · Gestora Substituta · CGA" },
-  // OBRIGAÇÃO (red)
-  { id: "n21", label: "CADOC 3040",           type: "OBRIGAÇÃO", x: 150, y: 480, detail: "Informe trimestral BACEN · Prazo: D+30 do trimestre" },
-  { id: "n22", label: "Informe Mensal CVM",   type: "OBRIGAÇÃO", x: 550, y: 550, detail: "ICVM 356 Art. 8° · Prazo: até dia 15 do mês seguinte" },
-  { id: "n23", label: "AGO Anual",            type: "OBRIGAÇÃO", x: 800, y: 380, detail: "Assembleia Geral Ordinária · Prazo: até 30/04 do exercício" },
-  { id: "n24", label: "DARF IR",              type: "OBRIGAÇÃO", x: 680, y: 500, detail: "Retenção IR rendimentos · Cotistas PF/PJ · Prazo: D+3" },
-  // MÓDULO (teal)
-  { id: "n25", label: "pricing.py",           type: "MÓDULO",    x: 320, y: 280, detail: "Módulo de precificação · Python 3.11 · 1.240 linhas" },
-  { id: "n26", label: "compliance.py",        type: "MÓDULO",    x: 580, y: 280, detail: "Verificação de conformidade · Regras CVM/BACEN · v2.4" },
-  { id: "n27", label: "risk.py",              type: "MÓDULO",    x: 450, y: 400, detail: "Gestão de risco · PDD · VaR · Stress testing" },
-  { id: "n28", label: "admin.py",             type: "MÓDULO",    x: 380, y: 200, detail: "Administração · Cotas · NAV · Relatórios" },
-  // SKILL (white/dim)
-  { id: "n29", label: "fidc-rules-base",      type: "SKILL",     x: 100, y: 550, detail: "Base de regras FIDC · 847 regras indexadas · v3.1" },
-  { id: "n30", label: "fidc-orchestrator",    type: "SKILL",     x: 300, y: 580, detail: "Orquestrador de agentes · LangGraph · 12 nós" },
-  { id: "n31", label: "compliance-agent",     type: "SKILL",     x: 500, y: 580, detail: "Agente de compliance · RAG + GPT-4o · Precisão: 97%" },
-];
+interface GraphEdge {
+  id: string;
+  source: string;
+  target: string;
+  label: string;
+  important?: boolean;
+}
 
-// Arestas do grafo
-const EDGES: EdgeData[] = [
-  // Empresas → Fundo I (cedente_de, green)
-  { from: "n1",  to: "n9",  type: "cedente_de",  label: "cedente_de" },
-  { from: "n2",  to: "n9",  type: "cedente_de",  label: "cedente_de" },
-  { from: "n3",  to: "n9",  type: "cedente_de",  label: "cedente_de" },
-  { from: "n4",  to: "n11", type: "cedente_de",  label: "cedente_de" },
-  { from: "n5",  to: "n10", type: "cedente_de",  label: "cedente_de" },
-  { from: "n6",  to: "n11", type: "cedente_de",  label: "cedente_de" },
-  { from: "n7",  to: "n10", type: "cedente_de",  label: "cedente_de" },
-  { from: "n8",  to: "n9",  type: "cedente_de",  label: "cedente_de" },
-  // Regulações → Fundos (regula, amber)
-  { from: "n12", to: "n9",  type: "regula",      label: "regula" },
-  { from: "n12", to: "n10", type: "regula",      label: "regula" },
-  { from: "n12", to: "n11", type: "regula",      label: "regula" },
-  { from: "n13", to: "n9",  type: "regula",      label: "regula" },
-  { from: "n13", to: "n11", type: "regula",      label: "regula" },
-  { from: "n15", to: "n9",  type: "regula",      label: "regula" },
-  { from: "n15", to: "n10", type: "regula",      label: "regula" },
-  // Pessoas → Fundos (administra/gere/custodia, purple)
-  { from: "n17", to: "n9",  type: "administra",  label: "administra" },
-  { from: "n17", to: "n10", type: "gere",        label: "gere" },
-  { from: "n18", to: "n9",  type: "administra",  label: "administra" },
-  { from: "n18", to: "n11", type: "administra",  label: "administra" },
-  { from: "n19", to: "n9",  type: "custodia",    label: "custodia" },
-  { from: "n20", to: "n10", type: "gere",        label: "gere" },
-  { from: "n20", to: "n11", type: "gere",        label: "gere" },
-  // Obrigações → Fundos (obriga, red)
-  { from: "n21", to: "n9",  type: "obriga",      label: "obriga" },
-  { from: "n22", to: "n9",  type: "obriga",      label: "obriga" },
-  { from: "n22", to: "n10", type: "obriga",      label: "obriga" },
-  { from: "n23", to: "n9",  type: "obriga",      label: "obriga" },
-  { from: "n23", to: "n11", type: "obriga",      label: "obriga" },
-  { from: "n24", to: "n9",  type: "obriga",      label: "obriga" },
-  { from: "n24", to: "n11", type: "obriga",      label: "obriga" },
-  // Módulos → Fundos (implementa, teal)
-  { from: "n25", to: "n9",  type: "implementa",  label: "implementa" },
-  { from: "n25", to: "n10", type: "implementa",  label: "implementa" },
-  { from: "n26", to: "n9",  type: "implementa",  label: "implementa" },
-  { from: "n26", to: "n11", type: "implementa",  label: "implementa" },
-  { from: "n27", to: "n9",  type: "implementa",  label: "implementa" },
-  { from: "n28", to: "n10", type: "implementa",  label: "implementa" },
-  { from: "n28", to: "n11", type: "implementa",  label: "implementa" },
-  // Skills → Módulos (utiliza, white dim)
-  { from: "n29", to: "n25", type: "utiliza",     label: "utiliza" },
-  { from: "n29", to: "n27", type: "utiliza",     label: "utiliza" },
-  { from: "n30", to: "n26", type: "utiliza",     label: "utiliza" },
-  { from: "n30", to: "n28", type: "utiliza",     label: "utiliza" },
-  { from: "n31", to: "n26", type: "utiliza",     label: "utiliza" },
-  { from: "n31", to: "n27", type: "utiliza",     label: "utiliza" },
-  // Regulações → Obrigações (exige, amber dim)
-  { from: "n12", to: "n22", type: "exige",       label: "exige" },
-  { from: "n13", to: "n21", type: "exige",       label: "exige" },
-  { from: "n14", to: "n21", type: "exige",       label: "exige" },
-  { from: "n15", to: "n23", type: "exige",       label: "exige" },
-  { from: "n16", to: "n24", type: "exige",       label: "exige" },
-  // Empresas → Pessoas (sócio_de, green dim)
-  { from: "n1",  to: "n17", type: "sócio_de",   label: "sócio_de" },
-  { from: "n2",  to: "n19", type: "sócio_de",   label: "sócio_de" },
-  { from: "n7",  to: "n17", type: "sócio_de",   label: "sócio_de" },
-  { from: "n4",  to: "n20", type: "sócio_de",   label: "sócio_de" },
-];
+interface TooltipState {
+  node: GraphNode | null;
+  x: number;
+  y: number;
+}
 
-const EDGE_STYLES: Record<string, { color: string; width: number; opacity: number }> = {
-  cedente_de: { color: "#22c55e",  width: 2,   opacity: 0.55 },
-  regula:     { color: "#f59e0b",  width: 2,   opacity: 0.55 },
-  administra: { color: "#a855f7",  width: 2,   opacity: 0.55 },
-  gere:       { color: "#a855f7",  width: 2,   opacity: 0.55 },
-  custodia:   { color: "#a855f7",  width: 2,   opacity: 0.55 },
-  obriga:     { color: "#ef4444",  width: 2,   opacity: 0.55 },
-  implementa: { color: "#14b8a6",  width: 2,   opacity: 0.55 },
-  utiliza:    { color: "#94a3b8",  width: 1,   opacity: 0.35 },
-  exige:      { color: "#d97706",  width: 1,   opacity: 0.35 },
-  "sócio_de": { color: "#16a34a",  width: 1,   opacity: 0.35 },
+// ─── NODE COLORS & CONFIG ─────────────────────────────────────────────────────
+const NODE_CONFIG: Record<NodeType, { color: string; label: string }> = {
+  EMPRESA:   { color: "#22c55e", label: "Empresa Cedente" },
+  FUNDO:     { color: "#22d3ee", label: "Fundo FIDC" },
+  REGULAÇÃO: { color: "#f59e0b", label: "Regulação" },
+  PESSOA:    { color: "#a855f7", label: "Pessoa" },
+  OBRIGAÇÃO: { color: "#ef4444", label: "Obrigação" },
+  MÓDULO:    { color: "#14b8a6", label: "Módulo de Software" },
+  SKILL:     { color: "#94a3b8", label: "Skill/Agent" },
 };
 
-const NODE_STYLES: Record<string, { color: string; radius: number; glow: string }> = {
-  EMPRESA:   { color: "#22c55e",  radius: 14, glow: "rgba(34,197,94,0.6)" },
-  FUNDO:     { color: "#22d3ee",  radius: 18, glow: "rgba(34,211,238,0.7)" },
-  REGULAÇÃO: { color: "#f59e0b",  radius: 14, glow: "rgba(245,158,11,0.6)" },
-  PESSOA:    { color: "#a855f7",  radius: 10, glow: "rgba(168,85,247,0.6)" },
-  OBRIGAÇÃO: { color: "#ef4444",  radius: 10, glow: "rgba(239,68,68,0.6)" },
-  MÓDULO:    { color: "#14b8a6",  radius: 10, glow: "rgba(20,184,166,0.6)" },
-  SKILL:     { color: "#94a3b8",  radius: 10, glow: "rgba(148,163,184,0.4)" },
-};
+// ─── GRAPH DATA ───────────────────────────────────────────────────────────────
+const NODES: GraphNode[] = [
+  // EMPRESA
+  { id: "cimento-norte",    label: "Cimento Norte",    type: "EMPRESA",   x: 180, y: 140, detail: "Cedente de recebíveis industriais. CNPJ 12.345.678/0001-90. Rating AA-.", lastUpdated: "2026-03-10" },
+  { id: "metalurgica-abc",  label: "Metalúrgica ABC",  type: "EMPRESA",   x: 720, y: 160, detail: "Cedente do segmento metalúrgico. Capital aberto B3: MABC3.", lastUpdated: "2026-03-12" },
+  { id: "transportes-globo",label: "Transportes Globo",type: "EMPRESA",   x: 100, y: 370, detail: "Cedente de CCBs de transporte rodoviário.", lastUpdated: "2026-02-28" },
+  { id: "textil-parana",   label: "Têxtil Paraná",    type: "EMPRESA",   x: 680, y: 400, detail: "Cedente têxtil. Carteira de duplicatas mercantis.", lastUpdated: "2026-03-05" },
+  { id: "agro-cerrado",    label: "Agro Cerrado",     type: "EMPRESA",   x: 320, y: 520, detail: "Cedente agronegócio. CPRs e CRAs como lastro.", lastUpdated: "2026-03-15" },
+  { id: "plasticos-delta",  label: "Plásticos Delta",  type: "EMPRESA",   x: 560, y: 500, detail: "Cedente de NFs do setor de plásticos e embalagens.", lastUpdated: "2026-03-11" },
+  { id: "engenharia-sigma", label: "Engenharia Sigma", type: "EMPRESA",   x: 80,  y: 240, detail: "Cedente de contratos de engenharia civil.", lastUpdated: "2026-02-20" },
+  { id: "farmacia-beta",    label: "Farmácia Beta",    type: "EMPRESA",   x: 800, y: 300, detail: "Cedente farmacêutico. Notas promissórias de distribuição.", lastUpdated: "2026-03-08" },
+  { id: "construtora-alfa", label: "Construtora Alfa", type: "EMPRESA",   x: 250, y: 280, detail: "Cedente de recebíveis imobiliários e CRIs.", lastUpdated: "2026-03-14" },
+  { id: "energia-solar",    label: "Energia Solar",    type: "EMPRESA",   x: 620, y: 240, detail: "Cedente de recebíveis de energia renovável.", lastUpdated: "2026-03-16" },
 
-interface NodeData {
-  id: string; label: string; type: string; x: number; y: number; detail: string;
-}
-interface EdgeData {
-  from: string; to: string; type: string; label: string;
-}
+  // FUNDO
+  { id: "paganini-i",   label: "Paganini I FIDC",   type: "FUNDO", x: 450, y: 300, detail: "Fundo master. R$ 250M PL. Senior AAA + Subordinada. Gestão ativa pela Paganini Capital.", lastUpdated: "2026-03-18" },
+  { id: "paganini-ii",  label: "Paganini II FIDC",  type: "FUNDO", x: 350, y: 170, detail: "Fundo feeder multissetorial. R$ 80M PL. Cota única.", lastUpdated: "2026-03-17" },
+  { id: "paganini-iii", label: "Paganini III FIDC", type: "FUNDO", x: 550, y: 430, detail: "Fundo especializado em agronegócio. R$ 40M PL.", lastUpdated: "2026-03-16" },
 
-const RAG_STAGES = [
-  { id: "query",  label: "CONSULTA",      detail: "Entrada em linguagem natural",       color: "#a855f7" },
-  { id: "embed",  label: "EMBED",         detail: "text-embedding-3-large · 3072d",     color: "#22d3ee" },
-  { id: "vector", label: "VETORIAL",      detail: "ChromaDB · cosseno · top-20",        color: "var(--accent)" },
-  { id: "bm25",   label: "BM25",          detail: "Busca esparsa · mesclagem top-10",   color: "var(--accent)" },
-  { id: "rerank", label: "RERANK",        detail: "Cohere rerank-v3 · limiar 0,7",      color: "#f59e0b" },
-  { id: "topk",   label: "TOP-K",         detail: "k=8 · contexto 8K tokens",           color: "var(--accent)" },
-  { id: "agent",  label: "AGENTE",        detail: "GPT-4o · RAG response synthesis",    color: "var(--accent)" },
+  // REGULAÇÃO
+  { id: "cvm-175",     label: "CVM 175",      type: "REGULAÇÃO", x: 280, y: 60,  detail: "Resolução CVM 175/2022. Norma geral de fundos de investimento.", lastUpdated: "2026-01-01" },
+  { id: "bacen-4966",  label: "BACEN 4.966",  type: "REGULAÇÃO", x: 620, y: 60,  detail: "Resolução BCB 4.966/2021. Instrumentos financeiros — IFRS 9 local.", lastUpdated: "2026-01-01" },
+  { id: "bacen-3978",  label: "BACEN 3.978",  type: "REGULAÇÃO", x: 200, y: 460, detail: "Resolução 3.978/2020. Política de PLD/FT para fundos.", lastUpdated: "2026-01-01" },
+  { id: "lei-14430",   label: "Lei 14.430",   type: "REGULAÇÃO", x: 750, y: 470, detail: "Lei 14.430/2022. Securitização e mercado de capitais.", lastUpdated: "2026-01-01" },
+  { id: "cmn-4557",    label: "CMN 4.557",    type: "REGULAÇÃO", x: 450, y: 580, detail: "Resolução CMN 4.557/2017. Gestão de riscos para IFs.", lastUpdated: "2026-01-01" },
+  { id: "ifrs-9",      label: "IFRS 9",       type: "REGULAÇÃO", x: 140, y: 520, detail: "Padrão internacional de instrumentos financeiros. ECL model.", lastUpdated: "2026-01-01" },
+
+  // PESSOA
+  { id: "carlos-silva",  label: "Carlos Silva",  type: "PESSOA", x: 220, y: 200, detail: "Administrador Fiduciário. CPA-20. ANBIMA cert. 15 anos de experiência.", lastUpdated: "2026-03-01" },
+  { id: "ana-costa",     label: "Ana Costa",     type: "PESSOA", x: 500, y: 100, detail: "Gestora Sênior. CGA. Responsável pela política de investimentos.", lastUpdated: "2026-03-01" },
+  { id: "roberto-lima",  label: "Roberto Lima",  type: "PESSOA", x: 700, y: 220, detail: "Custodiante. CPA-20. Responsável pela guarda dos ativos.", lastUpdated: "2026-03-01" },
+  { id: "marina-santos", label: "Marina Santos", type: "PESSOA", x: 380, y: 380, detail: "Compliance Officer. CFP. Responsável pelo monitoramento regulatório.", lastUpdated: "2026-03-10" },
+  { id: "pedro-mendes",  label: "Pedro Mendes",  type: "PESSOA", x: 580, y: 160, detail: "Analista de Risco Sênior. FRM. Modelos de PDD e ECL.", lastUpdated: "2026-03-05" },
+
+  // OBRIGAÇÃO
+  { id: "cadoc-3040",     label: "CADOC 3040",     type: "OBRIGAÇÃO", x: 120, y: 500, detail: "Documento BACEN. Reporte mensal de carteira de crédito.", lastUpdated: "2026-03-01" },
+  { id: "informe-mensal", label: "Informe Mensal",  type: "OBRIGAÇÃO", x: 520, y: 560, detail: "Informe mensal de carteira CVM. Prazo: dia 5 de cada mês.", lastUpdated: "2026-03-05" },
+  { id: "ago-anual",      label: "AGO Anual",       type: "OBRIGAÇÃO", x: 800, y: 400, detail: "Assembleia Geral Ordinária. Aprovação de demonstrações financeiras.", lastUpdated: "2026-03-12" },
+  { id: "darf-ir",        label: "DARF IR",         type: "OBRIGAÇÃO", x: 680, y: 520, detail: "Guia DARF para IR sobre rendimentos. Último dia útil do mês.", lastUpdated: "2026-03-15" },
+
+  // MÓDULO
+  { id: "pricing-py",    label: "pricing.py",    type: "MÓDULO", x: 340, y: 300, detail: "Motor de precificação. WACC, duration, PDD. Python 3.12.", lastUpdated: "2026-03-18" },
+  { id: "compliance-py", label: "compliance.py", type: "MÓDULO", x: 580, y: 300, detail: "Engine de compliance. Checks CVM/BACEN em tempo real.", lastUpdated: "2026-03-17" },
+  { id: "risk-py",       label: "risk.py",       type: "MÓDULO", x: 460, y: 420, detail: "Módulo de risco. VAR, CVaR, stress tests. Integra com pricing.", lastUpdated: "2026-03-16" },
+  { id: "admin-py",      label: "admin.py",      type: "MÓDULO", x: 380, y: 220, detail: "Módulo de administração. Gestão de cotistas e movimentos.", lastUpdated: "2026-03-15" },
+  { id: "custody-py",    label: "custody.py",    type: "MÓDULO", x: 520, y: 220, detail: "Módulo de custódia. Liquidação, conciliação e guarda digital.", lastUpdated: "2026-03-14" },
+
+  // SKILL
+  { id: "fidc-rules-base",    label: "fidc-rules-base",    type: "SKILL", x: 80,  y: 570, detail: "Base de regras FIDC. 2.400+ regras regulatórias indexadas em pgvector.", lastUpdated: "2026-03-18" },
+  { id: "fidc-orchestrator",  label: "fidc-orchestrator",  type: "SKILL", x: 280, y: 600, detail: "Agente orquestrador FIDC. Coordena 9 sub-agentes do pack vertical.", lastUpdated: "2026-03-18" },
+  { id: "compliance-agent",   label: "compliance-agent",   type: "SKILL", x: 480, y: 600, detail: "Agente compliance. Monitora 24/7 desvios regulatórios em tempo real.", lastUpdated: "2026-03-18" },
 ];
 
-const RECENT_QUERIES = [
-  { query: "Qual o CNAE da Cimento Norte Ltda e quais sócios aparecem no quadro societário?", agent: "due-diligence", confidence: 94, citations: 4, latency: "0.31s" },
-  { query: "Resolução BACEN 4.966 covenants aplicáveis a FIDCs com cedente risco B",          agent: "compliance",    confidence: 97, citations: 7, latency: "0.28s" },
-  { query: "Como calcular NAV ajustado por perdas esperadas no portfólio do Paganini I?",      agent: "gestor",        confidence: 88, citations: 3, latency: "0.44s" },
-  { query: "Quais empresas do grupo têm dívida com o INSS acima de R$500K?",                  agent: "risk",          confidence: 91, citations: 5, latency: "0.37s" },
-  { query: "Circular CVM 3.932 sobre informes periódicos de FIDCs — prazo de entrega",        agent: "reporting",     confidence: 99, citations: 1, latency: "0.19s" },
-  { query: "Verifique PEP e sanções internacionais para sócios da Metalúrgica ABC S/A",        agent: "compliance",    confidence: 96, citations: 6, latency: "0.52s" },
-  { query: "Calcule o índice de subordinação mínimo conforme CMN 4.557",                      agent: "gestor",        confidence: 85, citations: 4, latency: "0.61s" },
-  { query: "Quais cedentes estão próximos do limite de concentração de 20%?",                  agent: "risk",          confidence: 92, citations: 3, latency: "0.34s" },
+const EDGES: GraphEdge[] = [
+  // EMPRESA → FUNDO (cedente_de)
+  { id: "e1",  source: "cimento-norte",    target: "paganini-i",   label: "cedente_de",  important: true },
+  { id: "e2",  source: "metalurgica-abc",  target: "paganini-i",   label: "cedente_de",  important: true },
+  { id: "e3",  source: "transportes-globo",target: "paganini-ii",  label: "cedente_de" },
+  { id: "e4",  source: "textil-parana",    target: "paganini-i",   label: "cedente_de" },
+  { id: "e5",  source: "agro-cerrado",     target: "paganini-iii", label: "cedente_de" },
+  { id: "e6",  source: "plasticos-delta",  target: "paganini-iii", label: "cedente_de" },
+  { id: "e7",  source: "engenharia-sigma", target: "paganini-ii",  label: "cedente_de" },
+  { id: "e8",  source: "farmacia-beta",    target: "paganini-i",   label: "cedente_de",  important: true },
+  { id: "e9",  source: "construtora-alfa", target: "paganini-ii",  label: "cedente_de" },
+  { id: "e10", source: "energia-solar",    target: "paganini-i",   label: "cedente_de" },
+
+  // REGULAÇÃO → Paganini I (regula)
+  { id: "e11", source: "cvm-175",    target: "paganini-i", label: "regula",  important: true },
+  { id: "e12", source: "bacen-4966", target: "paganini-i", label: "regula",  important: true },
+  { id: "e13", source: "bacen-3978", target: "paganini-i", label: "regula" },
+  { id: "e14", source: "lei-14430",  target: "paganini-i", label: "regula" },
+  { id: "e15", source: "cmn-4557",   target: "paganini-i", label: "regula" },
+  { id: "e16", source: "ifrs-9",     target: "paganini-i", label: "regula" },
+
+  // PESSOA → FUNDO
+  { id: "e17", source: "carlos-silva",  target: "paganini-i",  label: "administra",  important: true },
+  { id: "e18", source: "ana-costa",     target: "paganini-i",  label: "gere",        important: true },
+  { id: "e19", source: "roberto-lima",  target: "paganini-i",  label: "custodia" },
+  { id: "e20", source: "marina-santos", target: "paganini-i",  label: "supervisiona" },
+  { id: "e21", source: "pedro-mendes",  target: "paganini-ii", label: "analisa" },
+
+  // OBRIGAÇÃO → FUNDO (obriga)
+  { id: "e22", source: "cadoc-3040",     target: "paganini-i", label: "obriga" },
+  { id: "e23", source: "informe-mensal", target: "paganini-i", label: "obriga",  important: true },
+  { id: "e24", source: "ago-anual",      target: "paganini-i", label: "obriga" },
+  { id: "e25", source: "darf-ir",        target: "paganini-i", label: "obriga" },
+
+  // MÓDULO → Paganini I (implementa)
+  { id: "e26", source: "pricing-py",    target: "paganini-i", label: "implementa",  important: true },
+  { id: "e27", source: "compliance-py", target: "paganini-i", label: "implementa",  important: true },
+  { id: "e28", source: "risk-py",       target: "paganini-i", label: "implementa" },
+  { id: "e29", source: "admin-py",      target: "paganini-i", label: "implementa" },
+  { id: "e30", source: "custody-py",    target: "paganini-i", label: "implementa" },
+
+  // SKILL → MÓDULO (utiliza)
+  { id: "e31", source: "fidc-rules-base",   target: "compliance-py", label: "utiliza",  important: true },
+  { id: "e32", source: "fidc-orchestrator", target: "admin-py",      label: "utiliza" },
+  { id: "e33", source: "compliance-agent",  target: "compliance-py", label: "utiliza" },
+  { id: "e34", source: "fidc-rules-base",   target: "risk-py",       label: "utiliza" },
+  { id: "e35", source: "compliance-agent",  target: "risk-py",       label: "utiliza" },
+
+  // REGULAÇÃO → OBRIGAÇÃO (exige)
+  { id: "e36", source: "bacen-4966", target: "cadoc-3040",     label: "exige" },
+  { id: "e37", source: "cvm-175",    target: "informe-mensal", label: "exige",  important: true },
+  { id: "e38", source: "cmn-4557",   target: "ago-anual",      label: "exige" },
+  { id: "e39", source: "lei-14430",  target: "darf-ir",        label: "exige" },
+  { id: "e40", source: "bacen-3978", target: "cadoc-3040",     label: "exige" },
+
+  // EMPRESA → PESSOA (sócio_de)
+  { id: "e41", source: "cimento-norte",    target: "carlos-silva",  label: "sócio_de" },
+  { id: "e42", source: "metalurgica-abc",  target: "roberto-lima",  label: "sócio_de" },
+  { id: "e43", source: "construtora-alfa", target: "carlos-silva",  label: "sócio_de" },
+  { id: "e44", source: "energia-solar",    target: "pedro-mendes",  label: "sócio_de" },
+  { id: "e45", source: "farmacia-beta",    target: "marina-santos", label: "sócio_de" },
+
+  // Cross-fund
+  { id: "e46", source: "paganini-i",  target: "paganini-ii",  label: "alimenta",  important: true },
+  { id: "e47", source: "paganini-ii", target: "paganini-iii", label: "alimenta",  important: true },
+  { id: "e48", source: "paganini-i",  target: "paganini-iii", label: "alimenta" },
+
+  // Extra regulação cruzada
+  { id: "e49", source: "ifrs-9",   target: "bacen-4966",  label: "adotado_por" },
+  { id: "e50", source: "cvm-175",  target: "paganini-ii", label: "regula" },
+  { id: "e51", source: "cvm-175",  target: "paganini-iii",label: "regula" },
+  { id: "e52", source: "lei-14430",target: "paganini-ii", label: "regula" },
+  { id: "e53", source: "risk-py",  target: "pricing-py",  label: "depende_de" },
+  { id: "e54", source: "fidc-orchestrator", target: "pricing-py",    label: "utiliza" },
+  { id: "e55", source: "compliance-agent",  target: "fidc-rules-base",label: "treina_em" },
+  { id: "e56", source: "carlos-silva",  target: "paganini-ii",  label: "administra" },
+  { id: "e57", source: "marina-santos", target: "paganini-iii", label: "supervisiona" },
 ];
 
-const INGEST_HISTORY = [
-  { company: "Cimento Norte Ltda",          cnpj: "34.567.890/0001-22", docs: 12, chunks: 847,  entities: 38,  time: "7.2s",  ts: "13:04:19" },
-  { company: "Fundo Paganini I",            cnpj: "N/A",               docs: 28, chunks: 2140, entities: 124, time: "18.4s", ts: "12:51:33" },
-  { company: "BACEN Res. 4.966 Atualização",cnpj: "N/A",               docs: 5,  chunks: 412,  entities: 67,  time: "5.1s",  ts: "12:34:07" },
-  { company: "Metalúrgica ABC S/A",         cnpj: "12.345.678/0001-99", docs: 8,  chunks: 544,  entities: 29,  time: "4.8s",  ts: "11:22:44" },
-  { company: "CVM ICVM 356 (Rev.2025)",     cnpj: "N/A",               docs: 3,  chunks: 188,  entities: 41,  time: "2.9s",  ts: "10:08:12" },
-];
+// ─── SHAPE RENDERERS ──────────────────────────────────────────────────────────
+function renderNodeShape(node: GraphNode, isHovered: boolean, isHighlighted: boolean, isDimmed: boolean, isSearchMatch: boolean) {
+  const cfg = NODE_CONFIG[node.type];
+  const color = cfg.color;
+  const opacity = isDimmed ? 0.15 : 1;
+  const glowId = `glow-${node.type.toLowerCase().replace("ã","a").replace("ç","c").replace("ó","o").replace("é","e").replace("ú","u")}`;
+  const filterId = isSearchMatch ? "glow-search" : (isHovered || isHighlighted) ? glowId : "none";
+  const strokeColor = isSearchMatch ? "#facc15" : color;
+  const strokeW = isHovered || isHighlighted || isSearchMatch ? 2.5 : 1.5;
+  const sz = node.type === "FUNDO" ? 32 : 22;
 
-const ENTITY_DISTRIBUTION = [
-  { type: "EMPRESA",   count: 412, color: "#22c55e" },
-  { type: "FUNDO",     count: 38,  color: "#22d3ee" },
-  { type: "REGULAÇÃO", count: 287, color: "#f59e0b" },
-  { type: "PESSOA",    count: 524, color: "#a855f7" },
-  { type: "OBRIGAÇÃO", count: 198, color: "#ef4444" },
-  { type: "MÓDULO",    count: 143, color: "#14b8a6" },
-  { type: "SKILL",     count: 245, color: "#94a3b8" },
-];
+  const baseProps = {
+    fill: `${color}18`,
+    stroke: strokeColor,
+    strokeWidth: strokeW,
+    filter: filterId !== "none" ? `url(#${filterId})` : undefined,
+    opacity,
+    style: { transition: "opacity 0.3s" },
+  };
 
-const DONUT_SEGMENTS = [
-  { label: "cedente_de", pct: 28, color: "#22c55e" },
-  { label: "regula",     pct: 18, color: "#f59e0b" },
-  { label: "administra", pct: 12, color: "#a855f7" },
-  { label: "implementa", pct: 10, color: "#14b8a6" },
-  { label: "obriga",     pct:  8, color: "#ef4444" },
-  { label: "utiliza",    pct:  8, color: "#94a3b8" },
-  { label: "sócio_de",   pct:  6, color: "#16a34a" },
-  { label: "exige",      pct:  5, color: "#d97706" },
-  { label: "gere",       pct:  5, color: "#7c3aed" },
-];
-
-const RAG_METRICS = [
-  { label: "Precisão",   value: "91.2%", sub: "top-K retrieval",  color: "var(--accent)" },
-  { label: "Latência",   value: "105ms", sub: "p50 end-to-end",   color: "#22d3ee" },
-  { label: "Top-K",      value: "8",     sub: "chunks por query",  color: "#f59e0b" },
-];
-
-// ─── Helpers ─────────────────────────────────────────────────────────────────
-
-function getConnectedEdges(nodeId: string): Set<string> {
-  const set = new Set<string>();
-  EDGES.forEach((e, i) => {
-    if (e.from === nodeId || e.to === nodeId) set.add(String(i));
-  });
-  return set;
-}
-
-function getConnectedNodes(nodeId: string): Set<string> {
-  const set = new Set<string>([nodeId]);
-  EDGES.forEach(e => {
-    if (e.from === nodeId) set.add(e.to);
-    if (e.to === nodeId)   set.add(e.from);
-  });
-  return set;
-}
-
-// ─── Donut chart helper ───────────────────────────────────────────────────────
-
-function donutPath(startAngle: number, endAngle: number, cx: number, cy: number, r: number, innerR: number) {
-  const toRad = (deg: number) => (deg - 90) * (Math.PI / 180);
-  const x1 = cx + r * Math.cos(toRad(startAngle));
-  const y1 = cy + r * Math.sin(toRad(startAngle));
-  const x2 = cx + r * Math.cos(toRad(endAngle));
-  const y2 = cy + r * Math.sin(toRad(endAngle));
-  const ix1 = cx + innerR * Math.cos(toRad(endAngle));
-  const iy1 = cy + innerR * Math.sin(toRad(endAngle));
-  const ix2 = cx + innerR * Math.cos(toRad(startAngle));
-  const iy2 = cy + innerR * Math.sin(toRad(startAngle));
-  const large = endAngle - startAngle > 180 ? 1 : 0;
-  return `M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2} L ${ix1} ${iy1} A ${innerR} ${innerR} 0 ${large} 0 ${ix2} ${iy2} Z`;
-}
-
-// ─── Knowledge Graph Component ───────────────────────────────────────────────
-
-function KnowledgeGraph() {
-  const [hoveredNode, setHoveredNode] = useState<string | null>(null);
-  const [tooltip, setTooltip] = useState<{ x: number; y: number; node: NodeData } | null>(null);
-
-  const connectedEdges = hoveredNode ? getConnectedEdges(hoveredNode) : null;
-  const connectedNodes = hoveredNode ? getConnectedNodes(hoveredNode) : null;
-
-  const nodeMap = Object.fromEntries(NODES.map(n => [n.id, n]));
-
-  function handleNodeEnter(node: NodeData) {
-    setHoveredNode(node.id);
-    setTooltip({ x: node.x, y: node.y, node });
+  if (node.type === "FUNDO") {
+    // Hexagon
+    const pts = Array.from({ length: 6 }, (_, i) => {
+      const angle = (Math.PI / 3) * i - Math.PI / 6;
+      return `${sz * Math.cos(angle)},${sz * Math.sin(angle)}`;
+    }).join(" ");
+    return <polygon points={pts} {...baseProps} />;
+  } else if (node.type === "EMPRESA") {
+    return <rect x={-sz} y={-sz * 0.65} width={sz * 2} height={sz * 1.3} rx="5" {...baseProps} />;
+  } else if (node.type === "REGULAÇÃO") {
+    const d2 = sz * 1.1;
+    return <polygon points={`0,${-d2} ${d2},0 0,${d2} ${-d2},0`} {...baseProps} />;
+  } else if (node.type === "PESSOA") {
+    return <circle r={sz * 0.85} {...baseProps} />;
+  } else if (node.type === "OBRIGAÇÃO") {
+    // Octagon
+    const r = sz;
+    const o = r * 0.38;
+    const pts = `${-o},${-r} ${o},${-r} ${r},${-o} ${r},${o} ${o},${r} ${-o},${r} ${-r},${o} ${-r},${-o}`;
+    return <polygon points={pts} {...baseProps} />;
+  } else if (node.type === "MÓDULO") {
+    // Pill/stadium
+    return <rect x={-sz * 1.1} y={-sz * 0.55} width={sz * 2.2} height={sz * 1.1} rx={sz * 0.55} {...baseProps} />;
+  } else if (node.type === "SKILL") {
+    // Star (5-pointed)
+    const outerR = sz;
+    const innerR = sz * 0.45;
+    const pts = Array.from({ length: 10 }, (_, i) => {
+      const angle = (Math.PI / 5) * i - Math.PI / 2;
+      const r2 = i % 2 === 0 ? outerR : innerR;
+      return `${r2 * Math.cos(angle)},${r2 * Math.sin(angle)}`;
+    }).join(" ");
+    return <polygon points={pts} {...baseProps} />;
   }
-  function handleNodeLeave() {
-    setHoveredNode(null);
-    setTooltip(null);
-  }
-
-  return (
-    <div style={{ overflowX: "auto", overflowY: "hidden" }}>
-      <div style={{ minWidth: 700 }}>
-        <svg
-          viewBox="0 0 900 620"
-          width="100%"
-          style={{ display: "block", maxHeight: 620 }}
-        >
-          <defs>
-            {/* Glow filters per type */}
-            {Object.entries(NODE_STYLES).map(([type, style]) => (
-              <filter key={type} id={`glow-${type.toLowerCase()}`} x="-50%" y="-50%" width="200%" height="200%">
-                <feGaussianBlur stdDeviation="4" result="blur" />
-                <feFlood floodColor={style.glow} result="color" />
-                <feComposite in="color" in2="blur" operator="in" result="shadow" />
-                <feMerge>
-                  <feMergeNode in="shadow" />
-                  <feMergeNode in="SourceGraphic" />
-                </feMerge>
-              </filter>
-            ))}
-            {/* Pulse animation filter */}
-            <filter id="glow-pulse" x="-80%" y="-80%" width="260%" height="260%">
-              <feGaussianBlur stdDeviation="8" result="blur" />
-              <feFlood floodColor="rgba(34,211,238,0.8)" result="color" />
-              <feComposite in="color" in2="blur" operator="in" result="shadow" />
-              <feMerge>
-                <feMergeNode in="shadow" />
-                <feMergeNode in="SourceGraphic" />
-              </feMerge>
-            </filter>
-            {/* Arrow markers */}
-            {Object.entries(EDGE_STYLES).map(([type, style]) => (
-              <marker
-                key={type}
-                id={`arrow-${type}`}
-                markerWidth="7" markerHeight="5"
-                refX="7" refY="2.5" orient="auto"
-              >
-                <polygon points="0 0, 7 2.5, 0 5" fill={style.color} opacity={0.7} />
-              </marker>
-            ))}
-            {/* Background grid pattern */}
-            <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
-              <path d="M 40 0 L 0 0 0 40" fill="none" stroke="rgba(34,197,94,0.04)" strokeWidth="1"/>
-            </pattern>
-          </defs>
-
-          {/* Background */}
-          <rect width="900" height="620" fill="rgba(0,0,0,0.35)" rx="4" />
-          <rect width="900" height="620" fill="url(#grid)" rx="4" />
-
-          {/* Scan line effect */}
-          <rect width="900" height="1" y="0" fill="rgba(34,197,94,0.08)" rx="0">
-            <animateTransform
-              attributeName="transform"
-              type="translate"
-              from="0 0"
-              to="0 620"
-              dur="6s"
-              repeatCount="indefinite"
-            />
-          </rect>
-
-          {/* Edges */}
-          {EDGES.map((edge, i) => {
-            const from = nodeMap[edge.from];
-            const to   = nodeMap[edge.to];
-            if (!from || !to) return null;
-            const style = EDGE_STYLES[edge.type] || EDGE_STYLES["utiliza"];
-
-            let opacity = style.opacity;
-            if (hoveredNode) {
-              opacity = connectedEdges?.has(String(i)) ? 0.9 : 0.05;
-            }
-
-            // Midpoint for slight curve
-            const mx = (from.x + to.x) / 2 + (to.y - from.y) * 0.08;
-            const my = (from.y + to.y) / 2 + (from.x - to.x) * 0.08;
-
-            return (
-              <path
-                key={i}
-                d={`M ${from.x} ${from.y} Q ${mx} ${my} ${to.x} ${to.y}`}
-                fill="none"
-                stroke={style.color}
-                strokeWidth={style.width}
-                opacity={opacity}
-                markerEnd={`url(#arrow-${edge.type})`}
-                style={{ transition: "opacity 0.2s ease" }}
-              />
-            );
-          })}
-
-          {/* Nodes */}
-          {NODES.map(node => {
-            const style = NODE_STYLES[node.type];
-            const isCentral = node.id === "n9";
-            const isHovered = hoveredNode === node.id;
-            const isConnected = hoveredNode ? connectedNodes?.has(node.id) : true;
-            const dimmed = hoveredNode && !isConnected;
-
-            const r = isCentral ? 22 : style.radius;
-            const filterId = isCentral ? "glow-pulse" : `glow-${node.type.toLowerCase()}`;
-
-            return (
-              <g
-                key={node.id}
-                style={{ cursor: "pointer", transition: "opacity 0.2s ease" }}
-                opacity={dimmed ? 0.12 : 1}
-                onMouseEnter={() => handleNodeEnter(node)}
-                onMouseLeave={handleNodeLeave}
-              >
-                {/* Outer ring for hovered/central */}
-                {(isHovered || isCentral) && (
-                  <circle
-                    cx={node.x}
-                    cy={node.y}
-                    r={r + 6}
-                    fill="none"
-                    stroke={style.color}
-                    strokeWidth={1}
-                    opacity={0.4}
-                    strokeDasharray="4 3"
-                  >
-                    {isCentral && (
-                      <animateTransform
-                        attributeName="transform"
-                        type="rotate"
-                        from={`0 ${node.x} ${node.y}`}
-                        to={`360 ${node.x} ${node.y}`}
-                        dur="8s"
-                        repeatCount="indefinite"
-                      />
-                    )}
-                  </circle>
-                )}
-
-                {/* Pulse ring for central node */}
-                {isCentral && (
-                  <circle cx={node.x} cy={node.y} r={r} fill={style.color} opacity={0.15}>
-                    <animate attributeName="r" values={`${r};${r + 14};${r}`} dur="2.5s" repeatCount="indefinite" />
-                    <animate attributeName="opacity" values="0.15;0;0.15" dur="2.5s" repeatCount="indefinite" />
-                  </circle>
-                )}
-
-                {/* Main circle */}
-                <circle
-                  cx={node.x}
-                  cy={node.y}
-                  r={r}
-                  fill={`${style.color}22`}
-                  stroke={style.color}
-                  strokeWidth={isHovered ? 2.5 : isCentral ? 2.5 : 1.5}
-                  filter={`url(#${filterId})`}
-                />
-
-                {/* Inner dot */}
-                <circle
-                  cx={node.x}
-                  cy={node.y}
-                  r={isCentral ? 5 : 3}
-                  fill={style.color}
-                  opacity={0.9}
-                />
-
-                {/* Label */}
-                <text
-                  x={node.x}
-                  y={node.y + r + 12}
-                  textAnchor="middle"
-                  style={{
-                    fontFamily: "var(--font-mono)",
-                    fontSize: isCentral ? "0.55rem" : "0.45rem",
-                    fill: isHovered ? style.color : dimmed ? "rgba(148,163,184,0.3)" : "rgba(203,213,225,0.85)",
-                    fontWeight: isCentral || isHovered ? 700 : 400,
-                    letterSpacing: "0.03em",
-                    pointerEvents: "none",
-                    userSelect: "none",
-                  }}
-                >
-                  {node.label}
-                </text>
-              </g>
-            );
-          })}
-
-          {/* Tooltip */}
-          {tooltip && (() => {
-            const n = tooltip.node;
-            const style = NODE_STYLES[n.type];
-            // Position tooltip: keep inside viewBox
-            const tx = Math.min(Math.max(n.x - 110, 4), 680);
-            const ty = n.y < 80 ? n.y + 32 : n.y - 70;
-            return (
-              <g>
-                <rect
-                  x={tx} y={ty}
-                  width={220} height={56}
-                  rx={4}
-                  fill="rgba(2,8,20,0.96)"
-                  stroke={style.color}
-                  strokeWidth={1}
-                  opacity={0.97}
-                />
-                <text x={tx + 10} y={ty + 16} style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", fill: style.color, fontWeight: 700, letterSpacing: "0.08em" }}>
-                  [{n.type}] {n.label}
-                </text>
-                <foreignObject x={tx + 8} y={ty + 22} width={205} height={30}>
-                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.42rem", color: "rgba(148,163,184,0.9)", lineHeight: 1.5, wordBreak: "break-word" }}>
-                    {n.detail}
-                  </div>
-                </foreignObject>
-              </g>
-            );
-          })()}
-
-          {/* Legend */}
-          {Object.entries(NODE_STYLES).map(([type, style], i) => {
-            const lx = 24 + i * 124;
-            const ly = 596;
-            return (
-              <g key={type}>
-                <circle cx={lx} cy={ly} r={5} fill={style.color} opacity={0.8} />
-                <text x={lx + 10} y={ly + 4} style={{ fontFamily: "var(--font-mono)", fontSize: "0.4rem", fill: "rgba(148,163,184,0.75)", letterSpacing: "0.06em" }}>
-                  {type}
-                </text>
-              </g>
-            );
-          })}
-        </svg>
-      </div>
-    </div>
-  );
+  return <circle r={sz * 0.85} {...baseProps} />;
 }
 
-// ─── Entity Distribution Bar Chart ───────────────────────────────────────────
+// ─── QUADRATIC BEZIER PATH ────────────────────────────────────────────────────
+function getEdgePath(src: GraphNode, tgt: GraphNode): string {
+  const mx = (src.x + tgt.x) / 2;
+  const my = (src.y + tgt.y) / 2;
+  const dx = tgt.x - src.x;
+  const dy = tgt.y - src.y;
+  const len = Math.sqrt(dx * dx + dy * dy);
+  const curve = len * 0.18;
+  const nx = -dy / (len || 1);
+  const ny = dx / (len || 1);
+  const cx = mx + nx * curve;
+  const cy = my + ny * curve;
+  return `M ${src.x} ${src.y} Q ${cx} ${cy} ${tgt.x} ${tgt.y}`;
+}
 
-function EntityDistribution() {
-  const maxVal = Math.max(...ENTITY_DISTRIBUTION.map(d => d.count));
+// ─── ANIMATED COUNTER ─────────────────────────────────────────────────────────
+function AnimatedCounter({ target, suffix = "" }: { target: number; suffix?: string }) {
+  const [val, setVal] = useState(0);
+  useEffect(() => {
+    let start = 0;
+    const step = target / 60;
+    const timer = setInterval(() => {
+      start += step;
+      if (start >= target) { setVal(target); clearInterval(timer); }
+      else setVal(Math.floor(start));
+    }, 16);
+    return () => clearInterval(timer);
+  }, [target]);
+  return <>{val.toLocaleString("pt-BR")}{suffix}</>;
+}
+
+// ─── SPARKLINE ────────────────────────────────────────────────────────────────
+function Sparkline({ data, color }: { data: number[]; color: string }) {
+  const w = 80; const h = 28;
+  const max = Math.max(...data); const min = Math.min(...data);
+  const pts = data.map((v, i) => {
+    const x = (i / (data.length - 1)) * w;
+    const y = h - ((v - min) / (max - min + 1)) * h;
+    return `${x},${y}`;
+  }).join(" ");
   return (
-    <svg viewBox={`0 0 560 ${ENTITY_DISTRIBUTION.length * 36 + 20}`} width="100%" style={{ display: "block" }}>
-      {ENTITY_DISTRIBUTION.map((item, i) => {
-        const barW = (item.count / maxVal) * 360;
-        const y = i * 36 + 10;
-        return (
-          <g key={item.type}>
-            {/* Label */}
-            <text x={0} y={y + 14} style={{ fontFamily: "var(--font-mono)", fontSize: "0.45rem", fill: item.color, letterSpacing: "0.08em" }}>
-              {item.type}
-            </text>
-            {/* Bar background */}
-            <rect x={110} y={y + 4} width={360} height={12} rx={2} fill="rgba(0,0,0,0.4)" />
-            {/* Bar fill */}
-            <rect x={110} y={y + 4} width={barW} height={12} rx={2} fill={item.color} opacity={0.7}>
-              <animate attributeName="width" from={0} to={barW} dur="1s" fill="freeze" />
-            </rect>
-            {/* Value */}
-            <text x={480} y={y + 14} style={{ fontFamily: "var(--font-mono)", fontSize: "0.45rem", fill: item.color, fontWeight: 700 }}>
-              {item.count}
-            </text>
-          </g>
-        );
-      })}
+    <svg viewBox={`0 0 ${w} ${h}`} style={{ width: w, height: h }}>
+      <polyline points={pts} fill="none" stroke={color} strokeWidth="1.5" strokeLinejoin="round" opacity="0.8" />
+      <polyline points={`0,${h} ${pts} ${w},${h}`} fill={`${color}20`} stroke="none" />
     </svg>
   );
 }
 
-// ─── RAG Pipeline ────────────────────────────────────────────────────────────
-
-function RAGPipeline() {
-  const nodeW = 100;
-  const nodeH = 52;
-  const gap = 18;
-  const totalW = RAG_STAGES.length * nodeW + (RAG_STAGES.length - 1) * gap + 4;
-  const svgH = 130;
-
-  return (
-    <div style={{ overflowX: "auto" }}>
-      <svg width={totalW} height={svgH} viewBox={`0 0 ${totalW} ${svgH}`} style={{ display: "block" }}>
-        <defs>
-          <linearGradient id="rag-grad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="rgba(34,197,94,0.18)" />
-            <stop offset="100%" stopColor="rgba(34,197,94,0.04)" />
-          </linearGradient>
-          <filter id="rag-glow">
-            <feGaussianBlur stdDeviation="2" result="b" />
-            <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
-          </filter>
-          <marker id="rag-arrow" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
-            <polygon points="0 0, 7 2.5, 0 5" fill="rgba(34,197,94,0.6)" />
-          </marker>
-        </defs>
-
-        {RAG_STAGES.map((stage, i) => {
-          const x = i * (nodeW + gap) + 2;
-          const cy = svgH / 2;
-
-          return (
-            <g key={stage.id}>
-              {i < RAG_STAGES.length - 1 && (
-                <line
-                  x1={x + nodeW} y1={cy}
-                  x2={x + nodeW + gap - 2} y2={cy}
-                  stroke="rgba(34,197,94,0.5)"
-                  strokeWidth={1.5}
-                  markerEnd="url(#rag-arrow)"
-                />
-              )}
-              {/* Node box */}
-              <rect
-                x={x} y={cy - nodeH / 2}
-                width={nodeW} height={nodeH} rx={3}
-                fill="url(#rag-grad)"
-                stroke={i === RAG_STAGES.length - 1 ? "var(--accent)" : "rgba(34,197,94,0.2)"}
-                strokeWidth={i === RAG_STAGES.length - 1 ? 1.5 : 1}
-                filter={i === RAG_STAGES.length - 1 ? "url(#rag-glow)" : ""}
-              />
-              {/* Stage number */}
-              <text
-                x={x + 6} y={cy - nodeH / 2 + 12}
-                style={{ fontFamily: "var(--font-mono)", fontSize: "0.38rem", fill: stage.color, fontWeight: 700, letterSpacing: "0.06em" }}
-              >
-                {String(i + 1).padStart(2, "0")}
-              </text>
-              {/* Stage label */}
-              <text
-                x={x + nodeW / 2} y={cy - 4}
-                textAnchor="middle"
-                style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", fill: i === RAG_STAGES.length - 1 ? "var(--accent)" : "rgba(203,213,225,0.9)", fontWeight: 700, letterSpacing: "0.05em" }}
-              >
-                {stage.label}
-              </text>
-              {/* Detail */}
-              <foreignObject x={x + 4} y={cy + 4} width={nodeW - 8} height={nodeH / 2 - 4}>
-                <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.35rem", color: "rgba(148,163,184,0.7)", lineHeight: 1.4, wordBreak: "break-word" }}>
-                  {stage.detail}
-                </div>
-              </foreignObject>
-            </g>
-          );
-        })}
-      </svg>
-    </div>
-  );
-}
-
-// ─── Donut Chart ─────────────────────────────────────────────────────────────
-
-function DonutChart() {
-  const [hovered, setHovered] = useState<number | null>(null);
-  const cx = 110, cy = 110, r = 85, inner = 52;
-  let cumulative = 0;
-
-  return (
-    <div style={{ display: "flex", gap: "2rem", alignItems: "center", flexWrap: "wrap" }}>
-      <svg width={220} height={220} viewBox="0 0 220 220" style={{ flexShrink: 0 }}>
-        <defs>
-          <filter id="donut-glow">
-            <feGaussianBlur stdDeviation="3" result="b" />
-            <feMerge><feMergeNode in="b" /><feMergeNode in="SourceGraphic" /></feMerge>
-          </filter>
-        </defs>
-        {DONUT_SEGMENTS.map((seg, i) => {
-          const startAngle = cumulative * 3.6;
-          cumulative += seg.pct;
-          const endAngle = cumulative * 3.6;
-          const isH = hovered === i;
-          return (
-            <path
-              key={seg.label}
-              d={donutPath(startAngle, endAngle, cx, cy, isH ? r + 6 : r, inner)}
-              fill={seg.color}
-              opacity={hovered === null ? 0.75 : isH ? 1 : 0.25}
-              filter={isH ? "url(#donut-glow)" : ""}
-              style={{ cursor: "pointer", transition: "opacity 0.2s, d 0.2s" }}
-              onMouseEnter={() => setHovered(i)}
-              onMouseLeave={() => setHovered(null)}
-            />
-          );
-        })}
-        {/* Center text */}
-        <text x={cx} y={cy - 6} textAnchor="middle" style={{ fontFamily: "var(--font-mono)", fontSize: "0.55rem", fill: "rgba(148,163,184,0.7)", letterSpacing: "0.08em" }}>
-          RELAÇÕES
-        </text>
-        <text x={cx} y={cy + 10} textAnchor="middle" style={{ fontFamily: "var(--font-mono)", fontSize: "0.95rem", fill: "var(--accent)", fontWeight: 700 }}>
-          4.231
-        </text>
-        {hovered !== null && (
-          <>
-            <text x={cx} y={cy + 26} textAnchor="middle" style={{ fontFamily: "var(--font-mono)", fontSize: "0.42rem", fill: DONUT_SEGMENTS[hovered].color, fontWeight: 700 }}>
-              {DONUT_SEGMENTS[hovered].label}
-            </text>
-            <text x={cx} y={cy + 38} textAnchor="middle" style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", fill: DONUT_SEGMENTS[hovered].color, fontWeight: 700 }}>
-              {DONUT_SEGMENTS[hovered].pct}%
-            </text>
-          </>
-        )}
-      </svg>
-
-      {/* Legend */}
-      <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem", flex: 1 }}>
-        {DONUT_SEGMENTS.map((seg, i) => (
-          <div
-            key={seg.label}
-            style={{ display: "flex", alignItems: "center", gap: "0.5rem", cursor: "pointer", opacity: hovered === null || hovered === i ? 1 : 0.35, transition: "opacity 0.2s" }}
-            onMouseEnter={() => setHovered(i)}
-            onMouseLeave={() => setHovered(null)}
-          >
-            <div style={{ width: 8, height: 8, borderRadius: "50%", background: seg.color, flexShrink: 0, boxShadow: `0 0 5px ${seg.color}` }} />
-            <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", color: "rgba(148,163,184,0.85)", flex: 1 }}>{seg.label}</span>
-            <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", color: seg.color, fontWeight: 700 }}>{seg.pct}%</span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ─── Main Page ────────────────────────────────────────────────────────────────
-
+// ─── MAIN PAGE ────────────────────────────────────────────────────────────────
 export default function MemoryPage() {
+  const [hoveredNode, setHoveredNode] = useState<string | null>(null);
+  const [tooltip, setTooltip] = useState<TooltipState>({ node: null, x: 0, y: 0 });
+  const [activeFilters, setActiveFilters] = useState<Set<NodeType>>(
+    new Set(["EMPRESA", "FUNDO", "REGULAÇÃO", "PESSOA", "OBRIGAÇÃO", "MÓDULO", "SKILL"])
+  );
+  const [searchText, setSearchText] = useState("");
+  const [viewBox, setViewBox] = useState({ x: 0, y: 0, w: 900, h: 640 });
+  const [hoveredDonut, setHoveredDonut] = useState<number | null>(null);
+  const [mounted, setMounted] = useState(false);
+  const svgRef = useRef<SVGSVGElement>(null);
+
+  useEffect(() => { setMounted(true); }, []);
+
+  const nodeMap = new Map(NODES.map(n => [n.id, n]));
+
+  // Connected edges per node
+  const edgesByNode = new Map<string, string[]>();
+  NODES.forEach(n => edgesByNode.set(n.id, []));
+  EDGES.forEach(e => {
+    edgesByNode.get(e.source)?.push(e.id);
+    edgesByNode.get(e.target)?.push(e.id);
+  });
+
+  const connectedEdgeIds = hoveredNode
+    ? new Set(edgesByNode.get(hoveredNode) ?? [])
+    : new Set<string>();
+
+  const filteredNodes = NODES.filter(n => activeFilters.has(n.type));
+  const filteredNodeIds = new Set(filteredNodes.map(n => n.id));
+  const filteredEdges = EDGES.filter(e => filteredNodeIds.has(e.source) && filteredNodeIds.has(e.target));
+
+  const searchLower = searchText.toLowerCase();
+  const matchingNodeIds = searchText
+    ? new Set(filteredNodes.filter(n => n.label.toLowerCase().includes(searchLower)).map(n => n.id))
+    : null;
+
+  function toggleFilter(type: NodeType) {
+    setActiveFilters(prev => {
+      const next = new Set(prev);
+      if (next.has(type)) next.delete(type);
+      else next.add(type);
+      return next;
+    });
+  }
+
+  function zoom(delta: number) {
+    setViewBox(v => ({
+      ...v,
+      w: Math.max(300, v.w + delta),
+      h: Math.max(200, v.h + delta * (640 / 900)),
+    }));
+  }
+
+  function handleNodeEnter(node: GraphNode) {
+    setHoveredNode(node.id);
+    setTooltip({ node, x: node.x, y: node.y });
+  }
+
+  function handleNodeLeave() {
+    setHoveredNode(null);
+    setTooltip({ node: null, x: 0, y: 0 });
+  }
+
+  // Count edges
+  const edgeLabelCounts: Record<string, number> = {};
+  EDGES.forEach(e => { edgeLabelCounts[e.label] = (edgeLabelCounts[e.label] || 0) + 1; });
+  const donutData = [
+    { label: "cedente_de",  count: edgeLabelCounts["cedente_de"] || 0,  color: "#22c55e" },
+    { label: "regula",      count: edgeLabelCounts["regula"] || 0,       color: "#f59e0b" },
+    { label: "implementa",  count: edgeLabelCounts["implementa"] || 0,   color: "#14b8a6" },
+    { label: "obriga",      count: edgeLabelCounts["obriga"] || 0,       color: "#ef4444" },
+    { label: "outros",      count: EDGES.length - (edgeLabelCounts["cedente_de"] || 0) - (edgeLabelCounts["regula"] || 0) - (edgeLabelCounts["implementa"] || 0) - (edgeLabelCounts["obriga"] || 0), color: "#a855f7" },
+  ];
+  const donutTotal = donutData.reduce((s, d) => s + d.count, 0);
+
+  const typeCounts: Record<NodeType, number> = {} as Record<NodeType, number>;
+  NODES.forEach(n => { typeCounts[n.type] = (typeCounts[n.type] || 0) + 1; });
+
+  // Donut chart angles
+  let cumAngle = -Math.PI / 2;
+  const donutSlices = donutData.map(d => {
+    const angle = (d.count / donutTotal) * Math.PI * 2;
+    const startA = cumAngle;
+    cumAngle += angle;
+    return { ...d, startA, endA: cumAngle };
+  });
+
+  function arcPath(cx: number, cy: number, r: number, startA: number, endA: number) {
+    const x1 = cx + r * Math.cos(startA);
+    const y1 = cy + r * Math.sin(startA);
+    const x2 = cx + r * Math.cos(endA);
+    const y2 = cy + r * Math.sin(endA);
+    const large = endA - startA > Math.PI ? 1 : 0;
+    return `M ${x1} ${y1} A ${r} ${r} 0 ${large} 1 ${x2} ${y2}`;
+  }
+
+  const stats = [
+    { label: "Total de Entidades", value: NODES.length, suffix: "", icon: "🗂️", color: "#22d3ee", sparkData: [28,30,30,32,33,34,34,35] },
+    { label: "Relacionamentos",    value: EDGES.length, suffix: "+", icon: "🔗", color: "#22c55e", sparkData: [40,44,48,50,51,53,55,57] },
+    { label: "Consultas RAG/dia",  value: 1243, suffix: "", icon: "⚡", color: "#a855f7", sparkData: [900,1100,1050,1200,1150,1243,1300,1243] },
+    { label: "Precisão Semântica", value: 91, suffix: ".2%", icon: "🎯", color: "#f59e0b", sparkData: [85,87,88,89,90,90,91,91] },
+  ];
+
+  const recentQueries = [
+    { query: "Quais empresas são cedentes do Paganini I?", confidence: 0.97, agent: "Gestor", time: "2min" },
+    { query: "CVM 175 impacta quais obrigações?",          confidence: 0.94, agent: "Compliance", time: "5min" },
+    { query: "Listar todos os módulos de risco",            confidence: 0.99, agent: "OraCLI", time: "8min" },
+    { query: "Sócio da Metalúrgica ABC?",                   confidence: 0.88, agent: "Due Diligence", time: "12min" },
+    { query: "BACEN 3.978 exige quais documentos?",         confidence: 0.92, agent: "Regulatory Watch", time: "18min" },
+    { query: "PDD do Agro Cerrado — cálculo atual",        confidence: 0.85, agent: "Pricing Engine", time: "25min" },
+    { query: "Compliance check Têxtil Paraná",              confidence: 0.96, agent: "Compliance", time: "31min" },
+    { query: "Relatório AGO Paganini I",                    confidence: 0.93, agent: "Reporting", time: "44min" },
+  ];
+
+  const ragStages = [
+    { label: "Query Input",       icon: "📥", color: "#22d3ee" },
+    { label: "Embedding",         icon: "🧠", color: "#a855f7" },
+    { label: "pgvector Search",   icon: "🔍", color: "#22c55e" },
+    { label: "Context Merge",     icon: "🔗", color: "#f59e0b" },
+    { label: "Reranking",         icon: "⚡", color: "#14b8a6" },
+    { label: "LLM Synthesis",     icon: "🤖", color: "#a855f7" },
+    { label: "Response",          icon: "📤", color: "#22c55e" },
+  ];
+
+  const barData: Array<{ type: NodeType; count: number }> = (Object.keys(NODE_CONFIG) as NodeType[]).map(t => ({
+    type: t,
+    count: typeCounts[t] || 0,
+  }));
+  const barMax = Math.max(...barData.map(b => b.count));
+
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "2rem" }}>
 
-      {/* ── Cabeçalho ── */}
-      <div>
-        <div className="mono-label" style={{ marginBottom: "0.25rem" }}>
-          PAGANINI AIOS · MOTOR DE CONHECIMENTO · GRAFO SEMÂNTICO
-        </div>
-        <h1 style={{ fontSize: "1.625rem", fontWeight: 700, color: "var(--text-1)", margin: 0, lineHeight: 1.2 }}>
-          Memória{" "}
-          <span style={{ color: "var(--accent)" }}>+ Grafo de Conhecimento</span>
-        </h1>
-        <p className="section-help" style={{ marginTop: "0.375rem" }}>
-          Visualização interativa do grafo de entidades e relacionamentos do corpus Paganini AIOS.
-          Passe o mouse sobre um nó para destacar suas conexões.
-        </p>
-      </div>
-
-      {/* ── Stats ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "1rem" }}>
-        {STATS.map(s => (
-          <div key={s.label} className="glass-card" style={{ padding: "1rem 1.25rem" }}>
-            <div className="mono-label" style={{ marginBottom: "0.25rem" }}>{s.label}</div>
-            <div className="stat-value" style={{ color: s.color }}>{s.value}</div>
-            <div style={{ fontSize: "0.5625rem", color: "var(--text-4)", marginTop: "0.25rem" }}>{s.sub}</div>
+      {/* ═══ HEADER ═══════════════════════════════════════════════════════════ */}
+      <div
+        className="glass-card"
+        style={{
+          padding: "2rem",
+          position: "relative",
+          overflow: "hidden",
+          borderTop: "2px solid #22d3ee80",
+        }}
+      >
+        <div style={{
+          position: "absolute", inset: 0,
+          background: "radial-gradient(ellipse 60% 80% at 50% 0%, #22d3ee0a 0%, transparent 70%)",
+          pointerEvents: "none",
+        }} />
+        <div style={{ position: "relative", zIndex: 1 }}>
+          <div className="mono-label" style={{ marginBottom: "0.5rem", color: "#22d3ee" }}>
+            PAGANINI AIOS · KNOWLEDGE GRAPH v4.0
           </div>
-        ))}
-      </div>
-
-      {/* ── Grafo Principal ── */}
-      <div className="glass-card" style={{ padding: "1.25rem" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem", flexWrap: "wrap", gap: "0.5rem" }}>
-          <div>
-            <div className="mono-label" style={{ marginBottom: "2px" }}>
-              GRAFO DE CONHECIMENTO · ENTIDADES E RELACIONAMENTOS
-            </div>
-            <div style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--text-1)" }}>
-              31 nós · 51 arestas · 7 tipos de entidade
-            </div>
-          </div>
-          <div style={{ display: "flex", gap: "6px", flexWrap: "wrap" }}>
-            <span className="tag-badge">SVG INTERATIVO</span>
-            <span className="tag-badge-cyan">HOVER PARA DETALHES</span>
+          <h1 style={{
+            fontFamily: "var(--font-display)", fontWeight: 900,
+            fontSize: "clamp(1.5rem, 3.5vw, 2.5rem)",
+            color: "var(--text-1)", letterSpacing: "-0.03em",
+            margin: "0 0 0.5rem", lineHeight: 1.1,
+          }}>
+            Grafo de Conhecimento{" "}
+            <span style={{ color: "#22d3ee", textShadow: "0 0 30px #22d3ee60" }}>Empresarial</span>
+          </h1>
+          <p className="section-help" style={{ marginBottom: "1.25rem", maxWidth: 580 }}>
+            {NODES.length} entidades · {EDGES.length} relacionamentos · Motor RAG semântico com pgvector · Atualizado em tempo real
+          </p>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
+            <span className="tag-badge-cyan">KNOWLEDGE GRAPH</span>
+            <span className="tag-badge">RAG ENGINE</span>
+            <span className="tag-badge" style={{ background: "#a855f710", color: "#a855f7", borderColor: "#a855f740" }}>pgvector</span>
+            <span className="tag-badge" style={{ background: "#22c55e10", color: "#22c55e", borderColor: "#22c55e40" }}>TEMPO REAL</span>
           </div>
         </div>
-        <KnowledgeGraph />
       </div>
 
-      {/* ── Distribuição + Pipeline ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1.6fr", gap: "1rem", alignItems: "start" }}>
+      {/* ═══ GRAPH SECTION ════════════════════════════════════════════════════ */}
+      <div className="glass-card" style={{ padding: "1.25rem", overflow: "hidden" }}>
+        <div style={{ marginBottom: "0.75rem" }}>
+          <div className="mono-label" style={{ marginBottom: "0.25rem" }}>GRAFO DE ENTIDADES</div>
+          <h2 style={{ fontSize: "1rem", fontWeight: 700, color: "var(--text-1)", margin: "0 0 0.75rem" }}>
+            Mapa Relacional Interativo — {filteredNodes.length} entidades visíveis
+          </h2>
 
-        {/* Distribuição de Entidades */}
-        <div className="glass-card" style={{ padding: "1.25rem" }}>
-          <div className="mono-label" style={{ marginBottom: "0.75rem" }}>
-            DISTRIBUIÇÃO DE ENTIDADES · 7 TIPOS
-          </div>
-          <EntityDistribution />
-          <div style={{ marginTop: "0.75rem", paddingTop: "0.75rem", borderTop: "1px solid var(--border)", display: "flex", justifyContent: "space-between" }}>
-            <span className="mono-label">TOTAL</span>
-            <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--accent)" }}>1.847 entidades</span>
-          </div>
-        </div>
-
-        {/* Pipeline RAG */}
-        <div className="glass-card" style={{ padding: "1.25rem" }}>
-          <div className="mono-label" style={{ marginBottom: "0.75rem" }}>
-            PIPELINE RAG · CONSULTA → AGENTE · 7 ESTÁGIOS
-          </div>
-          <RAGPipeline />
-          <div style={{ marginTop: "1rem", display: "flex", flexDirection: "column", gap: "6px" }}>
+          {/* Controls row */}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem", alignItems: "center", marginBottom: "0.75rem" }}>
+            {/* Search */}
+            <input
+              value={searchText}
+              onChange={e => setSearchText(e.target.value)}
+              placeholder="Buscar entidade..."
+              style={{
+                fontFamily: "var(--font-mono)", fontSize: "0.5625rem",
+                background: "#ffffff08", border: "1px solid #ffffff15",
+                color: "var(--text-1)", borderRadius: "var(--radius)",
+                padding: "5px 12px", outline: "none", width: 180,
+                letterSpacing: "0.04em",
+              }}
+            />
+            {/* Zoom */}
             {[
-              { stage: "EMBED",   detail: "text-embedding-3-large · 3072 dimensões",        color: "#22d3ee" },
-              { stage: "VETORIAL",detail: "ChromaDB · similaridade de cosseno · top-20",    color: "var(--accent)" },
-              { stage: "BM25",    detail: "Recuperação esparsa · mesclagem de resultados",  color: "var(--accent)" },
-              { stage: "RERANK",  detail: "Cohere rerank-v3 · limiar 0,7",                  color: "#f59e0b" },
-              { stage: "TOP-K",   detail: "k=8 · janela de contexto: 8K tokens",            color: "var(--accent)" },
-            ].map(s => (
-              <div key={s.stage} style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.45rem", color: s.color, width: 56, flexShrink: 0, letterSpacing: "0.08em" }}>{s.stage}</span>
-                <span style={{ fontSize: "0.5rem", color: "var(--text-3)" }}>{s.detail}</span>
-              </div>
+              { label: "＋", delta: -100 },
+              { label: "－", delta: 100 },
+              { label: "↺",  delta: 0, reset: true },
+            ].map(btn => (
+              <button
+                key={btn.label}
+                onClick={() => btn.reset ? setViewBox({ x: 0, y: 0, w: 900, h: 640 }) : zoom(btn.delta)}
+                style={{
+                  fontFamily: "var(--font-mono)", fontSize: "0.75rem",
+                  background: "#ffffff08", border: "1px solid #ffffff15",
+                  color: "var(--text-2)", borderRadius: "var(--radius)",
+                  padding: "4px 10px", cursor: "pointer", transition: "all 0.2s",
+                }}
+              >
+                {btn.label}
+              </button>
             ))}
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.4375rem", color: "var(--text-4)", marginLeft: 4 }}>
+              ZOOM: {Math.round((900 / viewBox.w) * 100)}%
+            </span>
+          </div>
+
+          {/* Filter toggles */}
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.375rem", marginBottom: "0.75rem" }}>
+            {(Object.keys(NODE_CONFIG) as NodeType[]).map(type => {
+              const cfg = NODE_CONFIG[type];
+              const active = activeFilters.has(type);
+              return (
+                <button
+                  key={type}
+                  onClick={() => toggleFilter(type)}
+                  style={{
+                    fontFamily: "var(--font-mono)", fontSize: "0.4375rem",
+                    padding: "3px 10px", borderRadius: "var(--radius)",
+                    cursor: "pointer", transition: "all 0.2s",
+                    background: active ? `${cfg.color}18` : "#ffffff04",
+                    border: `1px solid ${active ? cfg.color + "60" : "#ffffff12"}`,
+                    color: active ? cfg.color : "var(--text-4)",
+                    letterSpacing: "0.08em",
+                  }}
+                >
+                  {type} ({typeCounts[type] || 0})
+                </button>
+              );
+            })}
           </div>
         </div>
-      </div>
 
-      {/* ── Métricas RAG ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1rem" }}>
-        {RAG_METRICS.map(m => (
-          <div key={m.label} className="glass-card" style={{ padding: "1.25rem", textAlign: "center" }}>
-            <div className="mono-label" style={{ marginBottom: "0.5rem" }}>MÉTRICAS RAG · {m.label.toUpperCase()}</div>
-            <div style={{ fontSize: "2.5rem", fontWeight: 700, fontFamily: "var(--font-mono)", color: m.color, lineHeight: 1, marginBottom: "0.25rem" }}>
-              {m.value}
-            </div>
-            <div style={{ fontSize: "0.5625rem", color: "var(--text-4)" }}>{m.sub}</div>
-          </div>
-        ))}
-      </div>
-
-      {/* ── Consultas Recentes ── */}
-      <div className="glass-card" style={{ padding: "1.25rem" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem" }}>
-          <div>
-            <div className="mono-label" style={{ marginBottom: "2px" }}>CONSULTAS RAG RECENTES · AO VIVO</div>
-            <div style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--text-1)" }}>Últimas 8 queries processadas pelo motor</div>
-          </div>
-          <span className="tag-badge">8 CONSULTAS</span>
-        </div>
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "var(--font-mono)", fontSize: "0.5625rem" }}>
-            <thead>
-              <tr style={{ borderBottom: "1px solid var(--border)" }}>
-                {["CONSULTA", "AGENTE", "CONFIANÇA", "CITAÇÕES", "LATÊNCIA"].map(h => (
-                  <th key={h} style={{ textAlign: "left", padding: "0.5rem 0.75rem", color: "var(--text-4)", fontSize: "0.5rem", letterSpacing: "0.1em", fontWeight: 500 }}>
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {RECENT_QUERIES.map((row, i) => {
-                const confColor = row.confidence >= 96 ? "var(--accent)" : row.confidence >= 90 ? "#22d3ee" : "#f59e0b";
+        {/* SVG Graph */}
+        <div style={{ position: "relative", background: "#030712", borderRadius: 8, overflow: "hidden" }}>
+          <svg
+            ref={svgRef}
+            viewBox={`${viewBox.x} ${viewBox.y} ${viewBox.w} ${viewBox.h}`}
+            style={{ display: "block", width: "100%", height: "auto", minHeight: 420 }}
+            preserveAspectRatio="xMidYMid meet"
+          >
+            <defs>
+              {/* Node glow filters */}
+              {(Object.entries(NODE_CONFIG) as [NodeType, { color: string; label: string }][]).map(([type, cfg]) => {
+                const filtId = `glow-${type.toLowerCase().replace(/[^a-z0-9]/g, "")}`;
                 return (
-                  <tr key={i} style={{ borderBottom: "1px solid rgba(34,197,94,0.05)", background: i % 2 === 0 ? "rgba(0,0,0,0.15)" : "transparent" }}>
-                    <td style={{ padding: "0.6rem 0.75rem", color: "var(--text-2)", maxWidth: 320, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-                      {row.query}
-                    </td>
-                    <td style={{ padding: "0.6rem 0.75rem" }}>
-                      <span className="tag-badge" style={{ fontSize: "0.42rem" }}>{row.agent}</span>
-                    </td>
-                    <td style={{ padding: "0.6rem 0.75rem" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                        <div style={{ width: 48, height: 5, background: "rgba(0,0,0,0.4)", borderRadius: "1px", overflow: "hidden" }}>
-                          <div style={{ width: `${row.confidence}%`, height: "100%", background: confColor, borderRadius: "1px" }} />
-                        </div>
-                        <span style={{ color: confColor, fontWeight: 700 }}>{row.confidence}%</span>
-                      </div>
-                    </td>
-                    <td style={{ padding: "0.6rem 0.75rem", color: "#22d3ee" }}>{row.citations} fontes</td>
-                    <td style={{ padding: "0.6rem 0.75rem", color: "var(--text-3)" }}>{row.latency}</td>
-                  </tr>
+                  <filter key={type} id={filtId} x="-50%" y="-50%" width="200%" height="200%">
+                    <feGaussianBlur stdDeviation="4" result="blur" />
+                    <feFlood floodColor={cfg.color} floodOpacity="0.6" result="color" />
+                    <feComposite in="color" in2="blur" operator="in" result="glow" />
+                    <feMerge>
+                      <feMergeNode in="glow" />
+                      <feMergeNode in="SourceGraphic" />
+                    </feMerge>
+                  </filter>
                 );
               })}
-            </tbody>
-          </table>
+              {/* Search highlight filter */}
+              <filter id="glow-search" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="6" result="blur" />
+                <feFlood floodColor="#facc15" floodOpacity="0.9" result="color" />
+                <feComposite in="color" in2="blur" operator="in" result="glow" />
+                <feMerge>
+                  <feMergeNode in="glow" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
+
+              {/* Arrow markers per type */}
+              {(Object.entries(NODE_CONFIG) as [NodeType, { color: string; label: string }][]).map(([type, cfg]) => (
+                <marker
+                  key={type}
+                  id={`arrow-${type.toLowerCase().replace(/[^a-z0-9]/g, "")}`}
+                  markerWidth="6" markerHeight="5"
+                  refX="6" refY="2.5" orient="auto"
+                >
+                  <polygon points="0 0, 6 2.5, 0 5" fill={cfg.color} opacity="0.6" />
+                </marker>
+              ))}
+              <marker id="arrow-default" markerWidth="6" markerHeight="5" refX="6" refY="2.5" orient="auto">
+                <polygon points="0 0, 6 2.5, 0 5" fill="#ffffff" opacity="0.3" />
+              </marker>
+
+              {/* Background gradient */}
+              <radialGradient id="nebula-grad" cx="50%" cy="45%" r="60%">
+                <stop offset="0%" stopColor="#0c1a2e" />
+                <stop offset="50%" stopColor="#060d1a" />
+                <stop offset="100%" stopColor="#020508" />
+              </radialGradient>
+              <pattern id="grid-pat" width="40" height="40" patternUnits="userSpaceOnUse">
+                <path d="M 40 0 L 0 0 0 40" fill="none" stroke="#22d3ee08" strokeWidth="0.5" />
+              </pattern>
+
+              {/* Pulse animation for central node */}
+              <style>{`
+                @keyframes pulse-ring {
+                  0%   { opacity: 0.5; transform: scale(1); }
+                  100% { opacity: 0; transform: scale(2.2); }
+                }
+                @keyframes node-breathe {
+                  0%, 100% { transform: scale(1); }
+                  50%       { transform: scale(1.02); }
+                }
+                @keyframes edge-flow {
+                  0%   { stroke-dashoffset: 0; }
+                  100% { stroke-dashoffset: -20; }
+                }
+                @keyframes scan-line {
+                  0%   { transform: translateY(-640px); }
+                  100% { transform: translateY(640px); }
+                }
+                .node-group { cursor: pointer; }
+                .node-group:hover .node-label { opacity: 1 !important; }
+              `}</style>
+            </defs>
+
+            {/* Background */}
+            <rect x="-100" y="-100" width="1200" height="900" fill="url(#nebula-grad)" />
+            <rect x="-100" y="-100" width="1200" height="900" fill="url(#grid-pat)" />
+
+            {/* Scan line */}
+            <rect x="-100" y="0" width="1200" height="2" fill="#22d3ee" opacity="0.04" style={{ animation: "scan-line 8s linear infinite" }} />
+
+            {/* Stats donut in top-right corner */}
+            <g transform="translate(840, 60)">
+              {donutSlices.map((slice, i) => {
+                const rOuter = 28;
+                const rInner = 18;
+                const hover = hoveredDonut === i;
+                const rO = hover ? rOuter + 3 : rOuter;
+                return (
+                  <g key={i}
+                    onMouseEnter={() => setHoveredDonut(i)}
+                    onMouseLeave={() => setHoveredDonut(null)}
+                    style={{ cursor: "pointer" }}
+                  >
+                    <path
+                      d={`${arcPath(0, 0, rO, slice.startA + 0.05, slice.endA - 0.05)} ${arcPath(0, 0, rInner, slice.endA - 0.05, slice.startA + 0.05).replace("M", "L")} Z`}
+                      fill={slice.color}
+                      opacity={hover ? 0.9 : 0.6}
+                      style={{ transition: "all 0.2s" }}
+                    />
+                  </g>
+                );
+              })}
+              <text textAnchor="middle" y="-4" style={{ fontFamily: "var(--font-mono)", fontSize: "0.3125rem", fill: "#22d3ee", fontWeight: 700, letterSpacing: "0.05em" }}>
+                {hoveredDonut !== null ? donutSlices[hoveredDonut].label : "RELAÇÕES"}
+              </text>
+              <text textAnchor="middle" y="6" style={{ fontFamily: "var(--font-mono)", fontSize: "0.375rem", fill: "var(--text-3)" }}>
+                {hoveredDonut !== null ? donutSlices[hoveredDonut].count : donutTotal}
+              </text>
+            </g>
+
+            {/* Edges */}
+            {filteredEdges.map(edge => {
+              const src = nodeMap.get(edge.source);
+              const tgt = nodeMap.get(edge.target);
+              if (!src || !tgt) return null;
+              const srcCfg = NODE_CONFIG[src.type];
+              const isConnected = connectedEdgeIds.has(edge.id);
+              const isInactive = hoveredNode && !isConnected;
+              const path = getEdgePath(src, tgt);
+              const markerType = src.type.toLowerCase().replace(/[^a-z0-9]/g, "");
+              return (
+                <g key={edge.id}>
+                  <path
+                    d={path}
+                    fill="none"
+                    stroke={srcCfg.color}
+                    strokeWidth={isConnected ? 2 : edge.important ? 1.2 : 0.8}
+                    opacity={isInactive ? 0.05 : isConnected ? 0.85 : 0.22}
+                    strokeDasharray={isConnected ? "5 3" : undefined}
+                    markerEnd={`url(#arrow-${markerType})`}
+                    style={{
+                      transition: "opacity 0.25s, stroke-width 0.2s",
+                      animation: isConnected ? "edge-flow 0.6s linear infinite" : undefined,
+                    }}
+                  />
+                  {/* Particle on important edges */}
+                  {edge.important && mounted && !isInactive && (
+                    <circle r="2.5" fill={srcCfg.color} opacity="0.8">
+                      <animateMotion
+                        dur={`${2 + Math.random() * 1.5}s`}
+                        repeatCount="indefinite"
+                        path={path}
+                        begin={`${Math.random() * 2}s`}
+                      />
+                    </circle>
+                  )}
+                </g>
+              );
+            })}
+
+            {/* Pulse rings for central node */}
+            {[0, 1, 2].map(i => {
+              const central = nodeMap.get("paganini-i");
+              if (!central) return null;
+              return (
+                <circle
+                  key={i}
+                  cx={central.x}
+                  cy={central.y}
+                  r={36 + i * 8}
+                  fill="none"
+                  stroke="#22d3ee"
+                  strokeWidth={1.5 - i * 0.4}
+                  style={{
+                    animation: `pulse-ring 2.4s ${i * 0.8}s ease-out infinite`,
+                    transformOrigin: `${central.x}px ${central.y}px`,
+                  }}
+                />
+              );
+            })}
+
+            {/* Nodes */}
+            {filteredNodes.map(node => {
+              const isHovered = hoveredNode === node.id;
+              const isHighlighted = hoveredNode ? edgesByNode.get(hoveredNode)?.some(eId => {
+                const e = EDGES.find(e => e.id === eId);
+                return e && (e.source === node.id || e.target === node.id);
+              }) ?? false : false;
+              const isDimmed = !!hoveredNode && !isHovered && !isHighlighted;
+              const isSearchMatch = !!matchingNodeIds && matchingNodeIds.has(node.id);
+              const isSearchDimmed = !!matchingNodeIds && !matchingNodeIds.has(node.id);
+              const cfg = NODE_CONFIG[node.type];
+
+              return (
+                <g
+                  key={node.id}
+                  className="node-group"
+                  transform={`translate(${node.x}, ${node.y})`}
+                  onMouseEnter={() => handleNodeEnter(node)}
+                  onMouseLeave={handleNodeLeave}
+                  style={{
+                    animation: !isDimmed ? "node-breathe 4s ease-in-out infinite" : undefined,
+                    animationDelay: `${Math.random() * 2}s`,
+                  }}
+                >
+                  {renderNodeShape(node, isHovered, isHighlighted, isDimmed || isSearchDimmed, isSearchMatch)}
+
+                  {/* Node icon/emoji substitute - just type initial */}
+                  <text
+                    textAnchor="middle"
+                    dominantBaseline="middle"
+                    y={0}
+                    style={{
+                      fontFamily: "var(--font-mono)",
+                      fontSize: node.type === "FUNDO" ? "0.375rem" : "0.3125rem",
+                      fill: isSearchDimmed ? "#ffffff20" : cfg.color,
+                      fontWeight: 700,
+                      letterSpacing: "0.03em",
+                      pointerEvents: "none",
+                      opacity: isDimmed || isSearchDimmed ? 0.2 : 1,
+                    }}
+                  >
+                    {node.type === "FUNDO" ? "FIDC" : node.type.slice(0, 3)}
+                  </text>
+
+                  {/* Label via foreignObject */}
+                  <foreignObject
+                    x={-55}
+                    y={node.type === "FUNDO" ? 34 : node.type === "REGULAÇÃO" ? 26 : 24}
+                    width={110}
+                    height={36}
+                    style={{ pointerEvents: "none", opacity: isDimmed || isSearchDimmed ? 0.2 : 1 }}
+                  >
+                    <div
+                      style={{
+                        fontFamily: "var(--font-mono)",
+                        fontSize: "0.3125rem",
+                        color: isSearchMatch ? "#facc15" : cfg.color,
+                        textAlign: "center",
+                        lineHeight: 1.35,
+                        textShadow: `0 0 6px ${cfg.color}80`,
+                      }}
+                    >
+                      <div style={{ fontWeight: 700, letterSpacing: "0.03em", wordBreak: "break-word" }}>
+                        {node.label}
+                      </div>
+                      <div style={{ fontSize: "0.25rem", opacity: 0.6, letterSpacing: "0.06em", marginTop: 1 }}>
+                        {node.type}
+                      </div>
+                    </div>
+                  </foreignObject>
+                </g>
+              );
+            })}
+          </svg>
+
+          {/* Tooltip */}
+          {tooltip.node && (() => {
+            const n = tooltip.node;
+            const cfg = NODE_CONFIG[n.type];
+            const connCount = (edgesByNode.get(n.id) ?? []).length;
+            // Position tooltip: offset from node, keep in bounds
+            const pctX = (n.x / 900) * 100;
+            const toLeft = pctX > 60;
+            return (
+              <div
+                style={{
+                  position: "absolute",
+                  top: `${((n.y - viewBox.y) / viewBox.h) * 100}%`,
+                  left: toLeft ? undefined : `${((n.x - viewBox.x) / viewBox.w) * 100}%`,
+                  right: toLeft ? `${100 - ((n.x - viewBox.x) / viewBox.w) * 100}%` : undefined,
+                  transform: "translate(12px, -50%)",
+                  pointerEvents: "none",
+                  zIndex: 10,
+                  minWidth: 200,
+                  maxWidth: 240,
+                }}
+              >
+                <div style={{
+                  background: "rgba(3, 7, 18, 0.92)",
+                  backdropFilter: "blur(16px)",
+                  border: `1px solid ${cfg.color}50`,
+                  borderRadius: 8,
+                  padding: "12px 14px",
+                  boxShadow: `0 8px 32px rgba(0,0,0,0.6), 0 0 16px ${cfg.color}20`,
+                }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 8 }}>
+                    <span style={{
+                      fontFamily: "var(--font-mono)", fontSize: "0.375rem",
+                      padding: "2px 7px", borderRadius: 3,
+                      background: `${cfg.color}20`, border: `1px solid ${cfg.color}50`,
+                      color: cfg.color, letterSpacing: "0.08em",
+                    }}>{n.type}</span>
+                    <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.4375rem", color: "var(--text-4)", letterSpacing: "0.04em" }}>
+                      {connCount} relações
+                    </span>
+                  </div>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--text-1)", fontWeight: 700, marginBottom: 6, lineHeight: 1.3 }}>
+                    {n.label}
+                  </div>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.375rem", color: "var(--text-3)", lineHeight: 1.5, marginBottom: 8 }}>
+                    {n.detail}
+                  </div>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.3125rem", color: "var(--text-4)", letterSpacing: "0.06em" }}>
+                    ATUALIZADO: {n.lastUpdated}
+                  </div>
+                </div>
+              </div>
+            );
+          })()}
+        </div>
+
+        {/* Legend */}
+        <div style={{ marginTop: "1rem", display: "flex", flexWrap: "wrap", gap: "0.625rem" }}>
+          {(Object.entries(NODE_CONFIG) as [NodeType, { color: string; label: string }][]).map(([type, cfg]) => (
+            <div key={type} style={{ display: "flex", alignItems: "center", gap: 5 }}>
+              <svg width="14" height="14" viewBox="0 0 14 14">
+                {type === "FUNDO"     && <polygon points="7,1 13,4 13,10 7,13 1,10 1,4" fill={`${cfg.color}25`} stroke={cfg.color} strokeWidth="1.2" />}
+                {type === "EMPRESA"   && <rect x="1" y="3" width="12" height="8" rx="2" fill={`${cfg.color}25`} stroke={cfg.color} strokeWidth="1.2" />}
+                {type === "REGULAÇÃO" && <polygon points="7,1 13,7 7,13 1,7" fill={`${cfg.color}25`} stroke={cfg.color} strokeWidth="1.2" />}
+                {type === "PESSOA"    && <circle cx="7" cy="7" r="5.5" fill={`${cfg.color}25`} stroke={cfg.color} strokeWidth="1.2" />}
+                {type === "OBRIGAÇÃO" && <polygon points="4,1 10,1 13,4 13,10 10,13 4,13 1,10 1,4" fill={`${cfg.color}25`} stroke={cfg.color} strokeWidth="1.2" />}
+                {type === "MÓDULO"    && <rect x="1" y="4" width="12" height="6" rx="3" fill={`${cfg.color}25`} stroke={cfg.color} strokeWidth="1.2" />}
+                {type === "SKILL"     && <polygon points="7,1 8.5,5.5 13,5.5 9.5,8.5 10.5,13 7,10 3.5,13 4.5,8.5 1,5.5 5.5,5.5" fill={`${cfg.color}25`} stroke={cfg.color} strokeWidth="1.2" />}
+              </svg>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.375rem", color: cfg.color, letterSpacing: "0.05em" }}>
+                {type} ({typeCounts[type] || 0})
+              </span>
+            </div>
+          ))}
         </div>
       </div>
 
-      {/* ── Ingestão Recente ── */}
-      <div className="glass-card" style={{ padding: "1.25rem" }}>
-        <div className="mono-label" style={{ marginBottom: "1rem" }}>
-          INGESTÃO RECENTE · paganini ingest [--cnpj] [--source]
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))", gap: "0.75rem" }}>
-          {INGEST_HISTORY.map((row, i) => (
-            <div
-              key={i}
-              style={{
-                background: "rgba(0,0,0,0.3)",
-                border: "1px solid rgba(34,197,94,0.12)",
-                borderRadius: "var(--radius)",
-                padding: "0.875rem 1rem",
-                display: "flex",
-                flexDirection: "column",
-                gap: "0.375rem",
-              }}
-            >
+      {/* ═══ STATS ROW ════════════════════════════════════════════════════════ */}
+      <div>
+        <div className="mono-label" style={{ marginBottom: "0.75rem" }}>MÉTRICAS DO GRAFO</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem" }}>
+          {stats.map(s => (
+            <div key={s.label} className="glass-card" style={{ padding: "1.25rem", position: "relative", overflow: "hidden" }}>
+              <div style={{ position: "absolute", top: 0, left: 0, right: 0, height: 2, background: `linear-gradient(90deg, ${s.color}80, transparent)` }} />
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--text-1)", fontWeight: 600, flex: 1 }}>{row.company}</div>
-                <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.4375rem", color: "var(--text-4)", flexShrink: 0, marginLeft: "0.5rem" }}>{row.ts}</div>
-              </div>
-              {row.cnpj !== "N/A" && (
-                <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.4375rem", color: "var(--text-4)" }}>{row.cnpj}</div>
-              )}
-              <div style={{ display: "flex", gap: "0.75rem", marginTop: "0.25rem" }}>
                 <div>
-                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.4375rem", color: "var(--text-4)" }}>DOCS</div>
-                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "#22d3ee", fontWeight: 700 }}>{row.docs}</div>
+                  <div style={{ fontSize: "1.5rem", marginBottom: 2 }}>{s.icon}</div>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "1.5rem", fontWeight: 900, color: s.color, letterSpacing: "-0.03em" }}>
+                    {mounted ? <AnimatedCounter target={s.value} suffix={s.suffix} /> : `${s.value}${s.suffix}`}
+                  </div>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.4375rem", color: "var(--text-4)", letterSpacing: "0.1em", marginTop: 4 }}>
+                    {s.label.toUpperCase()}
+                  </div>
                 </div>
-                <div>
-                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.4375rem", color: "var(--text-4)" }}>CHUNKS</div>
-                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--accent)", fontWeight: 700 }}>{row.chunks.toLocaleString()}</div>
-                </div>
-                <div>
-                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.4375rem", color: "var(--text-4)" }}>ENTIDADES</div>
-                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "#a855f7", fontWeight: 700 }}>{row.entities}</div>
-                </div>
-                <div style={{ marginLeft: "auto" }}>
-                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.4375rem", color: "var(--text-4)" }}>TEMPO</div>
-                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "#f59e0b", fontWeight: 700 }}>{row.time}</div>
-                </div>
-              </div>
-              {/* Progress bar visualization */}
-              <div style={{ marginTop: "0.25rem", height: 3, background: "rgba(0,0,0,0.4)", borderRadius: "1px", overflow: "hidden" }}>
-                <div style={{ width: `${Math.min((row.chunks / 2140) * 100, 100)}%`, height: "100%", background: "linear-gradient(90deg, var(--accent), #22d3ee)", borderRadius: "1px" }} />
+                <Sparkline data={s.sparkData} color={s.color} />
               </div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* ── Tipos de Relacionamento ── */}
-      <div className="glass-card" style={{ padding: "1.25rem" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem", flexWrap: "wrap", gap: "0.5rem" }}>
-          <div>
-            <div className="mono-label" style={{ marginBottom: "2px" }}>TIPOS DE RELACIONAMENTO · DISTRIBUIÇÃO</div>
-            <div style={{ fontSize: "0.875rem", fontWeight: 600, color: "var(--text-1)" }}>4.231 arestas · 9 tipos de relação</div>
-          </div>
-          <span className="tag-badge-cyan">HOVER PARA DETALHES</span>
+      {/* ═══ ENTITY DISTRIBUTION ══════════════════════════════════════════════ */}
+      <div className="glass-card" style={{ padding: "1.5rem" }}>
+        <div className="mono-label" style={{ marginBottom: "0.25rem" }}>DISTRIBUIÇÃO DE ENTIDADES</div>
+        <h2 style={{ fontSize: "1rem", fontWeight: 700, color: "var(--text-1)", margin: "0 0 1.25rem" }}>
+          Composição por Tipo de Nó
+        </h2>
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.625rem" }}>
+          {barData.map(b => {
+            const cfg = NODE_CONFIG[b.type];
+            const pct = Math.round((b.count / barMax) * 100);
+            return (
+              <div key={b.type} style={{ display: "flex", alignItems: "center", gap: "0.75rem" }}>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.4375rem", color: cfg.color, minWidth: 80, letterSpacing: "0.06em" }}>
+                  {b.type}
+                </div>
+                <div style={{ flex: 1, height: 22, background: "#ffffff06", borderRadius: 4, overflow: "hidden", border: "1px solid #ffffff08", position: "relative" }}>
+                  <div style={{
+                    height: "100%",
+                    width: mounted ? `${pct}%` : "0%",
+                    background: `linear-gradient(90deg, ${cfg.color}50, ${cfg.color}90)`,
+                    borderRadius: 4,
+                    boxShadow: `0 0 10px ${cfg.color}50`,
+                    transition: "width 1.2s ease",
+                    display: "flex", alignItems: "center", paddingLeft: 8,
+                  }}>
+                    {pct > 25 && (
+                      <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.375rem", color: "#fff", fontWeight: 700, opacity: 0.9 }}>
+                        {b.count} {b.count === 1 ? "entidade" : "entidades"}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", color: cfg.color, fontWeight: 700, minWidth: 20, textAlign: "right" }}>
+                  {b.count}
+                </div>
+              </div>
+            );
+          })}
         </div>
-        <DonutChart />
+      </div>
+
+      {/* ═══ RAG PIPELINE ═════════════════════════════════════════════════════ */}
+      <div className="glass-card" style={{ padding: "1.5rem" }}>
+        <div className="mono-label" style={{ marginBottom: "0.25rem" }}>PIPELINE RAG</div>
+        <h2 style={{ fontSize: "1rem", fontWeight: 700, color: "var(--text-1)", margin: "0 0 0.5rem" }}>
+          Motor de Recuperação Semântica — 7 Estágios
+        </h2>
+        <p className="section-help" style={{ marginBottom: "1.25rem" }}>
+          Cada query percorre 7 estágios de processamento. Latência média: 105ms end-to-end.
+        </p>
+        <div style={{ overflowX: "auto" }}>
+          <svg viewBox="0 0 760 90" style={{ display: "block", minWidth: 500, width: "100%" }}>
+            <defs>
+              <marker id="rag-arrow" markerWidth="7" markerHeight="5" refX="7" refY="2.5" orient="auto">
+                <polygon points="0 0, 7 2.5, 0 5" fill="#22d3ee60" />
+              </marker>
+            </defs>
+            {ragStages.map((stage, i) => {
+              const nodeW = 86; const nodeH = 60; const gap = 20;
+              const x = 8 + i * (nodeW + gap);
+              return (
+                <g key={i}>
+                  {/* Connector */}
+                  {i < ragStages.length - 1 && (
+                    <g>
+                      <line
+                        x1={x + nodeW} y1={nodeH / 2 + 8}
+                        x2={x + nodeW + gap - 2} y2={nodeH / 2 + 8}
+                        stroke="#22d3ee40" strokeWidth="1.5"
+                        markerEnd="url(#rag-arrow)"
+                      />
+                      {/* Animated particle */}
+                      {mounted && (
+                        <circle r="2" fill={stage.color} opacity="0.9">
+                          <animateMotion
+                            path={`M ${x + nodeW} ${nodeH / 2 + 8} L ${x + nodeW + gap} ${nodeH / 2 + 8}`}
+                            dur={`${0.4 + i * 0.08}s`}
+                            begin={`${i * 0.35}s`}
+                            repeatCount="indefinite"
+                          />
+                        </circle>
+                      )}
+                    </g>
+                  )}
+                  <rect x={x} y={8} width={nodeW} height={nodeH} rx={6}
+                    fill={`${stage.color}12`} stroke={`${stage.color}45`} strokeWidth="1"
+                  />
+                  <text x={x + nodeW / 2} y={28} textAnchor="middle" style={{ fontSize: "1.1rem" }}>{stage.icon}</text>
+                  <text x={x + nodeW / 2} y={47} textAnchor="middle"
+                    style={{ fontFamily: "var(--font-mono)", fontSize: "0.3125rem", fill: stage.color, fontWeight: 700, letterSpacing: "0.04em" }}>
+                    {stage.label}
+                  </text>
+                  <text x={x + nodeW / 2} y={58} textAnchor="middle"
+                    style={{ fontFamily: "var(--font-mono)", fontSize: "0.25rem", fill: "#ffffff40", letterSpacing: "0.06em" }}>
+                    ESTÁGIO {i + 1}
+                  </text>
+                </g>
+              );
+            })}
+          </svg>
+        </div>
+      </div>
+
+      {/* ═══ RAG METRICS ══════════════════════════════════════════════════════ */}
+      <div>
+        <div className="mono-label" style={{ marginBottom: "0.75rem" }}>MÉTRICAS RAG</div>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "1rem" }}>
+          {[
+            { label: "Precisão Semântica", value: "91.2%", sub: "Precision@K — Top-8", color: "#22c55e", icon: "🎯" },
+            { label: "Latência Média",      value: "105ms", sub: "P95: 220ms · P99: 380ms", color: "#22d3ee", icon: "⚡" },
+            { label: "Top-K Retrieval",     value: "8",     sub: "Chunks por query · HNSW", color: "#a855f7", icon: "🔍" },
+          ].map(m => (
+            <div key={m.label} className="glass-card" style={{ padding: "1.75rem", textAlign: "center", position: "relative", overflow: "hidden" }}>
+              <div style={{
+                position: "absolute", inset: 0,
+                background: `radial-gradient(ellipse 80% 60% at 50% 0%, ${m.color}08, transparent 70%)`,
+                pointerEvents: "none",
+              }} />
+              <div style={{ fontSize: "2rem", marginBottom: "0.75rem" }}>{m.icon}</div>
+              <div style={{
+                fontFamily: "var(--font-mono)", fontSize: "2.25rem",
+                fontWeight: 900, color: m.color, letterSpacing: "-0.04em",
+                textShadow: `0 0 20px ${m.color}50`, marginBottom: "0.375rem",
+              }}>
+                {m.value}
+              </div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--text-1)", fontWeight: 700, marginBottom: 4 }}>
+                {m.label}
+              </div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.4375rem", color: "var(--text-4)", letterSpacing: "0.06em" }}>
+                {m.sub}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ═══ RECENT QUERIES ═══════════════════════════════════════════════════ */}
+      <div className="glass-card" style={{ padding: "1.5rem" }}>
+        <div className="mono-label" style={{ marginBottom: "0.25rem" }}>CONSULTAS RECENTES</div>
+        <h2 style={{ fontSize: "1rem", fontWeight: 700, color: "var(--text-1)", margin: "0 0 1rem" }}>
+          Últimas 8 Queries ao Knowledge Graph
+        </h2>
+        <div style={{ display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+          {recentQueries.map((q, i) => (
+            <div key={i} style={{
+              display: "flex", alignItems: "center", gap: "1rem",
+              padding: "0.625rem 0.875rem",
+              background: "#ffffff04", border: "1px solid #ffffff08",
+              borderRadius: 6,
+              transition: "background 0.2s",
+            }}>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.4375rem", color: "var(--text-4)", minWidth: 28 }}>
+                {String(i + 1).padStart(2, "0")}
+              </div>
+              <div style={{ flex: 1, fontFamily: "var(--font-mono)", fontSize: "0.5rem", color: "var(--text-2)", lineHeight: 1.4 }}>
+                {q.query}
+              </div>
+              <div style={{
+                fontFamily: "var(--font-mono)", fontSize: "0.375rem",
+                padding: "2px 7px", borderRadius: 3,
+                background: "#22d3ee12", border: "1px solid #22d3ee30",
+                color: "#22d3ee", whiteSpace: "nowrap", letterSpacing: "0.05em",
+              }}>
+                {q.agent}
+              </div>
+              <div style={{ display: "flex", alignItems: "center", gap: 6, minWidth: 100 }}>
+                <div style={{ flex: 1, height: 4, background: "#ffffff08", borderRadius: 2, overflow: "hidden" }}>
+                  <div style={{
+                    height: "100%",
+                    width: mounted ? `${q.confidence * 100}%` : "0%",
+                    background: q.confidence > 0.92
+                      ? "linear-gradient(90deg, #22c55e80, #22c55e)"
+                      : q.confidence > 0.85
+                      ? "linear-gradient(90deg, #f59e0b80, #f59e0b)"
+                      : "linear-gradient(90deg, #ef444480, #ef4444)",
+                    borderRadius: 2,
+                    transition: `width ${1 + i * 0.1}s ease`,
+                  }} />
+                </div>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.375rem", color: "var(--text-3)", minWidth: 30 }}>
+                  {Math.round(q.confidence * 100)}%
+                </span>
+              </div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.375rem", color: "var(--text-4)", minWidth: 28 }}>
+                {q.time}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* ═══ RELATIONSHIP DONUT ═══════════════════════════════════════════════ */}
+      <div className="glass-card" style={{ padding: "1.5rem" }}>
+        <div className="mono-label" style={{ marginBottom: "0.25rem" }}>DISTRIBUIÇÃO DE RELACIONAMENTOS</div>
+        <h2 style={{ fontSize: "1rem", fontWeight: 700, color: "var(--text-1)", margin: "0 0 1.25rem" }}>
+          Tipos de Relação no Knowledge Graph
+        </h2>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: "2rem", alignItems: "center" }}>
+          {/* Interactive Donut */}
+          <svg viewBox="-60 -60 120 120" style={{ width: 180, height: 180, flexShrink: 0 }}>
+            {donutSlices.map((slice, i) => {
+              const hover = hoveredDonut === i;
+              const rO = hover ? 52 : 48;
+              const rI = 30;
+              return (
+                <g key={i}
+                  onMouseEnter={() => setHoveredDonut(i)}
+                  onMouseLeave={() => setHoveredDonut(null)}
+                  style={{ cursor: "pointer" }}
+                >
+                  <path
+                    d={`${arcPath(0, 0, rO, slice.startA + 0.04, slice.endA - 0.04)} ${arcPath(0, 0, rI, slice.endA - 0.04, slice.startA + 0.04).replace("M", "L")} Z`}
+                    fill={slice.color}
+                    opacity={hover ? 0.95 : hoveredDonut !== null ? 0.35 : 0.7}
+                    style={{ transition: "all 0.2s" }}
+                    stroke={hover ? slice.color : "transparent"}
+                    strokeWidth={hover ? 1 : 0}
+                  />
+                </g>
+              );
+            })}
+            <text textAnchor="middle" y="-5"
+              style={{ fontFamily: "var(--font-mono)", fontSize: "0.4rem", fill: "var(--text-1)", fontWeight: 900 }}>
+              {hoveredDonut !== null ? donutSlices[hoveredDonut].count : donutTotal}
+            </text>
+            <text textAnchor="middle" y="8"
+              style={{ fontFamily: "var(--font-mono)", fontSize: "0.3rem", fill: "var(--text-4)", letterSpacing: "0.06em" }}>
+              {hoveredDonut !== null ? donutSlices[hoveredDonut].label.toUpperCase() : "TOTAL"}
+            </text>
+          </svg>
+
+          {/* Legend */}
+          <div style={{ display: "flex", flexDirection: "column", gap: "0.625rem", flex: 1 }}>
+            {donutData.map((d, i) => (
+              <div
+                key={d.label}
+                onMouseEnter={() => setHoveredDonut(i)}
+                onMouseLeave={() => setHoveredDonut(null)}
+                style={{
+                  display: "flex", alignItems: "center", gap: "0.75rem",
+                  cursor: "pointer", padding: "4px 0",
+                  opacity: hoveredDonut !== null && hoveredDonut !== i ? 0.4 : 1,
+                  transition: "opacity 0.2s",
+                }}
+              >
+                <div style={{ width: 10, height: 10, borderRadius: 2, background: d.color, flexShrink: 0 }} />
+                <div style={{ flex: 1, fontFamily: "var(--font-mono)", fontSize: "0.4375rem", color: "var(--text-2)" }}>
+                  {d.label}
+                </div>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", color: d.color, fontWeight: 700, minWidth: 24, textAlign: "right" }}>
+                  {d.count}
+                </div>
+                <div style={{ width: 80, height: 5, background: "#ffffff08", borderRadius: 3, overflow: "hidden" }}>
+                  <div style={{
+                    height: "100%",
+                    width: mounted ? `${(d.count / donutTotal) * 100}%` : "0%",
+                    background: d.color,
+                    borderRadius: 3,
+                    transition: "width 1s ease",
+                  }} />
+                </div>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.375rem", color: "var(--text-4)", minWidth: 32, textAlign: "right" }}>
+                  {Math.round((d.count / donutTotal) * 100)}%
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
 
     </div>

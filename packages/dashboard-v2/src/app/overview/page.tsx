@@ -64,7 +64,8 @@ function TermLine({
 }
 
 export default function OverviewPage() {
-  const agents = useCounter(26, 1500);
+  const agents = useCounter(12, 1500);
+  const agentsDomain = useCounter(14, 1500);
   const caps = useCounter(52, 1500);
   const guards = useCounter(6, 1500);
 
@@ -72,7 +73,7 @@ export default function OverviewPage() {
     { value: "116×", label: "Eficiência vs equipe humana", sub: "R$ 12K → R$ 103/mês" },
     { value: "91.2%", label: "Precisão do RAG", sub: "otimizado pelo AutoResearch" },
     { value: "87.3%", label: "Cobertura de testes", sub: "gerados automaticamente" },
-    { value: "6.130", label: "Linhas de código geradas", sub: "14 módulos Python" },
+    { value: "57.625", label: "Linhas de código geradas", sub: "59 módulos Python + 20 TSX" },
     { value: "98.3%", label: "Taxa de sucesso", sub: "execuções do pipeline" },
     { value: "$0.003", label: "Custo por linha de código", sub: "gerada pelos agentes" },
   ];
@@ -241,7 +242,7 @@ export default function OverviewPage() {
               margin: "0 0 2.5rem 0",
             }}
           >
-            Sistema Operacional de Agentes Inteligentes para o Mercado Financeiro Brasileiro
+            Plataforma de Agentes Autônomos que Escrevem, Testam e Deployam Código para o Mercado Financeiro
           </p>
 
           {/* Animated counters */}
@@ -255,7 +256,8 @@ export default function OverviewPage() {
             }}
           >
             {[
-              { value: agents, label: "Agentes", suffix: "" },
+              { value: agents, label: "Agentes de Código", suffix: "" },
+              { value: agentsDomain, label: "Agentes de Domínio", suffix: "" },
               { value: caps, label: "Capacidades", suffix: "" },
               { value: guards, label: "Guardrails", suffix: "" },
             ].map((c) => (

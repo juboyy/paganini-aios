@@ -467,7 +467,7 @@ export default function OverviewPage() {
         <div style={{ marginTop: "0.75rem", display: "flex", justifyContent: "flex-end", gap: "1rem" }}>
           <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.625rem", color: "var(--text-4)" }}>
             TOTAL HOJE:{" "}
-            <span style={{ color: "var(--accent)" }}>12.4K LOC</span> ·{" "}
+            <span style={{ color: "var(--accent)" }}>57.6K LOC</span> ·{" "}
             <span style={{ color: "var(--accent)" }}>347 testes</span> ·{" "}
             <span style={{ color: "var(--accent)" }}>$0.19</span>
           </div>

@@ -161,7 +161,7 @@ const STATUS_CONFIG: Record<string, { color: string; label: string; bg: string }
 };
 
 export default function LearningPage() {
-  const [activeTab, setActiveTab] = useState<"metaclaw" | "autoresearch" | "research">("metaclaw");
+  const [activeTab, setActiveTab] = useState<"metaclaw" | "autoresearch" | "research" | "code">("metaclaw");
   const [selectedRun, setSelectedRun] = useState<string | null>(null);
 
   const promoted = SKILLS_EVOLUTION.filter((s) => s.status === "promoted").length;
@@ -215,7 +215,7 @@ export default function LearningPage() {
 
       {/* Abas */}
       <div className="flex gap-1" style={{ borderBottom: "1px solid var(--border)" }}>
-        {(["metaclaw", "autoresearch", "research"] as const).map((tab) => (
+        {(["metaclaw", "autoresearch", "code", "research"] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -232,7 +232,7 @@ export default function LearningPage() {
               transition: "color 0.15s",
             }}
           >
-            {tab === "metaclaw" ? "🧠 METACLAW" : tab === "autoresearch" ? "🔬 AUTORESEARCH" : "📚 PESQUISA"}
+            {tab === "metaclaw" ? "🧠 METACLAW" : tab === "autoresearch" ? "🔬 AUTORESEARCH" : tab === "code" ? "💻 CÓDIGO" : "📚 PESQUISA"}
           </button>
         ))}
       </div>
@@ -488,6 +488,270 @@ export default function LearningPage() {
                 )}
               </div>
             ))}
+          </div>
+        </div>
+      )}
+
+      {/* Aba Código MetaClaw */}
+      {activeTab === "code" && (
+        <div className="space-y-4">
+          <p className="section-help">
+            O MetaClaw é o motor de autoaprendizado do Paganini. Ele intercepta queries, injeta skills aprendidos
+            no prompt e gera novas skills a partir de interações bem-sucedidas. Abaixo, o código real em produção.
+          </p>
+
+          {/* MetaClaw Engine */}
+          <div className="glass-card p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="tag-badge">ENGINE</span>
+              <span style={{ fontFamily: "var(--font-display)", fontSize: "1rem", fontWeight: 600, color: "var(--text-1)" }}>
+                MetaClawProxy — Motor de Evolução de Skills
+              </span>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--text-4)" }}>
+                packages/kernel/metaclaw.py · 186 LOC
+              </span>
+            </div>
+            <pre style={{
+              fontFamily: "var(--font-mono)", fontSize: "0.75rem", lineHeight: 1.7,
+              color: "#22d3ee", background: "hsl(0 0% 0% / 0.4)", padding: "16px 20px",
+              borderRadius: "var(--radius)", border: "1px solid var(--border)",
+              overflow: "auto", maxHeight: 400,
+            }}>
+{`class MetaClawProxy:
+    """Skill evolution proxy — enriches queries with learned patterns."""
+
+    def __init__(self, config: dict):
+        mc_config = config.get("metaclaw", {})
+        self.enabled = mc_config.get("enabled", True)
+        self.skills_dir = Path(mc_config.get("skills_dir", "skills/"))
+        self.auto_evolve = mc_config.get("auto_evolve", True)
+        self.max_skills = mc_config.get("max_skills", 500)
+        self.mode = mc_config.get("mode", "skills_only")
+        self.skills: list[Skill] = []
+
+    def enrich(self, query: str, agent: str) -> str:
+        """Inject relevant skills into the prompt context."""
+        matched = self._match_skills(query, agent)
+        if not matched:
+            return query
+        context = "\\n".join(
+            f"[Skill: {s.name}] {s.response_template}"
+            for s in matched[:3]  # top 3 skills
+        )
+        return f"{context}\\n\\n---\\nQuery: {query}"
+
+    def learn(self, query: str, response: str, confidence: float):
+        """Generate new skill from high-confidence interaction."""
+        if confidence < 0.85 or not self.auto_evolve:
+            return
+        skill = Skill(
+            name=self._generate_name(query),
+            pattern=query,
+            response_template=response[:500],
+            score=confidence,
+        )
+        self.skills.append(skill)
+        self._save_skill(skill)
+
+    def prune(self):
+        """Remove low-performing skills (score < 0.1)."""
+        before = len(self.skills)
+        self.skills = [s for s in self.skills if s.score > 0.1]
+        pruned = before - len(self.skills)
+        return pruned`}
+            </pre>
+          </div>
+
+          {/* Skill Data Model */}
+          <div className="glass-card p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="tag-badge-cyan">MODELO</span>
+              <span style={{ fontFamily: "var(--font-display)", fontSize: "1rem", fontWeight: 600, color: "var(--text-1)" }}>
+                Skill — Padrão Comportamental Aprendido
+              </span>
+            </div>
+            <pre style={{
+              fontFamily: "var(--font-mono)", fontSize: "0.75rem", lineHeight: 1.7,
+              color: "#a855f7", background: "hsl(0 0% 0% / 0.4)", padding: "16px 20px",
+              borderRadius: "var(--radius)", border: "1px solid var(--border)",
+              overflow: "auto", maxHeight: 300,
+            }}>
+{`class Skill:
+    """A learned behavior pattern."""
+    def __init__(self, name: str, pattern: str, response_template: str,
+                 domain: str = "fidc", score: float = 0.5, uses: int = 0):
+        self.name = name
+        self.pattern = pattern
+        self.response_template = response_template
+        self.domain = domain
+        self.score = score   # 0.0 → 1.0 (evolui com uso)
+        self.uses = uses     # incrementa a cada match
+
+    def to_dict(self) -> dict:
+        return {
+            "name": self.name, "pattern": self.pattern,
+            "response_template": self.response_template,
+            "domain": self.domain, "score": self.score, "uses": self.uses,
+        }`}
+            </pre>
+          </div>
+
+          {/* Real Skill Files */}
+          <div className="glass-card p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", padding: "2px 8px", borderRadius: "var(--radius)", background: "hsl(45 100% 50% / 0.08)", color: "hsl(45 100% 50%)", border: "1px solid hsl(45 100% 50% / 0.25)" }}>RUNTIME</span>
+              <span style={{ fontFamily: "var(--font-display)", fontSize: "1rem", fontWeight: 600, color: "var(--text-1)" }}>
+                Skills em Produção — runtime/skills/
+              </span>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--text-4)" }}>
+                8 skills ativas
+              </span>
+            </div>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "12px" }}>
+              {[
+                { id: "covenant_check", name: "Verificação de Covenants", agent: "gestor", uses: 12, desc: "Analisa índices de subordinação, razão de garantia e limites de concentração do fundo" },
+                { id: "cvm_regulation_lookup", name: "Consulta Regulatória CVM", agent: "regulatory_watch", uses: 23, desc: "Busca e interpreta resoluções, ofícios e instruções da CVM aplicáveis ao fundo" },
+                { id: "guardrails_pld", name: "PLD/AML — Detecção Adversarial", agent: "compliance", uses: 8, conf: 0.98, desc: "Identifica e bloqueia queries que tentam evadir controles PLD/AML via prompt injection" },
+                { id: "market_analysis", name: "Análise de Indicadores BCB", agent: "pricing", uses: 23, conf: 0.95, desc: "Interpreta indicadores macroeconômicos do BCB e correlaciona com impacto em fundos" },
+                { id: "regulacao_cvm175", name: "Resolução CVM 175", agent: "compliance", uses: 14, conf: 0.92, desc: "Conhecimento aprendido sobre a Resolução CVM 175 e seus anexos normativos" },
+                { id: "stress_test_analysis", name: "Análise de Stress Test", agent: "pricing", uses: 5, desc: "Avalia impacto de cenários adversos no IS, PDD e PL do fundo" },
+                { id: "daily_report_gen", name: "Geração de Relatório Diário", agent: "reporting", uses: 3, desc: "Compila posição do fundo, movimentações e alertas em relatório formatado" },
+                { id: "pld_aml_block", name: "Bloqueio PLD/AML", agent: "compliance", uses: 8, desc: "Identifica e bloqueia queries que tentam evadir controles de prevenção à lavagem" },
+              ].map(skill => (
+                <div key={skill.id} style={{
+                  background: "hsl(0 0% 100% / 0.02)", border: "1px solid var(--border)",
+                  borderRadius: "var(--radius)", padding: "12px 16px",
+                }}>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: "var(--accent)", fontWeight: 600 }}>
+                    {skill.name}
+                  </div>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--text-4)", marginTop: 2 }}>
+                    {skill.id}.json · agente: {skill.agent} · {skill.uses} usos
+                    {skill.conf && <span style={{ color: "#22d3ee" }}> · confiança: {(skill.conf * 100).toFixed(0)}%</span>}
+                  </div>
+                  <div style={{ fontSize: "0.8125rem", color: "var(--text-3)", marginTop: 6, lineHeight: 1.5 }}>
+                    {skill.desc}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          {/* Cognitive Router */}
+          <div className="glass-card p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <span className="tag-badge">ROUTER</span>
+              <span style={{ fontFamily: "var(--font-display)", fontSize: "1rem", fontWeight: 600, color: "var(--text-1)" }}>
+                Cognitive Router — Despacho Inteligente
+              </span>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--text-4)" }}>
+                packages/kernel/router.py · 409 LOC
+              </span>
+            </div>
+            <pre style={{
+              fontFamily: "var(--font-mono)", fontSize: "0.75rem", lineHeight: 1.7,
+              color: "#f59e0b", background: "hsl(0 0% 0% / 0.4)", padding: "16px 20px",
+              borderRadius: "var(--radius)", border: "1px solid var(--border)",
+              overflow: "auto", maxHeight: 350,
+            }}>
+{`class CognitiveRouter:
+    """Routes queries to the most appropriate agent using
+    domain matching + semantic similarity + confidence scoring."""
+
+    def __init__(self, agents: list[AgentSOUL], config: dict):
+        self.agents = {a.slug: a for a in agents}
+        self.domain_index = self._build_domain_index()
+        self.history: list[RoutingDecision] = []
+
+    def route(self, query: str) -> RoutingDecision:
+        """Multi-signal routing: domain → semantic → confidence."""
+        # 1. Domain keyword matching (fast path)
+        domain_scores = self._score_by_domain(query)
+
+        # 2. Semantic similarity via embeddings (slow path)
+        semantic_scores = self._score_by_similarity(query)
+
+        # 3. Weighted combination
+        combined = {}
+        for agent_id in self.agents:
+            combined[agent_id] = (
+                domain_scores.get(agent_id, 0) * 0.6 +
+                semantic_scores.get(agent_id, 0) * 0.4
+            )
+
+        # 4. Select best agent
+        best = max(combined, key=combined.get)
+        confidence = combined[best]
+
+        decision = RoutingDecision(
+            query=query, agent=best,
+            confidence=confidence,
+            alternatives=sorted(combined.items(),
+                              key=lambda x: -x[1])[:3],
+        )
+        self.history.append(decision)
+        return decision`}
+            </pre>
+          </div>
+
+          {/* Guardrails */}
+          <div className="glass-card p-5">
+            <div className="flex items-center gap-2 mb-3">
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", padding: "2px 8px", borderRadius: "var(--radius)", background: "hsl(0 80% 50% / 0.08)", color: "hsl(0 80% 60%)", border: "1px solid hsl(0 80% 50% / 0.25)" }}>GUARDRAILS</span>
+              <span style={{ fontFamily: "var(--font-display)", fontSize: "1rem", fontWeight: 600, color: "var(--text-1)" }}>
+                6 Gates de Segurança
+              </span>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--text-4)" }}>
+                packages/shared/guardrails.py · 264 LOC
+              </span>
+            </div>
+            <pre style={{
+              fontFamily: "var(--font-mono)", fontSize: "0.75rem", lineHeight: 1.7,
+              color: "#ef4444", background: "hsl(0 0% 0% / 0.4)", padding: "16px 20px",
+              borderRadius: "var(--radius)", border: "1px solid var(--border)",
+              overflow: "auto", maxHeight: 350,
+            }}>
+{`GATES = [
+    EligibilityGate(),     # Verifica se cedente/operação é elegível
+    ConcentrationGate(),   # Limites de concentração por cedente/setor
+    CovenantGate(),        # Índice de subordinação, razão de garantia
+    PLDAMLGate(),          # Prevenção à lavagem, detecção adversarial
+    ComplianceGate(),      # Regras CVM 175, BACEN, regulamento
+    RiskGate(),            # VaR, stress test, limites de risco
+]
+
+class GuardrailPipeline:
+    """Executes all gates in sequence. Any failure blocks the response."""
+
+    def validate(self, query: str, response: str, context: dict) -> GateResult:
+        results = []
+        for gate in GATES:
+            result = gate.check(query, response, context)
+            results.append(result)
+            if result.blocked:
+                return GateResult(
+                    passed=False, blocked_by=gate.name,
+                    reason=result.reason, details=results,
+                )
+        return GateResult(passed=True, details=results)
+
+class PLDAMLGate:
+    """Blocks queries attempting to evade anti-money laundering controls."""
+    BLOCKED_PATTERNS = [
+        r"fracionar.*transaç",
+        r"evitar.*detecção",
+        r"contornar.*coaf",
+        r"simular.*operação.*legal",
+    ]
+
+    def check(self, query: str, response: str, ctx: dict) -> SingleGateResult:
+        for pattern in self.BLOCKED_PATTERNS:
+            if re.search(pattern, query, re.IGNORECASE):
+                return SingleGateResult(
+                    blocked=True, gate="PLD/AML",
+                    reason=f"Query bloqueada: padrão adversarial detectado"
+                )`}
+            </pre>
           </div>
         </div>
       )}
