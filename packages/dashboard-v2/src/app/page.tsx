@@ -2,59 +2,74 @@
 
 import { useEffect, useState, useRef } from "react";
 
+// ── Dados de execução — tema dev ──────────────────────────────────────────────
 const EXECUTION_LINES = [
-  { ts: "13:04:12", text: 'Orchestrator recebeu: "onboard CNPJ 34.567.890/0001-22"', color: "var(--text-2)" },
-  { ts: "13:04:12", text: "→ spawn Agent:DD (depth=1)", color: "var(--accent)" },
-  { ts: "13:04:13", text: "  → spawn SubAgent:ReceitaFederal (depth=2)", color: "var(--accent)" },
-  { ts: "13:04:14", text: "  → spawn SubAgent:PEPCheck (depth=2)", color: "var(--accent)" },
-  { ts: "13:04:15", text: "  ← ReceitaFederal: CNAE 6613-4, 3 sócios, ativa desde 2019", color: "var(--cyan)" },
-  { ts: "13:04:15", text: "  ← PEPCheck: 0 matches", color: "var(--cyan)" },
-  { ts: "13:04:16", text: "← Agent:DD: Score 91/100 (baixo risco)", color: "var(--cyan)" },
-  { ts: "13:04:16", text: "→ spawn Agent:Compliance (depth=1)", color: "var(--accent)" },
-  { ts: "13:04:17", text: "  6 gates: ✓ ✓ ✓ ✓ ✓ ✓  TODOS APROVADOS", color: "var(--accent)" },
-  { ts: "13:04:17", text: "← Agent:Compliance: LIBERADO", color: "var(--cyan)" },
-  { ts: "13:04:18", text: "→ spawn Agent:KG (depth=1)", color: "var(--accent)" },
-  { ts: "13:04:19", text: "  28 entidades, 54 arestas → ChromaDB", color: "var(--text-2)" },
-  { ts: "13:04:19", text: "✓ COMPLETO | 3 agentes, 5 sub-agentes, 7.2s | depth=2", color: "var(--accent)" },
+  { ts: "13:04:12", text: 'Orchestrator recebeu: "implementar módulo de PDD aging"', color: "var(--text-2)" },
+  { ts: "13:04:12", text: "→ spawn Agent:Pricing (depth=1)", color: "var(--accent)" },
+  { ts: "13:04:13", text: "  → gerando pricing/pdd_aging.py (7 buckets BACEN 2682/99)", color: "var(--accent)" },
+  { ts: "13:04:14", text: "  → 142 linhas geradas, 12 testes unitários", color: "var(--text-2)" },
+  { ts: "13:04:15", text: "  → pytest: 12/12 passando ✓", color: "var(--accent)" },
+  { ts: "13:04:15", text: "← Agent:Pricing: módulo entregue", color: "var(--cyan)" },
+  { ts: "13:04:16", text: "→ spawn Agent:Auditor (depth=1)", color: "var(--accent)" },
+  { ts: "13:04:16", text: "  → code review: 0 issues, score 94/100", color: "var(--cyan)" },
+  { ts: "13:04:17", text: "→ spawn Agent:Compliance (depth=1)", color: "var(--accent)" },
+  { ts: "13:04:17", text: "  → validação CVM 175: APROVADO", color: "var(--cyan)" },
+  { ts: "13:04:18", text: "  → deploy preview: paganini-preview-7a2f.vercel.app", color: "var(--text-2)" },
+  { ts: "13:04:19", text: "✓ COMPLETO | 3 agentes, 142 LOC, 12 testes, 7.2s", color: "var(--accent)" },
 ];
 
-const HOURLY_TASKS = [4, 7, 9, 12, 18, 22, 19, 14, 11, 16, 20, 15, 17, 21, 19, 13, 10, 8, 6, 4, 5, 9, 14, 12];
-const DELIVERY_RATE = [96, 98, 97, 99, 98, 97, 99, 98, 99, 98, 97, 99, 98, 98, 99, 98, 97, 99, 98, 98, 99, 98, 99, 98];
+// Commits por hora (24h)
+const COMMITS_PER_HOUR = [2, 1, 0, 1, 3, 5, 8, 12, 15, 18, 22, 19, 17, 21, 24, 20, 16, 13, 10, 8, 6, 5, 4, 3];
 
 const AGENTS = [
-  { name: "orchestrator", task: "Coordenando lote de onboard CNPJ #247", tokens: "142K", cost: "$0.021" },
-  { name: "due-diligence", task: "Analisando CNPJ 45.234.120/0001-88", tokens: "89K", cost: "$0.013" },
-  { name: "compliance", task: "Executando pipeline 6-gate no Fundo ABC", tokens: "67K", cost: "$0.010" },
-  { name: "knowledge-graph", task: "Ingerindo circular CVM 3.822/2025", tokens: "203K", cost: "$0.031" },
-  { name: "risk-agent", task: "Pontuando lote de cedentes — 12 posições", tokens: "55K", cost: "$0.008" },
-  { name: "fund-manager", task: "Calculando NAV de 4 fundos", tokens: "38K", cost: "$0.006" },
-  { name: "report-agent", task: "Aguardando — sem tarefas ativas", tokens: "12K", cost: "$0.002" },
-  { name: "ingest-agent", task: "Aguardando — em standby", tokens: "8K", cost: "$0.001" },
-  { name: "metaclaw", task: "Avaliando 3 padrões candidatos", tokens: "44K", cost: "$0.007" },
+  { name: "orchestrator",       task: "Coordenando sprint #47 — 3 módulos",        loc: "—",  tests: "—",  cost: "$0.021", active: true },
+  { name: "pricing",            task: "Gerando pricing/yield_calculator.py",        loc: "89", tests: "8",  cost: "$0.013", active: true },
+  { name: "compliance",         task: "Review: compliance/gates.py",                loc: "—",  tests: "—",  cost: "$0.010", active: true },
+  { name: "auditor",            task: "Code review lote #12 — 4 PRs",              loc: "—",  tests: "—",  cost: "$0.008", active: true },
+  { name: "risk",               task: "Gerando risk/pdd_aging.py",                  loc: "142",tests: "12", cost: "$0.019", active: true },
+  { name: "treasury",           task: "Calculando curvas de yield — 3 fundos",     loc: "67", tests: "5",  cost: "$0.009", active: true },
+  { name: "due-diligence",      task: "Gerando due_diligence/scoring.py",           loc: "203",tests: "18", cost: "$0.027", active: true },
+  { name: "knowledge-graph",    task: "Ingerindo circular CVM 3.822/2025",         loc: "—",  tests: "—",  cost: "$0.031", active: true },
+  { name: "reporting",          task: "Gerando reporting/monthly_nav.py",           loc: "98", tests: "7",  cost: "$0.012", active: true },
+  { name: "admin",              task: "Aguardando — sem tarefas ativas",            loc: "—",  tests: "—",  cost: "$0.001", active: false },
+  { name: "investor-relations", task: "Gerando ir/investor_report.py",              loc: "55", tests: "4",  cost: "$0.007", active: true },
+  { name: "regulatory-watch",   task: "Monitorando publicações BACEN/CVM",         loc: "—",  tests: "—",  cost: "$0.004", active: true },
+  { name: "metaclaw",           task: "Avaliando 3 padrões candidatos de skill",   loc: "—",  tests: "—",  cost: "$0.006", active: true },
+  { name: "ingest",             task: "Aguardando — em standby",                    loc: "—",  tests: "—",  cost: "$0.001", active: false },
 ];
 
-const GATES = ["AUTHZ", "SCHEMA", "SEMANTIC", "RISK-GATE", "COMPLIANCE", "AUDIT"];
+const GATES = ["LINT", "TYPES", "TESTES", "SECURITY", "COMPLIANCE", "DEPLOY"];
 
+const ALERTS = [
+  { type: "warn", time: "13:02:44", msg: "Build falhou: pricing/yield_v2.py — timeout em 30s" },
+  { type: "ok",   time: "13:01:11", msg: "Deploy prod: administrador.py v1.4.2 — smoke tests OK" },
+  { type: "err",  time: "12:58:30", msg: "2 testes falharam: risk/stress_test.py — AssertionError linha 87" },
+  { type: "ok",   time: "12:55:18", msg: "Cobertura subiu para 87.3% (+0.8% vs ontem)" },
+  { type: "warn", time: "12:44:03", msg: "Agente auditor: latência elevada 8.2s (limite: 6s)" },
+];
+
+// ── Componentes auxiliares ────────────────────────────────────────────────────
 function Sparkline({ data, w = 80, h = 28, color = "var(--accent)" }: { data: number[]; w?: number; h?: number; color?: string }) {
   const min = Math.min(...data);
   const max = Math.max(...data);
   const pts = data
     .map((v, i) => {
       const x = (i / (data.length - 1)) * w;
-      const y = h - ((v - min) / (max - min || 1)) * h;
+      const y = h - ((v - min) / (max - min || 1)) * (h - 4) - 2;
       return `${x},${y}`;
     })
     .join(" ");
   const area = `${pts} ${w},${h} 0,${h}`;
+  const uid = color.replace(/[^a-z0-9]/gi, "");
   return (
     <svg width={w} height={h} style={{ display: "block", overflow: "visible" }}>
       <defs>
-        <linearGradient id={`sg-${color.replace(/[^a-z]/gi, "")}`} x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id={`sg-${uid}`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={color} stopOpacity="0.3" />
           <stop offset="100%" stopColor={color} stopOpacity="0" />
         </linearGradient>
       </defs>
-      <polygon points={area} fill={`url(#sg-${color.replace(/[^a-z]/gi, "")})`} />
+      <polygon points={area} fill={`url(#sg-${uid})`} />
       <polyline points={pts} fill="none" stroke={color} strokeWidth="1.5" strokeLinejoin="round" strokeLinecap="round" />
     </svg>
   );
@@ -70,65 +85,164 @@ function StatusDot({ active = true }: { active?: boolean }) {
         borderRadius: "50%",
         background: active ? "var(--accent)" : "var(--text-4)",
         boxShadow: active ? "0 0 6px var(--accent)" : "none",
-        animation: active ? "pulse-neon 2s ease-in-out infinite" : "none",
         flexShrink: 0,
       }}
     />
   );
 }
 
+// Heatmap SVG — 7 dias × 24 horas de commits
+function GitHeatmap() {
+  const days = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+  const hours = Array.from({ length: 24 }, (_, i) => i);
+  const cellW = 18, cellH = 14, gapX = 2, gapY = 2;
+  const intensity = (d: number, h: number) => {
+    const base = [2, 5, 7, 6, 8, 4, 1][d];
+    const hourBoost = h >= 9 && h <= 18 ? 1.4 : h >= 19 && h <= 22 ? 0.8 : 0.2;
+    const val = base * hourBoost * (0.5 + Math.random() * 0.5);
+    return Math.min(1, val / 10);
+  };
+  // deterministic-ish seed
+  const seed = (d: number, h: number) => {
+    const n = d * 100 + h;
+    return ((Math.sin(n * 9301 + 49297) + 1) / 2);
+  };
+  return (
+    <svg
+      width={24 * (cellW + gapX)}
+      height={7 * (cellH + gapY) + 20}
+      style={{ display: "block", overflow: "visible" }}
+    >
+      {/* Hour labels */}
+      {[0, 6, 12, 18, 23].map(h => (
+        <text key={h} x={h * (cellW + gapX) + cellW / 2} y={10} fontSize="8" fill="rgba(255,255,255,0.2)" textAnchor="middle">
+          {h}h
+        </text>
+      ))}
+      {days.map((day, d) =>
+        hours.map(h => {
+          const alpha = 0.05 + seed(d, h) * 0.85;
+          return (
+            <rect
+              key={`${d}-${h}`}
+              x={h * (cellW + gapX)}
+              y={d * (cellH + gapY) + 14}
+              width={cellW}
+              height={cellH}
+              rx={2}
+              fill={`hsl(150 100% 50% / ${alpha.toFixed(2)})`}
+            />
+          );
+        })
+      )}
+      {/* Day labels */}
+      {days.map((day, d) => (
+        <text key={day} x={-2} y={d * (cellH + gapY) + 14 + cellH / 2 + 3} fontSize="8" fill="rgba(255,255,255,0.2)" textAnchor="end">
+          {day}
+        </text>
+      ))}
+    </svg>
+  );
+}
+
+// ── Página principal ──────────────────────────────────────────────────────────
 export default function OverviewPage() {
   const [visibleLines, setVisibleLines] = useState(0);
   const [loopCount, setLoopCount] = useState(0);
   const traceRef = useRef<HTMLDivElement>(null);
   const [tick, setTick] = useState(0);
 
-  // Animate execution trace
   useEffect(() => {
     const interval = setInterval(() => {
-      setVisibleLines((v) => {
+      setVisibleLines(v => {
         if (v >= EXECUTION_LINES.length) {
           setTimeout(() => {
             setVisibleLines(0);
-            setLoopCount((c) => c + 1);
-          }, 2500);
+            setLoopCount(c => c + 1);
+          }, 2800);
           clearInterval(interval);
           return v;
         }
         return v + 1;
       });
-    }, 320);
+    }, 340);
     return () => clearInterval(interval);
   }, [loopCount]);
 
-  // Scroll trace to bottom
   useEffect(() => {
-    if (traceRef.current) {
-      traceRef.current.scrollTop = traceRef.current.scrollHeight;
-    }
+    if (traceRef.current) traceRef.current.scrollTop = traceRef.current.scrollHeight;
   }, [visibleLines]);
 
-  // Tick for live feel
   useEffect(() => {
-    const t = setInterval(() => setTick((x) => x + 1), 2000);
+    const t = setInterval(() => setTick(x => x + 1), 2000);
     return () => clearInterval(t);
   }, []);
 
   const now = new Date();
   const timeStr = now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
 
+  const STATS = [
+    {
+      label: "COMMITS HOJE",
+      value: "47",
+      sub: "+12 vs ontem",
+      color: "var(--accent)",
+      sparkData: [2, 1, 0, 1, 3, 5, 8, 12, 15, 18, 22, 19, 17, 21, 24, 20, 16, 13, 10, 8, 6, 5, 4, 3],
+    },
+    {
+      label: "LINHAS DE CÓDIGO",
+      value: "12.4K",
+      sub: "geradas por agentes",
+      color: "var(--cyan)",
+      sparkData: [200, 300, 280, 400, 520, 640, 810, 920, 1100, 1050, 900, 780, 820, 950, 1020, 880, 760, 640, 580, 490, 420, 380, 310, 280],
+    },
+    {
+      label: "BUILDS",
+      value: "23",
+      sub: "18 ✓  3 ⚠  2 ✗",
+      color: "var(--accent)",
+      sparkData: [0, 1, 0, 2, 3, 4, 5, 6, 5, 7, 8, 7, 6, 7, 8, 9, 8, 7, 6, 5, 4, 4, 3, 2],
+    },
+    {
+      label: "COBERTURA DE TESTES",
+      value: "87.3%",
+      sub: "+0.8% vs ontem",
+      color: "var(--accent)",
+      sparkData: [84, 84.2, 84.5, 84.8, 85.1, 85.5, 85.9, 86.2, 86.4, 86.7, 86.9, 87.0, 87.1, 87.2, 87.2, 87.3, 87.3, 87.3, 87.3, 87.3, 87.3, 87.3, 87.3, 87.3],
+    },
+    {
+      label: "DEPLOYS",
+      value: "8",
+      sub: "7 prod · 1 preview",
+      color: "var(--cyan)",
+      sparkData: [0, 0, 0, 1, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 7, 7, 8, 8, 8, 8],
+    },
+    {
+      label: "AGENTES ATIVOS",
+      value: "12/14",
+      sub: "2 em standby",
+      color: "var(--accent)",
+      sparkData: [8, 8, 9, 10, 11, 12, 13, 13, 13, 14, 13, 13, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12],
+    },
+  ];
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-      {/* Cabeçalho */}
-      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", flexWrap: "wrap", gap: "0.5rem" }}>
+
+      {/* ── Cabeçalho ── */}
+      <div style={{ display: "flex", alignItems: "baseline", justifyContent: "space-between", flexWrap: "wrap", gap: "0.75rem" }}>
         <div>
           <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "0.25rem" }}>
-            PAGANINI AIOS · CENTRO DE COMANDO
+            PAGANINI AIOS · DEV PLATFORM
           </div>
-          <h1 style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--text-1)", margin: 0 }}>
-            Sistema Operacional de IA{" "}
-            <span style={{ color: "var(--accent)", textShadow: "0 0 20px hsl(150 100% 50% / 0.4)" }}>v2.4.1</span>
+          <h1 style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--text-1)", margin: 0, display: "flex", alignItems: "center", gap: "0.75rem" }}>
+            Central de Comando
+            <span style={{ color: "var(--accent)", textShadow: "0 0 20px hsl(150 100% 50% / 0.4)", fontFamily: "var(--font-mono)", fontSize: "0.9rem" }}>v2.4.1</span>
           </h1>
+          <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.5rem" }}>
+            <span className="tag-badge">AIOS</span>
+            <span className="tag-badge-cyan">DEV PLATFORM</span>
+          </div>
         </div>
         <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
           <StatusDot />
@@ -137,102 +251,41 @@ export default function OverviewPage() {
         </div>
       </div>
 
-      {/* Linha de Estatísticas */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem" }}>
-        {/* Tarefas Entregues */}
-        <div className="glass-card" style={{ padding: "1.25rem" }}>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "0.5rem" }}>
-            TAREFAS ENTREGUES HOJE
-          </div>
-          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "0.5rem" }}>
-            <div>
-              <div style={{ fontSize: "2.25rem", fontWeight: 700, color: "var(--accent)", lineHeight: 1, fontFamily: "var(--font-mono)" }}>
-                {147 + (tick % 3 === 0 ? 1 : 0)}
+      {/* ── 6 Cards de Stats ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: "1rem" }} className="stats-grid">
+        {STATS.map((s, i) => (
+          <div key={i} className="glass-card" style={{ padding: "1.25rem" }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "0.5rem" }}>
+              {s.label}
+            </div>
+            <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "0.5rem" }}>
+              <div>
+                <div className="stat-value" style={{ fontSize: "2rem", fontWeight: 700, color: s.color, lineHeight: 1, fontFamily: "var(--font-mono)" }}>
+                  {s.value}
+                </div>
+                <div style={{ fontSize: "0.6875rem", color: "var(--text-3)", marginTop: "0.25rem" }}>{s.sub}</div>
               </div>
-              <div style={{ fontSize: "0.6875rem", color: "var(--text-3)", marginTop: "0.25rem" }}>+23 vs ontem</div>
-            </div>
-            <Sparkline data={HOURLY_TASKS} />
-          </div>
-        </div>
-
-        {/* Agentes Ativos */}
-        <div className="glass-card" style={{ padding: "1.25rem" }}>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "0.5rem" }}>
-            AGENTES ATIVOS
-          </div>
-          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "0.5rem" }}>
-            <div>
-              <div style={{ fontSize: "2.25rem", fontWeight: 700, color: "var(--text-1)", lineHeight: 1, fontFamily: "var(--font-mono)" }}>
-                <span style={{ color: "var(--accent)" }}>7</span>
-                <span style={{ color: "var(--text-4)", fontSize: "1.25rem" }}>/9</span>
-              </div>
-              <div style={{ fontSize: "0.6875rem", color: "var(--text-3)", marginTop: "0.25rem" }}>2 aguardando</div>
-            </div>
-            <div style={{ display: "flex", flexWrap: "wrap", gap: "4px", maxWidth: 60 }}>
-              {AGENTS.map((a, i) => (
-                <StatusDot key={i} active={i < 7} />
-              ))}
+              <Sparkline data={s.sparkData} />
             </div>
           </div>
-        </div>
-
-        {/* Profundidade Recursiva */}
-        <div className="glass-card" style={{ padding: "1.25rem" }}>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "0.5rem" }}>
-            PROFUNDIDADE RECURSIVA
-          </div>
-          <div>
-            <div style={{ display: "flex", alignItems: "baseline", gap: "0.5rem" }}>
-              <div style={{ fontSize: "2.25rem", fontWeight: 700, color: "var(--cyan)", lineHeight: 1, fontFamily: "var(--font-mono)" }}>2.3</div>
-              <div style={{ fontSize: "0.6875rem", color: "var(--text-3)" }}>média</div>
-            </div>
-            <div style={{ fontSize: "0.6875rem", color: "var(--text-3)", marginTop: "0.25rem" }}>
-              máx. nesta sessão: <span style={{ color: "var(--cyan)" }}>6</span>
-            </div>
-            {/* mini depth bar */}
-            <div style={{ marginTop: "0.75rem", display: "flex", gap: "3px", alignItems: "flex-end", height: 20 }}>
-              {[6, 12, 8, 20, 15, 10].map((v, i) => (
-                <div
-                  key={i}
-                  style={{
-                    flex: 1,
-                    height: `${(v / 20) * 100}%`,
-                    background: i === 3 ? "var(--cyan)" : "hsl(180 100% 50% / 0.3)",
-                    borderRadius: "1px",
-                  }}
-                />
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Taxa de Entrega */}
-        <div className="glass-card" style={{ padding: "1.25rem" }}>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "0.5rem" }}>
-            TAXA DE ENTREGA
-          </div>
-          <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between", gap: "0.5rem" }}>
-            <div>
-              <div style={{ fontSize: "2.25rem", fontWeight: 700, color: "var(--accent)", lineHeight: 1, fontFamily: "var(--font-mono)" }}>98.3%</div>
-              <div style={{ fontSize: "0.6875rem", color: "var(--text-3)", marginTop: "0.25rem" }}>SLA: 95.0%</div>
-            </div>
-            <Sparkline data={DELIVERY_RATE} h={28} color="var(--accent)" />
-          </div>
-        </div>
+        ))}
       </div>
 
-      {/* Grid principal: trace + coluna direita */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: "1rem", alignItems: "start" }}>
-        {/* Trace de Execução Ao Vivo */}
+      {/* ── Terminal + coluna direita ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "1fr 340px", gap: "1rem", alignItems: "start" }} className="main-grid">
+
+        {/* Terminal de Execução */}
         <div className="glass-card scanline" style={{ padding: "1.25rem" }}>
           <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem" }}>
             <div>
               <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)" }}>
-                TRACE DE EXECUÇÃO AO VIVO
+                TERMINAL DE EXECUÇÃO AO VIVO
               </div>
-              <div style={{ color: "var(--text-1)", fontWeight: 600, fontSize: "0.875rem", marginTop: "2px" }}>Orquestração Recursiva de Agentes</div>
+              <div style={{ color: "var(--text-1)", fontWeight: 600, fontSize: "0.875rem", marginTop: "2px" }}>
+                Geração de Código por Agentes
+              </div>
             </div>
-            <div style={{ display: "flex", gap: "6px" }}>
+            <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
               <StatusDot />
               <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--accent)" }}>TRANSMITINDO</span>
             </div>
@@ -245,11 +298,11 @@ export default function OverviewPage() {
               border: "1px solid var(--border)",
               borderRadius: "var(--radius)",
               padding: "1rem",
-              height: 280,
+              height: 260,
               overflowY: "auto",
               fontFamily: "var(--font-mono)",
               fontSize: "0.6875rem",
-              lineHeight: 1.7,
+              lineHeight: 1.75,
             }}
           >
             {EXECUTION_LINES.slice(0, visibleLines).map((line, i) => (
@@ -259,259 +312,196 @@ export default function OverviewPage() {
               </div>
             ))}
             {visibleLines > 0 && visibleLines < EXECUTION_LINES.length && (
-              <span style={{ color: "var(--accent)", animation: "pulse-neon 1s ease-in-out infinite" }}>█</span>
+              <span style={{ color: "var(--accent)" }}>█</span>
             )}
           </div>
         </div>
 
         {/* Coluna direita */}
         <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
-          {/* Banner de Eficiência de Custo */}
-          <div
-            className="glass-card"
-            style={{
-              padding: "1.25rem",
-              background: "linear-gradient(135deg, hsl(150 100% 50% / 0.06) 0%, hsl(220 18% 7%) 100%)",
-            }}
-          >
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "0.5rem" }}>
-              EFICIÊNCIA DE CUSTO
-            </div>
-            <div style={{ fontSize: "1.25rem", fontWeight: 700, color: "var(--accent)", marginBottom: "0.5rem" }}>
-              555× mais barato
+
+          {/* Guardrail Strip */}
+          <div className="glass-card" style={{ padding: "1.25rem" }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "1rem" }}>
+              GATES DE QUALIDADE
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.625rem", color: "var(--accent)", width: 60 }}>AIOS</div>
-                <div style={{ flex: 1, height: 8, background: "rgba(0,255,128,0.08)", borderRadius: "1px", overflow: "hidden" }}>
-                  <div style={{ width: "0.18%", height: "100%", background: "var(--accent)", borderRadius: "1px" }} />
-                </div>
-                <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.625rem", color: "var(--accent)", width: 48, textAlign: "right" }}>$0.09/h</div>
-              </div>
-              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.625rem", color: "var(--text-3)", width: 60 }}>HUMANO</div>
-                <div style={{ flex: 1, height: 8, background: "rgba(0,255,128,0.08)", borderRadius: "1px", overflow: "hidden" }}>
-                  <div style={{ width: "100%", height: "100%", background: "hsl(0 84% 60% / 0.6)", borderRadius: "1px" }} />
-                </div>
-                <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.625rem", color: "var(--text-3)", width: 48, textAlign: "right" }}>$50/h</div>
-              </div>
-            </div>
-          </div>
-
-          {/* MetaClaw Autoaprendizado */}
-          <div className="glass-card" style={{ padding: "1.25rem" }}>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "0.5rem" }}>
-              METACLAW · AUTOAPRENDIZADO
-            </div>
-            <div style={{ display: "flex", gap: "0.5rem", alignItems: "flex-start", marginBottom: "0.75rem" }}>
-              <span style={{ fontSize: "1.25rem" }}>🧠</span>
-              <div>
-                <div style={{ color: "var(--text-1)", fontSize: "0.875rem", fontWeight: 600 }}>3 padrões descobertos</div>
-                <div style={{ color: "var(--text-3)", fontSize: "0.6875rem" }}>2 skills promovidas hoje</div>
-              </div>
-            </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
-              {[
-                { skill: "pdd-risk-check", score: "0.31→0.89", status: "PROMOVIDA" },
-                { skill: "covenant-eval", score: "0.54→0.82", status: "PROMOVIDA" },
-                { skill: "cnpj-pep-fast", score: "0.61→0.74", status: "STAGING" },
-              ].map((s) => (
-                <div
-                  key={s.skill}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "space-between",
-                    padding: "4px 8px",
-                    background: "rgba(0,0,0,0.3)",
-                    borderRadius: "var(--radius)",
-                    border: "1px solid var(--border)",
-                  }}
-                >
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.625rem", color: "var(--text-2)" }}>{s.skill}</span>
-                  <div style={{ display: "flex", gap: "6px", alignItems: "center" }}>
-                    <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--accent)" }}>{s.score}</span>
-                    <span className={s.status === "PROMOVIDA" ? "tag-badge" : "tag-badge-cyan"} style={{ fontSize: "0.5rem", padding: "1px 5px" }}>
-                      {s.status}
-                    </span>
-                  </div>
+              {GATES.map((gate, i) => (
+                <div key={gate} style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                  <svg width={16} height={16} style={{ flexShrink: 0 }}>
+                    <circle cx={8} cy={8} r={7} fill="hsl(150 100% 50% / 0.12)" stroke="hsl(150 100% 50% / 0.4)" strokeWidth={1} />
+                    <text x={8} y={11.5} fontSize="8" fill="var(--accent)" textAnchor="middle">✓</text>
+                  </svg>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.625rem", color: "var(--text-2)", flex: 1 }}>{gate}</span>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--accent)" }}>OK</span>
                 </div>
               ))}
             </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Faixa do Pipeline de Guardrails */}
-      <div className="glass-card" style={{ padding: "1.25rem" }}>
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "1rem" }}>
-          PIPELINE DE GUARDRAILS · 6-GATE HARD-STOP
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "0px", overflowX: "auto", paddingBottom: "4px" }}>
-          {/* OPERAÇÃO */}
-          <div
-            style={{
-              flexShrink: 0,
-              padding: "6px 14px",
-              border: "1px solid var(--border)",
+            <div style={{
+              marginTop: "1rem",
+              padding: "6px 10px",
+              background: "hsl(150 100% 50% / 0.08)",
+              border: "1px solid hsl(150 100% 50% / 0.3)",
               borderRadius: "var(--radius)",
               fontFamily: "var(--font-mono)",
               fontSize: "0.625rem",
-              color: "var(--text-3)",
-              background: "rgba(0,0,0,0.4)",
-            }}
-          >
-            OPERAÇÃO
+              color: "var(--accent)",
+              textAlign: "center",
+              fontWeight: 700,
+            }}>
+              ✓ TODOS OS GATES APROVADOS
+            </div>
           </div>
 
-          {GATES.map((gate, i) => (
-            <div key={gate} style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
-              {/* Seta */}
-              <svg width={28} height={12} style={{ flexShrink: 0 }}>
-                <line x1={2} y1={6} x2={22} y2={6} stroke="var(--accent)" strokeWidth={1} strokeOpacity={0.5} />
-                <polygon points="22,3 28,6 22,9" fill="var(--accent)" fillOpacity={0.5} />
-              </svg>
-              {/* Gate */}
-              <div
-                style={{
-                  flexShrink: 0,
-                  padding: "6px 12px",
-                  background: "hsl(150 100% 50% / 0.08)",
-                  border: "1px solid hsl(150 100% 50% / 0.3)",
-                  borderRadius: "var(--radius)",
-                  fontFamily: "var(--font-mono)",
-                  fontSize: "0.5625rem",
-                  color: "var(--accent)",
-                  letterSpacing: "0.08em",
-                  position: "relative",
-                }}
-              >
-                {gate}
-                <span
-                  style={{
-                    position: "absolute",
-                    top: -6,
-                    right: -4,
-                    fontSize: "0.5rem",
-                    color: "var(--accent)",
-                    background: "var(--bg-card)",
-                    borderRadius: "50%",
-                    width: 14,
-                    height: 14,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  ✓
-                </span>
-              </div>
+          {/* Alertas Recentes */}
+          <div className="glass-card" style={{ padding: "1.25rem" }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "0.75rem" }}>
+              ALERTAS RECENTES
             </div>
-          ))}
-
-          {/* Seta para APROVADO */}
-          <svg width={28} height={12} style={{ flexShrink: 0 }}>
-            <line x1={2} y1={6} x2={22} y2={6} stroke="var(--accent)" strokeWidth={1} strokeOpacity={0.5} />
-            <polygon points="22,3 28,6 22,9" fill="var(--accent)" fillOpacity={0.5} />
-          </svg>
-
-          {/* APROVADO */}
-          <div
-            style={{
-              flexShrink: 0,
-              padding: "6px 16px",
-              background: "hsl(150 100% 50% / 0.15)",
-              border: "1px solid var(--accent)",
-              borderRadius: "var(--radius)",
-              fontFamily: "var(--font-mono)",
-              fontSize: "0.6875rem",
-              color: "var(--accent)",
-              fontWeight: 700,
-              letterSpacing: "0.1em",
-              boxShadow: "0 0 12px hsl(150 100% 50% / 0.3)",
-              animation: "pulse-neon 2s ease-in-out infinite",
-            }}
-          >
-            ✓ APROVADO
+            <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+              {ALERTS.map((a, i) => {
+                const col = a.type === "ok" ? "var(--accent)" : a.type === "warn" ? "#f59e0b" : "#ef4444";
+                const icon = a.type === "ok" ? "✓" : a.type === "warn" ? "⚠" : "✗";
+                return (
+                  <div key={i} style={{
+                    display: "flex", gap: "8px", alignItems: "flex-start",
+                    padding: "6px 8px",
+                    background: `${col.startsWith("#") ? col : "hsl(150 100% 50%)"}10`,
+                    border: `1px solid ${col.startsWith("#") ? col : "hsl(150 100% 50%)"}30`,
+                    borderRadius: "var(--radius)",
+                  }}>
+                    <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.625rem", color: col, flexShrink: 0 }}>{icon}</span>
+                    <div>
+                      <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--text-3)" }}>{a.time}</div>
+                      <div style={{ fontSize: "0.5625rem", color: "var(--text-2)", marginTop: "2px", lineHeight: 1.4 }}>{a.msg}</div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>
 
-      {/* Tabela da Frota de Agentes */}
+      {/* ── Sparkline de Commits por Hora ── */}
+      <div className="glass-card" style={{ padding: "1.25rem" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem" }}>
+          <div>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)" }}>
+              COMMITS POR HORA — ÚLTIMAS 24H
+            </div>
+            <div style={{ color: "var(--text-1)", fontWeight: 600, fontSize: "0.8125rem", marginTop: "2px" }}>
+              Atividade de Geração de Código
+            </div>
+          </div>
+          <span className="tag-badge">47 hoje</span>
+        </div>
+        <svg viewBox={`0 0 800 60`} style={{ width: "100%", height: 60, display: "block" }}>
+          <defs>
+            <linearGradient id="commitGrad" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor="hsl(150 100% 50%)" stopOpacity="0.35" />
+              <stop offset="100%" stopColor="hsl(150 100% 50%)" stopOpacity="0.02" />
+            </linearGradient>
+          </defs>
+          {COMMITS_PER_HOUR.map((v, i) => {
+            const max = Math.max(...COMMITS_PER_HOUR);
+            const barH = (v / max) * 50;
+            const barW = 800 / 24 - 3;
+            return (
+              <rect
+                key={i}
+                x={i * (800 / 24) + 1}
+                y={58 - barH}
+                width={barW}
+                height={barH}
+                rx={2}
+                fill={`hsl(150 100% 50% / ${0.15 + (v / max) * 0.7})`}
+              />
+            );
+          })}
+          {[0, 6, 12, 18, 23].map(h => (
+            <text key={h} x={(h / 23) * 800} y={60} fontSize="8" fill="rgba(255,255,255,0.2)" textAnchor="middle">{h}h</text>
+          ))}
+        </svg>
+      </div>
+
+      {/* ── Tabela de Atividade dos Agentes ── */}
       <div className="glass-card" style={{ padding: "1.25rem" }}>
         <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "1rem" }}>
-          FROTA DE AGENTES · STATUS AO VIVO
+          ATIVIDADE DOS AGENTES · {AGENTS.filter(a => a.active).length}/{AGENTS.length} ATIVOS
         </div>
         <div style={{ overflowX: "auto" }}>
           <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "var(--font-mono)", fontSize: "0.6875rem" }}>
             <thead>
               <tr style={{ borderBottom: "1px solid var(--border)" }}>
-                {["AGENTE", "STATUS", "TAREFA ATUAL", "TOKENS", "CUSTO"].map((h) => (
-                  <th
-                    key={h}
-                    style={{
-                      textAlign: "left",
-                      padding: "0.5rem 0.75rem",
-                      color: "var(--text-4)",
-                      fontSize: "0.5625rem",
-                      letterSpacing: "0.12em",
-                      fontWeight: 500,
-                    }}
-                  >
+                {["AGENTE", "STATUS", "TAREFA ATUAL", "LOC", "TESTES", "CUSTO"].map(h => (
+                  <th key={h} style={{ textAlign: "left", padding: "0.5rem 0.75rem", color: "var(--text-4)", fontSize: "0.5625rem", letterSpacing: "0.12em", fontWeight: 500 }}>
                     {h}
                   </th>
                 ))}
               </tr>
             </thead>
             <tbody>
-              {AGENTS.map((agent, i) => {
-                const isWatching = agent.task.startsWith("Aguardando");
-                return (
-                  <tr
-                    key={agent.name}
-                    style={{
-                      borderBottom: "1px solid hsl(150 100% 50% / 0.04)",
-                      background: i % 2 === 0 ? "rgba(0,0,0,0.15)" : "transparent",
-                    }}
-                  >
-                    <td style={{ padding: "0.6rem 0.75rem", color: "var(--accent)" }}>{agent.name}</td>
-                    <td style={{ padding: "0.6rem 0.75rem" }}>
-                      <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                        <StatusDot active={!isWatching} />
-                        <span style={{ color: isWatching ? "var(--text-4)" : "var(--text-2)", fontSize: "0.5625rem" }}>
-                          {isWatching ? "AGUARDANDO" : "ATIVO"}
-                        </span>
-                      </div>
-                    </td>
-                    <td
-                      style={{
-                        padding: "0.6rem 0.75rem",
-                        color: isWatching ? "var(--text-4)" : "var(--text-2)",
-                        maxWidth: 260,
-                        overflow: "hidden",
-                        textOverflow: "ellipsis",
-                        whiteSpace: "nowrap",
-                        fontSize: "0.625rem",
-                      }}
-                    >
-                      {agent.task}
-                    </td>
-                    <td style={{ padding: "0.6rem 0.75rem", color: "var(--cyan)" }}>{agent.tokens}</td>
-                    <td style={{ padding: "0.6rem 0.75rem", color: "var(--text-2)" }}>{agent.cost}</td>
-                  </tr>
-                );
-              })}
+              {AGENTS.map((agent, i) => (
+                <tr key={agent.name} style={{ borderBottom: "1px solid hsl(150 100% 50% / 0.04)", background: i % 2 === 0 ? "rgba(0,0,0,0.15)" : "transparent" }}>
+                  <td style={{ padding: "0.6rem 0.75rem", color: "var(--accent)" }}>{agent.name}</td>
+                  <td style={{ padding: "0.6rem 0.75rem" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+                      <StatusDot active={agent.active} />
+                      <span style={{ color: agent.active ? "var(--text-2)" : "var(--text-4)", fontSize: "0.5625rem" }}>
+                        {agent.active ? "ATIVO" : "STANDBY"}
+                      </span>
+                    </div>
+                  </td>
+                  <td style={{ padding: "0.6rem 0.75rem", color: agent.active ? "var(--text-2)" : "var(--text-4)", maxWidth: 260, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: "0.625rem" }}>
+                    {agent.task}
+                  </td>
+                  <td style={{ padding: "0.6rem 0.75rem", color: "var(--cyan)" }}>{agent.loc}</td>
+                  <td style={{ padding: "0.6rem 0.75rem", color: "var(--text-2)" }}>{agent.tests}</td>
+                  <td style={{ padding: "0.6rem 0.75rem", color: "var(--text-2)" }}>{agent.cost}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
         <div style={{ marginTop: "0.75rem", display: "flex", justifyContent: "flex-end", gap: "1rem" }}>
           <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.625rem", color: "var(--text-4)" }}>
             TOTAL HOJE:{" "}
-            <span style={{ color: "var(--accent)" }}>1.24M tokens</span> ·{" "}
+            <span style={{ color: "var(--accent)" }}>12.4K LOC</span> ·{" "}
+            <span style={{ color: "var(--accent)" }}>347 testes</span> ·{" "}
             <span style={{ color: "var(--accent)" }}>$0.19</span>
           </div>
         </div>
       </div>
+
+      {/* ── Git Activity Heatmap ── */}
+      <div className="glass-card" style={{ padding: "1.25rem" }}>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "1rem" }}>
+          MAPA DE CALOR DE COMMITS — 7 DIAS × 24 HORAS
+        </div>
+        <div style={{ overflowX: "auto", paddingLeft: "28px" }}>
+          <GitHeatmap />
+        </div>
+        <div style={{ display: "flex", alignItems: "center", gap: "8px", marginTop: "0.75rem", justifyContent: "flex-end" }}>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--text-4)" }}>menos</span>
+          {[0.08, 0.25, 0.45, 0.65, 0.85].map((a, i) => (
+            <div key={i} style={{ width: 12, height: 12, borderRadius: "2px", background: `hsl(150 100% 50% / ${a})` }} />
+          ))}
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--text-4)" }}>mais</span>
+        </div>
+      </div>
+
+      <style>{`
+        @media (min-width: 1024px) {
+          .stats-grid { grid-template-columns: repeat(6, 1fr) !important; }
+        }
+        @media (max-width: 900px) {
+          .main-grid { grid-template-columns: 1fr !important; }
+        }
+        @media (max-width: 600px) {
+          .stats-grid { grid-template-columns: repeat(2, 1fr) !important; }
+        }
+      `}</style>
     </div>
   );
 }

@@ -1,1043 +1,441 @@
 "use client";
 
-// ── PDD Aging data ────────────────────────────────────────────────────────────
-const pddAging = [
+import { useState, useEffect } from "react";
+
+// ── Módulos do Pack FIDC ───────────────────────────────────────────────────────
+const MODULES = [
+  { name: "administrador.py",      loc: 400, tests: 24, coverage: 92, status: "Prod" },
+  { name: "compliance.py",         loc: 600, tests: 38, coverage: 95, status: "Prod" },
+  { name: "custodia.py",           loc: 450, tests: 20, coverage: 88, status: "Prod" },
+  { name: "due_diligence.py",      loc: 500, tests: 32, coverage: 91, status: "Prod" },
+  { name: "gestor.py",             loc: 450, tests: 28, coverage: 89, status: "Prod" },
+  { name: "pricing.py",            loc: 500, tests: 35, coverage: 94, status: "Prod" },
+  { name: "risk.py",               loc: 480, tests: 30, coverage: 93, status: "Prod" },
+  { name: "treasury.py",           loc: 420, tests: 22, coverage: 87, status: "Prod" },
+  { name: "auditor.py",            loc: 380, tests: 18, coverage: 86, status: "Prod" },
+  { name: "reporting.py",          loc: 350, tests: 15, coverage: 84, status: "Prod" },
+  { name: "investor_relations.py", loc: 400, tests: 20, coverage: 90, status: "Prod" },
+  { name: "regulatory_watch.py",   loc: 380, tests: 18, coverage: 85, status: "Prod" },
+  { name: "knowledge_graph.py",    loc: 420, tests: 25, coverage: 91, status: "Prod" },
+  { name: "orchestrator.py",       loc: 400, tests: 22, coverage: 88, status: "Prod" },
+];
+
+const totalLoc = MODULES.reduce((s, m) => s + m.loc, 0);
+const totalTests = MODULES.reduce((s, m) => s + m.tests, 0);
+const avgCoverage = Math.round(MODULES.reduce((s, m) => s + m.coverage, 0) / MODULES.length);
+
+// ── CLI Examples ──────────────────────────────────────────────────────────────
+const CLI_EXAMPLES = [
   {
-    bucket: "0–30d",
-    outstanding: 312_450_000,
-    provisionRate: 0.5,
-    color: "#00ff80",
-    textColor: "var(--accent)",
+    comment: "# Calcular NAV do fundo em D+0",
+    cmd: "paganini query --module administrador --fn calc_nav --date today",
+    output: '{ "nav": 247800000, "currency": "BRL", "date": "2026-03-18", "status": "ok" }',
   },
   {
-    bucket: "31–60d",
-    outstanding: 87_230_000,
-    provisionRate: 3.0,
-    color: "#39e07a",
-    textColor: "#39e07a",
+    comment: "# Verificar PDD aging — todos os buckets BACEN 2682/99",
+    cmd: "paganini query --module risk --fn pdd_aging --fund FIDC-001",
+    output: '{ "total_pdd": 12400000, "ratio": 0.050, "buckets": 7, "status": "within_limit" }',
   },
   {
-    bucket: "61–90d",
-    outstanding: 42_180_000,
-    provisionRate: 10.0,
-    color: "#7dd45a",
-    textColor: "#7dd45a",
+    comment: "# Pipeline de compliance com todos os gates",
+    cmd: "paganini run --module compliance --pipeline full-gates --fund FIDC-001",
+    output: "LINT ✓  TYPES ✓  TESTES ✓  SECURITY ✓  COMPLIANCE ✓  DEPLOY ✓\nRESULT: APROVADO (6/6 gates) em 3.2s",
   },
   {
-    bucket: "91–120d",
-    outstanding: 18_760_000,
-    provisionRate: 30.0,
-    color: "#f59e0b",
-    textColor: "#f59e0b",
-  },
-  {
-    bucket: "121–150d",
-    outstanding: 9_340_000,
-    provisionRate: 60.0,
-    color: "#ef6820",
-    textColor: "#ef6820",
-  },
-  {
-    bucket: "151–180d",
-    outstanding: 4_120_000,
-    provisionRate: 80.0,
-    color: "#e84040",
-    textColor: "#e84040",
-  },
-  {
-    bucket: ">180d",
-    outstanding: 2_340_000,
-    provisionRate: 100.0,
-    color: "#ff2020",
-    textColor: "#ff2020",
+    comment: "# Precificar cota sênior com curvas atuais",
+    cmd: "paganini query --module pricing --fn senior_quota_price --curves today",
+    output: '{ "quota_value": 1.2841, "yield_pa": 0.124, "benchmark": "CDI+2.5%" }',
   },
 ];
 
-const maxOutstanding = Math.max(...pddAging.map((r) => r.outstanding));
-
-function fmtBRL(n: number): string {
-  if (n >= 1_000_000) return `R$ ${(n / 1_000_000).toFixed(1)}M`;
-  if (n >= 1_000) return `R$ ${(n / 1_000).toFixed(0)}K`;
-  return `R$ ${n}`;
-}
-
-// ── Sparkline SVG (30 day NAV) ────────────────────────────────────────────────
-const sparkData = [
-  820, 825, 822, 830, 835, 828, 833, 838, 834, 840,
-  836, 842, 839, 844, 841, 847, 843, 848, 845, 850,
-  847, 851, 849, 845, 848, 843, 847, 846, 847, 847,
-];
+// ── Sparkline ─────────────────────────────────────────────────────────────────
+const sparkData = [820, 825, 822, 830, 835, 828, 833, 838, 834, 840, 836, 842, 839, 844, 841, 847, 843, 848, 845, 850, 847, 848, 847, 847, 848];
 
 function Sparkline({ data, color }: { data: number[]; color: string }) {
-  const W = 100;
-  const H = 32;
+  const W = 90, H = 30;
   const min = Math.min(...data);
   const max = Math.max(...data);
   const range = max - min || 1;
-
-  const pts = data.map((v, i) => ({
-    x: (i / (data.length - 1)) * W,
-    y: H - ((v - min) / range) * (H - 4) - 2,
-  }));
-
-  const linePath = "M " + pts.map((p) => `${p.x},${p.y.toFixed(1)}`).join(" L ");
-  const areaPath =
-    linePath +
-    ` L ${pts[pts.length - 1].x},${H} L ${pts[0].x},${H} Z`;
-
+  const pts = data.map((v, i) => ({ x: (i / (data.length - 1)) * W, y: H - ((v - min) / range) * (H - 4) - 2 }));
+  const linePath = "M " + pts.map(p => `${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(" L ");
+  const areaPath = linePath + ` L ${pts[pts.length - 1].x},${H} L ${pts[0].x},${H} Z`;
+  const uid = color.replace(/[^a-z0-9]/gi, "");
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: 100, height: 32, display: "block" }}>
+    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: W, height: H, display: "block" }}>
       <defs>
-        <linearGradient id={`spark-grad-${color.replace(/[^a-z0-9]/gi, "")}`} x1="0" y1="0" x2="0" y2="1">
+        <linearGradient id={`sg-${uid}`} x1="0" y1="0" x2="0" y2="1">
           <stop offset="0%" stopColor={color} stopOpacity="0.4" />
           <stop offset="100%" stopColor={color} stopOpacity="0.02" />
         </linearGradient>
       </defs>
-      <path
-        d={areaPath}
-        fill={`url(#spark-grad-${color.replace(/[^a-z0-9]/gi, "")})`}
-      />
-      <path
-        d={linePath}
-        fill="none"
-        stroke={color}
-        strokeWidth={1.5}
-        strokeLinejoin="round"
-        strokeLinecap="round"
-      />
-      <circle
-        cx={pts[pts.length - 1].x}
-        cy={pts[pts.length - 1].y}
-        r={2.5}
-        fill={color}
-        style={{ filter: `drop-shadow(0 0 3px ${color})` }}
-      />
+      <path d={areaPath} fill={`url(#sg-${uid})`} />
+      <path d={linePath} fill="none" stroke={color} strokeWidth={1.5} strokeLinejoin="round" />
+      <circle cx={pts[pts.length - 1].x} cy={pts[pts.length - 1].y} r={2.5} fill={color} style={{ filter: `drop-shadow(0 0 3px ${color})` }} />
     </svg>
   );
 }
 
-// ── Gauge (conic-gradient) ────────────────────────────────────────────────────
-function Gauge({
-  label,
-  value,
-  displayValue,
-  threshold,
-  displayThreshold,
-  unit,
-  color,
-  status,
-}: {
-  label: string;
-  value: number; // 0-1
-  displayValue: string;
-  threshold: number; // 0-1
-  displayThreshold: string;
-  unit: string;
-  color: string;
-  status: "green" | "warn" | "red";
-}) {
-  const deg = Math.round(value * 270); // 270° sweep
-  const threshDeg = Math.round(threshold * 270);
-  const startAngle = 135; // starts at bottom-left
-
-  const statusColors = {
-    green: "var(--accent)",
-    warn: "#f59e0b",
-    red: "#ef4444",
+// ── Diagrama de Arquitetura SVG ───────────────────────────────────────────────
+function ArchDiagram() {
+  // Posições simplificadas para clareza visual
+  const nodes: Record<string, { x: number; y: number; label: string; color: string }> = {
+    orchestrator:   { x: 350, y: 40,  label: "orchestrator.py",       color: "var(--accent)" },
+    compliance:     { x: 130, y: 140, label: "compliance.py",          color: "var(--cyan)"   },
+    auditor:        { x: 280, y: 140, label: "auditor.py",             color: "var(--cyan)"   },
+    risk:           { x: 430, y: 140, label: "risk.py",                color: "hsl(150 80% 60%)" },
+    pricing:        { x: 570, y: 140, label: "pricing.py",             color: "hsl(150 80% 60%)" },
+    admin:          { x: 60,  y: 250, label: "administrador.py",       color: "var(--text-2)" },
+    treasury:       { x: 200, y: 250, label: "treasury.py",            color: "var(--text-2)" },
+    reporting:      { x: 340, y: 250, label: "reporting.py",           color: "var(--text-2)" },
+    knowledge:      { x: 480, y: 250, label: "knowledge_graph.py",     color: "var(--text-2)" },
+    custodia:       { x: 620, y: 250, label: "custodia.py",            color: "var(--text-2)" },
+    ir:             { x: 130, y: 340, label: "investor_relations.py",  color: "var(--text-3)" },
+    regulatory:     { x: 310, y: 340, label: "regulatory_watch.py",    color: "var(--text-3)" },
+    due_diligence:  { x: 490, y: 340, label: "due_diligence.py",       color: "var(--text-3)" },
+    gestor:         { x: 640, y: 340, label: "gestor.py",              color: "var(--text-3)" },
   };
-  const gColor = statusColors[status];
+
+  const edges: Array<[string, string]> = [
+    // orchestrator → all top-level
+    ["orchestrator", "compliance"],
+    ["orchestrator", "auditor"],
+    ["orchestrator", "risk"],
+    ["orchestrator", "pricing"],
+    ["orchestrator", "admin"],
+    ["orchestrator", "treasury"],
+    ["orchestrator", "reporting"],
+    ["orchestrator", "knowledge"],
+    ["orchestrator", "custodia"],
+    // compliance → risk, pricing
+    ["compliance", "risk"],
+    ["compliance", "pricing"],
+    // auditor → compliance, pricing, admin
+    ["auditor", "compliance"],
+    ["auditor", "pricing"],
+    ["auditor", "admin"],
+    // admin → pricing
+    ["admin", "pricing"],
+    // second tier → third tier (some)
+    ["compliance", "ir"],
+    ["risk", "regulatory"],
+    ["pricing", "due_diligence"],
+    ["admin", "gestor"],
+  ];
+
+  const BOX_W = 120, BOX_H = 22;
 
   return (
-    <div className="flex flex-col items-center gap-3">
-      {/* Gauge circle */}
-      <div style={{ position: "relative", width: 120, height: 120 }}>
-        {/* Track */}
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            borderRadius: "50%",
-            background: `conic-gradient(from ${startAngle}deg, var(--border) 0deg, var(--border) 270deg, transparent 270deg)`,
-          }}
-        />
-        {/* Fill */}
-        <div
-          style={{
-            position: "absolute",
-            inset: 0,
-            borderRadius: "50%",
-            background: `conic-gradient(from ${startAngle}deg, ${gColor} 0deg, ${gColor} ${deg}deg, transparent ${deg}deg)`,
-            filter: `drop-shadow(0 0 6px ${gColor}60)`,
-          }}
-        />
-        {/* Inner cutout */}
-        <div
-          style={{
-            position: "absolute",
-            inset: 12,
-            borderRadius: "50%",
-            background: "var(--bg-card)",
-            display: "flex",
-            flexDirection: "column",
-            alignItems: "center",
-            justifyContent: "center",
-            gap: 2,
-          }}
-        >
-          <div
-            style={{
-              color: gColor,
-              fontSize: 16,
-              fontWeight: 700,
-              fontFamily: "var(--font-mono)",
-              lineHeight: 1,
-              textShadow: `0 0 8px ${gColor}80`,
-            }}
-          >
-            {displayValue}
-          </div>
-          <div
-            style={{
-              color: "var(--text-4)",
-              fontSize: 9,
-              fontFamily: "var(--font-mono)",
-              textAlign: "center",
-            }}
-          >
-            {unit}
-          </div>
-        </div>
-        {/* Status dot */}
-        <div
-          style={{
-            position: "absolute",
-            bottom: 6,
-            left: "50%",
-            transform: "translateX(-50%)",
-            width: 8,
-            height: 8,
-            borderRadius: "50%",
-            background: gColor,
-            boxShadow: `0 0 6px ${gColor}`,
-          }}
-        />
-      </div>
-
-      <div className="text-center">
-        <div style={{ color: "var(--text-2)", fontSize: 12, fontWeight: 600 }}>
-          {label}
-        </div>
-        <div
-          style={{
-            color: "var(--text-4)",
-            fontSize: 10,
-            fontFamily: "var(--font-mono)",
-            marginTop: 2,
-          }}
-        >
-          threshold: {displayThreshold}
-        </div>
-        <div
-          style={{
-            display: "inline-block",
-            marginTop: 6,
-            padding: "2px 8px",
-            background: `${gColor}14`,
-            color: gColor,
-            border: `1px solid ${gColor}40`,
-            borderRadius: "var(--radius)",
-            fontSize: 9,
-            fontFamily: "var(--font-mono)",
-            fontWeight: 700,
-          }}
-        >
-          ✓ ABOVE LIMIT
-        </div>
-      </div>
-    </div>
+    <svg viewBox="0 0 740 400" style={{ width: "100%", height: 400, display: "block" }}>
+      <defs>
+        <marker id="arr" markerWidth="6" markerHeight="6" refX="5" refY="3" orient="auto">
+          <path d="M0,0 L6,3 L0,6 Z" fill="hsl(150 100% 50% / 0.4)" />
+        </marker>
+      </defs>
+      {/* Edges */}
+      {edges.map(([from, to], i) => {
+        const f = nodes[from], t = nodes[to];
+        if (!f || !t) return null;
+        const fx = f.x + BOX_W / 2, fy = f.y + BOX_H / 2;
+        const tx = t.x + BOX_W / 2, ty = t.y + BOX_H / 2;
+        return (
+          <line key={i}
+            x1={fx} y1={fy + BOX_H / 2} x2={tx} y2={ty - BOX_H / 2}
+            stroke="hsl(150 100% 50% / 0.18)" strokeWidth="1"
+            markerEnd="url(#arr)"
+          />
+        );
+      })}
+      {/* Nodes */}
+      {Object.entries(nodes).map(([key, n]) => (
+        <g key={key}>
+          <rect x={n.x} y={n.y} width={BOX_W} height={BOX_H} rx={3}
+            fill="hsl(150 100% 50% / 0.06)"
+            stroke={n.color === "var(--accent)" ? "hsl(150 100% 50% / 0.5)" :
+                    n.color === "var(--cyan)"   ? "hsl(180 100% 50% / 0.4)" :
+                    "hsl(150 100% 50% / 0.15)"}
+            strokeWidth="1"
+          />
+          <text x={n.x + BOX_W / 2} y={n.y + 14}
+            fontSize="8" fill={
+              n.color === "var(--accent)" ? "#00ff80" :
+              n.color === "var(--cyan)"   ? "#00ffff" :
+              n.color.startsWith("hsl(150 80%") ? "#7dffb0" :
+              "#8fa88f"
+            }
+            textAnchor="middle" fontFamily="IBM Plex Mono">
+            {n.label.replace(".py", "")}
+          </text>
+        </g>
+      ))}
+    </svg>
   );
 }
 
-// ── Recent operations ─────────────────────────────────────────────────────────
-const recentOps = [
-  {
-    skill: "fidc:nav-calculator",
-    agent: "Admin Agent",
-    operation: "Calculate D+0 NAV",
-    result: "R$ 847.3M",
-    time: "14:18:32",
-    color: "var(--accent)",
-  },
-  {
-    skill: "fidc:cota-pricing",
-    agent: "Pricing Agent",
-    operation: "Price Cota Sênior",
-    result: "R$ 1.2841",
-    time: "14:18:28",
-    color: "var(--accent)",
-  },
-  {
-    skill: "fidc:cota-pricing",
-    agent: "Pricing Agent",
-    operation: "Price Cota Subordinada",
-    result: "R$ 1.1027",
-    time: "14:18:25",
-    color: "var(--accent)",
-  },
-  {
-    skill: "fidc:pdd-engine",
-    agent: "Risk Agent",
-    operation: "Run PDD aging pass",
-    result: "R$ 3.12M provision",
-    time: "14:17:44",
-    color: "var(--cyan)",
-  },
-  {
-    skill: "fidc:compliance-gates",
-    agent: "Compliance",
-    operation: "Validate covenant pack",
-    result: "6/6 PASS",
-    time: "14:17:30",
-    color: "var(--cyan)",
-  },
-  {
-    skill: "fidc:cedente-onboard",
-    agent: "DD Agent",
-    operation: "Onboard CNPJ 34.567.890",
-    result: "APPROVED",
-    time: "14:16:58",
-    color: "var(--accent)",
-  },
-  {
-    skill: "fidc:receivable-eval",
-    agent: "Pricing Agent",
-    operation: "Evaluate NF-e batch #4421",
-    result: "R$ 2.34M accepted",
-    time: "14:16:40",
-    color: "var(--accent)",
-  },
-  {
-    skill: "fidc:aml-screen",
-    agent: "Compliance",
-    operation: "PLD/AML screen sacado batch",
-    result: "0 flags",
-    time: "14:16:11",
-    color: "var(--cyan)",
-  },
-];
-
-// ── Main page ─────────────────────────────────────────────────────────────────
+// ── Página ────────────────────────────────────────────────────────────────────
 export default function FundPage() {
+  const [tick, setTick] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setTick(x => x + 1), 2000);
+    return () => clearInterval(t);
+  }, []);
+
   return (
-    <div
-      className="min-h-screen p-4 md:p-6 space-y-6"
-      style={{ background: "var(--bg)", fontFamily: "var(--font-display)" }}
-    >
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
+
+      {/* ── Header ── */}
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", flexWrap: "wrap", gap: "0.75rem" }}>
         <div>
-          <div className="flex items-center gap-3 mb-1">
-            <span className="tag-badge">FUND OPS</span>
-            <span className="tag-badge-cyan">FIDC SKILL PACK</span>
+          <div style={{ display: "flex", gap: "0.5rem", marginBottom: "0.5rem" }}>
+            <span className="tag-badge">VERTICAL</span>
+            <span className="tag-badge-cyan">FIDC</span>
           </div>
-          <h1
-            className="text-2xl font-bold"
-            style={{ color: "var(--text-1)", letterSpacing: "-0.03em" }}
-          >
-            FIDC Operations
+          <h1 style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--text-1)", margin: 0 }}>
+            Pack FIDC —{" "}
+            <span style={{ color: "var(--accent)", textShadow: "0 0 20px hsl(150 100% 50% / 0.4)" }}>Módulos Gerados</span>
           </h1>
-          <p style={{ color: "var(--text-3)", fontSize: 13, marginTop: 2 }}>
-            Skill pack in action — real-time fund management automation
+          <p style={{ color: "var(--text-3)", fontSize: "0.75rem", marginTop: "0.25rem", fontFamily: "var(--font-mono)" }}>
+            14 módulos Python · {totalLoc.toLocaleString()} LOC · {totalTests} testes · {avgCoverage}% cobertura média
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <span
-            className="pulse-dot"
-            style={{
-              display: "inline-block",
-              width: 8,
-              height: 8,
-              borderRadius: "50%",
-              background: "var(--accent)",
-              boxShadow: "0 0 8px var(--accent)",
-            }}
-          />
-          <span style={{ color: "var(--accent)", fontSize: 12, fontFamily: "var(--font-mono)" }}>
-            LIVE
+        <div style={{ display: "flex", alignItems: "center", gap: "0.5rem" }}>
+          <div style={{ width: 8, height: 8, borderRadius: "50%", background: "var(--accent)", boxShadow: "0 0 8px var(--accent)", opacity: tick % 2 === 0 ? 1 : 0.5 }} />
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--accent)" }}>PROD</span>
+          <span className="tag-badge">AO VIVO</span>
+        </div>
+      </div>
+
+      {/* ── Totais rápidos ── */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "1rem" }}>
+        {[
+          { label: "TOTAL LOC",        value: totalLoc.toLocaleString(),  color: "var(--accent)", sub: "14 módulos Python" },
+          { label: "TESTES ESCRITOS",  value: String(totalTests),          color: "var(--cyan)",   sub: "por agentes" },
+          { label: "COBERTURA MÉDIA",  value: `${avgCoverage}%`,           color: "var(--accent)", sub: "acima do SLA 80%" },
+          { label: "STATUS",           value: "100% Prod",                 color: "var(--accent)", sub: "0 módulos com erro" },
+        ].map((s, i) => (
+          <div key={i} className="glass-card" style={{ padding: "1.25rem" }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "0.5rem" }}>
+              {s.label}
+            </div>
+            <div className="stat-value" style={{ fontSize: "1.75rem", fontWeight: 700, color: s.color, lineHeight: 1, fontFamily: "var(--font-mono)" }}>
+              {s.value}
+            </div>
+            <div style={{ fontSize: "0.6875rem", color: "var(--text-3)", marginTop: "0.25rem" }}>{s.sub}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* ── Tabela de Módulos ── */}
+      <div className="glass-card" style={{ padding: "1.25rem" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem", flexWrap: "wrap", gap: "0.5rem" }}>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)" }}>
+            MÓDULOS DO PACK · GERADOS POR AGENTES PAGANINI
+          </div>
+          <span className="section-help" style={{ fontSize: "0.5625rem", color: "var(--text-3)", fontFamily: "var(--font-mono)" }}>
+            Todos os módulos passaram pelos 6 gates de qualidade
           </span>
         </div>
-      </div>
-
-      {/* Skill Pack Header */}
-      <div
-        className="glass-card p-6"
-        style={{
-          borderRadius: "var(--radius)",
-          background:
-            "linear-gradient(135deg, rgba(0,255,128,0.05) 0%, rgba(0,0,0,0) 60%)",
-          borderColor: "rgba(0,255,128,0.2)",
-          position: "relative",
-          overflow: "hidden",
-        }}
-      >
-        {/* Decorative orb */}
-        <div
-          style={{
-            position: "absolute",
-            top: -60,
-            right: -60,
-            width: 200,
-            height: 200,
-            borderRadius: "50%",
-            background: "radial-gradient(circle, rgba(0,255,128,0.08) 0%, transparent 70%)",
-            pointerEvents: "none",
-          }}
-        />
-
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <span
-                style={{
-                  fontFamily: "var(--font-mono)",
-                  fontSize: 10,
-                  color: "var(--accent)",
-                  letterSpacing: "0.08em",
-                  textTransform: "uppercase",
-                }}
-              >
-                ACTIVE SKILL PACK
-              </span>
-            </div>
-            <h2
-              style={{
-                color: "var(--text-1)",
-                fontSize: 20,
-                fontWeight: 700,
-                letterSpacing: "-0.02em",
-                marginBottom: 6,
-              }}
-            >
-              FIDC Operations Pack{" "}
-              <span
-                style={{
-                  color: "var(--accent)",
-                  fontFamily: "var(--font-mono)",
-                  fontSize: 14,
-                }}
-              >
-                v1.4.2
-              </span>
-            </h2>
-            <div className="flex flex-wrap gap-2 mb-4">
-              <span className="tag-badge">9 agents</span>
-              <span className="tag-badge">6 guardrails</span>
-              <span className="tag-badge">11 skills</span>
-              <span className="tag-badge-cyan">marketplace</span>
-            </div>
-            <p
-              style={{
-                color: "var(--text-3)",
-                fontSize: 12,
-                maxWidth: 480,
-                lineHeight: 1.6,
-              }}
-            >
-              This is one of many possible packs. The platform extends via marketplace —
-              plug in domain expertise for credit, insurance, real estate, or any structured
-              finance vertical.
-            </p>
-          </div>
-
-          {/* Skill pills */}
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: 6,
-              minWidth: 200,
-            }}
-          >
-            {[
-              "fidc:nav-calculator",
-              "fidc:cota-pricing",
-              "fidc:pdd-engine",
-              "fidc:compliance-gates",
-              "fidc:cedente-onboard",
-              "fidc:receivable-eval",
-              "fidc:aml-screen",
-            ].map((skill) => (
-              <div
-                key={skill}
-                style={{
-                  background: "rgba(0,255,128,0.06)",
-                  border: "1px solid rgba(0,255,128,0.15)",
-                  borderRadius: "var(--radius)",
-                  padding: "4px 10px",
-                  fontSize: 10,
-                  fontFamily: "var(--font-mono)",
-                  color: "var(--accent)",
-                }}
-              >
-                {skill}
-              </div>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* NAV Dashboard */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Total NAV */}
-        <div className="glass-card p-5" style={{ borderRadius: "var(--radius)" }}>
-          <div
-            style={{
-              color: "var(--text-4)",
-              fontSize: 10,
-              fontFamily: "var(--font-mono)",
-              textTransform: "uppercase",
-              letterSpacing: "0.08em",
-              marginBottom: 8,
-            }}
-          >
-            Total NAV
-          </div>
-          <div className="flex items-end justify-between">
-            <div>
-              <div
-                style={{
-                  color: "var(--text-1)",
-                  fontSize: 24,
-                  fontWeight: 700,
-                  fontFamily: "var(--font-mono)",
-                  lineHeight: 1,
-                }}
-              >
-                R$ 847.3M
-              </div>
-              <div
-                style={{
-                  color: "var(--accent)",
-                  fontSize: 12,
-                  fontFamily: "var(--font-mono)",
-                  marginTop: 4,
-                }}
-              >
-                +2.3% MTD
-              </div>
-            </div>
-            <Sparkline data={sparkData} color="var(--accent)" />
-          </div>
-          <div
-            style={{
-              marginTop: 10,
-              paddingTop: 8,
-              borderTop: "1px solid var(--border)",
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-            }}
-          >
-            <span className="tag-badge">fidc:nav-calculator</span>
-          </div>
-        </div>
-
-        {/* Cota Sênior */}
-        <div className="glass-card p-5" style={{ borderRadius: "var(--radius)" }}>
-          <div
-            style={{
-              color: "var(--text-4)",
-              fontSize: 10,
-              fontFamily: "var(--font-mono)",
-              textTransform: "uppercase",
-              letterSpacing: "0.08em",
-              marginBottom: 8,
-            }}
-          >
-            Cota Sênior
-          </div>
-          <div className="flex items-end justify-between">
-            <div>
-              <div
-                style={{
-                  color: "var(--text-1)",
-                  fontSize: 24,
-                  fontWeight: 700,
-                  fontFamily: "var(--font-mono)",
-                  lineHeight: 1,
-                }}
-              >
-                R$ 1.2841
-              </div>
-              <div
-                style={{
-                  color: "var(--cyan)",
-                  fontSize: 12,
-                  fontFamily: "var(--font-mono)",
-                  marginTop: 4,
-                }}
-              >
-                +12.4% a.a.
-              </div>
-            </div>
-            <Sparkline
-              data={sparkData.map((v) => v * 0.00151)}
-              color="var(--cyan)"
-            />
-          </div>
-          <div
-            style={{
-              marginTop: 10,
-              paddingTop: 8,
-              borderTop: "1px solid var(--border)",
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-            }}
-          >
-            <span className="tag-badge-cyan">fidc:cota-pricing</span>
-          </div>
-        </div>
-
-        {/* Cota Subordinada */}
-        <div className="glass-card p-5" style={{ borderRadius: "var(--radius)" }}>
-          <div
-            style={{
-              color: "var(--text-4)",
-              fontSize: 10,
-              fontFamily: "var(--font-mono)",
-              textTransform: "uppercase",
-              letterSpacing: "0.08em",
-              marginBottom: 8,
-            }}
-          >
-            Cota Subordinada
-          </div>
-          <div className="flex items-end justify-between">
-            <div>
-              <div
-                style={{
-                  color: "var(--text-1)",
-                  fontSize: 24,
-                  fontWeight: 700,
-                  fontFamily: "var(--font-mono)",
-                  lineHeight: 1,
-                }}
-              >
-                R$ 1.1027
-              </div>
-              <div
-                style={{
-                  color: "#f59e0b",
-                  fontSize: 12,
-                  fontFamily: "var(--font-mono)",
-                  marginTop: 4,
-                }}
-              >
-                +19.7% a.a.
-              </div>
-            </div>
-            <Sparkline
-              data={sparkData.map((v) => v * 0.00134)}
-              color="#f59e0b"
-            />
-          </div>
-          <div
-            style={{
-              marginTop: 10,
-              paddingTop: 8,
-              borderTop: "1px solid var(--border)",
-              display: "flex",
-              alignItems: "center",
-              gap: 6,
-            }}
-          >
-            <span className="tag-badge">fidc:cota-pricing</span>
-          </div>
-        </div>
-      </div>
-
-      {/* PDD Aging Table */}
-      <div className="glass-card p-5" style={{ borderRadius: "var(--radius)" }}>
-        <div className="flex items-center justify-between mb-4">
-          <h2
-            style={{
-              color: "var(--text-1)",
-              fontSize: 13,
-              fontWeight: 600,
-              letterSpacing: "0.06em",
-              textTransform: "uppercase",
-              fontFamily: "var(--font-mono)",
-            }}
-          >
-            PDD Aging Provision
-          </h2>
-          <span className="tag-badge">fidc:pdd-engine</span>
-        </div>
-
         <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse" }}>
+          <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "var(--font-mono)", fontSize: "0.6875rem" }}>
             <thead>
               <tr style={{ borderBottom: "1px solid var(--border)" }}>
-                {["Aging Bucket", "Outstanding", "Provision Rate", "Provision Amount", "Relative Size"].map(
-                  (h) => (
-                    <th
-                      key={h}
-                      style={{
-                        padding: "8px 12px",
-                        textAlign: h === "Aging Bucket" ? "left" : "right",
-                        fontSize: 10,
-                        fontFamily: "var(--font-mono)",
-                        color: "var(--text-4)",
-                        textTransform: "uppercase",
-                        letterSpacing: "0.06em",
-                        fontWeight: 600,
-                      }}
-                    >
-                      {h}
-                    </th>
-                  )
-                )}
+                {["MÓDULO", "LINHAS", "TESTES", "COBERTURA", "STATUS"].map(h => (
+                  <th key={h} style={{ textAlign: "left", padding: "0.5rem 0.75rem", color: "var(--text-4)", fontSize: "0.5625rem", letterSpacing: "0.12em", fontWeight: 500 }}>
+                    {h}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>
-              {pddAging.map((row, i) => {
-                const provision = row.outstanding * (row.provisionRate / 100);
-                const barW = Math.round((row.outstanding / maxOutstanding) * 100);
-                return (
-                  <tr
-                    key={row.bucket}
-                    style={{
-                      borderBottom: "1px solid var(--border)",
-                      background: i % 2 === 0 ? "transparent" : "rgba(255,255,255,0.01)",
-                      transition: "background 0.15s",
-                    }}
-                  >
-                    {/* Bucket */}
-                    <td style={{ padding: "10px 12px" }}>
-                      <div className="flex items-center gap-2">
-                        <span
-                          style={{
-                            display: "inline-block",
-                            width: 3,
-                            height: 14,
-                            borderRadius: 1,
-                            background: row.color,
-                            flexShrink: 0,
-                          }}
-                        />
-                        <span
-                          style={{
-                            color: row.textColor,
-                            fontSize: 12,
-                            fontFamily: "var(--font-mono)",
-                            fontWeight: 600,
-                          }}
-                        >
-                          {row.bucket}
-                        </span>
+              {MODULES.map((m, i) => (
+                <tr key={m.name} style={{ borderBottom: "1px solid hsl(150 100% 50% / 0.04)", background: i % 2 === 0 ? "rgba(0,0,0,0.15)" : "transparent" }}>
+                  <td style={{ padding: "0.6rem 0.75rem", color: "var(--accent)" }}>{m.name}</td>
+                  <td style={{ padding: "0.6rem 0.75rem", color: "var(--text-1)", fontWeight: 600 }}>{m.loc}</td>
+                  <td style={{ padding: "0.6rem 0.75rem", color: "var(--cyan)" }}>{m.tests}</td>
+                  <td style={{ padding: "0.6rem 0.75rem" }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                      <div style={{ width: 60, height: 4, background: "rgba(255,255,255,0.06)", borderRadius: 2, overflow: "hidden" }}>
+                        <div style={{
+                          width: `${m.coverage}%`, height: "100%",
+                          background: m.coverage >= 90 ? "var(--accent)" : m.coverage >= 85 ? "hsl(150 80% 55%)" : "#f59e0b"
+                        }} />
                       </div>
-                    </td>
-
-                    {/* Outstanding */}
-                    <td
-                      style={{
-                        padding: "10px 12px",
-                        textAlign: "right",
-                        color: "var(--text-2)",
-                        fontSize: 12,
-                        fontFamily: "var(--font-mono)",
-                      }}
-                    >
-                      {fmtBRL(row.outstanding)}
-                    </td>
-
-                    {/* Provision rate */}
-                    <td
-                      style={{
-                        padding: "10px 12px",
-                        textAlign: "right",
-                        color: row.textColor,
-                        fontSize: 12,
-                        fontFamily: "var(--font-mono)",
-                        fontWeight: 600,
-                      }}
-                    >
-                      {row.provisionRate.toFixed(1)}%
-                    </td>
-
-                    {/* Provision amount */}
-                    <td
-                      style={{
-                        padding: "10px 12px",
-                        textAlign: "right",
-                        color: "var(--text-3)",
-                        fontSize: 12,
-                        fontFamily: "var(--font-mono)",
-                      }}
-                    >
-                      {fmtBRL(provision)}
-                    </td>
-
-                    {/* SVG bar */}
-                    <td style={{ padding: "10px 12px", minWidth: 120 }}>
-                      <svg viewBox="0 0 100 12" style={{ width: 120, height: 12 }}>
-                        <rect
-                          x={0}
-                          y={2}
-                          width={barW}
-                          height={8}
-                          fill={row.color}
-                          opacity={0.7}
-                          rx={1}
-                          style={{ filter: `drop-shadow(0 0 2px ${row.color}60)` }}
-                        />
-                        <rect
-                          x={barW}
-                          y={2}
-                          width={100 - barW}
-                          height={8}
-                          fill="var(--border)"
-                          rx={1}
-                        />
-                      </svg>
-                    </td>
-                  </tr>
-                );
-              })}
+                      <span style={{ color: m.coverage >= 90 ? "var(--accent)" : "var(--text-2)" }}>{m.coverage}%</span>
+                    </div>
+                  </td>
+                  <td style={{ padding: "0.6rem 0.75rem" }}>
+                    <span style={{
+                      display: "inline-flex", alignItems: "center", gap: "4px",
+                      padding: "2px 8px",
+                      background: "hsl(150 100% 50% / 0.08)",
+                      border: "1px solid hsl(150 100% 50% / 0.25)",
+                      borderRadius: "var(--radius)",
+                      fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--accent)",
+                    }}>
+                      ✓ Prod
+                    </span>
+                  </td>
+                </tr>
+              ))}
             </tbody>
-            {/* Totals */}
             <tfoot>
-              <tr style={{ borderTop: "1px solid rgba(0,255,128,0.2)" }}>
-                <td
-                  style={{
-                    padding: "10px 12px",
-                    color: "var(--text-1)",
-                    fontSize: 12,
-                    fontFamily: "var(--font-mono)",
-                    fontWeight: 700,
-                  }}
-                >
-                  TOTAL
-                </td>
-                <td
-                  style={{
-                    padding: "10px 12px",
-                    textAlign: "right",
-                    color: "var(--accent)",
-                    fontSize: 12,
-                    fontFamily: "var(--font-mono)",
-                    fontWeight: 700,
-                  }}
-                >
-                  {fmtBRL(pddAging.reduce((s, r) => s + r.outstanding, 0))}
-                </td>
-                <td
-                  style={{
-                    padding: "10px 12px",
-                    textAlign: "right",
-                    color: "var(--text-3)",
-                    fontSize: 12,
-                    fontFamily: "var(--font-mono)",
-                  }}
-                >
-                  —
-                </td>
-                <td
-                  style={{
-                    padding: "10px 12px",
-                    textAlign: "right",
-                    color: "var(--accent)",
-                    fontSize: 12,
-                    fontFamily: "var(--font-mono)",
-                    fontWeight: 700,
-                  }}
-                >
-                  {fmtBRL(
-                    pddAging.reduce((s, r) => s + r.outstanding * (r.provisionRate / 100), 0)
-                  )}
-                </td>
-                <td />
+              <tr style={{ borderTop: "1px solid hsl(150 100% 50% / 0.2)" }}>
+                <td style={{ padding: "0.6rem 0.75rem", color: "var(--text-1)", fontWeight: 700 }}>TOTAL</td>
+                <td style={{ padding: "0.6rem 0.75rem", color: "var(--accent)", fontWeight: 700 }}>{totalLoc.toLocaleString()}</td>
+                <td style={{ padding: "0.6rem 0.75rem", color: "var(--cyan)", fontWeight: 700 }}>{totalTests}</td>
+                <td style={{ padding: "0.6rem 0.75rem", color: "var(--accent)", fontWeight: 700 }}>{avgCoverage}% média</td>
+                <td style={{ padding: "0.6rem 0.75rem", color: "var(--accent)", fontSize: "0.5625rem" }}>14/14 ✓</td>
               </tr>
             </tfoot>
           </table>
         </div>
       </div>
 
-      {/* Covenant Gauges + Recent Ops */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        {/* Gauges */}
-        <div className="glass-card p-5" style={{ borderRadius: "var(--radius)" }}>
-          <div className="flex items-center justify-between mb-6">
-            <h2
-              style={{
-                color: "var(--text-1)",
-                fontSize: 13,
-                fontWeight: 600,
-                letterSpacing: "0.06em",
-                textTransform: "uppercase",
-                fontFamily: "var(--font-mono)",
-              }}
-            >
-              Covenant Gauges
-            </h2>
-            <span className="tag-badge">fidc:compliance-gates</span>
+      {/* ── Diagrama de Arquitetura ── */}
+      <div className="glass-card" style={{ padding: "1.25rem" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem", flexWrap: "wrap", gap: "0.5rem" }}>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)" }}>
+            DIAGRAMA DE DEPENDÊNCIAS — MÓDULOS DO PACK FIDC
           </div>
-
-          <div className="flex justify-around flex-wrap gap-6">
-            <Gauge
-              label="Liquidity Ratio"
-              value={2.8 / 5}
-              displayValue="2.8x"
-              threshold={1.5 / 5}
-              displayThreshold="1.5x"
-              unit="ratio"
-              color="#00ff80"
-              status="green"
-            />
-            <Gauge
-              label="Subordination"
-              value={28.5 / 50}
-              displayValue="28.5%"
-              threshold={25 / 50}
-              displayThreshold="25%"
-              unit="of NAV"
-              color="#00ffff"
-              status="green"
-            />
-            <Gauge
-              label="Delinquency"
-              value={(1 - 3.2 / 10)}
-              displayValue="3.2%"
-              threshold={(1 - 5 / 10)}
-              displayThreshold="5%"
-              unit="of portfolio"
-              color="#00ff80"
-              status="green"
-            />
-          </div>
-
-          {/* All clear banner */}
-          <div
-            style={{
-              marginTop: 20,
-              padding: "10px 16px",
-              background: "rgba(0,255,128,0.06)",
-              border: "1px solid rgba(0,255,128,0.2)",
-              borderRadius: "var(--radius)",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-            }}
-          >
-            <span style={{ color: "var(--accent)", fontSize: 12, fontFamily: "var(--font-mono)", fontWeight: 600 }}>
-              ✓ All covenants within bounds
-            </span>
-            <span style={{ color: "var(--text-3)", fontSize: 11, fontFamily: "var(--font-mono)" }}>
-              Last checked 14:18:32
-            </span>
-          </div>
-        </div>
-
-        {/* Recent Operations */}
-        <div className="glass-card p-5" style={{ borderRadius: "var(--radius)" }}>
-          <h2
-            style={{
-              color: "var(--text-1)",
-              fontSize: 13,
-              fontWeight: 600,
-              letterSpacing: "0.06em",
-              textTransform: "uppercase",
-              fontFamily: "var(--font-mono)",
-              marginBottom: 16,
-            }}
-          >
-            Recent Skill Executions
-          </h2>
-
-          <div className="space-y-2" style={{ maxHeight: 380, overflowY: "auto" }}>
-            {recentOps.map((op, i) => (
-              <div
-                key={i}
-                style={{
-                  background: "var(--bg)",
-                  border: "1px solid var(--border)",
-                  borderRadius: "var(--radius)",
-                  padding: "8px 12px",
-                  display: "grid",
-                  gridTemplateColumns: "auto 1fr auto",
-                  gap: 8,
-                  alignItems: "center",
-                }}
-              >
-                <div className="flex flex-col gap-1">
-                  <span
-                    style={{
-                      display: "inline-block",
-                      padding: "2px 6px",
-                      background: `${op.color === "var(--cyan)" ? "rgba(0,255,255,0.08)" : "rgba(0,255,128,0.08)"}`,
-                      color: op.color,
-                      border: `1px solid ${op.color === "var(--cyan)" ? "rgba(0,255,255,0.25)" : "rgba(0,255,128,0.25)"}`,
-                      borderRadius: "var(--radius)",
-                      fontSize: 9,
-                      fontFamily: "var(--font-mono)",
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {op.skill}
-                  </span>
-                </div>
-
-                <div>
-                  <div
-                    style={{
-                      color: "var(--text-2)",
-                      fontSize: 11,
-                      fontWeight: 500,
-                    }}
-                  >
-                    {op.operation}
-                  </div>
-                  <div
-                    style={{
-                      color: "var(--text-4)",
-                      fontSize: 10,
-                      fontFamily: "var(--font-mono)",
-                      marginTop: 1,
-                    }}
-                  >
-                    {op.agent}
-                  </div>
-                </div>
-
-                <div style={{ textAlign: "right" }}>
-                  <div
-                    style={{
-                      color: op.color,
-                      fontSize: 12,
-                      fontFamily: "var(--font-mono)",
-                      fontWeight: 600,
-                      whiteSpace: "nowrap",
-                    }}
-                  >
-                    {op.result}
-                  </div>
-                  <div
-                    style={{
-                      color: "var(--text-4)",
-                      fontSize: 10,
-                      fontFamily: "var(--font-mono)",
-                      marginTop: 1,
-                    }}
-                  >
-                    {op.time}
-                  </div>
-                </div>
+          <div style={{ display: "flex", gap: "0.75rem" }}>
+            {[["var(--accent)", "Orquestração"], ["var(--cyan)", "Validação"], ["hsl(150 80% 60%)", "Cálculo"], ["var(--text-2)", "Domínio"]].map(([col, label]) => (
+              <div key={label} style={{ display: "flex", alignItems: "center", gap: "4px" }}>
+                <div style={{ width: 8, height: 8, borderRadius: "2px", background: col === "var(--accent)" ? "#00ff80" : col === "var(--cyan)" ? "#00ffff" : col === "hsl(150 80% 60%)" ? "#7dffb0" : "#8fa88f" }} />
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--text-3)" }}>{label}</span>
               </div>
             ))}
           </div>
         </div>
+        <div style={{ overflowX: "auto" }}>
+          <ArchDiagram />
+        </div>
       </div>
+
+      {/* ── Métricas Financeiras (output do código gerado) ── */}
+      <div className="glass-card" style={{ padding: "1.25rem", background: "linear-gradient(135deg, hsl(150 100% 50% / 0.05) 0%, hsl(220 18% 7%) 100%)" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "1rem", flexWrap: "wrap", gap: "0.5rem" }}>
+          <div>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "0.25rem" }}>
+              RESULTADOS DO CÓDIGO GERADO — MÉTRICAS FINANCEIRAS AO VIVO
+            </div>
+            <div style={{ color: "var(--text-1)", fontWeight: 600, fontSize: "0.875rem" }}>
+              Output dos módulos rodando em produção
+            </div>
+          </div>
+          <span className="tag-badge-cyan">CALCULADO POR AGENTES</span>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem" }}>
+          {/* NAV */}
+          <div style={{ padding: "1rem", border: "1px solid var(--border)", borderRadius: "var(--radius)", background: "rgba(0,0,0,0.2)" }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--text-4)", marginBottom: "0.5rem" }}>
+              NAV TOTAL · <span style={{ color: "var(--accent)" }}>administrador.py</span>
+            </div>
+            <div style={{ display: "flex", alignItems: "flex-end", justifyContent: "space-between" }}>
+              <div>
+                <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--text-1)", fontFamily: "var(--font-mono)", lineHeight: 1 }}>R$ 247,8M</div>
+                <div style={{ fontSize: "0.625rem", color: "var(--accent)", marginTop: "4px", fontFamily: "var(--font-mono)" }}>+2,3% MTD</div>
+              </div>
+              <Sparkline data={sparkData} color="var(--accent)" />
+            </div>
+          </div>
+
+          {/* PDD */}
+          <div style={{ padding: "1rem", border: "1px solid var(--border)", borderRadius: "var(--radius)", background: "rgba(0,0,0,0.2)" }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--text-4)", marginBottom: "0.5rem" }}>
+              PDD · <span style={{ color: "var(--accent)" }}>risk.py</span>
+            </div>
+            <div>
+              <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--text-1)", fontFamily: "var(--font-mono)", lineHeight: 1 }}>R$ 12,4M</div>
+              <div style={{ fontSize: "0.625rem", color: "var(--text-3)", marginTop: "4px", fontFamily: "var(--font-mono)" }}>5,0% do portfólio</div>
+              <div style={{ marginTop: "0.5rem", height: 4, background: "rgba(255,255,255,0.06)", borderRadius: 2, overflow: "hidden" }}>
+                <div style={{ width: "5%", height: "100%", background: "var(--accent)" }} />
+              </div>
+              <div style={{ fontSize: "0.5625rem", color: "var(--text-4)", marginTop: "2px", fontFamily: "var(--font-mono)" }}>Limite: 8%</div>
+            </div>
+          </div>
+
+          {/* Subordinação */}
+          <div style={{ padding: "1rem", border: "1px solid var(--border)", borderRadius: "var(--radius)", background: "rgba(0,0,0,0.2)" }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--text-4)", marginBottom: "0.5rem" }}>
+              SUBORDINAÇÃO · <span style={{ color: "var(--cyan)" }}>compliance.py</span>
+            </div>
+            <div>
+              <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--text-1)", fontFamily: "var(--font-mono)", lineHeight: 1 }}>28,5%</div>
+              <div style={{ fontSize: "0.625rem", color: "var(--accent)", marginTop: "4px", fontFamily: "var(--font-mono)" }}>Mín: 25% · ✓ OK</div>
+              <div style={{ marginTop: "0.5rem", height: 4, background: "rgba(255,255,255,0.06)", borderRadius: 2, overflow: "hidden" }}>
+                <div style={{ width: "57%", height: "100%", background: "var(--cyan)" }} />
+              </div>
+            </div>
+          </div>
+
+          {/* Liquidez */}
+          <div style={{ padding: "1rem", border: "1px solid var(--border)", borderRadius: "var(--radius)", background: "rgba(0,0,0,0.2)" }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--text-4)", marginBottom: "0.5rem" }}>
+              LIQUIDEZ · <span style={{ color: "var(--cyan)" }}>treasury.py</span>
+            </div>
+            <div>
+              <div style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--text-1)", fontFamily: "var(--font-mono)", lineHeight: 1 }}>2,1×</div>
+              <div style={{ fontSize: "0.625rem", color: "var(--accent)", marginTop: "4px", fontFamily: "var(--font-mono)" }}>Mín: 1,5× · ✓ OK</div>
+              <div style={{ marginTop: "0.5rem", height: 4, background: "rgba(255,255,255,0.06)", borderRadius: 2, overflow: "hidden" }}>
+                <div style={{ width: "70%", height: "100%", background: "var(--accent)" }} />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {/* Banner de conformidade */}
+        <div style={{
+          marginTop: "1rem",
+          padding: "0.75rem 1rem",
+          background: "hsl(150 100% 50% / 0.06)",
+          border: "1px solid hsl(150 100% 50% / 0.2)",
+          borderRadius: "var(--radius)",
+          display: "flex", alignItems: "center", justifyContent: "space-between", flexWrap: "wrap", gap: "0.5rem",
+        }}>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--accent)", fontWeight: 600 }}>
+            ✓ Todos os covenants dentro dos limites — calculados por risk.py + compliance.py
+          </span>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--text-3)" }}>
+            Última execução: {new Date().toLocaleTimeString("pt-BR")}
+          </span>
+        </div>
+      </div>
+
+      {/* ── CLI Demo ── */}
+      <div className="glass-card" style={{ padding: "1.25rem" }}>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "1rem" }}>
+          CLI DEMO — PAGANINI QUERY
+        </div>
+        <div className="section-help" style={{ fontSize: "0.6875rem", color: "var(--text-3)", marginBottom: "1rem", fontFamily: "var(--font-mono)" }}>
+          Interaja com os módulos gerados via linha de comando
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: "1rem" }}>
+          {CLI_EXAMPLES.map((ex, i) => (
+            <div key={i} style={{ borderRadius: "var(--radius)", overflow: "hidden", border: "1px solid var(--border)" }}>
+              {/* Header */}
+              <div style={{ background: "rgba(0,0,0,0.5)", padding: "6px 12px", display: "flex", alignItems: "center", gap: "6px", borderBottom: "1px solid var(--border)" }}>
+                <div style={{ display: "flex", gap: "4px" }}>
+                  {["#ef4444", "#f59e0b", "var(--accent)"].map((c, j) => (
+                    <div key={j} style={{ width: 8, height: 8, borderRadius: "50%", background: c, opacity: 0.6 }} />
+                  ))}
+                </div>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--text-4)" }}>terminal</span>
+              </div>
+              {/* Code */}
+              <div style={{ background: "rgba(0,0,0,0.4)", padding: "0.75rem 1rem", fontFamily: "var(--font-mono)", fontSize: "0.6875rem", lineHeight: 1.7 }}>
+                <div style={{ color: "var(--text-4)" }}>{ex.comment}</div>
+                <div style={{ color: "var(--accent)", marginTop: "2px" }}>
+                  <span style={{ color: "var(--text-3)" }}>$ </span>{ex.cmd}
+                </div>
+                <div style={{ color: "var(--cyan)", marginTop: "4px", paddingLeft: "0.5rem", borderLeft: "2px solid hsl(180 100% 50% / 0.3)" }}>
+                  {ex.output}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+
     </div>
   );
 }
