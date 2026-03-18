@@ -31,6 +31,60 @@
       "regex": "^/_not\\-found(?:/)?$",
       "routeKeys": {},
       "namedRegex": "^/_not\\-found(?:/)?$"
+    },
+    {
+      "page": "/agents",
+      "regex": "^/agents(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/agents(?:/)?$"
+    },
+    {
+      "page": "/capabilities",
+      "regex": "^/capabilities(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/capabilities(?:/)?$"
+    },
+    {
+      "page": "/fund",
+      "regex": "^/fund(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/fund(?:/)?$"
+    },
+    {
+      "page": "/guardrails",
+      "regex": "^/guardrails(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/guardrails(?:/)?$"
+    },
+    {
+      "page": "/memory",
+      "regex": "^/memory(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/memory(?:/)?$"
+    },
+    {
+      "page": "/pipeline",
+      "regex": "^/pipeline(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/pipeline(?:/)?$"
+    },
+    {
+      "page": "/settings",
+      "regex": "^/settings(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/settings(?:/)?$"
+    },
+    {
+      "page": "/symphony",
+      "regex": "^/symphony(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/symphony(?:/)?$"
+    },
+    {
+      "page": "/telemetry",
+      "regex": "^/telemetry(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/telemetry(?:/)?$"
     }
   ],
   "dataRoutes": [],

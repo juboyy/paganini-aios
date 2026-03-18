@@ -1,4 +1,13 @@
 {
   "/_not-found/page": "/_not-found",
-  "/page": "/"
+  "/capabilities/page": "/capabilities",
+  "/agents/page": "/agents",
+  "/fund/page": "/fund",
+  "/guardrails/page": "/guardrails",
+  "/page": "/",
+  "/memory/page": "/memory",
+  "/settings/page": "/settings",
+  "/telemetry/page": "/telemetry",
+  "/symphony/page": "/symphony",
+  "/pipeline/page": "/pipeline"
 }
