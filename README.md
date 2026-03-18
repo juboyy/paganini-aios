@@ -181,6 +181,14 @@ paganini pack list
 
 Proxy entre o runtime e o LLM. Intercepta cada interação, injeta skills aprendidos, e gera novos automaticamente. O sistema fica mais inteligente a cada sessão — sem fine-tuning, sem GPU.
 
+**Três modos de operação:**
+
+| Modo | O Que Faz | Requisitos |
+|------|-----------|------------|
+| **skills_only** (default) | Injeção de skills + auto-geração a partir de sessões | Apenas rede. Sem GPU. |
+| **rl** (opcional) | + Fine-tuning LoRA ao vivo via Tinker Cloud. Modelo PRM avalia respostas. Pesos trocados sem downtime. | Tinker API key |
+| **opd** (avançado) | + Destilação teacher-student. Modelo frontier ensina modelo menor. Mesma qualidade, 1/10 do custo ao longo do tempo. | Endpoint do modelo teacher |
+
 ### 🔍 AutoResearch — Otimização de Retrieval
 
 Pipeline RAG auto-modificável. Um LLM roda experimentos autônomos para otimizar 16 parâmetros de recuperação. Busca evolucionária, não RL.
