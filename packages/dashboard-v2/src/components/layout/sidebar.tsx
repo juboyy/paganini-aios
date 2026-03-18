@@ -4,16 +4,16 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 const NAV = [
-  { href: "/", label: "OVERVIEW", icon: "◆" },
-  { href: "/agents", label: "AGENTS", icon: "◎" },
-  { href: "/guardrails", label: "GUARDRAILS", icon: "⬡" },
-  { href: "/memory", label: "MEMORY", icon: "◈" },
-  { href: "/fund", label: "FUND OPS", icon: "▣" },
-  { href: "/pipeline", label: "PIPELINE", icon: "◇" },
-  { href: "/symphony", label: "SYMPHONY", icon: "≋" },
+  { href: "/", label: "COMMAND", icon: "⬡" },
+  { href: "/agents", label: "AGENT FLEET", icon: "◎" },
+  { href: "/guardrails", label: "GUARDRAILS", icon: "⛊" },
+  { href: "/memory", label: "KNOWLEDGE", icon: "◈" },
+  { href: "/pipeline", label: "EXECUTION", icon: "▷" },
+  { href: "/symphony", label: "ORCHESTRA", icon: "≋" },
+  { href: "/fund", label: "FIDC PACK", icon: "▣" },
   { href: "/telemetry", label: "TELEMETRY", icon: "△" },
-  { href: "/capabilities", label: "CAPABILITIES", icon: "⊞" },
-  { href: "/settings", label: "SETTINGS", icon: "⚙" },
+  { href: "/capabilities", label: "SKILLS", icon: "⊞" },
+  { href: "/settings", label: "CONFIG", icon: "⚙" },
 ];
 
 export function Sidebar() {
@@ -69,62 +69,79 @@ export function Sidebar() {
             <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "0.8125rem", color: "var(--text-1)", letterSpacing: "-0.02em" }}>
               PAGANINI
             </div>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--text-3)", letterSpacing: "0.12em" }}>
-              AIOS v0.1.0
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", color: "var(--accent)", letterSpacing: "0.14em" }}>
+              AI OPERATING SYSTEM
             </div>
           </div>
         </div>
 
+        {/* Section label */}
+        <div
+          className="px-4 pt-4 pb-1"
+          style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", letterSpacing: "0.16em", color: "var(--text-4)" }}
+        >
+          PLATFORM
+        </div>
+
         {/* Nav */}
-        <nav className="flex-1 py-3 px-2 overflow-y-auto">
-          {NAV.map((item) => {
+        <nav className="flex-1 py-1 px-2 overflow-y-auto">
+          {NAV.map((item, i) => {
             const active = pathname === item.href;
             return (
-              <Link
-                key={item.href}
-                href={item.href}
-                onClick={() => setOpen(false)}
-                className="flex items-center gap-2.5 px-3 py-2 mb-0.5 transition-all duration-150"
-                style={{
-                  borderRadius: "var(--radius)",
-                  fontFamily: "var(--font-mono)",
-                  fontSize: "0.6875rem",
-                  letterSpacing: "0.08em",
-                  color: active ? "var(--accent)" : "var(--text-3)",
-                  background: active ? "var(--accent-bg)" : "transparent",
-                  borderLeft: active ? "2px solid var(--accent)" : "2px solid transparent",
-                  textShadow: active ? "0 0 10px hsl(150 100% 50% / 0.3)" : "none",
-                }}
-              >
-                <span style={{ fontSize: "0.625rem", opacity: active ? 1 : 0.5 }}>{item.icon}</span>
-                {item.label}
-              </Link>
+              <div key={item.href}>
+                {i === 6 && (
+                  <div
+                    className="px-3 pt-4 pb-1"
+                    style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", letterSpacing: "0.16em", color: "var(--text-4)" }}
+                  >
+                    VERTICALS
+                  </div>
+                )}
+                <Link
+                  href={item.href}
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-2.5 px-3 py-2 mb-0.5 transition-all duration-150"
+                  style={{
+                    borderRadius: "var(--radius)",
+                    fontFamily: "var(--font-mono)",
+                    fontSize: "0.6875rem",
+                    letterSpacing: "0.08em",
+                    color: active ? "var(--accent)" : "var(--text-3)",
+                    background: active ? "var(--accent-bg)" : "transparent",
+                    borderLeft: active ? "2px solid var(--accent)" : "2px solid transparent",
+                    textShadow: active ? "0 0 10px hsl(150 100% 50% / 0.3)" : "none",
+                  }}
+                >
+                  <span style={{ fontSize: "0.625rem", opacity: active ? 1 : 0.5 }}>{item.icon}</span>
+                  {item.label}
+                </Link>
+              </div>
             );
           })}
         </nav>
 
         {/* Footer */}
         <div
-          className="px-4 py-3 flex items-center gap-2"
+          className="px-4 py-3"
           style={{
             borderTop: "1px solid var(--border)",
-            fontFamily: "var(--font-mono)",
-            fontSize: "0.5625rem",
-            color: "var(--text-4)",
           }}
         >
-          <span
-            className="pulse-dot"
-            style={{
-              width: 6,
-              height: 6,
-              borderRadius: "50%",
-              background: "var(--accent)",
-              boxShadow: "0 0 8px var(--accent)",
-              display: "inline-block",
-            }}
-          />
-          SYSTEM ONLINE
+          <div className="flex items-center gap-2" style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--text-4)" }}>
+            <span
+              className="pulse-dot"
+              style={{
+                width: 6, height: 6, borderRadius: "50%",
+                background: "var(--accent)",
+                boxShadow: "0 0 8px var(--accent)",
+                display: "inline-block",
+              }}
+            />
+            KERNEL ONLINE
+          </div>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", color: "var(--text-4)", marginTop: "4px", opacity: 0.6 }}>
+            9 AGENTS • 11 SKILLS • 6 GATES
+          </div>
         </div>
       </aside>
     </>

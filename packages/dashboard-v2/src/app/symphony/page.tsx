@@ -1,326 +1,791 @@
 "use client";
 
-type FlowStep = { name: string; active: boolean };
+import { useState } from "react";
 
-interface OrchestraFlow {
-  id: string;
-  type: string;
-  steps: FlowStep[];
-  completionPct: number;
-  agents: number;
-  elapsed: string;
-  status: "running" | "stalled";
-}
-
-const ACTIVE_FLOWS: OrchestraFlow[] = [
-  {
-    id: "FLOW-091",
-    type: "Purchase Flow",
-    steps: [
-      { name: "Due Diligence", active: false },
-      { name: "Compliance", active: false },
-      { name: "Risk", active: true },
-      { name: "Pricing", active: false },
-      { name: "Admin", active: false },
-      { name: "Custody", active: false },
-    ],
-    completionPct: 42,
-    agents: 6,
-    elapsed: "2.1 min",
-    status: "running",
-  },
-  {
-    id: "FLOW-092",
-    type: "Report Flow",
-    steps: [
-      { name: "Admin", active: false },
-      { name: "Pricing", active: false },
-      { name: "Compliance", active: false },
-      { name: "Reporting", active: true },
-      { name: "IR", active: false },
-    ],
-    completionPct: 68,
-    agents: 5,
-    elapsed: "3.4 min",
-    status: "running",
-  },
-  {
-    id: "FLOW-093",
-    type: "Onboarding Flow",
-    steps: [
-      { name: "Due Diligence", active: false },
-      { name: "Compliance", active: true },
-      { name: "Risk", active: false },
-      { name: "Admin", active: false },
-    ],
-    completionPct: 25,
-    agents: 4,
-    elapsed: "0.8 min",
-    status: "running",
-  },
-];
-
-const COORD_STATS = [
-  { label: "FLOWS TODAY", value: "23", delta: "+4 vs YSTD" },
-  { label: "AVG FLOW TIME", value: "3.8 min", delta: "-0.3 min" },
-  { label: "AGENT HANDOFFS", value: "89", delta: "+12 vs YSTD" },
-  { label: "CONFLICTS RESOLVED", value: "2", delta: "0 OPEN" },
-];
-
-const RECENT_COMPLETIONS = [
-  { id: "FLOW-086", type: "Purchase Flow", duration: "3.9 min", agents: 6, result: "SETTLED" },
-  { id: "FLOW-087", type: "Report Flow", duration: "4.1 min", agents: 5, result: "DELIVERED" },
-  { id: "FLOW-088", type: "Purchase Flow", duration: "3.5 min", agents: 6, result: "SETTLED" },
-  { id: "FLOW-089", type: "Onboarding Flow", duration: "6.2 min", agents: 4, result: "ONBOARDED" },
-  { id: "FLOW-090", type: "Purchase Flow", duration: "3.7 min", agents: 6, result: "SETTLED" },
-];
-
-const FLOW_TYPE_COLOR: Record<string, string> = {
-  "Purchase Flow": "var(--accent)",
-  "Report Flow": "var(--cyan)",
-  "Onboarding Flow": "var(--amber)",
+// ── Types ─────────────────────────────────────────────────────────────────────
+type FlowNode = {
+  name: string;
+  agent: string;
+  time: string;
+  status: "ok" | "warn" | "pending";
 };
 
-function FlowCard({ flow }: { flow: OrchestraFlow }) {
-  const accentColor = FLOW_TYPE_COLOR[flow.type] || "var(--accent)";
-  const activeIdx = flow.steps.findIndex((s) => s.active);
+type Flow = {
+  name: string;
+  color: string;
+  colorVar: string;
+  nodes: FlowNode[];
+};
+
+// ── Orchestration flows ───────────────────────────────────────────────────────
+const flows: Flow[] = [
+  {
+    name: "PURCHASE",
+    color: "#00ff80",
+    colorVar: "var(--accent)",
+    nodes: [
+      { name: "Cedente Submit", agent: "API Gateway", time: "0.1s", status: "ok" },
+      { name: "DD Score", agent: "DD Agent", time: "3.1s", status: "ok" },
+      { name: "6 Guardrails", agent: "Compliance", time: "1.8s", status: "ok" },
+      { name: "Pricing", agent: "Pricing Agent", time: "0.6s", status: "ok" },
+      { name: "Admin", agent: "Admin Agent", time: "0.4s", status: "ok" },
+      { name: "Custody", agent: "Custody Agent", time: "0.2s", status: "ok" },
+    ],
+  },
+  {
+    name: "REPORT",
+    color: "#00ffff",
+    colorVar: "var(--cyan)",
+    nodes: [
+      { name: "Admin NAV", agent: "Admin Agent", time: "0.3s", status: "ok" },
+      { name: "Pricing PDD", agent: "Pricing Agent", time: "1.2s", status: "ok" },
+      { name: "Compliance Status", agent: "Compliance", time: "0.8s", status: "ok" },
+      { name: "Reporting Compile", agent: "Reporting Agent", time: "2.4s", status: "ok" },
+      { name: "IR Distribute", agent: "IR Agent", time: "0.5s", status: "ok" },
+    ],
+  },
+  {
+    name: "ONBOARD",
+    color: "#f59e0b",
+    colorVar: "#f59e0b",
+    nodes: [
+      { name: "DD Analyze", agent: "DD Agent", time: "3.1s", status: "ok" },
+      { name: "PLD/AML Screen", agent: "Compliance", time: "0.8s", status: "ok" },
+      { name: "Risk Rate", agent: "Risk Agent", time: "1.1s", status: "ok" },
+      { name: "Admin Register", agent: "Admin Agent", time: "0.3s", status: "ok" },
+    ],
+  },
+];
+
+// ── Agent names for delegation matrix ────────────────────────────────────────
+const agents = ["DD", "Compliance", "Pricing", "Risk", "Admin", "Custody", "Reporting", "IR", "KG"];
+
+// Delegation pairs [from, to, reason]
+const delegations: [number, number, string][] = [
+  [0, 1, "DD → Compliance: sends score for gate validation"],
+  [0, 8, "DD → KG: extracts entities for knowledge graph"],
+  [1, 4, "Compliance → Admin: cleared cedente for registration"],
+  [2, 3, "Pricing → Risk: requests risk rating for PDD"],
+  [3, 2, "Risk → Pricing: returns risk factor for curve"],
+  [4, 5, "Admin → Custody: triggers custody registration"],
+  [4, 7, "Admin → IR: sends investor distribution request"],
+  [6, 2, "Reporting → Pricing: requests PDD provision calc"],
+  [6, 1, "Reporting → Compliance: requests compliance status"],
+  [7, 4, "IR → Admin: confirms distribution executed"],
+  [0, 1, ""],
+  [1, 0, "Compliance → DD: requests rerun on flag"],
+  [2, 4, "Pricing → Admin: sends NAV calculation result"],
+  [5, 4, "Custody → Admin: confirms custody status"],
+];
+
+const delegationSet = new Set(delegations.map(([f, t]) => `${f}-${t}`));
+const delegationReason: Record<string, string> = {};
+delegations.forEach(([f, t, r]) => {
+  if (r) delegationReason[`${f}-${t}`] = r;
+});
+
+// ── Orchestration timeline ────────────────────────────────────────────────────
+const timeline = [
+  {
+    flow: "PURCHASE",
+    color: "#00ff80",
+    badge: "tag-badge",
+    agents: [0, 1, 2, 3, 4, 5],
+    duration: "6.2s",
+    status: "ok",
+    detail: "DD(3.1s) → Compliance(1.8s) → Pricing(0.6s) → Admin(0.4s) → Custody(0.2s)",
+  },
+  {
+    flow: "REPORT",
+    color: "#00ffff",
+    badge: "tag-badge-cyan",
+    agents: [4, 2, 1, 6, 7],
+    duration: "5.2s",
+    status: "ok",
+    detail: "Admin(0.3s) → Pricing(1.2s) → Compliance(0.8s) → Reporting(2.4s) → IR(0.5s)",
+  },
+  {
+    flow: "ONBOARD",
+    color: "#f59e0b",
+    badge: "",
+    agents: [0, 1, 3, 4],
+    duration: "5.3s",
+    status: "ok",
+    detail: "DD(3.1s) → Compliance(0.8s) → Risk(1.1s) → Admin(0.3s)",
+  },
+  {
+    flow: "PURCHASE",
+    color: "#00ff80",
+    badge: "tag-badge",
+    agents: [0, 1, 2, 3, 4, 5],
+    duration: "5.9s",
+    status: "ok",
+    detail: "DD(2.8s) → Compliance(1.7s) → Pricing(0.7s) → Admin(0.4s) → Custody(0.2s)",
+  },
+  {
+    flow: "ONBOARD",
+    color: "#f59e0b",
+    badge: "",
+    agents: [0, 1, 3, 4],
+    duration: "6.1s",
+    status: "warn",
+    detail: "DD(3.4s) → Compliance(1.2s) ⚠ PLD flag → Risk(1.1s) → Admin(0.4s)",
+  },
+  {
+    flow: "REPORT",
+    color: "#00ffff",
+    badge: "tag-badge-cyan",
+    agents: [4, 2, 1, 6, 7],
+    duration: "4.9s",
+    status: "ok",
+    detail: "Admin(0.2s) → Pricing(1.1s) → Compliance(0.7s) → Reporting(2.3s) → IR(0.6s)",
+  },
+];
+
+// ── Agent collaboration heatmap data ─────────────────────────────────────────
+type CollabPair = { a: number; b: number; freq: number; label: string };
+const collabPairs: CollabPair[] = [
+  { a: 0, b: 1, freq: 312, label: "DD ↔ Compliance" },
+  { a: 2, b: 3, freq: 289, label: "Pricing ↔ Risk" },
+  { a: 4, b: 5, freq: 264, label: "Admin ↔ Custody" },
+  { a: 6, b: 1, freq: 187, label: "Reporting ↔ Compliance" },
+  { a: 0, b: 8, freq: 156, label: "DD ↔ KG" },
+  { a: 7, b: 4, freq: 134, label: "IR ↔ Admin" },
+  { a: 2, b: 4, freq: 118, label: "Pricing ↔ Admin" },
+];
+const maxFreq = Math.max(...collabPairs.map((p) => p.freq));
+
+const agentColors = [
+  "var(--accent)",
+  "var(--cyan)",
+  "var(--accent)",
+  "#f59e0b",
+  "var(--accent)",
+  "var(--cyan)",
+  "var(--accent)",
+  "var(--cyan)",
+  "#f59e0b",
+];
+
+// ── Collaboration Heatmap SVG ─────────────────────────────────────────────────
+function CollabHeatmap() {
+  const W = 520;
+  const H = 260;
+  const cx = W / 2;
+  const cy = H / 2;
+  const R = 100;
+
+  // Position agents in a circle
+  const agentPos = agents.map((_, i) => {
+    const angle = (i / agents.length) * Math.PI * 2 - Math.PI / 2;
+    return {
+      x: cx + R * Math.cos(angle),
+      y: cy + R * Math.sin(angle),
+    };
+  });
 
   return (
-    <div className="glass-card p-4" style={{ flex: 1 }}>
-      {/* Flow header */}
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 16 }}>
-        <div>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.45rem", color: "var(--text-4)", letterSpacing: "0.12em", marginBottom: 4 }}>
-            {flow.id}
-          </div>
-          <div style={{ fontFamily: "var(--font-display)", fontSize: "1rem", fontWeight: 700, color: "var(--text-1)", letterSpacing: "-0.02em" }}>
-            {flow.type}
-          </div>
-        </div>
-        <div style={{ textAlign: "right" }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: "flex-end", marginBottom: 4 }}>
-            <span className="pulse-dot" style={{ background: accentColor, boxShadow: `0 0 6px ${accentColor}` }} />
-            <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.45rem", color: accentColor, letterSpacing: "0.08em" }}>
-              ACTIVE
-            </span>
-          </div>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", color: "var(--text-4)" }}>
-            T+{flow.elapsed}
-          </div>
-        </div>
-      </div>
+    <svg viewBox={`0 0 ${W} ${H}`} className="w-full" style={{ height: 260 }}>
+      <defs>
+        {collabPairs.slice(0, 3).map((pair, i) => (
+          <linearGradient
+            key={i}
+            id={`collab-grad-${i}`}
+            x1={agentPos[pair.a].x / W}
+            y1={agentPos[pair.a].y / H}
+            x2={agentPos[pair.b].x / W}
+            y2={agentPos[pair.b].y / H}
+            gradientUnits="objectBoundingBox"
+          >
+            <stop offset="0%" stopColor={agentColors[pair.a]} stopOpacity="0.9" />
+            <stop offset="100%" stopColor={agentColors[pair.b]} stopOpacity="0.9" />
+          </linearGradient>
+        ))}
+      </defs>
 
-      {/* Steps timeline */}
-      <div style={{ marginBottom: 14 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 0, position: "relative" }}>
-          {/* Connector line */}
-          <div style={{
-            position: "absolute",
-            top: "50%", left: 0, right: 0,
-            height: 1,
-            background: "var(--border-subtle)",
-            zIndex: 0,
-          }} />
-          {/* Progress line */}
-          <div style={{
-            position: "absolute",
-            top: "50%", left: 0,
-            width: `${(activeIdx / (flow.steps.length - 1)) * 100}%`,
-            height: 1,
-            background: accentColor,
-            boxShadow: `0 0 4px ${accentColor}`,
-            zIndex: 1,
-          }} />
-          {flow.steps.map((step, i) => {
-            const done = i < activeIdx;
-            const isActive = step.active;
-            const upcoming = i > activeIdx;
-            return (
-              <div key={step.name} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", zIndex: 2, gap: 6 }}>
-                {/* Node */}
-                <div style={{
-                  width: isActive ? 14 : 8,
-                  height: isActive ? 14 : 8,
-                  borderRadius: "50%",
-                  background: done ? accentColor : isActive ? accentColor : "hsl(220 20% 10%)",
-                  border: `1.5px solid ${done || isActive ? accentColor : "var(--border-subtle)"}`,
-                  boxShadow: isActive ? `0 0 10px ${accentColor}, 0 0 20px ${accentColor}33` : "none",
-                  transition: "all 0.3s",
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                }}>
-                  {done && (
-                    <svg width="5" height="5" viewBox="0 0 5 5" fill="none">
-                      <path d="M1 2.5L2 3.5L4 1.5" stroke="hsl(220 20% 4%)" strokeWidth="1.2" strokeLinecap="round"/>
-                    </svg>
-                  )}
-                </div>
-                {/* Label */}
-                <div style={{
-                  fontFamily: "var(--font-mono)",
-                  fontSize: "0.4rem",
-                  letterSpacing: "0.06em",
-                  color: isActive ? accentColor : done ? "var(--text-3)" : "var(--text-4)",
-                  textAlign: "center",
-                  maxWidth: 52,
-                  lineHeight: 1.3,
-                  fontWeight: isActive ? 700 : 400,
-                }}>
-                  {step.name}
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      </div>
+      {/* Connection lines */}
+      {collabPairs.map((pair, i) => {
+        const strokeW = 1 + (pair.freq / maxFreq) * 6;
+        const isTop3 = i < 3;
+        return (
+          <line
+            key={i}
+            x1={agentPos[pair.a].x}
+            y1={agentPos[pair.a].y}
+            x2={agentPos[pair.b].x}
+            y2={agentPos[pair.b].y}
+            stroke={isTop3 ? `url(#collab-grad-${i})` : "var(--border)"}
+            strokeWidth={strokeW}
+            strokeOpacity={isTop3 ? 0.9 : 0.4}
+            style={isTop3 ? { filter: `drop-shadow(0 0 3px ${agentColors[pair.a]}60)` } : {}}
+          />
+        );
+      })}
 
-      {/* Progress + meta */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginTop: 4 }}>
-        {/* Progress bar */}
-        <div style={{ flex: 1, height: 4, background: "hsl(220 20% 10%)", borderRadius: 1, overflow: "hidden" }}>
-          <div style={{
-            height: "100%",
-            width: `${flow.completionPct}%`,
-            background: accentColor,
-            borderRadius: 1,
-            boxShadow: `0 0 6px ${accentColor}`,
-          }} />
-        </div>
-        <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", color: accentColor, minWidth: 28 }}>
-          {flow.completionPct}%
-        </span>
-        <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.45rem", color: "var(--text-4)" }}>
-          {flow.agents} AGENTS
-        </span>
-      </div>
-    </div>
+      {/* Nodes */}
+      {agents.map((name, i) => (
+        <g key={name}>
+          <circle
+            cx={agentPos[i].x}
+            cy={agentPos[i].y}
+            r={16}
+            fill="var(--bg-card)"
+            stroke={agentColors[i]}
+            strokeWidth={1.5}
+            style={{ filter: `drop-shadow(0 0 4px ${agentColors[i]}60)` }}
+          />
+          <text
+            x={agentPos[i].x}
+            y={agentPos[i].y}
+            textAnchor="middle"
+            dominantBaseline="middle"
+            fontSize={8}
+            fontWeight={700}
+            fill={agentColors[i]}
+            fontFamily="var(--font-mono)"
+          >
+            {name}
+          </text>
+        </g>
+      ))}
+
+      {/* Top 3 labels */}
+      {collabPairs.slice(0, 3).map((pair, i) => {
+        const mx = (agentPos[pair.a].x + agentPos[pair.b].x) / 2;
+        const my = (agentPos[pair.a].y + agentPos[pair.b].y) / 2;
+        return (
+          <g key={i}>
+            <rect
+              x={mx - 32}
+              y={my - 9}
+              width={64}
+              height={16}
+              fill="var(--bg)"
+              rx={1}
+              opacity={0.85}
+            />
+            <text
+              x={mx}
+              y={my}
+              textAnchor="middle"
+              dominantBaseline="middle"
+              fontSize={7.5}
+              fill="var(--text-2)"
+              fontFamily="var(--font-mono)"
+            >
+              #{i + 1} · {pair.freq}×
+            </text>
+          </g>
+        );
+      })}
+    </svg>
   );
 }
 
+// ── Main page ─────────────────────────────────────────────────────────────────
 export default function SymphonyPage() {
+  const [expandedRow, setExpandedRow] = useState<number | null>(null);
+  const [hoveredCell, setHoveredCell] = useState<string | null>(null);
+
   return (
-    <div style={{ padding: "24px 28px", minHeight: "100vh", fontFamily: "var(--font-mono)" }}>
+    <div
+      className="min-h-screen p-4 md:p-6 space-y-6"
+      style={{ background: "var(--bg)", fontFamily: "var(--font-display)" }}
+    >
       {/* Header */}
-      <div style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 28 }}>
-        <span className="pulse-dot" style={{ background: "var(--accent)", boxShadow: "0 0 8px var(--accent)" }} />
+      <div className="flex items-center justify-between">
         <div>
-          <h1 style={{ fontFamily: "var(--font-display)", fontSize: "1.125rem", fontWeight: 700, color: "var(--text-1)", letterSpacing: "-0.02em", margin: 0 }}>
-            SYMPHONY
+          <div className="flex items-center gap-3 mb-1">
+            <span className="tag-badge">SYMPHONY</span>
+            <span className="tag-badge-cyan">AGENT ORCHESTRA</span>
+          </div>
+          <h1
+            className="text-2xl font-bold"
+            style={{ color: "var(--text-1)", letterSpacing: "-0.03em" }}
+          >
+            Multi-Agent Orchestration
           </h1>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginTop: 2 }}>
-            MULTI-AGENT ORCHESTRATION · LIVE CONDUCTOR VIEW
-          </div>
+          <p style={{ color: "var(--text-3)", fontSize: 13, marginTop: 2 }}>
+            Delegation flows, coordination patterns, and collaboration heatmaps
+          </p>
         </div>
-        <div style={{ marginLeft: "auto", display: "flex", gap: 8, alignItems: "center" }}>
-          <span className="tag-badge">{ACTIVE_FLOWS.length} ACTIVE FLOWS</span>
+        <div className="flex items-center gap-2">
+          <span
+            className="pulse-dot"
+            style={{
+              display: "inline-block",
+              width: 8,
+              height: 8,
+              borderRadius: "50%",
+              background: "var(--accent)",
+              boxShadow: "0 0 8px var(--accent)",
+            }}
+          />
+          <span style={{ color: "var(--accent)", fontSize: 12, fontFamily: "var(--font-mono)" }}>
+            LIVE
+          </span>
         </div>
       </div>
 
-      {/* Coordination Stats */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: 12, marginBottom: 20 }}>
-        {COORD_STATS.map((s) => (
-          <div key={s.label} className="glass-card p-4">
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: 8 }}>
-              {s.label}
+      {/* 3 Orchestration Flows */}
+      <div className="space-y-4">
+        {flows.map((flow) => (
+          <div
+            key={flow.name}
+            className="glass-card p-4"
+            style={{ borderRadius: "var(--radius)", borderColor: `${flow.color}20` }}
+          >
+            <div className="flex items-center gap-3 mb-4">
+              <span
+                style={{
+                  display: "inline-block",
+                  padding: "2px 10px",
+                  background: `${flow.color}14`,
+                  color: flow.color,
+                  border: `1px solid ${flow.color}40`,
+                  borderRadius: "var(--radius)",
+                  fontSize: 10,
+                  fontFamily: "var(--font-mono)",
+                  fontWeight: 700,
+                  letterSpacing: "0.08em",
+                }}
+              >
+                {flow.name} FLOW
+              </span>
+              <div
+                style={{
+                  height: 1,
+                  flex: 1,
+                  background: `linear-gradient(90deg, ${flow.color}40, transparent)`,
+                }}
+              />
             </div>
-            <div style={{ fontFamily: "var(--font-display)", fontSize: "1.5rem", fontWeight: 700, color: "var(--text-1)", letterSpacing: "-0.02em" }}>
-              {s.value}
-            </div>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.45rem", color: "var(--text-4)", marginTop: 6 }}>
-              {s.delta}
+
+            {/* Flow nodes */}
+            <div className="flex flex-wrap items-center gap-1">
+              {flow.nodes.map((node, ni) => (
+                <div key={ni} className="flex items-center gap-1">
+                  {/* Node card */}
+                  <div
+                    style={{
+                      background: "var(--bg)",
+                      border: `1px solid ${flow.color}30`,
+                      borderRadius: "var(--radius)",
+                      padding: "8px 12px",
+                      position: "relative",
+                    }}
+                  >
+                    {/* Status dot */}
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: 6,
+                        right: 6,
+                        width: 6,
+                        height: 6,
+                        borderRadius: "50%",
+                        background:
+                          node.status === "ok"
+                            ? flow.color
+                            : node.status === "warn"
+                            ? "#f59e0b"
+                            : "var(--text-4)",
+                        boxShadow:
+                          node.status === "ok"
+                            ? `0 0 4px ${flow.color}`
+                            : undefined,
+                      }}
+                    />
+                    <div
+                      style={{
+                        color: flow.color,
+                        fontSize: 11,
+                        fontWeight: 600,
+                        marginBottom: 2,
+                      }}
+                    >
+                      {node.name}
+                    </div>
+                    <div
+                      style={{
+                        color: "var(--text-3)",
+                        fontSize: 10,
+                        fontFamily: "var(--font-mono)",
+                      }}
+                    >
+                      {node.agent}
+                    </div>
+                    <div
+                      style={{
+                        color: "var(--text-4)",
+                        fontSize: 10,
+                        fontFamily: "var(--font-mono)",
+                        marginTop: 2,
+                      }}
+                    >
+                      {node.time}
+                    </div>
+                  </div>
+
+                  {/* Arrow */}
+                  {ni < flow.nodes.length - 1 && (
+                    <span
+                      style={{
+                        color: flow.color,
+                        fontSize: 14,
+                        opacity: 0.4,
+                        flexShrink: 0,
+                      }}
+                    >
+                      →
+                    </span>
+                  )}
+                </div>
+              ))}
             </div>
           </div>
         ))}
       </div>
 
-      {/* Active Flows — Orchestra */}
-      <div style={{ marginBottom: 12 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)" }}>
-            ACTIVE ORCHESTRATIONS
+      {/* Delegation Matrix + Collab Heatmap (side by side) */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        {/* Delegation Matrix */}
+        <div className="glass-card p-5" style={{ borderRadius: "var(--radius)" }}>
+          <h2
+            style={{
+              color: "var(--text-1)",
+              fontSize: 13,
+              fontWeight: 600,
+              letterSpacing: "0.06em",
+              textTransform: "uppercase",
+              fontFamily: "var(--font-mono)",
+              marginBottom: 12,
+            }}
+          >
+            Delegation Matrix
+          </h2>
+          <p style={{ color: "var(--text-4)", fontSize: 11, marginBottom: 12 }}>
+            Hover cells to see delegation reason
+          </p>
+
+          {/* Tooltip */}
+          {hoveredCell && (
+            <div
+              style={{
+                background: "var(--bg)",
+                border: "1px solid var(--accent)",
+                borderRadius: "var(--radius)",
+                padding: "6px 10px",
+                marginBottom: 8,
+                fontSize: 11,
+                color: "var(--text-2)",
+                fontFamily: "var(--font-mono)",
+              }}
+            >
+              {hoveredCell}
+            </div>
+          )}
+
+          <div style={{ overflowX: "auto" }}>
+            <table style={{ borderCollapse: "collapse", width: "100%" }}>
+              <thead>
+                <tr>
+                  <th
+                    style={{
+                      width: 32,
+                      height: 28,
+                      fontSize: 9,
+                      color: "var(--text-4)",
+                      fontFamily: "var(--font-mono)",
+                      textAlign: "right",
+                      paddingRight: 6,
+                    }}
+                  >
+                    FROM→
+                  </th>
+                  {agents.map((a) => (
+                    <th
+                      key={a}
+                      style={{
+                        width: 34,
+                        fontSize: 8,
+                        color: "var(--text-3)",
+                        fontFamily: "var(--font-mono)",
+                        textAlign: "center",
+                        paddingBottom: 4,
+                        fontWeight: 600,
+                      }}
+                    >
+                      {a.slice(0, 3)}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {agents.map((fromAgent, fi) => (
+                  <tr key={fromAgent}>
+                    <td
+                      style={{
+                        fontSize: 8,
+                        color: "var(--text-3)",
+                        fontFamily: "var(--font-mono)",
+                        textAlign: "right",
+                        paddingRight: 6,
+                        paddingTop: 2,
+                        fontWeight: 600,
+                      }}
+                    >
+                      {fromAgent.slice(0, 3)}
+                    </td>
+                    {agents.map((_, ti) => {
+                      const key = `${fi}-${ti}`;
+                      const hasDelegation = delegationSet.has(key);
+                      const isSelf = fi === ti;
+                      return (
+                        <td key={ti} style={{ padding: 2 }}>
+                          <div
+                            onMouseEnter={() =>
+                              hasDelegation &&
+                              setHoveredCell(delegationReason[key] || `${fromAgent} → ${agents[ti]}`)
+                            }
+                            onMouseLeave={() => setHoveredCell(null)}
+                            style={{
+                              width: 28,
+                              height: 28,
+                              borderRadius: "var(--radius)",
+                              background: isSelf
+                                ? "rgba(255,255,255,0.03)"
+                                : hasDelegation
+                                ? "rgba(0,255,128,0.12)"
+                                : "var(--bg)",
+                              border: hasDelegation
+                                ? "1px solid rgba(0,255,128,0.35)"
+                                : "1px solid var(--border)",
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              cursor: hasDelegation ? "pointer" : "default",
+                              transition: "background 0.15s",
+                              fontSize: 10,
+                              color: "var(--accent)",
+                            }}
+                          >
+                            {isSelf ? (
+                              <span style={{ color: "var(--text-4)", fontSize: 8 }}>—</span>
+                            ) : hasDelegation ? (
+                              "→"
+                            ) : null}
+                          </div>
+                        </td>
+                      );
+                    })}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
-          <div style={{ flex: 1, height: 1, background: "var(--border-subtle)" }} />
         </div>
-        <div style={{ display: "flex", gap: 12 }}>
-          {ACTIVE_FLOWS.map((flow) => (
-            <FlowCard key={flow.id} flow={flow} />
-          ))}
+
+        {/* Collaboration Heatmap */}
+        <div className="glass-card p-5" style={{ borderRadius: "var(--radius)" }}>
+          <h2
+            style={{
+              color: "var(--text-1)",
+              fontSize: 13,
+              fontWeight: 600,
+              letterSpacing: "0.06em",
+              textTransform: "uppercase",
+              fontFamily: "var(--font-mono)",
+              marginBottom: 4,
+            }}
+          >
+            Agent Collaboration Graph
+          </h2>
+          <p style={{ color: "var(--text-4)", fontSize: 11, marginBottom: 12 }}>
+            Line thickness = frequency. Top 3 pairs highlighted.
+          </p>
+          <CollabHeatmap />
+
+          {/* Legend */}
+          <div className="flex flex-col gap-1 mt-2">
+            {collabPairs.slice(0, 3).map((pair, i) => (
+              <div key={i} className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <span
+                    style={{
+                      display: "inline-block",
+                      padding: "1px 6px",
+                      background: "rgba(0,255,128,0.08)",
+                      color: "var(--accent)",
+                      border: "1px solid rgba(0,255,128,0.2)",
+                      borderRadius: "var(--radius)",
+                      fontSize: 9,
+                      fontFamily: "var(--font-mono)",
+                    }}
+                  >
+                    #{i + 1}
+                  </span>
+                  <span style={{ color: "var(--text-2)", fontSize: 11 }}>{pair.label}</span>
+                </div>
+                <span
+                  style={{
+                    color: "var(--accent)",
+                    fontSize: 11,
+                    fontFamily: "var(--font-mono)",
+                    fontWeight: 600,
+                  }}
+                >
+                  {pair.freq}×
+                </span>
+              </div>
+            ))}
+          </div>
         </div>
       </div>
 
-      {/* Agent legend */}
-      <div style={{ display: "flex", gap: 12, marginBottom: 20 }}>
-        {Object.entries(FLOW_TYPE_COLOR).map(([type, color]) => (
-          <div key={type} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <div style={{ width: 8, height: 8, borderRadius: "50%", background: color, boxShadow: `0 0 4px ${color}` }} />
-            <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.45rem", color: "var(--text-4)" }}>{type}</span>
-          </div>
-        ))}
-      </div>
+      {/* Orchestration Timeline */}
+      <div className="glass-card p-5" style={{ borderRadius: "var(--radius)" }}>
+        <h2
+          style={{
+            color: "var(--text-1)",
+            fontSize: 13,
+            fontWeight: 600,
+            letterSpacing: "0.06em",
+            textTransform: "uppercase",
+            fontFamily: "var(--font-mono)",
+            marginBottom: 16,
+          }}
+        >
+          Orchestration Timeline
+        </h2>
 
-      {/* Recent Completions */}
-      <div className="glass-card p-4">
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: 16 }}>
-          RECENT COMPLETIONS
-        </div>
-        <div style={{ display: "grid", gridTemplateColumns: "70px 1fr auto auto auto", gap: "0 20px", alignItems: "center" }}>
-          {["ID", "FLOW TYPE", "DURATION", "AGENTS", "RESULT"].map((h) => (
-            <div key={h} style={{ fontFamily: "var(--font-mono)", fontSize: "0.45rem", letterSpacing: "0.12em", color: "var(--text-4)", paddingBottom: 8, borderBottom: "1px solid var(--border-subtle)" }}>
-              {h}
+        <div className="space-y-2">
+          {timeline.map((row, i) => (
+            <div key={i}>
+              <div
+                className="flex items-center gap-4"
+                style={{
+                  background: "var(--bg)",
+                  border: "1px solid var(--border)",
+                  borderRadius: "var(--radius)",
+                  padding: "10px 14px",
+                  cursor: "pointer",
+                  transition: "border-color 0.15s",
+                  borderColor: expandedRow === i ? `${row.color}40` : "var(--border)",
+                }}
+                onClick={() => setExpandedRow(expandedRow === i ? null : i)}
+              >
+                {/* Flow badge */}
+                <span
+                  style={{
+                    display: "inline-block",
+                    padding: "2px 8px",
+                    background: `${row.color}14`,
+                    color: row.color,
+                    border: `1px solid ${row.color}40`,
+                    borderRadius: "var(--radius)",
+                    fontSize: 10,
+                    fontFamily: "var(--font-mono)",
+                    fontWeight: 700,
+                    minWidth: 80,
+                    textAlign: "center",
+                  }}
+                >
+                  {row.flow}
+                </span>
+
+                {/* Agent dots */}
+                <div className="flex items-center gap-1 flex-1">
+                  {row.agents.map((ai) => (
+                    <div
+                      key={ai}
+                      title={agents[ai]}
+                      style={{
+                        width: 24,
+                        height: 24,
+                        borderRadius: "50%",
+                        background: "var(--bg-card)",
+                        border: `1px solid ${agentColors[ai]}60`,
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        fontSize: 7,
+                        fontFamily: "var(--font-mono)",
+                        color: agentColors[ai],
+                        fontWeight: 700,
+                      }}
+                    >
+                      {agents[ai].slice(0, 2)}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Duration */}
+                <span
+                  style={{
+                    color: "var(--accent)",
+                    fontSize: 13,
+                    fontFamily: "var(--font-mono)",
+                    fontWeight: 700,
+                    minWidth: 48,
+                    textAlign: "right",
+                  }}
+                >
+                  {row.duration}
+                </span>
+
+                {/* Status */}
+                <span
+                  style={{
+                    display: "inline-block",
+                    padding: "2px 8px",
+                    background:
+                      row.status === "ok"
+                        ? "rgba(0,255,128,0.1)"
+                        : "rgba(245,158,11,0.1)",
+                    color: row.status === "ok" ? "var(--accent)" : "#f59e0b",
+                    border: `1px solid ${row.status === "ok" ? "rgba(0,255,128,0.3)" : "rgba(245,158,11,0.3)"}`,
+                    borderRadius: "var(--radius)",
+                    fontSize: 10,
+                    fontFamily: "var(--font-mono)",
+                    minWidth: 60,
+                    textAlign: "center",
+                  }}
+                >
+                  {row.status === "ok" ? "✓ OK" : "⚠ WARN"}
+                </span>
+
+                {/* Expand indicator */}
+                <span
+                  style={{
+                    color: "var(--text-4)",
+                    fontSize: 11,
+                    transition: "transform 0.15s",
+                    transform: expandedRow === i ? "rotate(90deg)" : "none",
+                  }}
+                >
+                  ›
+                </span>
+              </div>
+
+              {/* Expanded detail */}
+              {expandedRow === i && (
+                <div
+                  style={{
+                    background: "var(--bg)",
+                    borderLeft: `2px solid ${row.color}60`,
+                    padding: "8px 14px 8px 16px",
+                    marginTop: -1,
+                    fontSize: 11,
+                    fontFamily: "var(--font-mono)",
+                    color: "var(--text-3)",
+                  }}
+                >
+                  {row.detail}
+                </div>
+              )}
             </div>
           ))}
-          {RECENT_COMPLETIONS.map((c) => {
-            const typeColor = FLOW_TYPE_COLOR[c.type] || "var(--accent)";
-            return (
-              <>
-                <div key={c.id + "-id"} style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", color: "var(--text-4)", paddingTop: 10 }}>
-                  {c.id}
-                </div>
-                <div key={c.id + "-t"} style={{ paddingTop: 10, display: "flex", alignItems: "center", gap: 6 }}>
-                  <div style={{ width: 6, height: 6, borderRadius: "50%", background: typeColor, boxShadow: `0 0 4px ${typeColor}`, flexShrink: 0 }} />
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5625rem", color: "var(--text-1)" }}>
-                    {c.type}
-                  </span>
-                </div>
-                <div key={c.id + "-d"} style={{ fontFamily: "var(--font-display)", fontSize: "0.875rem", fontWeight: 700, color: "var(--text-1)", letterSpacing: "-0.02em", paddingTop: 10, textAlign: "right" }}>
-                  {c.duration}
-                </div>
-                <div key={c.id + "-a"} style={{ paddingTop: 10, textAlign: "center" }}>
-                  <span style={{
-                    fontFamily: "var(--font-mono)", fontSize: "0.45rem",
-                    background: "hsl(220 20% 4% / 0.5)", border: "1px solid var(--border-subtle)",
-                    borderRadius: "var(--radius)", padding: "2px 6px", color: "var(--text-3)",
-                  }}>
-                    {c.agents} AGT
-                  </span>
-                </div>
-                <div key={c.id + "-r"} style={{ paddingTop: 10, textAlign: "right" }}>
-                  <span className="tag-badge">{c.result}</span>
-                </div>
-              </>
-            );
-          })}
-        </div>
-      </div>
-
-      {/* Footer conductor pulse */}
-      <div style={{
-        marginTop: 20,
-        padding: "10px 16px",
-        background: "hsl(220 20% 4% / 0.5)",
-        border: "1px solid var(--border-subtle)",
-        borderRadius: "var(--radius)",
-        display: "flex",
-        alignItems: "center",
-        gap: 10,
-      }}>
-        <span className="pulse-dot" style={{ background: "var(--accent)", boxShadow: "0 0 8px var(--accent)" }} />
-        <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", color: "var(--text-4)", letterSpacing: "0.08em" }}>
-          CONDUCTOR ONLINE · SYMPHONY ENGINE v2.4.1 · 3 FLOWS ORCHESTRATING · 15 AGENTS ACTIVE · ZERO DEADLOCKS
-        </span>
-        <div style={{ marginLeft: "auto" }}>
-          <span className="tag-badge-cyan">NOMINAL</span>
         </div>
       </div>
     </div>
