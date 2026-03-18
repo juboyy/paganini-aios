@@ -3,23 +3,57 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
 
-const NAV = [
-  { href: "/",            label: "CENTRAL",      icon: "⬡" },
-  { href: "/agents",      label: "AGENTES",      icon: "◎" },
-  { href: "/guardrails",  label: "GUARDRAILS",   icon: "⛊" },
-  { href: "/memory",      label: "CONHECIMENTO", icon: "◈" },
-  { href: "/learning",    label: "APRENDIZADO",  icon: "🧠" },
-  { href: "/sprint",      label: "SPRINT",       icon: "⊡" },
-  { href: "/pipeline",    label: "EXECUÇÃO",     icon: "▷" },
-  { href: "/symphony",    label: "ORQUESTRA",    icon: "≋" },
-  { href: "/fund",        label: "PACK FIDC",    icon: "▣" },
-  { href: "/telemetry",   label: "TELEMETRIA",   icon: "△" },
-  { href: "/capabilities", label: "SKILLS",      icon: "⊞" },
-  { href: "/settings",    label: "CONFIGURAÇÃO", icon: "⚙" },
+const PRODUTO_NAV = [
+  { href: "/overview",      label: "VISÃO GERAL",  icon: "◉" },
+  { href: "/",              label: "CENTRAL",       icon: "⬡" },
+  { href: "/agents",        label: "AGENTES",       icon: "◎" },
+  { href: "/onboard",       label: "ONBOARDING",    icon: "⊙" },
+  { href: "/guardrails",    label: "GUARDRAILS",    icon: "⛊" },
+  { href: "/reports",       label: "RELATÓRIOS",    icon: "⊡" },
+  { href: "/memory",        label: "CONHECIMENTO",  icon: "◈" },
+  { href: "/capabilities",  label: "SKILLS",        icon: "⊞" },
+  { href: "/fund",          label: "PACK FIDC",     icon: "▣" },
 ];
 
-export function Sidebar() {
+const PLATAFORMA_NAV = [
+  { href: "/sprint",        label: "SPRINT",        icon: "▷" },
+  { href: "/pipeline",      label: "EXECUÇÃO",      icon: "▷" },
+  { href: "/symphony",      label: "ORQUESTRA",     icon: "≋" },
+  { href: "/telemetry",     label: "TELEMETRIA",    icon: "△" },
+  { href: "/integrations",  label: "INTEGRAÇÕES",   icon: "⊕" },
+  { href: "/learning",      label: "APRENDIZADO",   icon: "🧠" },
+  { href: "/settings",      label: "CONFIGURAÇÃO",  icon: "⚙" },
+];
+
+function NavItem({ item, onClick }: { item: { href: string; label: string; icon: string }; onClick?: () => void }) {
   const pathname = usePathname();
+  const active = pathname === item.href;
+
+  return (
+    <Link
+      href={item.href}
+      onClick={onClick}
+      className="flex items-center gap-2.5 px-3 py-2 mb-0.5 transition-all duration-150"
+      style={{
+        borderRadius: "var(--radius)",
+        fontFamily: "var(--font-mono)",
+        fontSize: "0.6875rem",
+        letterSpacing: "0.08em",
+        color: active ? "var(--accent)" : "var(--text-3)",
+        background: active ? "var(--accent-bg)" : "transparent",
+        borderLeft: active ? "2px solid var(--accent)" : "2px solid transparent",
+        textShadow: active ? "0 0 10px hsl(150 100% 50% / 0.3)" : "none",
+      }}
+    >
+      <span style={{ fontSize: "0.625rem", opacity: active ? 1 : 0.5 }}>
+        {item.icon}
+      </span>
+      {item.label}
+    </Link>
+  );
+}
+
+export function Sidebar() {
   const [open, setOpen] = useState(false);
 
   return (
@@ -87,67 +121,55 @@ export function Sidebar() {
                 letterSpacing: "0.14em",
               }}
             >
-              SISTEMA OPERACIONAL IA
+              AI OPERATING SYSTEM
             </div>
           </div>
         </div>
 
-        {/* Section label */}
-        <div
-          className="px-4 pt-4 pb-1"
-          style={{
-            fontFamily: "var(--font-mono)",
-            fontSize: "0.5rem",
-            letterSpacing: "0.16em",
-            color: "var(--text-4)",
-          }}
-        >
-          PLATAFORMA
-        </div>
-
         {/* Nav */}
-        <nav className="flex-1 py-1 px-2 overflow-y-auto">
-          {NAV.map((item, i) => {
-            const active = pathname === item.href;
-            return (
-              <div key={item.href}>
-                {/* Section divider before PACK FIDC */}
-                {i === 8 && (
-                  <div
-                    className="px-3 pt-4 pb-1"
-                    style={{
-                      fontFamily: "var(--font-mono)",
-                      fontSize: "0.5rem",
-                      letterSpacing: "0.16em",
-                      color: "var(--text-4)",
-                    }}
-                  >
-                    VERTICAIS
-                  </div>
-                )}
-                <Link
-                  href={item.href}
-                  onClick={() => setOpen(false)}
-                  className="flex items-center gap-2.5 px-3 py-2 mb-0.5 transition-all duration-150"
-                  style={{
-                    borderRadius: "var(--radius)",
-                    fontFamily: "var(--font-mono)",
-                    fontSize: "0.6875rem",
-                    letterSpacing: "0.08em",
-                    color: active ? "var(--accent)" : "var(--text-3)",
-                    background: active ? "var(--accent-bg)" : "transparent",
-                    borderLeft: active ? "2px solid var(--accent)" : "2px solid transparent",
-                    textShadow: active ? "0 0 10px hsl(150 100% 50% / 0.3)" : "none",
-                  }}
-                >
-                  <span style={{ fontSize: "0.625rem", opacity: active ? 1 : 0.5 }}>
-                    {item.icon}
-                  </span>
-                  {item.label}
-                </Link>
-              </div>
-            );
-          })}
+        <nav className="flex-1 py-2 px-2 overflow-y-auto">
+
+          {/* Group 1: PRODUTO */}
+          <div
+            className="px-3 pt-3 pb-1"
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: "0.5rem",
+              letterSpacing: "0.16em",
+              color: "var(--accent)",
+              opacity: 0.7,
+            }}
+          >
+            PRODUTO
+          </div>
+          {PRODUTO_NAV.map((item) => (
+            <NavItem key={item.href} item={item} onClick={() => setOpen(false)} />
+          ))}
+
+          {/* Divider */}
+          <div
+            style={{
+              margin: "0.75rem 0.75rem 0",
+              height: 1,
+              background: "linear-gradient(90deg, transparent, var(--border), transparent)",
+            }}
+          />
+
+          {/* Group 2: PLATAFORMA */}
+          <div
+            className="px-3 pt-3 pb-1"
+            style={{
+              fontFamily: "var(--font-mono)",
+              fontSize: "0.5rem",
+              letterSpacing: "0.16em",
+              color: "var(--text-4)",
+            }}
+          >
+            PLATAFORMA
+          </div>
+          {PLATAFORMA_NAV.map((item) => (
+            <NavItem key={item.href} item={item} onClick={() => setOpen(false)} />
+          ))}
         </nav>
 
         {/* Footer */}
@@ -183,7 +205,7 @@ export function Sidebar() {
               opacity: 0.6,
             }}
           >
-            21 AGENTES • 52 CAPS • 6 GATES
+            9 AGENTES • 12 SKILLS • 6 GATES
           </div>
         </div>
       </aside>

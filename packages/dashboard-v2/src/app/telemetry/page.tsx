@@ -164,7 +164,7 @@ export default function TelemetryPage() {
             <span className="mono-label" style={{ fontSize: "0.6875rem", color: "var(--text-3)", fontFamily: "var(--font-mono)" }}>
               Total: <span style={{ color: "var(--accent)" }}>12.4K LOC</span>
             </span>
-            <span className="tag-badge">14 AGENTES</span>
+            <span className="tag-badge">26 AGENTES</span>
           </div>
         </div>
         <svg viewBox={`0 0 ${W_LOC} ${H_LOC}`} style={{ width: "100%", height: H_LOC, display: "block" }}>

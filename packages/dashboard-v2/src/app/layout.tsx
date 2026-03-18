@@ -8,7 +8,7 @@ const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-displ
 const ibmPlexMono = IBM_Plex_Mono({ weight: ["300", "400", "500", "600"], subsets: ["latin"], variable: "--font-mono" });
 
 export const metadata: Metadata = {
-  title: "PAGANINI AIOS — Command Center",
+  title: "PAGANINI AIOS — Central de Comando",
   description: "AI Operating System for Brazilian Credit Funds",
   icons: { icon: "data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🎻</text></svg>" },
 };
