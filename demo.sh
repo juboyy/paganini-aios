@@ -151,13 +151,8 @@ ok "paganini $(paganini --version 2>&1 | grep -oP '\d+\.\d+\.\d+')"
 # ══════════════════════════════════════════════════════════
 step "5" "Instalando CLI global"
 
-sudo tee /usr/local/bin/paganini > /dev/null << WRAPPER
-#!/usr/bin/env bash
-# PAGANINI AIOS — Global CLI wrapper
-export PYTHONPATH="${INSTALL_DIR}\${PYTHONPATH:+:\$PYTHONPATH}"
-cd "${INSTALL_DIR}"
-exec "${INSTALL_DIR}/.venv/bin/paganini" "\$@"
-WRAPPER
+printf '#!/usr/bin/env bash\nexport PYTHONPATH="%s:${PYTHONPATH:-}"\ncd "%s"\nexec "%s/.venv/bin/paganini" "$@"\n' \
+    "$INSTALL_DIR" "$INSTALL_DIR" "$INSTALL_DIR" | sudo tee /usr/local/bin/paganini > /dev/null
 sudo chmod +x /usr/local/bin/paganini
 ok "paganini disponível globalmente (/usr/local/bin/paganini)"
 
