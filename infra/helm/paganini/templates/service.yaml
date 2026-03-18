@@ -1,9 +1,9 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: {{ include "paganini.fullname" . }}
+  name: {{ .Release.Name }}-core
   labels:
-    {{- include "paganini.labels" . | nindent 4 }}
+    app: paganini
 spec:
   type: {{ .Values.service.type }}
   ports:
@@ -12,5 +12,78 @@ spec:
       protocol: TCP
       name: http
   selector:
-    {{- include "paganini.selectorLabels" . | nindent 4 }}
-    app.kubernetes.io/component: core
+    app: paganini
+    component: core
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: {{ .Release.Name }}-secrets
+type: Opaque
+stringData:
+  api-key: {{ .Values.provider.apiKey | quote }}
+{{- if .Values.corpus.persistentVolume.enabled }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ .Release.Name }}-corpus
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: {{ .Values.corpus.persistentVolume.size }}
+  {{- if .Values.corpus.persistentVolume.storageClass }}
+  storageClassName: {{ .Values.corpus.persistentVolume.storageClass }}
+  {{- end }}
+{{- end }}
+{{- if .Values.daemons.enabled }}
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ .Release.Name }}-daemons
+spec:
+  schedule: {{ .Values.daemons.schedule | quote }}
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          containers:
+            - name: daemons
+              image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+              command: ["paganini", "daemons", "run", "--all"]
+              env:
+                - name: PAGANINI_API_KEY
+                  valueFrom:
+                    secretKeyRef:
+                      name: {{ .Release.Name }}-secrets
+                      key: api-key
+          restartPolicy: OnFailure
+{{- end }}
+{{- if .Values.ingress.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ .Release.Name }}-ingress
+  annotations:
+    kubernetes.io/ingress.class: {{ .Values.ingress.className }}
+spec:
+  rules:
+    - host: {{ .Values.ingress.host }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ .Release.Name }}-core
+                port:
+                  number: {{ .Values.service.port }}
+  {{- if .Values.ingress.tls }}
+  tls:
+    {{- toYaml .Values.ingress.tls | nindent 4 }}
+  {{- end }}
+{{- end }}

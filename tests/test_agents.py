@@ -1,10 +1,11 @@
 """Tests for AgentRegistry and AgentDispatcher."""
 from __future__ import annotations
 
-from core.runtime.framework import AgentRegistry, AgentDispatcher
+import pytest
+from packages.agents.framework import AgentRegistry, AgentDispatcher
 
 
-SOULS_DIR = "packs/finance/agents/souls"
+SOULS_DIR = "packages/agents/souls"
 
 
 def test_registry_loads_nine_souls():

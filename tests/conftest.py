@@ -12,6 +12,7 @@ def tmp_dir():
 def sample_config(tmp_dir):
     return {
         "data_dir": str(tmp_dir / "data"),
+        "runtime": {"engine": "python", "moltis_config": "moltis.yaml", "gateway_url": "http://127.0.0.1:30000"},
         "rag": {"chunk_size": 384, "chunk_overlap": 64, "respect_headers": True, "top_k": 5},
         "provider": {"type": "google", "model": "gemini/gemini-2.5-flash", "api_key": "test"},
         "metaclaw": {"enabled": False, "skills_dir": str(tmp_dir / "skills"), "mode": "skills_only"},

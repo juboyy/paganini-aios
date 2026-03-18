@@ -1,55 +1,45 @@
-# PAGANINI AIOS — Example Configuration
-# Copy this file to config.yaml and fill in your API key
-# Docs: https://github.com/juboyy/paganini-aios
-
+# PAGANINI AIOS Configuration
 version: "0.1.0"
 
-# Runtime engine — how PAGANINI talks to LLMs
-#   moltis: via Moltis gateway (recommended, install.sh sets it up)
-#   python: direct litellm calls (no Moltis needed, good for dev)
-#   docker: containerized stack
+# Runtime engine
 runtime:
-  engine: moltis
+  engine: python
   moltis_config: moltis.yaml
   gateway_url: http://127.0.0.1:30000
 
-# LLM Provider — BYOK (Bring Your Own Key)
-# Your keys go directly to the provider. We never store or see them.
+# LLM Provider (BYOK — you keep your keys)
 provider:
-  type: openai          # openai | anthropic | google | ollama | custom
-  model: gpt-4o-mini    # any model your provider supports
-  api_key: ${OPENAI_API_KEY}  # reads from environment variable
-  base_url: ""          # custom endpoint (leave empty for default)
+  type: google
+  model: gemini/gemini-2.5-flash
+  api_key: ""
+  base_url: ""
 
-# RAG Pipeline — all params tunable by AutoResearch
+# RAG Pipeline (tunable by AutoResearch)
 rag:
-  chunk_size: 384       # tokens per chunk (128-1024)
-  chunk_overlap: 64     # overlap between chunks (0-256)
-  respect_headers: true # split by markdown headers first
-  top_k: 5              # chunks to retrieve per query
+  chunk_size: 384
+  chunk_overlap: 64
+  respect_headers: true
+  top_k: 5
   max_context_tokens: 8000
 
-# MetaClaw — skill evolution proxy
-# Learns from successful interactions and generates reusable skills
+# MetaClaw (skill evolution proxy)
 metaclaw:
-  enabled: true         # skill injection active by default (skills_only mode)
+  enabled: false
   skills_dir: skills/
-  auto_evolve: true     # automatically create skills from good interactions
+  auto_evolve: true
   max_skills: 500
-  mode: skills_only     # skills_only | rl | opd
+  proxy_url: ""
 
-# Guardrails — hard-stop checks (violations are BLOCKED, not warned)
+# Guardrails (6-gate hard-stop pipeline)
 guardrails:
-  eligibility: true     # direitos creditórios eligibility check
-  concentration: true   # concentration limits
-  covenant: true        # covenant compliance
-  pld_aml: true         # anti-money laundering
-  compliance: true      # regulatory compliance
-  risk_assessment: true # risk scoring
+  eligibility: true
+  concentration: true
+  covenant: true
+  pld_aml: true
+  compliance: true
+  risk_assessment: true
 
-# Domain pack
-pack: fidc
-
-# Data directories
+# Data paths
 data_dir: runtime/data
 corpus_dir: data/corpus/fidc/
+pack: fidc

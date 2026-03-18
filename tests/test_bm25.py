@@ -1,7 +1,8 @@
 """Tests for BM25Index — sparse retrieval engine."""
 from __future__ import annotations
 
-from core.rag.bm25 import BM25Index, _tokenize, _strip_accents
+import pytest
+from packages.rag.bm25 import BM25Index, _tokenize, _strip_accents
 
 
 DOCS = [

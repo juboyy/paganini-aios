@@ -1,0 +1,1232 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PAGANINI AIOS — Open-Core Map & Pricing</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:wght@400;600;700;800&family=Fragment+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --font-body: 'Bricolage Grotesque', system-ui, sans-serif;
+    --font-mono: 'Fragment Mono', 'SF Mono', Consolas, monospace;
+
+    --bg: #faf8f5;
+    --surface: #ffffff;
+    --surface2: #f5f2ed;
+    --surface-elevated: #fffdfb;
+    --border: rgba(0, 0, 0, 0.07);
+    --border-bright: rgba(0, 0, 0, 0.14);
+    --text: #1c1917;
+    --text-dim: #78716c;
+
+    --open: #059669;
+    --open-dim: rgba(5, 150, 105, 0.08);
+    --open-bg: rgba(5, 150, 105, 0.06);
+    --paid: #be123c;
+    --paid-dim: rgba(190, 18, 60, 0.06);
+    --paid-bg: rgba(190, 18, 60, 0.05);
+    --freemium: #d97706;
+    --freemium-dim: rgba(217, 119, 6, 0.08);
+    --freemium-bg: rgba(217, 119, 6, 0.05);
+    --internal: #6366f1;
+    --internal-dim: rgba(99, 102, 241, 0.08);
+
+    --accent: #1e3a5f;
+    --accent-dim: rgba(30, 58, 95, 0.06);
+    --gold: #d4a73a;
+    --gold-dim: rgba(212, 167, 58, 0.08);
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0f0d0a;
+      --surface: #1a1714;
+      --surface2: #231f1a;
+      --surface-elevated: #2a2520;
+      --border: rgba(255, 255, 255, 0.06);
+      --border-bright: rgba(255, 255, 255, 0.12);
+      --text: #f5f0e8;
+      --text-dim: #a89f94;
+
+      --open: #34d399;
+      --open-dim: rgba(52, 211, 153, 0.1);
+      --open-bg: rgba(52, 211, 153, 0.06);
+      --paid: #fb7185;
+      --paid-dim: rgba(251, 113, 133, 0.1);
+      --paid-bg: rgba(251, 113, 133, 0.06);
+      --freemium: #fbbf24;
+      --freemium-dim: rgba(251, 191, 36, 0.1);
+      --freemium-bg: rgba(251, 191, 36, 0.06);
+      --internal: #818cf8;
+      --internal-dim: rgba(129, 140, 248, 0.1);
+
+      --accent: #93c5fd;
+      --accent-dim: rgba(147, 197, 253, 0.08);
+      --gold: #fbbf24;
+      --gold-dim: rgba(251, 191, 36, 0.1);
+    }
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    background-image:
+      radial-gradient(ellipse at 20% 0%, var(--gold-dim) 0%, transparent 50%),
+      radial-gradient(ellipse at 80% 100%, var(--open-dim) 0%, transparent 40%);
+    color: var(--text);
+    font-family: var(--font-body);
+    padding: 40px 24px;
+    min-height: 100vh;
+    line-height: 1.5;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .animate {
+    animation: fadeUp 0.4s ease-out both;
+    animation-delay: calc(var(--i, 0) * 0.05s);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation-duration: 0.01ms !important; }
+  }
+
+  .wrap {
+    max-width: 1400px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: 170px 1fr;
+    gap: 0 40px;
+  }
+  .main { min-width: 0; }
+
+  /* ---- TOC ---- */
+  .toc {
+    position: sticky;
+    top: 24px;
+    align-self: start;
+    padding: 14px 0;
+    grid-row: 1 / -1;
+    max-height: calc(100dvh - 48px);
+    overflow-y: auto;
+  }
+  .toc::-webkit-scrollbar { width: 3px; }
+  .toc::-webkit-scrollbar-thumb { background: var(--surface-elevated); border-radius: 2px; }
+  .toc-title {
+    font-family: var(--font-mono);
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    padding: 0 0 10px;
+    margin-bottom: 8px;
+    border-bottom: 1px solid var(--border);
+  }
+  .toc a {
+    display: block;
+    padding: 6px 0 6px 12px;
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    text-decoration: none;
+    border-left: 2px solid transparent;
+    transition: all 0.15s;
+  }
+  .toc a:hover, .toc a.active {
+    color: var(--text);
+    border-left-color: var(--gold);
+    background: var(--gold-dim);
+  }
+
+  @media (max-width: 900px) {
+    .wrap { grid-template-columns: 1fr; }
+    .toc {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      grid-row: auto;
+      display: flex;
+      gap: 0;
+      overflow-x: auto;
+      overflow-y: hidden;
+      max-height: none;
+      padding: 8px 0;
+      margin: 0 -24px 24px;
+      padding-left: 24px;
+      background: color-mix(in srgb, var(--bg) 90%, transparent 10%);
+      backdrop-filter: blur(8px);
+      -webkit-backdrop-filter: blur(8px);
+      border-bottom: 1px solid var(--border);
+    }
+    .toc-title { display: none; }
+    .toc a {
+      white-space: nowrap;
+      padding: 6px 14px;
+      border-left: none;
+      border-bottom: 2px solid transparent;
+    }
+    .toc a:hover, .toc a.active { border-left-color: transparent; border-bottom-color: var(--gold); background: none; }
+  }
+
+  /* ---- Headers ---- */
+  h1 {
+    font-size: clamp(28px, 4vw, 42px);
+    font-weight: 800;
+    letter-spacing: -0.5px;
+    margin-bottom: 8px;
+  }
+  .subtitle {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--text-dim);
+    margin-bottom: 40px;
+    max-width: 600px;
+    line-height: 1.6;
+  }
+  .sec-head {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    padding: 20px 0 14px;
+    margin-top: 48px;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    scroll-margin-top: 80px;
+  }
+  .sec-head::before {
+    content: '';
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+  }
+  .sec-head--open::before { background: var(--open); }
+  .sec-head--paid::before { background: var(--paid); }
+  .sec-head--pricing::before { background: var(--gold); }
+  .sec-head--action::before { background: var(--accent); }
+
+  /* ---- Cards ---- */
+  .ve-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 16px 20px;
+    position: relative;
+  }
+  .ve-card--hero {
+    background: color-mix(in srgb, var(--surface) 92%, var(--gold) 8%);
+    box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+    border-color: color-mix(in srgb, var(--border) 50%, var(--gold) 50%);
+  }
+  .ve-card--elevated {
+    background: var(--surface-elevated);
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  .ve-card--recessed {
+    background: var(--surface2);
+    border-color: var(--border);
+  }
+  .ve-card__label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  .ve-card__label::before {
+    content: '';
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+  }
+
+  /* ---- KPI Row ---- */
+  .kpi-row {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 16px;
+    margin: 24px 0;
+  }
+  .kpi {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 20px;
+    text-align: center;
+  }
+  .kpi__value {
+    font-size: 32px;
+    font-weight: 800;
+    letter-spacing: -1px;
+    line-height: 1;
+    margin-bottom: 6px;
+  }
+  .kpi__label {
+    font-family: var(--font-mono);
+    font-size: 10px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-dim);
+  }
+  .kpi--open { border-left: 3px solid var(--open); }
+  .kpi--open .kpi__value { color: var(--open); }
+  .kpi--paid { border-left: 3px solid var(--paid); }
+  .kpi--paid .kpi__value { color: var(--paid); }
+  .kpi--freemium { border-left: 3px solid var(--freemium); }
+  .kpi--freemium .kpi__value { color: var(--freemium); }
+
+  /* ---- Tags ---- */
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 3px 8px;
+    border-radius: 4px;
+  }
+  .tag--open { background: var(--open-dim); color: var(--open); }
+  .tag--paid { background: var(--paid-dim); color: var(--paid); }
+  .tag--freemium { background: var(--freemium-dim); color: var(--freemium); }
+  .tag--internal { background: var(--internal-dim); color: var(--internal); }
+
+  /* ---- Table ---- */
+  .table-wrap {
+    overflow-x: auto;
+    margin: 16px 0;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+  }
+  thead {
+    position: sticky;
+    top: 0;
+    z-index: 2;
+  }
+  th {
+    background: var(--surface2);
+    font-family: var(--font-mono);
+    font-size: 10px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    color: var(--text-dim);
+    padding: 12px 14px;
+    text-align: left;
+    border-bottom: 1px solid var(--border-bright);
+  }
+  td {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    vertical-align: top;
+  }
+  tr:last-child td { border-bottom: none; }
+  tr:nth-child(even) td { background: var(--surface2); }
+  tr:hover td { background: var(--gold-dim); }
+  td code {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    background: var(--accent-dim);
+    padding: 1px 5px;
+    border-radius: 3px;
+  }
+
+  /* ---- Pricing grid ---- */
+  .pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+    margin: 24px 0;
+  }
+  @media (max-width: 700px) {
+    .pricing-grid { grid-template-columns: 1fr; }
+  }
+  .tier {
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    overflow: hidden;
+    background: var(--surface);
+  }
+  .tier--featured {
+    border-color: var(--gold);
+    box-shadow: 0 4px 20px var(--gold-dim);
+  }
+  .tier__header {
+    padding: 24px 20px 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .tier__name {
+    font-size: 18px;
+    font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .tier__price {
+    font-family: var(--font-mono);
+    font-size: 13px;
+    color: var(--text-dim);
+  }
+  .tier__body {
+    padding: 16px 20px;
+  }
+  .tier__body ul {
+    list-style: none;
+    padding: 0;
+  }
+  .tier__body li {
+    font-size: 13px;
+    padding: 6px 0;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .tier__body li:last-child { border-bottom: none; }
+  .check { color: var(--open); font-weight: 700; }
+  .cross { color: var(--paid); font-weight: 700; }
+  .partial { color: var(--freemium); font-weight: 700; }
+
+  /* ---- Flow diagram ---- */
+  .flow {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin: 24px 0;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .flow__step {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 16px;
+    font-size: 12px;
+    text-align: center;
+    min-width: 120px;
+  }
+  .flow__step strong { display: block; font-size: 13px; margin-bottom: 2px; }
+  .flow__arrow {
+    font-family: var(--font-mono);
+    color: var(--text-dim);
+    font-size: 16px;
+    padding: 0 6px;
+  }
+  .flow__step--open { border-left: 3px solid var(--open); }
+  .flow__step--paid { border-left: 3px solid var(--paid); }
+
+  /* ---- Action list ---- */
+  .actions {
+    counter-reset: action;
+    margin: 20px 0;
+  }
+  .action-item {
+    display: grid;
+    grid-template-columns: 36px 1fr;
+    gap: 12px;
+    padding: 14px 0;
+    border-bottom: 1px solid var(--border);
+    align-items: start;
+  }
+  .action-item:last-child { border-bottom: none; }
+  .action-item::before {
+    counter-increment: action;
+    content: counter(action);
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 700;
+    width: 28px;
+    height: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--accent-dim);
+    color: var(--accent);
+    border-radius: 6px;
+  }
+  .action-item p { font-size: 13px; line-height: 1.6; }
+  .action-item p strong { color: var(--text); }
+
+  /* ---- Notes ---- */
+  .note {
+    font-family: var(--font-mono);
+    font-size: 11px;
+    color: var(--text-dim);
+    padding: 12px 16px;
+    background: var(--surface2);
+    border-radius: 8px;
+    border-left: 3px solid var(--freemium);
+    margin: 16px 0;
+    line-height: 1.6;
+  }
+
+  /* ---- Collapsible ---- */
+  details {
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    margin: 12px 0;
+    overflow: hidden;
+  }
+  summary {
+    padding: 12px 16px;
+    font-family: var(--font-mono);
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    background: var(--surface2);
+    color: var(--text-dim);
+    list-style: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  summary::before {
+    content: '▸';
+    font-size: 10px;
+    transition: transform 0.2s;
+  }
+  details[open] summary::before { transform: rotate(90deg); }
+  summary::-webkit-details-marker { display: none; }
+  details > div { padding: 16px; }
+
+  .legend {
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+    margin: 16px 0;
+    font-size: 12px;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+<nav class="toc" id="toc">
+  <div class="toc-title">Índice</div>
+  <a href="#s1">1. Visão Geral</a>
+  <a href="#s2">2. Mapa de Arquivos</a>
+  <a href="#s3">3. Itens Pagos</a>
+  <a href="#s4">4. Precificação</a>
+  <a href="#s5">5. Comparativo por Tier</a>
+  <a href="#s6">6. Plano de Separação</a>
+  <a href="#s7">7. Problemas Atuais</a>
+</nav>
+
+<div class="main">
+
+<h1 class="animate" style="--i:0">PAGANINI AIOS — Open-Core Map</h1>
+<p class="subtitle animate" style="--i:1">
+  Mapeamento completo de visibilidade: o que é open source, o que é pago, e como separar.
+  Documento interno — não incluir no repositório público.
+</p>
+
+<!-- Legend -->
+<div class="legend animate" style="--i:2">
+  <div class="legend-item"><div class="legend-dot" style="background:var(--open)"></div> Open Source</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--paid)"></div> Pago (Pack)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--freemium)"></div> Freemium</div>
+  <div class="legend-item"><div class="legend-dot" style="background:var(--internal)"></div> Interno (nunca no repo)</div>
+</div>
+
+<!-- KPIs -->
+<div class="kpi-row animate" style="--i:3">
+  <div class="kpi kpi--open">
+    <div class="kpi__value">~41</div>
+    <div class="kpi__label">Arquivos Open</div>
+  </div>
+  <div class="kpi kpi--paid">
+    <div class="kpi__value">~180</div>
+    <div class="kpi__label">Arquivos Pagos</div>
+  </div>
+  <div class="kpi kpi--open">
+    <div class="kpi__value">6.750</div>
+    <div class="kpi__label">Linhas Open</div>
+  </div>
+  <div class="kpi kpi--paid">
+    <div class="kpi__value">7.600</div>
+    <div class="kpi__label">Linhas Pagas</div>
+  </div>
+</div>
+
+<!-- Principle -->
+<div class="ve-card ve-card--hero animate" style="--i:4">
+  <div class="ve-card__label" style="color:var(--gold)">Princípio</div>
+  <p style="font-size:15px;line-height:1.7">
+    <strong>Open Source = Motor</strong> (adoção, contribuição, confiança) →
+    <strong>Pago = Combustível</strong> (corpus, skills, agentes, templates).
+    O framework roda 100% funcional com dados de exemplo.
+    O valor real está no <strong>corpus regulatório curado</strong> (164 docs FIDC), <strong>skills treinadas</strong>, e <strong>agentes especializados</strong>.
+  </p>
+</div>
+
+<!-- Section 1: Overview -->
+<div id="s1" class="sec-head sec-head--open animate" style="--i:5">1 — Visão Geral da Estrutura</div>
+
+<div class="flow animate" style="--i:6">
+  <div class="flow__step flow__step--open">
+    <strong>Framework</strong>
+    CLI + RAG + Router
+  </div>
+  <div class="flow__arrow">→</div>
+  <div class="flow__step flow__step--open">
+    <strong>Engine</strong>
+    Moltis + MetaClaw
+  </div>
+  <div class="flow__arrow">→</div>
+  <div class="flow__step flow__step--paid">
+    <strong>Domain Pack</strong>
+    Corpus + SOULs + Rules
+  </div>
+  <div class="flow__arrow">→</div>
+  <div class="flow__step flow__step--open">
+    <strong>LLM Provider</strong>
+    BYOK (qualquer)
+  </div>
+</div>
+
+<div class="note animate" style="--i:7">
+  O framework funciona sem o pack pago. Roda com dados de exemplo (sample/).
+  A diferença: dados fake vs inteligência real de FIDC.
+</div>
+
+<!-- Section 2: File Map -->
+<div id="s2" class="sec-head sec-head--open animate" style="--i:8">2 — Mapa de Arquivos por Visibilidade</div>
+
+<div class="table-wrap animate" style="--i:9">
+<table>
+<thead>
+  <tr>
+    <th style="width:40%">Arquivo / Diretório</th>
+    <th style="width:12%">Status</th>
+    <th style="width:8%">Linhas</th>
+    <th>Justificativa</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td><code>packages/kernel/cli.py</code></td>
+    <td><span class="tag tag--open">Open</span></td>
+    <td>630</td>
+    <td>Entry point do produto — sem lógica de domínio</td>
+  </tr>
+  <tr>
+    <td><code>packages/kernel/engine.py</code></td>
+    <td><span class="tag tag--open">Open</span></td>
+    <td>129</td>
+    <td>Config loader genérico</td>
+  </tr>
+  <tr>
+    <td><code>packages/kernel/moltis.py</code></td>
+    <td><span class="tag tag--open">Open</span></td>
+    <td>184</td>
+    <td>Adapter Moltis — infra, sem domínio</td>
+  </tr>
+  <tr>
+    <td><code>packages/kernel/metaclaw.py</code></td>
+    <td><span class="tag tag--open">Open</span></td>
+    <td>187</td>
+    <td>Framework MetaClaw (shell vazio, skills vêm do pack)</td>
+  </tr>
+  <tr>
+    <td><code>packages/kernel/router.py</code></td>
+    <td><span class="tag tag--open">Open</span></td>
+    <td>411</td>
+    <td>Cognitive Router — classificação genérica</td>
+  </tr>
+  <tr>
+    <td><code>packages/kernel/memory.py</code></td>
+    <td><span class="tag tag--open">Open</span></td>
+    <td>452</td>
+    <td>Memory manager genérico</td>
+  </tr>
+  <tr>
+    <td><code>packages/kernel/pack.py</code></td>
+    <td><span class="tag tag--open">Open</span></td>
+    <td>90</td>
+    <td>Pack manager — instala/lista packs</td>
+  </tr>
+  <tr>
+    <td><code>packages/kernel/reports.py</code></td>
+    <td><span class="tag tag--open">Open</span></td>
+    <td>105</td>
+    <td>Report engine (render genérico)</td>
+  </tr>
+  <tr>
+    <td><code>packages/kernel/daemons.py</code></td>
+    <td><span class="tag tag--freemium">Misto</span></td>
+    <td>730</td>
+    <td>Framework open, <strong>3 handlers FIDC são IP pago</strong> (~300 linhas)</td>
+  </tr>
+  <tr>
+    <td><code>packages/rag/pipeline.py</code></td>
+    <td><span class="tag tag--open">Open</span></td>
+    <td>361</td>
+    <td>RAG engine genérico (dense + BM25 + RRF)</td>
+  </tr>
+  <tr>
+    <td><code>packages/rag/bm25.py</code></td>
+    <td><span class="tag tag--open">Open</span></td>
+    <td>235</td>
+    <td>BM25 puro Python — sem dependência de domínio</td>
+  </tr>
+  <tr>
+    <td><code>packages/rag/eval.py</code></td>
+    <td><span class="tag tag--open">Open</span></td>
+    <td>179</td>
+    <td>Eval harness — nunca modificado pelo LLM</td>
+  </tr>
+  <tr>
+    <td><code>packages/rag/autoresearch/</code></td>
+    <td><span class="tag tag--open">Open</span></td>
+    <td>525+</td>
+    <td>AutoResearch engine — inovação genérica</td>
+  </tr>
+  <tr>
+    <td><code>packages/ontology/</code></td>
+    <td><span class="tag tag--open">Open</span></td>
+    <td>507</td>
+    <td>KG schema + builder — genérico</td>
+  </tr>
+  <tr>
+    <td><code>packages/agents/framework.py</code></td>
+    <td><span class="tag tag--open">Open</span></td>
+    <td>200</td>
+    <td>Agent registry + dispatcher (engine)</td>
+  </tr>
+  <tr>
+    <td><code>packages/agents/souls/*.md</code></td>
+    <td><span class="tag tag--paid">Pago</span></td>
+    <td>~450</td>
+    <td><strong>9 SOULs FIDC</strong> — IP de domínio curado</td>
+  </tr>
+  <tr>
+    <td><code>packages/shared/guardrails.py</code></td>
+    <td><span class="tag tag--freemium">Misto</span></td>
+    <td>199</td>
+    <td>Engine open, <strong>regras CVM 175 hardcoded são IP pago</strong></td>
+  </tr>
+  <tr>
+    <td><code>packages/integrations/slack_bot.py</code></td>
+    <td><span class="tag tag--freemium">Freemium</span></td>
+    <td>436</td>
+    <td>Bot framework open, templates de resposta pagos</td>
+  </tr>
+  <tr>
+    <td><code>packages/dashboard/app.py</code></td>
+    <td><span class="tag tag--freemium">Freemium</span></td>
+    <td>445</td>
+    <td>MVP open, dashboards avançados pagos</td>
+  </tr>
+  <tr>
+    <td><code>templates/reports/*.qmd</code></td>
+    <td><span class="tag tag--paid">Pago</span></td>
+    <td>~340</td>
+    <td><strong>5 templates regulatórios</strong> (ANBIMA, BACEN, IFRS9)</td>
+  </tr>
+  <tr>
+    <td><code>data/corpus/fidc/</code></td>
+    <td><span class="tag tag--paid">Pago</span></td>
+    <td>6.4MB</td>
+    <td><strong>164 docs</strong> — corpus regulatório (já gitignored)</td>
+  </tr>
+  <tr>
+    <td><code>eval_questions.jsonl</code></td>
+    <td><span class="tag tag--freemium">Misto</span></td>
+    <td>20 Q&A</td>
+    <td>5 genéricas open, 20 completas no pack</td>
+  </tr>
+  <tr>
+    <td><code>tests/</code></td>
+    <td><span class="tag tag--open">Open</span></td>
+    <td>~550</td>
+    <td>Testes usam mocks, não corpus real</td>
+  </tr>
+  <tr>
+    <td><code>infra/</code></td>
+    <td><span class="tag tag--open">Open</span></td>
+    <td>—</td>
+    <td>Helm, Docker, compose — infra genérica</td>
+  </tr>
+  <tr>
+    <td><code>docs/</code></td>
+    <td><span class="tag tag--open">Open</span></td>
+    <td>—</td>
+    <td>Arquitetura, segurança — transparência gera confiança</td>
+  </tr>
+  <tr>
+    <td><code>docs/business/OPEN_CORE_MAP.md</code></td>
+    <td><span class="tag tag--internal">Interno</span></td>
+    <td>—</td>
+    <td>Este documento — nunca no repo público</td>
+  </tr>
+</tbody>
+</table>
+</div>
+
+<!-- Section 3: Paid Items Detail -->
+<div id="s3" class="sec-head sec-head--paid animate" style="--i:10">3 — Detalhamento dos Itens Pagos</div>
+
+<details class="animate" style="--i:11">
+  <summary>guardrails.py — Regras CVM 175 embutidas</summary>
+  <div>
+    <p style="font-size:13px;line-height:1.7;margin-bottom:12px">
+      Contém limites regulatórios hardcoded: concentração por cedente (10%, 20%),
+      thresholds de elegibilidade, regras PLD/AML (PEP, sanções), limites de risco.
+    </p>
+    <p style="font-size:13px;line-height:1.7"><strong>Solução:</strong>
+      Separar engine (open) de rules (pack). O engine recebe regras como <code>rules.yaml</code>;
+      o pack FIDC fornece o arquivo com os valores reais da CVM.
+    </p>
+  </div>
+</details>
+
+<details class="animate" style="--i:12">
+  <summary>agents/souls/*.md — 9 SOULs FIDC especializados</summary>
+  <div>
+    <p style="font-size:13px;line-height:1.7;margin-bottom:12px">
+      Cada SOUL define comportamento, heurísticas regulatórias, domínios e keywords
+      curadas por papel: Gestor, Administrador, Custodiante, Compliance, Reporting,
+      Due Diligence, Regulatory Watch, Investor Relations, Pricing.
+    </p>
+    <p style="font-size:13px;line-height:1.7"><strong>Solução:</strong>
+      No repo aberto: <code>_template.md</code> + <code>sample_agent.md</code>.
+      Os 9 SOULs reais vão em <code>packs/fidc/souls/</code>.
+    </p>
+  </div>
+</details>
+
+<details class="animate" style="--i:13">
+  <summary>templates/reports/*.qmd — 5 templates regulatórios</summary>
+  <div>
+    <p style="font-size:13px;line-height:1.7;margin-bottom:12px">
+      Informe mensal (ANBIMA), CADOC 3040 (BACEN), PDD/IFRS9, Risk report, Covenant report.
+      Cada template é produto de consultoria regulatória curada.
+    </p>
+    <p style="font-size:13px;line-height:1.7"><strong>Solução:</strong>
+      No repo aberto: <code>_template.qmd</code> genérico.
+      5 templates reais vão em <code>packs/fidc/templates/</code>.
+    </p>
+  </div>
+</details>
+
+<details class="animate" style="--i:14">
+  <summary>daemons.py — 3 handlers com lógica FIDC</summary>
+  <div>
+    <p style="font-size:13px;line-height:1.7;margin-bottom:12px">
+      <code>covenant_monitor</code> (inadimplência/subordinação/concentração),
+      <code>pdd_calculator</code> (IFRS9 staging: S1=0.5%, S2=5%, S3=20%),
+      <code>risk_scanner</code> (VaR 99%, diversificação, liquidez).
+      ~300 linhas de lógica de domínio.
+    </p>
+    <p style="font-size:13px;line-height:1.7"><strong>Solução:</strong>
+      Framework (scheduler, registry, logging) fica open.
+      3 handlers extraídos para <code>packs/fidc/daemons/</code>.
+    </p>
+  </div>
+</details>
+
+<details class="animate" style="--i:15">
+  <summary>data/corpus/ — 164 docs regulatórios (já gitignored)</summary>
+  <div>
+    <p style="font-size:13px;line-height:1.7">
+      6.4MB de corpus curado: CVM 175 (57 artigos), 300 dores de mercado, IFRS9/PDD/COFIs,
+      20+ tipos de FIDC, API specs, 80 diferenciais competitivos.
+      Já está no <code>.gitignore</code>. Entregue via <code>paganini install fidc-*</code>.
+    </p>
+  </div>
+</details>
+
+<!-- Section 4: Pricing -->
+<div id="s4" class="sec-head sec-head--pricing animate" style="--i:16">4 — Precificação Revisada</div>
+
+<div class="pricing-grid animate" style="--i:17">
+  <!-- Community -->
+  <div class="tier">
+    <div class="tier__header">
+      <div class="tier__name">Community</div>
+      <div class="tier__price">Gratuito — para sempre</div>
+    </div>
+    <div class="tier__body">
+      <ul>
+        <li><span class="check">✓</span> Framework completo (CLI + RAG + Router)</li>
+        <li><span class="check">✓</span> 1 agente genérico</li>
+        <li><span class="check">✓</span> Guardrails (engine, sem regras FIDC)</li>
+        <li><span class="check">✓</span> Daemons (framework, sem handlers FIDC)</li>
+        <li><span class="check">✓</span> AutoResearch engine</li>
+        <li><span class="check">✓</span> MetaClaw (skills_only)</li>
+        <li><span class="check">✓</span> Dashboard API only</li>
+        <li><span class="check">✓</span> 1 fundo (demo)</li>
+        <li><span class="cross">✗</span> Corpus FIDC</li>
+        <li><span class="cross">✗</span> Slack bot</li>
+        <li><span class="cross">✗</span> Templates regulatórios</li>
+        <li><span class="partial">~</span> Suporte: GitHub Issues</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Professional -->
+  <div class="tier tier--featured">
+    <div class="tier__header" style="background:var(--gold-dim)">
+      <div class="tier__name">Professional</div>
+      <div class="tier__price">R$8.000/mês por fundo</div>
+    </div>
+    <div class="tier__body">
+      <ul>
+        <li><span class="check">✓</span> Tudo do Community</li>
+        <li><span class="check">✓</span> <strong>9 agentes FIDC especializados</strong></li>
+        <li><span class="check">✓</span> <strong>Corpus regulatório (164 docs)</strong></li>
+        <li><span class="check">✓</span> <strong>Regras CVM 175 completas</strong></li>
+        <li><span class="check">✓</span> <strong>3 daemon handlers reais</strong></li>
+        <li><span class="check">✓</span> <strong>5 templates QMD</strong></li>
+        <li><span class="check">✓</span> MetaClaw + RL mode</li>
+        <li><span class="check">✓</span> Dashboard full UI</li>
+        <li><span class="check">✓</span> Slack IR Bot</li>
+        <li><span class="check">✓</span> Até 10 fundos</li>
+        <li><span class="check">✓</span> Knowledge Graph FIDC</li>
+        <li><span class="partial">~</span> Suporte: Slack, SLA 4h</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Enterprise -->
+  <div class="tier">
+    <div class="tier__header">
+      <div class="tier__name">Enterprise</div>
+      <div class="tier__price">R$25.000/mês — fundos ilimitados</div>
+    </div>
+    <div class="tier__body">
+      <ul>
+        <li><span class="check">✓</span> Tudo do Professional</li>
+        <li><span class="check">✓</span> Agentes customizados</li>
+        <li><span class="check">✓</span> MetaClaw OPD mode (teacher-student)</li>
+        <li><span class="check">✓</span> Dashboard white-label</li>
+        <li><span class="check">✓</span> Templates customizados</li>
+        <li><span class="check">✓</span> Fundos ilimitados</li>
+        <li><span class="check">✓</span> Extensão de ontologia</li>
+        <li><span class="check">✓</span> Early access a updates</li>
+        <li><span class="check">✓</span> Onboarding white-glove</li>
+        <li><span class="check">✓</span> Infra managed (opcional)</li>
+        <li><span class="partial">~</span> Suporte: Dedicado, SLA 1h</li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- Section 5: Feature Comparison Table -->
+<div id="s5" class="sec-head sec-head--pricing animate" style="--i:18">5 — Comparativo Detalhado por Tier</div>
+
+<div class="table-wrap animate" style="--i:19">
+<table>
+<thead>
+  <tr>
+    <th style="width:30%">Recurso</th>
+    <th style="width:23%">Community</th>
+    <th style="width:23%">Professional</th>
+    <th style="width:24%">Enterprise</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td>Framework (CLI + RAG)</td>
+    <td><span class="tag tag--open">✓ Completo</span></td>
+    <td><span class="tag tag--open">✓ Completo</span></td>
+    <td><span class="tag tag--open">✓ Completo</span></td>
+  </tr>
+  <tr>
+    <td>Corpus regulatório</td>
+    <td>Dados de exemplo (sample/)</td>
+    <td><span class="tag tag--paid">164 docs FIDC</span></td>
+    <td><span class="tag tag--paid">164 + custom</span></td>
+  </tr>
+  <tr>
+    <td>Agentes especializados</td>
+    <td>1 genérico</td>
+    <td>9 FIDC</td>
+    <td>9 + custom sob demanda</td>
+  </tr>
+  <tr>
+    <td>Guardrails</td>
+    <td>Engine (sem regras)</td>
+    <td>Engine + regras CVM 175</td>
+    <td>Engine + CVM + custom</td>
+  </tr>
+  <tr>
+    <td>Daemons</td>
+    <td>Framework + health_check</td>
+    <td>+ covenant, pdd, risk</td>
+    <td>+ custom handlers</td>
+  </tr>
+  <tr>
+    <td>Report Templates</td>
+    <td>1 exemplo</td>
+    <td>5 QMD (ANBIMA, BACEN, IFRS9)</td>
+    <td>5 + custom</td>
+  </tr>
+  <tr>
+    <td>MetaClaw</td>
+    <td>skills_only</td>
+    <td>+ RL mode (Tinker API)</td>
+    <td>+ OPD mode (teacher-student)</td>
+  </tr>
+  <tr>
+    <td>Dashboard</td>
+    <td>API only</td>
+    <td>Full UI + gráficos</td>
+    <td>White-label</td>
+  </tr>
+  <tr>
+    <td>Slack Bot</td>
+    <td>—</td>
+    <td>IR bot completo</td>
+    <td>+ custom workflows</td>
+  </tr>
+  <tr>
+    <td>Fundos</td>
+    <td>1 (demo)</td>
+    <td>Até 10</td>
+    <td>Ilimitado</td>
+  </tr>
+  <tr>
+    <td>Knowledge Graph</td>
+    <td>Framework (schema + builder)</td>
+    <td>FIDC ontology pré-populado</td>
+    <td>+ extensão de domínio</td>
+  </tr>
+  <tr>
+    <td>AutoResearch</td>
+    <td><span class="tag tag--open">✓ Completo</span></td>
+    <td><span class="tag tag--open">✓ Completo</span></td>
+    <td><span class="tag tag--open">✓ Completo</span></td>
+  </tr>
+  <tr>
+    <td>LLM</td>
+    <td>BYOK</td>
+    <td>BYOK</td>
+    <td>BYOK ou managed</td>
+  </tr>
+  <tr>
+    <td>Infra</td>
+    <td>Self-hosted</td>
+    <td>Self-hosted</td>
+    <td>Self ou managed</td>
+  </tr>
+  <tr>
+    <td>Suporte</td>
+    <td>GitHub Issues</td>
+    <td>Slack, SLA 4h</td>
+    <td>Dedicado, SLA 1h</td>
+  </tr>
+  <tr>
+    <td>Onboarding</td>
+    <td>Self-serve (docs)</td>
+    <td>Assistido (call + setup)</td>
+    <td>White-glove (presencial)</td>
+  </tr>
+</tbody>
+</table>
+</div>
+
+<!-- Section 6: Separation Plan -->
+<div id="s6" class="sec-head sec-head--action animate" style="--i:20">6 — Plano de Separação (Quando Abrir o Repo)</div>
+
+<div class="actions animate" style="--i:21">
+  <div class="action-item">
+    <p>
+      <strong>Extrair SOULs para packs/fidc/souls/</strong><br>
+      Mover 9 arquivos .md de <code>packages/agents/souls/</code>.
+      Criar <code>_template.md</code> + <code>sample_agent.md</code> no lugar.
+    </p>
+  </div>
+  <div class="action-item">
+    <p>
+      <strong>Extrair templates para packs/fidc/templates/</strong><br>
+      Mover 5 arquivos .qmd de <code>templates/reports/</code>.
+      Criar <code>_template.qmd</code> genérico.
+    </p>
+  </div>
+  <div class="action-item">
+    <p>
+      <strong>Refatorar guardrails.py → engine + rules.yaml</strong><br>
+      Engine genérico carrega regras de arquivo YAML.
+      Pack FIDC fornece <code>rules.yaml</code> com valores CVM.
+    </p>
+  </div>
+  <div class="action-item">
+    <p>
+      <strong>Extrair handlers FIDC de daemons.py</strong><br>
+      Separar covenant_monitor, pdd_calculator, risk_scanner (~300 linhas)
+      em <code>packs/fidc/daemons/</code>. Framework loader descobre handlers do pack.
+    </p>
+  </div>
+  <div class="action-item">
+    <p>
+      <strong>Reduzir eval_questions.jsonl</strong><br>
+      Manter 5 perguntas genéricas no repo. 20 completas vão em <code>packs/fidc/eval/</code>.
+    </p>
+  </div>
+  <div class="action-item">
+    <p>
+      <strong>Adicionar markers <code>PAGANINI-PAID</code></strong><br>
+      Marcar blocos de IP nos arquivos mistos com comentários especiais
+      para extração automatizada via script.
+    </p>
+  </div>
+  <div class="action-item">
+    <p>
+      <strong>Gitignore packs/ + scrub history</strong><br>
+      <code>git filter-repo</code> para remover SOULs e templates do histórico.
+      Rodar trufflehog + gitleaks antes de abrir.
+    </p>
+  </div>
+  <div class="action-item">
+    <p>
+      <strong>Criar data/sample/ com dados sintéticos</strong><br>
+      sample-regulation.md, sample-fund.json, sample-cedentes.json —
+      framework funcional sem pack pago.
+    </p>
+  </div>
+</div>
+
+<!-- Section 7: Current Problems -->
+<div id="s7" class="sec-head sec-head--paid animate" style="--i:22">7 — Problemas no Pricing Atual</div>
+
+<div class="table-wrap animate" style="--i:23">
+<table>
+<thead>
+  <tr>
+    <th style="width:8%">#</th>
+    <th style="width:30%">Problema</th>
+    <th style="width:32%">Impacto</th>
+    <th style="width:30%">Solução</th>
+  </tr>
+</thead>
+<tbody>
+  <tr>
+    <td><strong>1</strong></td>
+    <td>Dois modelos conflitantes (license + pay-per-query)</td>
+    <td>Confunde o comprador — qual é o modelo real?</td>
+    <td>Unificar: license mensal com queries incluídas por tier</td>
+  </tr>
+  <tr>
+    <td><strong>2</strong></td>
+    <td>AUM-based pricing complexo demais</td>
+    <td>Difícil de vender/explicar em seed stage</td>
+    <td>Simplificar: per-fund flat (R$8K/mês), sem faixas de AUM</td>
+  </tr>
+  <tr>
+    <td><strong>3</strong></td>
+    <td>Setup fee alto (R$15K-40K) mata conversão</td>
+    <td>Barreira de entrada insuperável para pilotos</td>
+    <td>Absorver no MRR ou oferecer trial 30 dias</td>
+  </tr>
+  <tr>
+    <td><strong>4</strong></td>
+    <td>Sem tier gratuito</td>
+    <td>Zero atração orgânica, sem community growth</td>
+    <td>Community tier gratuito com framework completo</td>
+  </tr>
+  <tr>
+    <td><strong>5</strong></td>
+    <td>Sem self-service</td>
+    <td>Todo deal requer contato comercial</td>
+    <td>Community auto-install; Pro via CLI com license key</td>
+  </tr>
+  <tr>
+    <td><strong>6</strong></td>
+    <td>Pack pricing desconectado do pricing geral</td>
+    <td>Dois sistemas de preço paralelos</td>
+    <td>Packs = tiers (starter, professional, enterprise)</td>
+  </tr>
+</tbody>
+</table>
+</div>
+
+<!-- Unit Economics -->
+<div class="ve-card ve-card--elevated animate" style="--i:24; margin-top:24px">
+  <div class="ve-card__label" style="color:var(--gold)">Unit Economics Revisados (Y1)</div>
+  <div class="kpi-row" style="margin:12px 0 0">
+    <div class="kpi kpi--open">
+      <div class="kpi__value">500</div>
+      <div class="kpi__label">Community Users</div>
+    </div>
+    <div class="kpi kpi--freemium">
+      <div class="kpi__value">5%</div>
+      <div class="kpi__label">Conversão → Pro</div>
+    </div>
+    <div class="kpi" style="border-left:3px solid var(--gold)">
+      <div class="kpi__value" style="color:var(--gold)">R$3.9M</div>
+      <div class="kpi__label">ARR Projetado Y1</div>
+    </div>
+    <div class="kpi kpi--open">
+      <div class="kpi__value">~90%</div>
+      <div class="kpi__label">Margem Bruta (BYOK)</div>
+    </div>
+  </div>
+  <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-top:16px; font-size:13px">
+    <div>
+      <strong>Pro:</strong> 25 fundos × R$8K/mês = R$2.4M ARR<br>
+      CAC: ~R$15K (inbound) | LTV/CAC: 6.4x
+    </div>
+    <div>
+      <strong>Enterprise:</strong> 3-5 deals × R$300K/ano = R$1.5M ARR<br>
+      CAC: ~R$50K (outbound + POC)
+    </div>
+  </div>
+</div>
+
+<div class="note animate" style="--i:25; margin-top:24px">
+  Documento interno — não incluir no repositório público.<br>
+  Última atualização: 2026-03-15
+</div>
+
+</div><!-- /main -->
+</div><!-- /wrap -->
+
+<script>
+// Scroll spy for TOC
+const sections = document.querySelectorAll('.sec-head');
+const tocLinks = document.querySelectorAll('.toc a');
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      tocLinks.forEach(l => l.classList.remove('active'));
+      const link = document.querySelector(`.toc a[href="#${entry.target.id}"]`);
+      if (link) link.classList.add('active');
+    }
+  });
+}, { rootMargin: '-20% 0px -70% 0px' });
+sections.forEach(s => observer.observe(s));
+</script>
+
+</body>
+</html>

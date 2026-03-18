@@ -3,6 +3,7 @@ node_modules/
 __pycache__/
 *.pyc
 .venv/
+.venv-ci/
 venv/
 
 # Environment
@@ -40,3 +41,4 @@ build/
 .vscode/
 .idea/
 .cursor/
+.gitnexus

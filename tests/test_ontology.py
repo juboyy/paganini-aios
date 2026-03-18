@@ -1,14 +1,15 @@
 """Tests for KnowledgeGraph and OntologyBuilder."""
 from __future__ import annotations
 
-from core.runtime.ontology_schema import (
+import pytest
+from packages.ontology.schema import (
     KnowledgeGraph,
     Entity,
     EntityType,
     Relation,
     RelationType,
 )
-from core.runtime.ontology_builder import OntologyBuilder
+from packages.ontology.builder import OntologyBuilder
 
 
 # ---------------------------------------------------------------------------

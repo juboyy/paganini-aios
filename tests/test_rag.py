@@ -2,7 +2,10 @@
 from __future__ import annotations
 
 import pytest
-from core.rag.pipeline import RAGPipeline
+
+chromadb = pytest.importorskip("chromadb", reason="chromadb not installed — skipping RAG tests")
+
+from packages.rag.pipeline import RAGPipeline  # noqa: E402
 
 
 def test_rag_ingest_chunk_count(sample_config, sample_corpus):

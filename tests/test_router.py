@@ -1,10 +1,11 @@
 """Tests for CognitiveRouter — query classification and routing decisions."""
 from __future__ import annotations
 
-from core.router.cognitive_router import CognitiveRouter, QueryClassification, RoutingDecision
+import pytest
+from packages.kernel.router import CognitiveRouter, QueryClassification, RoutingDecision
 
 
-SOULS_DIR = "packs/finance/agents/souls"
+SOULS_DIR = "packages/agents/souls"
 
 
 def _router(tmp_dir) -> CognitiveRouter:
