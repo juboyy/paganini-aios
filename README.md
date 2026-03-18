@@ -109,7 +109,7 @@ paganini up
 
 ## O Que É
 
-Paganini é uma **plataforma de agentes autônomos de IA** que replica a estrutura operacional de um fundo de investimento. Cada participante (administrador, custodiante, gestor) ganha um agente de IA que opera 24/7, segue regulações por design, e melhora com cada interação.
+Paganini é uma **plataforma de agentes autônomos de código** — um AI Operating System que orquestra agentes especializados para executar tarefas complexas de software e operações financeiras. O core é código: code review, geração de specs, deploy pipelines, segurança, testes. A vertical FIDC é o primeiro **domain pack** construído sobre esse motor.
 
 ### Arquitetura
 
@@ -120,8 +120,8 @@ Entrada (CLI / Slack / API / Dashboard)
   🧠 Cognitive Router — classifica, roteia, estima confiança
          │
          ▼
-  🤖 Swarm de 9 Agentes — cada um com identidade, skills e escopo próprio
-         │
+  🤖 Swarm de Agentes — cada um com identidade, skills e escopo próprio
+         │              (12 agentes de código + 9 agentes FIDC)
          ▼
   🔍 Hybrid RAG — Dense + Sparse + Graph → RRF Fusion
          │
@@ -157,7 +157,7 @@ Entrada (CLI / Slack / API / Dashboard)
 
 ## Modelo de Negócio — Open Core
 
-O framework é gratuito. A inteligência de domínio é o produto.
+O framework e o pack starter são **open source**. Domain packs avançados são o produto.
 
 ```bash
 paganini pack list
@@ -165,13 +165,14 @@ paganini pack list
 
 | | Starter | Professional | Enterprise |
 |---|:---:|:---:|:---:|
-| **Preço** | R$ 2K/mês | R$ 8K/mês | R$ 25K/mês |
-| **Agentes** | 3 | 9 | 9 + custom |
-| **Skills** | 3 | 12 | 12 + custom |
+| **Preço** | **Grátis (OSS)** | R$ 8K/mês | R$ 25K/mês |
+| **Agentes de código** | 12 | 12 | 12 + custom |
+| **Agentes de domínio** | 3 | 9 | 9 + custom |
+| **Skills** | Core | 15 (8 código + 7 domínio) | 15 + custom |
 | **Guardrails** | Básico | Completo | Completo + custom |
 | **Relatórios QMD** | — | 5 templates | 8 + custom |
-| **Regulatory Watch** | — | ✅ | ✅ |
-| **SLA** | — | — | 99.9% |
+| **LoRA / Auto-evolução** | skills_only | rl (LoRA live) | rl + opd (destilação) |
+| **SLA** | Community | — | 99.9% |
 
 ---
 
