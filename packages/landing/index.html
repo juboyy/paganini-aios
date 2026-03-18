@@ -265,6 +265,69 @@
   .reveal.d2 { animation-delay: 0.2s; }
   .reveal.d3 { animation-delay: 0.3s; }
   .reveal.d4 { animation-delay: 0.4s; }
+
+  /* Scroll-triggered reveals */
+  .sr { opacity: 0; transform: translateY(24px); transition: opacity 0.7s ease-out, transform 0.7s ease-out; }
+  .sr.visible { opacity: 1; transform: translateY(0); }
+
+  /* Dashboard preview */
+  .dashboard-preview {
+    margin-top: 64px;
+    border: 1px solid rgba(0,0,0,0.08);
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 24px 80px rgba(0,0,0,0.08);
+    position: relative;
+  }
+  .dashboard-preview .browser-bar {
+    background: var(--bg-2);
+    padding: 10px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+  }
+  .dashboard-preview .dot { width: 10px; height: 10px; border-radius: 50%; }
+  .dashboard-preview .dot.r { background: #ff5f57; }
+  .dashboard-preview .dot.y { background: #febc2e; }
+  .dashboard-preview .dot.g { background: #28c840; }
+  .dashboard-preview .url-bar {
+    flex: 1; margin-left: 12px;
+    background: var(--surface); border-radius: 4px; padding: 4px 12px;
+    font-size: 0.6875rem; color: var(--fg-3);
+  }
+  .dashboard-preview iframe {
+    width: 100%; height: 540px; border: none; display: block;
+  }
+  @media (max-width: 768px) {
+    .dashboard-preview iframe { height: 360px; }
+  }
+  .dashboard-preview .overlay {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    height: 80px;
+    background: linear-gradient(transparent, var(--bg));
+    display: flex; align-items: flex-end; justify-content: center; padding-bottom: 16px;
+  }
+  .dashboard-preview .overlay a {
+    padding: 10px 24px; background: var(--accent); color: #fff;
+    text-decoration: none; font-size: 0.8125rem; font-weight: 500;
+    border-radius: var(--radius);
+  }
+
+  /* Testimonial / Social Proof */
+  .social-proof {
+    display: flex;
+    gap: 48px;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    padding: 24px 0;
+  }
+  .social-proof .item {
+    text-align: center;
+  }
+  .social-proof .num { font-family: 'DM Serif Display', serif; font-size: 1.5rem; color: var(--fg); }
+  .social-proof .desc { font-size: 0.6875rem; color: var(--fg-4); text-transform: uppercase; letter-spacing: 0.1em; }
 </style>
 </head>
 <body>
@@ -284,8 +347,20 @@
     <h1 class="reveal">O gestor de FIDC que <em>nunca dorme</em></h1>
     <p class="sub reveal d1">19 agentes autônomos de IA que monitoram, analisam e executam operações de fundos de crédito — 24 horas por dia, com 6 portões de compliance automáticos e total rastreabilidade regulatória.</p>
     <div class="actions reveal d2">
-      <a href="#demo" class="primary">Ver demo ao vivo</a>
+      <a href="https://dashboard-v2-pearl-rho.vercel.app" class="primary" target="_blank">Ver Dashboard ao Vivo →</a>
       <a href="#architecture" class="secondary">Arquitetura →</a>
+    </div>
+
+    <!-- Dashboard Preview -->
+    <div class="dashboard-preview reveal d3">
+      <div class="browser-bar">
+        <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
+        <div class="url-bar">dashboard-v2-pearl-rho.vercel.app</div>
+      </div>
+      <iframe src="https://dashboard-v2-pearl-rho.vercel.app/" loading="lazy" title="Paganini Dashboard"></iframe>
+      <div class="overlay">
+        <a href="https://dashboard-v2-pearl-rho.vercel.app" target="_blank">Explorar Dashboard Completo →</a>
+      </div>
     </div>
   </div>
 </section>
@@ -316,7 +391,7 @@
 
 <!-- Problem / Solution -->
 <section>
-  <div class="container">
+  <div class="container sr">
     <div class="problem-grid">
       <div>
         <p class="upper muted" style="margin-bottom: 16px;">O Problema</p>
@@ -346,7 +421,7 @@
 
 <!-- Guardrails Flow -->
 <section style="background: var(--bg-2);">
-  <div class="container">
+  <div class="container sr">
     <p class="upper muted" style="margin-bottom: 12px;">Compliance Automático</p>
     <h2 style="margin-bottom: 8px;">6 portões. Zero exceções.</h2>
     <p class="muted" style="margin-bottom: 40px; max-width: 520px;">Toda operação de compra de recebíveis passa por 6 verificações automáticas antes de ser aprovada. Sem intervenção humana.</p>
@@ -369,7 +444,7 @@
 
 <!-- Agents -->
 <section id="agents">
-  <div class="container">
+  <div class="container sr">
     <p class="upper muted" style="margin-bottom: 12px;">Frota de Agentes</p>
     <h2 style="margin-bottom: 8px;">9 especialistas que nunca param</h2>
     <p class="muted" style="margin-bottom: 48px; max-width: 520px;">Cada agente domina uma função crítica do FIDC. Eles colaboram, se monitoram e escalam quando necessário.</p>
@@ -390,7 +465,7 @@
 
 <!-- Architecture -->
 <section id="architecture" style="background: var(--bg-2);">
-  <div class="container">
+  <div class="container sr">
     <p class="upper muted" style="margin-bottom: 12px;">Arquitetura</p>
     <h2 style="margin-bottom: 48px;">Construído para escala e auditoria</h2>
 
@@ -449,7 +524,7 @@ Monitoramento contínuo com alertas automáticos em 12%.
 
 <!-- Pricing -->
 <section id="pricing" style="background: var(--bg-2);">
-  <div class="container">
+  <div class="container sr">
     <p class="upper muted" style="margin-bottom: 12px;">Planos</p>
     <h2 style="margin-bottom: 48px;">Comece pequeno. Escale quando quiser.</h2>
 
@@ -512,6 +587,14 @@ Monitoramento contínuo com alertas automáticos em 12%.
     </div>
   </div>
 </footer>
+
+<script>
+  // Scroll-triggered reveals
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); observer.unobserve(e.target); } });
+  }, { threshold: 0.15 });
+  document.querySelectorAll('.sr').forEach(el => observer.observe(el));
+</script>
 
 </body>
 </html>
