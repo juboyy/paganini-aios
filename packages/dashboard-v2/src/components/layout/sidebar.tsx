@@ -4,17 +4,17 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 
 const NAV = [
-  { href: "/", label: "COMMAND", icon: "⬡" },
-  { href: "/agents", label: "AGENT FLEET", icon: "◎" },
+  { href: "/", label: "CENTRAL", icon: "⬡" },
+  { href: "/agents", label: "AGENTES", icon: "◎" },
   { href: "/guardrails", label: "GUARDRAILS", icon: "⛊" },
-  { href: "/memory", label: "KNOWLEDGE", icon: "◈" },
-  { href: "/learning", label: "LEARNING", icon: "🧠" },
-  { href: "/pipeline", label: "EXECUTION", icon: "▷" },
-  { href: "/symphony", label: "ORCHESTRA", icon: "≋" },
-  { href: "/fund", label: "FIDC PACK", icon: "▣" },
-  { href: "/telemetry", label: "TELEMETRY", icon: "△" },
+  { href: "/memory", label: "CONHECIMENTO", icon: "◈" },
+  { href: "/learning", label: "APRENDIZADO", icon: "🧠" },
+  { href: "/pipeline", label: "EXECUÇÃO", icon: "▷" },
+  { href: "/symphony", label: "ORQUESTRA", icon: "≋" },
+  { href: "/fund", label: "PACK FIDC", icon: "▣" },
+  { href: "/telemetry", label: "TELEMETRIA", icon: "△" },
   { href: "/capabilities", label: "SKILLS", icon: "⊞" },
-  { href: "/settings", label: "CONFIG", icon: "⚙" },
+  { href: "/settings", label: "CONFIGURAÇÃO", icon: "⚙" },
 ];
 
 export function Sidebar() {
@@ -71,7 +71,7 @@ export function Sidebar() {
               PAGANINI
             </div>
             <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", color: "var(--accent)", letterSpacing: "0.14em" }}>
-              AI OPERATING SYSTEM
+              SISTEMA OPERACIONAL IA
             </div>
           </div>
         </div>
@@ -81,7 +81,7 @@ export function Sidebar() {
           className="px-4 pt-4 pb-1"
           style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", letterSpacing: "0.16em", color: "var(--text-4)" }}
         >
-          PLATFORM
+          PLATAFORMA
         </div>
 
         {/* Nav */}
@@ -95,7 +95,7 @@ export function Sidebar() {
                     className="px-3 pt-4 pb-1"
                     style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", letterSpacing: "0.16em", color: "var(--text-4)" }}
                   >
-                    VERTICALS
+                    VERTICAIS
                   </div>
                 )}
                 <Link
@@ -141,7 +141,7 @@ export function Sidebar() {
             KERNEL ONLINE
           </div>
           <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", color: "var(--text-4)", marginTop: "4px", opacity: 0.6 }}>
-            9 AGENTS • 11 SKILLS • 6 GATES
+            14 AGENTES • 15 SKILLS • 6 GATES
           </div>
         </div>
       </aside>
