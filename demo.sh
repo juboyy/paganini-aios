@@ -143,7 +143,7 @@ if [ ! -f ".venv/bin/activate" ]; then
 fi
 source .venv/bin/activate
 pip install --upgrade pip -q 2>/dev/null
-pip install -e ".[dev]" -q 2>&1 | tail -1
+pip install ".[dev]" -q 2>&1 | tail -1
 ok "paganini $(paganini --version 2>&1 | grep -oP '\d+\.\d+\.\d+')"
 
 # ══════════════════════════════════════════════════════════
