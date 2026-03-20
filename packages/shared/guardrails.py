@@ -21,6 +21,7 @@ class GuardrailResult:
     passed: bool
     gates: list[GateResult]
     blocked_by: Optional[str] = None
+    cvm_240_compliant: bool = False  # CVM Resolution 240/2026 — Recuperação Judicial
 
     @property
     def summary(self) -> str:
@@ -74,14 +75,84 @@ class GuardrailPipeline:
             (g for g in gates if not g.passed and g.severity == "block"), None
         )
 
+        # CVM 240/2026: mark result as compliant if eligibility gate applied CVM 240 rules
+        eligibility_gate = next((g for g in gates if g.gate == "eligibility"), None)
+        cvm_240_applied = eligibility_gate is not None and (
+            "CVM 240" in eligibility_gate.reason or "recuperação judicial" in eligibility_gate.reason.lower()
+        )
+
         return GuardrailResult(
             passed=blocked is None,
             gates=gates,
             blocked_by=blocked.gate if blocked else None,
+            cvm_240_compliant=cvm_240_applied,
         )
 
     def _gate_eligibility(self, response: str) -> GateResult:
-        """Gate 1: Check for dangerous eligibility recommendations."""
+        """Gate 1: Check for dangerous eligibility recommendations.
+
+        CVM Resolution 240/2026 (effective March 2026):
+        - Performados receivables from companies in judicial recovery (recuperação judicial)
+          are NOW classified as "padronizados" — eligible for FIDC acquisition.
+        - Co-obligation from a company in RJ does NOT automatically classify as NP.
+        - Gate allows performados from RJ cedentes when CVM 240 compliance is confirmed.
+        """
+        response_lower = response.lower()
+
+        # CVM 240/2026: detect receivables from companies in judicial recovery
+        rj_keywords = [
+            "recuperação judicial",
+            "recuperacao judicial",
+            "empresa em rj",
+            "cedente em recuperação",
+            "cedente em recuperacao",
+        ]
+        is_rj_context = any(kw in response_lower for kw in rj_keywords)
+
+        if is_rj_context:
+            # CVM 240: performados from RJ are now padronizados — ALLOWED
+            performado_keywords = ["performado", "crédito performado", "credito performado", "adimplente"]
+            is_performado = any(kw in response_lower for kw in performado_keywords)
+
+            # Non-performing from RJ — warn but don't block (may be restructuring scenario)
+            inadimplente_keywords = ["inadimplente", "não performado", "nao performado", "em atraso"]
+            is_non_performing = any(kw in response_lower for kw in inadimplente_keywords)
+
+            if is_performado and not is_non_performing:
+                return GateResult(
+                    gate="eligibility",
+                    passed=True,
+                    reason=(
+                        "CVM 240/2026: crédito performado de cedente em recuperação judicial "
+                        "classificado como padronizado — elegível para aquisição por FIDCs."
+                    ),
+                    severity="info",
+                )
+            elif is_non_performing:
+                return GateResult(
+                    gate="eligibility",
+                    passed=True,
+                    reason=(
+                        "ATENÇÃO CVM 240/2026: crédito de cedente em RJ com possível inadimplência. "
+                        "Verificar se é performado. Créditos não-performados de cedentes em RJ "
+                        "devem ser classificados como NP. Due diligence reforçada necessária."
+                    ),
+                    severity="warning",
+                )
+            else:
+                # RJ context without clear performing/non-performing signal — warn
+                return GateResult(
+                    gate="eligibility",
+                    passed=True,
+                    reason=(
+                        "CVM 240/2026: cedente em recuperação judicial detectado. "
+                        "Confirmar se o recebível é performado (padronizado) ou não-performado (NP) "
+                        "antes da aquisição. Co-obrigação de cedente em RJ não classifica automaticamente como NP."
+                    ),
+                    severity="warning",
+                )
+
+        # Standard dangerous eligibility patterns (non-RJ context)
         dangerous = [
             "sem critérios de elegibilidade",
             "dispensar elegibilidade",
@@ -91,7 +162,7 @@ class GuardrailPipeline:
             "aceitar todos os recebíveis",
         ]
         for phrase in dangerous:
-            if phrase in response.lower():
+            if phrase in response_lower:
                 return GateResult(
                     gate="eligibility",
                     passed=False,
