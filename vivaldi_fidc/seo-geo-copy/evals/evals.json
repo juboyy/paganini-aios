@@ -1,0 +1,23 @@
+{
+  "skill_name": "seo-geo-copy",
+  "evals": [
+    {
+      "id": 1,
+      "prompt": "Escreva um artigo de blog sobre tokenização de recebíveis no mercado brasileiro, focando em dados de 2025-2026, players como Liqi, Vórtx e MB Tokens. O artigo deve ranquear no Google e ser citável por AI search. Máximo 800 palavras.",
+      "expected_output": "Artigo em Markdown com frontmatter YAML completo (tags, description, keywords), heading hierarchy H1→H2→H3, keyword primária nos locais obrigatórios, dados com fonte, seções autossuficientes com TL;DR, FAQ com 3+ perguntas, entidades nomeadas, founders citados, CTA implícito no fechamento.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "prompt": "Crie o copy completo para uma landing page da plataforma Vivaldi FIDC — voltada para gestores de fundos que precisam automatizar relatórios regulatórios (CADOC, CVM, ANBIMA). Inclua headline, subheadline, seção de dores, benefícios, prova social e CTA. Otimize para SEO e conversão.",
+      "expected_output": "Copy de landing page em Markdown com estrutura PAS ou AIDA, headline com keyword + benefício, CTA above the fold, trust signals, FAQ com objeções comuns, copy orientado a benefícios (não features), tom técnico mas persuasivo para gestores B2B.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "prompt": "Monte uma campanha de Google Ads para FIDCs de infraestrutura isentos de IR. Crie 3 ad groups com keywords, 2 RSAs por grupo (headlines e descriptions completos), e esboce o copy da landing page de cada grupo. Foco em Quality Score alto.",
+      "expected_output": "Estrutura de campanha com 3 ad groups, keywords por grupo (2-3 each), RSAs com 15 headlines e 4 descriptions cada, message match entre ads e landing pages, extensões recomendadas, copy das landing pages com headline, subheadline, benefícios e CTA.",
+      "files": []
+    }
+  ]
+}

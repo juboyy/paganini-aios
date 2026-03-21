@@ -1,0 +1,10 @@
+
+### **Art. 20º - Conteúdo do Regulamento**
+
+> Art. 20. Em acréscimo às matérias dispostas no art. 48 da parte geral da Resolução, o regulamento do FIDC deve dispor sobre: I – índice referencial, se houver, para cada subclasse em separado; II – índice de subordinação, se houver, para cada subclasse em separado, assim como os procedimentos aplicáveis na hipótese de inobservância desse índice; III – taxa de performance, se houver; IV – remuneração da consultoria especializada, se houver; V – diferenciação entre as subclasses, se houver; VI – diferenciação entre as séries de cotas seniores e subordinadas mezanino, se houver, nos termos do art. 8º, parágrafo único, deste Anexo Normativo II; VII – possibilidade de a verificação do lastro dos direitos creditórios ser executada por amostragem, e bem como especificação dos parâmetros relativos à diversificação de devedores, quantidade e valor médio dos créditos a serem observados para esse fim; VIII – procedimentos aplicáveis à cobrança dos direitos creditórios, incluindo aqueles vencidos e não pagos; e IX – eventos que ensejam a liquidação antecipada da classe. § 1º O índice de subordinação de cada subclasse de cotas mezanino e da subclasse de cotas subordinadas deve ser expresso no regulamento por meio de uma taxa percentual do patrimônio líquido da classe de cotas. § 2º Caso o fundo conte com diferentes classes de cotas, as matérias previstas nos incisos do caput devem ser disciplinadas no anexo da classe a que se referirem.
+
+> Art. 20. Em acréscimo às matérias dispostas no art. 48 da parte geral da Resolução, o regulamento do FIDC deve dispor sobre: I – índice referencial, se houver... II – índice de subordinação... III – taxa de performance... (e outros 6 itens)
+
+**Nota Explicativa:**
+
+O regulamento é o "contrato" do fundo. Ele deve detalhar todas as regras de funcionamento, incluindo aspectos específicos dos FIDCs como índice de subordinação, critérios de elegibilidade dos créditos, procedimentos de cobrança, etc.
