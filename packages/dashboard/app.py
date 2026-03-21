@@ -92,6 +92,36 @@ def create_app(config: dict) -> Any:  # noqa: ANN401
     # REST API
     # ----------------------------------------------------------------
 
+
+    # AUTO-INGEST: Load corpus on startup if BM25 is empty
+    bm25_path = Path.cwd() / 'runtime' / 'data' / 'bm25_index.json'
+    corpus_dirs = [
+        Path.cwd() / 'packs' / 'fidc' / 'corpus',
+        Path.cwd() / 'packs' / 'finance' / 'corpus',
+        Path.cwd() / 'data' / 'sample-corpus',
+    ]
+    need_ingest = True
+    if bm25_path.exists():
+        import json as _json
+        try:
+            _bm25 = _json.load(open(bm25_path))
+            if len(_bm25.get('ids', [])) >= 80:
+                need_ingest = False
+        except Exception:
+            pass
+    if need_ingest:
+        for cdir in corpus_dirs:
+            if cdir.exists() and list(cdir.rglob('*.md')):
+                try:
+                    from packages.rag.pipeline import RAGPipeline
+                    rag = RAGPipeline.from_config(Path.cwd() / 'config.yaml')
+                    stats = rag.ingest(str(cdir))
+                    print(f'[auto-ingest] {cdir.name}: {stats["chunks"]} chunks from {stats["files"]} files')
+                    if stats.get('chunks', 0) > 0:
+                        break
+                except Exception as e:
+                    print(f'[auto-ingest] {cdir.name} failed: {e}')
+
     @app.get("/api/health")
     async def health() -> dict:
         return {"status": "ok", "version": "0.1.0"}
@@ -260,6 +290,34 @@ def create_app(config: dict) -> Any:  # noqa: ANN401
         urls = [u for u in result.stdout.strip().splitlines() if u]
         url = urls[-1] if urls else "unknown"
         return {"tunnel_url": url}
+
+
+    @app.get("/api/chunks")
+    async def list_chunks(source: str = None, limit: int = 20) -> dict:
+        """List indexed chunks with optional source filter."""
+        import json as _json
+        bm25_path = Path.cwd() / "runtime" / "data" / "bm25_index.json"
+        if not bm25_path.exists():
+            return {"total": 0, "chunks": [], "sources": []}
+        data = _json.load(open(bm25_path))
+        ids = data.get("ids", [])
+        metas = data.get("metadatas", [])
+        sources = list(set(m.get("source", "?") for m in metas))
+        if source:
+            filtered = [(i, m) for i, m in zip(ids, metas) if source.lower() in m.get("source", "").lower()]
+        else:
+            filtered = list(zip(ids, metas))
+        chunks = [{"id": i, **m} for i, m in filtered[:limit]]
+        return {"total": len(ids), "showing": len(chunks), "sources": sources, "chunks": chunks}
+
+    @app.get("/api/chunks/export")
+    async def export_chunks() -> dict:
+        """Export chunks summary for RL training."""
+        export_path = Path.cwd() / "runtime" / "rl-training-data.json"
+        if export_path.exists():
+            import json as _json
+            return _json.load(open(export_path))
+        return {"error": "Run: python3 scripts/export_chunks_for_rl.py"}
 
     @app.get("/api/risk/score")
     async def risk_score(
