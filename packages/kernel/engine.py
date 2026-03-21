@@ -130,3 +130,20 @@ def _resolve_env_vars(obj):
     elif isinstance(obj, list):
         return [_resolve_env_vars(v) for v in obj]
     return obj
+
+
+def load_funds(config: dict = None) -> list:
+    """Load all fund profiles from runtime/funds/."""
+    import json
+    funds_dir = Path.cwd() / "runtime" / "funds"
+    if not funds_dir.exists():
+        funds_dir = Path(__file__).resolve().parent.parent.parent / "runtime" / "funds"
+    if not funds_dir.exists():
+        return []
+    funds = []
+    for f in sorted(funds_dir.glob("*.json")):
+        try:
+            funds.append(json.loads(f.read_text()))
+        except Exception:
+            continue
+    return funds
