@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PAGANINI — System Validation</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#0a0c10;--bg2:#12151c;--bg3:#1a1e28;
+  --text:#e2e4e9;--text2:#8b8f9a;--text3:#565a65;
+  --green:#4ade80;--green-bg:rgba(74,222,128,.08);
+  --red:#f87171;--red-bg:rgba(248,113,113,.08);
+  --amber:#fbbf24;--amber-bg:rgba(251,191,36,.08);
+  --blue:#60a5fa;--blue-bg:rgba(96,165,250,.08);
+  --border:#1e2230;--mono:'JetBrains Mono',monospace;--sans:'DM Sans',sans-serif;
+}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);min-height:100vh;-webkit-font-smoothing:antialiased}
+.shell{max-width:920px;margin:0 auto;padding:clamp(2rem,5vw,4rem) clamp(1rem,3vw,2rem)}
+h1{font-size:clamp(1.4rem,3vw,1.8rem);font-weight:700;letter-spacing:-.02em;margin-bottom:.25rem}
+.sub{color:var(--text2);font-size:.85rem;margin-bottom:2rem}
+.auth-bar{display:flex;gap:.5rem;margin-bottom:2rem;flex-wrap:wrap}
+.auth-bar input{flex:1;min-width:200px;background:var(--bg2);border:1px solid var(--border);border-radius:6px;padding:.6rem .8rem;color:var(--text);font-family:var(--mono);font-size:.8rem;outline:none}
+.auth-bar input:focus{border-color:var(--blue)}
+.auth-bar button{background:var(--blue);color:#000;border:none;border-radius:6px;padding:.6rem 1.4rem;font-family:var(--sans);font-weight:600;font-size:.8rem;cursor:pointer;white-space:nowrap}
+.auth-bar button:hover{opacity:.9}
+.auth-bar button:disabled{opacity:.4;cursor:not-allowed}
+.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:.75rem;margin-bottom:2rem}
+.stat{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:1rem;text-align:center}
+.stat-val{font-family:var(--mono);font-size:1.6rem;font-weight:700}
+.stat-label{font-size:.7rem;color:var(--text2);text-transform:uppercase;letter-spacing:.08em;margin-top:.25rem}
+.stat.pass .stat-val{color:var(--green)} .stat.fail .stat-val{color:var(--red)} .stat.skip .stat-val{color:var(--amber)}
+.section{margin-bottom:1.5rem}
+.section-title{font-size:.75rem;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--text2);padding-bottom:.5rem;border-bottom:1px solid var(--border);margin-bottom:.75rem}
+.test{display:flex;align-items:flex-start;gap:.75rem;padding:.6rem .75rem;border-radius:6px;margin-bottom:.35rem;transition:background .15s}
+.test:hover{background:var(--bg2)}
+.test-icon{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.65rem;flex-shrink:0;margin-top:2px}
+.test.pass .test-icon{background:var(--green-bg);color:var(--green)}
+.test.fail .test-icon{background:var(--red-bg);color:var(--red)}
+.test.running .test-icon{background:var(--blue-bg);color:var(--blue);animation:pulse 1s infinite}
+.test.pending .test-icon{background:var(--bg3);color:var(--text3)}
+@keyframes pulse{50%{opacity:.4}}
+.test-body{flex:1;min-width:0}
+.test-name{font-size:.85rem;font-weight:500}
+.test-detail{font-family:var(--mono);font-size:.72rem;color:var(--text2);margin-top:.2rem;word-break:break-all}
+.test-time{font-family:var(--mono);font-size:.7rem;color:var(--text3);flex-shrink:0}
+.log{background:var(--bg2);border:1px solid var(--border);border-radius:8px;padding:1rem;margin-top:2rem;max-height:300px;overflow-y:auto;font-family:var(--mono);font-size:.72rem;line-height:1.7;color:var(--text2)}
+.log-entry{white-space:pre-wrap}
+.log-entry.error{color:var(--red)} .log-entry.ok{color:var(--green)} .log-entry.info{color:var(--blue)}
+@media(max-width:600px){.summary{grid-template-columns:repeat(2,1fr)}.auth-bar{flex-direction:column}}
+</style>
+</head>
+<body>
+<div class="shell">
+  <h1>System Validation</h1>
+  <p class="sub">Bateria automatizada · 7 seções · 19 testes</p>
+  <div class="auth-bar">
+    <input id="apiUrl" placeholder="API URL" value="https://resumes-seal-consultant-done.trycloudflare.com">
+    <input id="apiKey" type="password" placeholder="API Key">
+    <button id="runBtn" onclick="runAll()">▶ EXECUTAR</button>
+  </div>
+  <div class="summary">
+    <div class="stat" id="s-total"><div class="stat-val">19</div><div class="stat-label">Total</div></div>
+    <div class="stat pass" id="s-pass"><div class="stat-val">—</div><div class="stat-label">Passou</div></div>
+    <div class="stat fail" id="s-fail"><div class="stat-val">—</div><div class="stat-label">Falhou</div></div>
+    <div class="stat" id="s-time"><div class="stat-val">—</div><div class="stat-label">Tempo</div></div>
+  </div>
+  <div id="tests"></div>
+  <div class="log" id="log"></div>
+</div>
+<script>
+const TESTS = [
+  {section:'Infraestrutura', tests:[
+    {id:'health',name:'Health Check',fn:async(api)=>{const r=await api('/api/health');assert(r.status==='ok','status should be ok')}},
+    {id:'status',name:'Status Online',fn:async(api)=>{const r=await api('/api/status');assert(r.status==='online','should be online');return `chunks=${r.rag.chunks_indexed}`}},
+    {id:'auth-reject',name:'Auth Rejection (no key)',fn:async(api,url)=>{const r=await fetch(url+'/api/status');assert(r.status===401||r.status===403,'should reject without key')}},
+  ]},
+  {section:'RAG Pipeline', tests:[
+    {id:'query-basic',name:'Query Básica',fn:async(api)=>{const r=await api('/api/query?q=O+que+%C3%A9+FIDC');assert(r.answer&&r.answer.length>50,'should return substantial answer');return `conf=${(r.confidence*100).toFixed(0)}%, ${r.sources.length} sources`}},
+    {id:'query-cvm240',name:'CVM 240 — Recuperação Judicial',fn:async(api)=>{const r=await api('/api/query?q=Posso+comprar+recebiveis+de+empresa+em+recuperacao+judicial');assert(r.confidence>0.7,'confidence should be >70%');assert(r.guardrails.cvm_240_compliant===true,'should be CVM 240 compliant');return `conf=${(r.confidence*100).toFixed(0)}%, cvm_240=${r.guardrails.cvm_240_compliant}`}},
+  ]},
+  {section:'Guardrails', tests:[
+    {id:'gates',name:'6 Gates Ativos',fn:async(api)=>{const r=await api('/api/guardrails');assert(r.gates.length===6,`expected 6 gates, got ${r.gates.length}`);return r.gates.map(g=>g.gate).join(', ')}},
+    {id:'gate-eligibility',name:'Gate: Eligibility',fn:async(api)=>{const r=await api('/api/guardrails');assert(r.gates.find(g=>g.gate==='eligibility')?.status==='active','should be active')}},
+    {id:'gate-pld',name:'Gate: PLD/AML',fn:async(api)=>{const r=await api('/api/guardrails');assert(r.gates.find(g=>g.gate==='pld_aml')?.status==='active','should be active')}},
+  ]},
+  {section:'Agentes', tests:[
+    {id:'agents-count',name:'14 Agentes Carregados',fn:async(api)=>{const r=await api('/api/agents');assert(r.agents.length===14,`expected 14, got ${r.agents.length}`);return r.agents.map(a=>a.slug).join(', ')}},
+    {id:'agent-gestor',name:'Agent: Gestor (SOUL present)',fn:async(api)=>{const r=await api('/api/agents');const g=r.agents.find(a=>a.slug==='gestor');assert(g,'gestor not found');assert(g.role&&g.role.length>20,'should have SOUL content')}},
+    {id:'agent-compliance',name:'Agent: Compliance',fn:async(api)=>{const r=await api('/api/agents');assert(r.agents.find(a=>a.slug==='compliance'),'compliance agent not found')}},
+  ]},
+  {section:'Bayesian Risk Network', tests:[
+    {id:'risk-low',name:'Cenário LOW risk',fn:async(api)=>{const r=await api('/api/risk/score?cdi=stable&setor=financeiro&atrasos=0&rating=AAA');assert(r.risk_level==='LOW',`expected LOW, got ${r.risk_level}`);return `score=${r.risk_score.toFixed(3)}`}},
+    {id:'risk-high',name:'Cenário HIGH risk',fn:async(api)=>{const r=await api('/api/risk/score?cdi=rising&setor=varejo&atrasos=3_plus&rating=below_investment&concentracao=high');assert(['HIGH','MEDIUM-HIGH','MEDIUM'].includes(r.risk_level),`expected elevated risk, got ${r.risk_level}`);return `score=${r.risk_score.toFixed(3)}, level=${r.risk_level}`}},
+    {id:'risk-fields',name:'Response Schema',fn:async(api)=>{const r=await api('/api/risk/score');for(const k of['p_default','pdd_nivel','covenant_trigger','rating_impact','risk_score','risk_level','recommendation','evidence'])assert(k in r,`missing field: ${k}`)}},
+  ]},
+  {section:'Fundos', tests:[
+    {id:'funds-load',name:'Fundos Onboarded',fn:async(api)=>{const r=await api('/api/funds');assert(r.funds.length>=1,`no funds loaded`);return `${r.funds.length} funds: ${r.funds.map(f=>f.slug).join(', ')}`}},
+    {id:'fund-schema',name:'Schema Completo (CNPJ, PL, Rating)',fn:async(api)=>{const r=await api('/api/funds');const f=r.funds[0];for(const k of['cnpj','patrimonio_liquido','rating','gestor','custodiante'])assert(k in f,`missing: ${k}`);return `${f.name} — PL R$${(f.patrimonio_liquido/1e6).toFixed(1)}M`}},
+  ]},
+  {section:'Memória', tests:[
+    {id:'memory',name:'Memory Stats',fn:async(api)=>{const r=await api('/api/memory/stats');assert(r.episodic>0,'should have episodic memories');return `episodic=${r.episodic}, semantic=${r.semantic}`}},
+  ]},
+];
+
+function assert(cond,msg){if(!cond)throw new Error(msg)}
+let LOG=[];
+function log(msg,cls='info'){LOG.push({msg,cls});const el=document.getElementById('log');el.innerHTML=LOG.map(l=>`<div class="log-entry ${l.cls}">${l.msg}</div>`).join('');el.scrollTop=el.scrollHeight}
+
+function render(){
+  const container=document.getElementById('tests');
+  container.innerHTML=TESTS.map(s=>`
+    <div class="section">
+      <div class="section-title">${s.section}</div>
+      ${s.tests.map(t=>`
+        <div class="test ${t.status||'pending'}" id="t-${t.id}">
+          <div class="test-icon">${t.status==='pass'?'✓':t.status==='fail'?'✗':t.status==='running'?'◌':'·'}</div>
+          <div class="test-body">
+            <div class="test-name">${t.name}</div>
+            ${t.detail?`<div class="test-detail">${t.detail}</div>`:''}
+          </div>
+          ${t.time?`<div class="test-time">${t.time}ms</div>`:''}
+        </div>`).join('')}
+    </div>`).join('');
+}
+
+async function runAll(){
+  const url=document.getElementById('apiUrl').value.trim().replace(/\/$/,'');
+  const key=document.getElementById('apiKey').value.trim();
+  if(!key){alert('API Key obrigatória');return}
+  document.getElementById('runBtn').disabled=true;
+  LOG=[];
+  const allTests=TESTS.flatMap(s=>s.tests);
+  allTests.forEach(t=>{t.status='pending';t.detail='';t.time=null});
+  render();
+  const api=async(path)=>{const r=await fetch(url+path,{headers:{'X-API-Key':key}});if(!r.ok)throw new Error(`HTTP ${r.status}`);return r.json()};
+  let passed=0,failed=0;
+  const t0=performance.now();
+  for(const section of TESTS){
+    log(`── ${section.section} ──`);
+    for(const t of section.tests){
+      t.status='running';render();
+      const ts=performance.now();
+      try{
+        const detail=await t.fn(api,url);
+        t.status='pass';t.time=Math.round(performance.now()-ts);
+        t.detail=detail||'';passed++;
+        log(`  ✓ ${t.name} (${t.time}ms) ${t.detail||''}`,'ok');
+      }catch(e){
+        t.status='fail';t.time=Math.round(performance.now()-ts);
+        t.detail=e.message;failed++;
+        log(`  ✗ ${t.name}: ${e.message}`,'error');
+      }
+      render();
+    }
+  }
+  const total=Math.round(performance.now()-t0);
+  document.querySelector('#s-pass .stat-val').textContent=passed;
+  document.querySelector('#s-fail .stat-val').textContent=failed;
+  document.querySelector('#s-time .stat-val').textContent=total<1000?total+'ms':(total/1000).toFixed(1)+'s';
+  document.getElementById('s-pass').className=`stat ${passed>0?'pass':''}`;
+  document.getElementById('s-fail').className=`stat ${failed>0?'fail':''}`;
+  log(`\n═══ ${passed}/${passed+failed} passed in ${total}ms ═══`,failed?'error':'ok');
+  document.getElementById('runBtn').disabled=false;
+}
+render();
+</script>
+</body>
+</html>
