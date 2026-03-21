@@ -1,0 +1,142 @@
+# PAGANINI Pipeline — FIDC Domain
+domain: fidc
+version: "1.0"
+execution_engine: packages.kernel.engine
+intelligence_layer: packages.rag.pipeline
+
+guardrail_gates:
+  - eligibility
+  - concentration
+  - covenant
+  - pld_aml
+  - compliance
+  - risk_assessment
+
+stages:
+  - id: 1
+    name: Context Scout
+    kind: context
+    agent: orchestrator
+    description: Search memory, corpus, prior decisions, fund state
+    artifacts: [context.md]
+
+  - id: 2
+    name: Regulatory Check
+    kind: research
+    agent: regulatory_watch
+    description: Check CVM/ANBIMA/BCB for relevant regulations
+    artifacts: [regulatory-context.md]
+    depends_on: [1]
+
+  - id: 3
+    name: Risk Assessment
+    kind: design
+    agent: risk
+    description: Bayesian risk scoring, portfolio impact analysis
+    artifacts: [risk-report.json]
+    depends_on: [1, 2]
+    guardrails: [eligibility, concentration, risk_assessment]
+
+  - id: 4
+    name: Compliance Gate
+    kind: validate
+    agent: compliance
+    description: Run all 6 guardrail gates, check PLD/AML
+    artifacts: [compliance-result.json]
+    depends_on: [3]
+    guardrails: [pld_aml, compliance, covenant]
+
+  - id: 5
+    name: Specification
+    kind: spec
+    agent: gestor
+    description: Fund manager spec — what to do, with what constraints
+    artifacts: [spec.md]
+    depends_on: [1, 2, 3, 4]
+
+  - id: 6
+    name: Execute Operation
+    kind: execute
+    agent: administrador
+    description: Execute the fund operation (acquisition, redemption, report)
+    artifacts: [execution-log.json]
+    depends_on: [5]
+
+  - id: 7
+    name: Custodian Validation
+    kind: review
+    agent: custodiante
+    description: Independent custodian verification of the operation
+    artifacts: [validation.json]
+    depends_on: [6]
+
+  - id: 8
+    name: Due Diligence
+    kind: validate
+    agent: due_diligence
+    description: Due diligence on cedentes, recebíveis, guarantees
+    artifacts: [dd-report.json]
+    depends_on: [6]
+    required: false
+
+  - id: 9
+    name: Pricing
+    kind: execute
+    agent: pricing
+    description: Mark-to-market, NAV calculation, cota pricing
+    artifacts: [pricing.json]
+    depends_on: [6, 7]
+
+  - id: 10
+    name: Reporting
+    kind: report
+    agent: reporting
+    description: Generate CVM/ANBIMA/internal reports
+    artifacts: [report.pdf, report.json]
+    depends_on: [6, 7, 9]
+
+  - id: 11
+    name: Investor Communication
+    kind: report
+    agent: investor_relations
+    description: Prepare and send investor updates
+    artifacts: [investor-update.md]
+    depends_on: [10]
+    required: false
+
+  - id: 12
+    name: Knowledge Capture
+    kind: knowledge
+    agent: knowledge_graph
+    description: Persist decisions, outcomes, lessons to memory
+    artifacts: [memory-update.json]
+    depends_on: [6, 7]
+
+  - id: 13
+    name: Audit Trail
+    kind: feedback
+    agent: auditor
+    description: Immutable audit log of all decisions and actions
+    artifacts: [audit-entry.jsonl]
+    depends_on: [6, 7, 8, 9, 10]
+
+tiers:
+  - name: micro
+    criteria: "Simple query, status check, single lookup"
+    stages: [1, 4]
+    max_minutes: 2
+
+  - name: quick
+    criteria: "Single operation, one fund, standard flow"
+    stages: [1, 2, 3, 4, 5, 6, 7, 12, 13]
+    max_minutes: 15
+
+  - name: standard
+    criteria: "Complex operation, multiple checks, full compliance"
+    stages: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 12, 13]
+    max_minutes: 60
+
+  - name: full
+    criteria: "Critical operation, investor-facing, full pipeline"
+    stages: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
+    max_minutes: 0

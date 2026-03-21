@@ -290,6 +290,87 @@ def create_app(config: dict) -> Any:  # noqa: ANN401
             logger.error("Risk score error: %s", exc)
             raise HTTPException(status_code=500, detail=str(exc))
 
+
+    # ── Pipeline Engine ──────────────────────────────────────────
+    @app.get("/api/pipeline/packs")
+    async def pipeline_packs() -> dict:
+        """List available domain packs with pipeline definitions."""
+        packs_dir = Path.cwd() / "packs"
+        packs = []
+        if packs_dir.exists():
+            for p in sorted(packs_dir.iterdir()):
+                pipeline_file = p / "pipeline.yaml"
+                if pipeline_file.exists():
+                    import yaml
+                    data = yaml.safe_load(pipeline_file.read_text())
+                    packs.append({
+                        "domain": data.get("domain", p.name),
+                        "version": data.get("version", "?"),
+                        "stages": len(data.get("stages", [])),
+                        "tiers": [t["name"] for t in data.get("tiers", [])],
+                        "guardrails": data.get("guardrail_gates", []),
+                        "execution_engine": data.get("execution_engine", ""),
+                        "intelligence_layer": data.get("intelligence_layer", ""),
+                    })
+        return {"packs": packs}
+
+    @app.get("/api/pipeline/{domain}")
+    async def pipeline_detail(domain: str) -> dict:
+        """Get full pipeline definition for a domain."""
+        pipeline_file = Path.cwd() / "packs" / domain / "pipeline.yaml"
+        if not pipeline_file.exists():
+            raise HTTPException(status_code=404, detail=f"Pack not found: {domain}")
+        import yaml
+        return yaml.safe_load(pipeline_file.read_text())
+
+    @app.get("/api/pipeline/{domain}/classify")
+    async def pipeline_classify(domain: str, task: str = "general task") -> dict:
+        """Classify a task into a pipeline tier."""
+        try:
+            from packages.kernel.pipeline import load_pipeline, PipelineEngine
+            cfg = load_pipeline(Path.cwd() / "packs" / domain / "pipeline.yaml")
+            engine = PipelineEngine(cfg)
+            tier = engine.classify(task)
+            stages_in_tier = [s for s in cfg.stages if s.id in tier.stages]
+            return {
+                "domain": domain,
+                "task": task,
+                "tier": tier.name,
+                "criteria": tier.criteria,
+                "max_minutes": tier.max_minutes,
+                "stages": [{"id": s.id, "name": s.name, "kind": s.kind.value, "agent": s.agent} for s in stages_in_tier],
+            }
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+
+    @app.get("/api/pipeline/{domain}/run")
+    async def pipeline_dry_run(domain: str, task: str = "test task") -> dict:
+        """Dry-run a pipeline for a task (no execution, shows plan)."""
+        try:
+            from packages.kernel.pipeline import load_pipeline, PipelineEngine
+            cfg = load_pipeline(Path.cwd() / "packs" / domain / "pipeline.yaml")
+            engine = PipelineEngine(cfg)
+            run = engine.execute(task, dry_run=True)
+            return run.to_dict()
+        except Exception as e:
+            raise HTTPException(status_code=500, detail=str(e))
+
+
+
+    @app.get("/api/pipeline/{domain}/execute")
+    async def pipeline_execute(domain: str, task: str = "test task") -> dict:
+        """Execute a pipeline for real with wired handlers."""
+        try:
+            from packages.kernel.pipeline import load_pipeline, PipelineEngine
+            from packages.kernel.pipeline_handlers import wire_handlers
+            cfg = load_pipeline(Path.cwd() / "packs" / domain / "pipeline.yaml")
+            engine = wire_handlers(PipelineEngine(cfg))
+            run = engine.execute(task)
+            return run.to_dict()
+        except Exception as e:
+            import traceback
+            raise HTTPException(status_code=500, detail=f"{e}\n{traceback.format_exc()}")
+
     @app.get("/api/risk/simulate")
     async def risk_simulate(
         scenarios: str = Query(..., description="JSON list of scenario dicts")

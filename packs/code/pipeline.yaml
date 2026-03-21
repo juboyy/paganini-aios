@@ -1,0 +1,142 @@
+# PAGANINI Pipeline — Code/Dev Domain (BMAD-CE adapted)
+domain: code
+version: "1.0"
+execution_engine: codex
+intelligence_layer: gitnexus
+
+guardrail_gates:
+  - lint
+  - types
+  - tests
+  - security
+
+stages:
+  - id: 1
+    name: Context Scout
+    kind: context
+    agent: orchestrator
+    description: Search memory, git history, prior decisions, blast radius
+    artifacts: [context.md]
+
+  - id: 2
+    name: Requirements
+    kind: research
+    agent: pm
+    description: PRD from requirements, user stories, acceptance criteria
+    artifacts: [prd.md]
+    depends_on: [1]
+    required: false
+
+  - id: 3
+    name: Architecture
+    kind: design
+    agent: architect
+    description: System design, API contracts, data models, component design
+    artifacts: [architecture.md]
+    depends_on: [1, 2]
+    required: false
+
+  - id: 4
+    name: Story
+    kind: plan
+    agent: pm
+    description: Decompose into tasks with dependencies
+    artifacts: [story.md]
+    depends_on: [1, 2, 3]
+    required: false
+
+  - id: 5
+    name: Specification
+    kind: spec
+    agent: code
+    description: Codex-ready technical spec with gate context
+    artifacts: [spec.md]
+    depends_on: [1]
+
+  - id: 6
+    name: Implementation
+    kind: execute
+    agent: codex
+    description: Write code from spec (TDD, tests first)
+    artifacts: [code, tests]
+    depends_on: [5]
+
+  - id: 7
+    name: Code Review
+    kind: review
+    agent: code
+    description: Automated review, standards, patterns
+    artifacts: [review.md]
+    depends_on: [6]
+
+  - id: 8
+    name: Security Review
+    kind: validate
+    agent: security
+    description: Vulnerability scan, secrets check, dependency audit
+    artifacts: [security-report.json]
+    depends_on: [6]
+    guardrails: [security]
+
+  - id: 9
+    name: QA
+    kind: validate
+    agent: qa
+    description: Test strategy, execution, coverage report
+    artifacts: [qa-report.md]
+    depends_on: [6, 7]
+    guardrails: [lint, types, tests]
+
+  - id: 10
+    name: Deploy
+    kind: deploy
+    agent: infra
+    description: Build, deploy to preview, smoke tests
+    artifacts: [deploy-url]
+    depends_on: [6, 7, 9]
+
+  - id: 11
+    name: Documentation
+    kind: report
+    agent: docs
+    description: Update docs, changelog, Confluence
+    artifacts: [docs-update.md]
+    depends_on: [6]
+    required: false
+
+  - id: 12
+    name: Knowledge Capture
+    kind: knowledge
+    agent: docs
+    description: Persist decisions, patterns, lessons to memory
+    artifacts: [knowledge.md]
+    depends_on: [6, 7, 9]
+
+  - id: 13
+    name: Metrics
+    kind: feedback
+    agent: data
+    description: Log metrics, ROI, token usage, time saved
+    artifacts: [metrics.json]
+    depends_on: [6, 10]
+
+tiers:
+  - name: micro
+    criteria: "< 2 min, single line fix, typo, config value"
+    stages: [1, 6, 12]
+    max_minutes: 2
+
+  - name: quick
+    criteria: "Bug, hotfix, small feature (2-30 min)"
+    stages: [1, 5, 6, 7, 9, 12]
+    max_minutes: 30
+
+  - name: feature
+    criteria: "New component, integration, refactor (30+ min)"
+    stages: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
+    max_minutes: 240
+
+  - name: epic
+    criteria: "Multi-day, cross-system, multiple PRs"
+    stages: [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13]
+    max_minutes: 0
