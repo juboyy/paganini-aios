@@ -92,6 +92,10 @@ def create_app(config: dict) -> Any:  # noqa: ANN401
     # REST API
     # ----------------------------------------------------------------
 
+    @app.get("/api/health")
+    async def health() -> dict:
+        return {"status": "ok", "version": "0.1.0"}
+
     @app.get("/api/status")
     async def status() -> dict:
         return {

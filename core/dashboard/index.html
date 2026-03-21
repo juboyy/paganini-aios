@@ -185,7 +185,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--sans);line-height:
     <h2>PAGANINI</h2>
     <p>Agent Intelligence Operating System</p>
     <input class="login-input" id="loginKey" type="password" placeholder="API Key" autofocus>
-    <input class="login-input" id="loginUrl" type="text" placeholder="API URL (padrão: auto-detect)">
+    <input class="login-input" id="loginUrl" type="text" placeholder="API URL" value="https://resumes-seal-consultant-done.trycloudflare.com">
     <button class="login-btn" id="loginBtn" onclick="doLogin()">CONNECT</button>
     <div class="login-error" id="loginError"></div>
   </div>
@@ -355,7 +355,7 @@ function getStored(){
 }
 async function doLogin(){
   const key=document.getElementById('loginKey').value.trim();
-  let url=document.getElementById('loginUrl').value.trim()||location.origin;
+  let url=document.getElementById('loginUrl').value.trim()||'https://resumes-seal-consultant-done.trycloudflare.com';
   if(url.endsWith('/'))url=url.slice(0,-1);
   const err=document.getElementById('loginError');
   try{
