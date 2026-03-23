@@ -1,0 +1,672 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>PAGANINI AIOS — Relatório SPEAR</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display:ital@0;1&family=DM+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+  --ink:#0c0e12;--paper:#f8f6f2;--cream:#f0ede6;
+  --gold:#b8860b;--gold-l:#d4a843;--gold-bg:rgba(184,134,11,.06);
+  --green:#1a7a4c;--green-bg:rgba(26,122,76,.06);
+  --red:#8b2020;--cyan:#1a6b7a;
+  --serif:'DM Serif Display',Georgia,serif;
+  --sans:'DM Sans','Helvetica Neue',sans-serif;
+  --mono:'JetBrains Mono','SF Mono',monospace;
+  --max:920px;
+}
+html{scroll-behavior:smooth;font-size:17px}
+body{font-family:var(--sans);color:var(--ink);background:var(--paper);line-height:1.65;-webkit-font-smoothing:antialiased}
+
+/* ── HERO ── */
+.hero{min-height:100vh;display:flex;flex-direction:column;justify-content:center;align-items:center;text-align:center;padding:3rem 2rem;position:relative;overflow:hidden}
+.hero::before{content:'';position:absolute;inset:0;background:linear-gradient(175deg,var(--cream) 0%,var(--paper) 40%,rgba(184,134,11,.03) 100%)}
+.hero *{position:relative;z-index:1}
+.hero-overline{font-family:var(--mono);font-size:.7rem;letter-spacing:.35em;text-transform:uppercase;color:var(--gold);margin-bottom:1.5rem;font-weight:500}
+.hero h1{font-family:var(--serif);font-size:clamp(2.4rem,6vw,4.2rem);line-height:1.08;color:var(--ink);margin-bottom:1.2rem;max-width:14ch;font-weight:400}
+.hero h1 em{font-style:italic;color:var(--gold)}
+.hero-sub{font-size:1.05rem;color:#555;max-width:42ch;line-height:1.6;margin-bottom:2.5rem}
+.hero-meta{font-family:var(--mono);font-size:.72rem;color:#999;letter-spacing:.08em}
+.hero-rule{width:48px;height:1px;background:var(--gold);margin:0 auto 1.5rem}
+
+/* ── NAV ── */
+.spear-nav{position:sticky;top:0;z-index:100;background:rgba(248,246,242,.92);backdrop-filter:blur(12px);border-bottom:1px solid rgba(0,0,0,.06);padding:.75rem 0}
+.spear-nav-inner{max-width:var(--max);margin:0 auto;display:flex;gap:0;align-items:center;padding:0 2rem;overflow-x:auto}
+.spear-nav a{font-family:var(--mono);font-size:.68rem;letter-spacing:.2em;text-transform:uppercase;text-decoration:none;color:#888;padding:.5rem 1.2rem;transition:color .2s;white-space:nowrap;border-bottom:2px solid transparent}
+.spear-nav a:hover,.spear-nav a.active{color:var(--gold);border-bottom-color:var(--gold)}
+.spear-nav .logo{font-family:var(--serif);font-size:.9rem;color:var(--ink);margin-right:auto;letter-spacing:-.02em}
+
+/* ── SECTIONS ── */
+section{padding:5rem 2rem;position:relative}
+section:nth-child(odd){background:var(--cream)}
+.section-inner{max-width:var(--max);margin:0 auto}
+.section-label{font-family:var(--mono);font-size:.65rem;letter-spacing:.4em;text-transform:uppercase;color:var(--gold);margin-bottom:.5rem;font-weight:600}
+.section-title{font-family:var(--serif);font-size:clamp(1.8rem,4vw,2.6rem);line-height:1.15;color:var(--ink);margin-bottom:1.5rem;max-width:20ch}
+.section-lead{font-size:1.05rem;color:#444;max-width:55ch;line-height:1.7;margin-bottom:3rem}
+
+/* ── TYPOGRAPHY ── */
+.pull-quote{font-family:var(--serif);font-size:clamp(1.3rem,3vw,1.7rem);font-style:italic;color:var(--ink);border-left:3px solid var(--gold);padding-left:1.5rem;margin:2.5rem 0;max-width:38ch;line-height:1.4}
+.body-text{font-size:.95rem;color:#444;line-height:1.75;margin-bottom:1.5rem;max-width:55ch}
+.caption{font-family:var(--mono);font-size:.72rem;color:#999;letter-spacing:.04em}
+
+/* ── STATS ── */
+.stat-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:1.5rem;margin:2.5rem 0}
+.stat-card{padding:1.5rem 0;border-top:1px solid rgba(0,0,0,.08)}
+.stat-card .value{font-family:var(--serif);font-size:2.2rem;color:var(--ink);line-height:1;margin-bottom:.3rem}
+.stat-card .value .unit{font-size:1rem;color:var(--gold);font-family:var(--sans);font-weight:500}
+.stat-card .label{font-family:var(--mono);font-size:.68rem;letter-spacing:.12em;text-transform:uppercase;color:#888}
+
+/* ── TIMELINE ── */
+.timeline{position:relative;padding-left:2rem;margin:2rem 0}
+.timeline::before{content:'';position:absolute;left:.35rem;top:0;bottom:0;width:1px;background:linear-gradient(var(--gold),rgba(184,134,11,.1))}
+.tl-item{margin-bottom:2rem;position:relative}
+.tl-item::before{content:'';position:absolute;left:-1.65rem;top:.5rem;width:8px;height:8px;border-radius:50%;background:var(--gold);border:2px solid var(--paper)}
+.tl-date{font-family:var(--mono);font-size:.68rem;color:var(--gold);letter-spacing:.1em;margin-bottom:.25rem}
+.tl-title{font-family:var(--serif);font-size:1.15rem;color:var(--ink);margin-bottom:.3rem}
+.tl-text{font-size:.88rem;color:#555;line-height:1.6;max-width:48ch}
+
+/* ── GRID CARDS ── */
+.card-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:1.5rem;margin:2rem 0}
+.card{padding:1.5rem;border:1px solid rgba(0,0,0,.06);background:var(--paper);transition:border-color .2s}
+.card:hover{border-color:var(--gold)}
+.card-tag{font-family:var(--mono);font-size:.6rem;letter-spacing:.25em;text-transform:uppercase;color:var(--gold);margin-bottom:.6rem}
+.card h3{font-family:var(--serif);font-size:1.1rem;color:var(--ink);margin-bottom:.5rem;font-weight:400}
+.card p{font-size:.85rem;color:#555;line-height:1.55}
+
+/* ── AGENT TABLE ── */
+.agent-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:.75rem;margin:2rem 0}
+.agent-pill{display:flex;align-items:center;gap:.6rem;padding:.65rem 1rem;border:1px solid rgba(0,0,0,.05);font-size:.82rem;color:var(--ink)}
+.agent-pill .emoji{font-size:1.1rem}
+.agent-pill .domain{font-family:var(--mono);font-size:.58rem;letter-spacing:.15em;text-transform:uppercase;padding:2px 6px;margin-left:auto}
+.agent-pill .domain.code{color:var(--green);background:var(--green-bg)}
+.agent-pill .domain.fidc{color:var(--gold);background:var(--gold-bg)}
+
+/* ── BAR CHART ── */
+.bar-chart{margin:2rem 0}
+.bar-row{display:flex;align-items:center;gap:1rem;margin-bottom:.6rem}
+.bar-label{font-family:var(--mono);font-size:.72rem;color:#555;min-width:120px;text-align:right}
+.bar-track{flex:1;height:18px;background:rgba(0,0,0,.03);position:relative;overflow:hidden}
+.bar-fill{height:100%;transition:width 1s ease-out}
+.bar-value{font-family:var(--mono);font-size:.68rem;color:#888;min-width:50px}
+
+/* ── DIAGRAM ── */
+.flow-diagram{display:flex;align-items:center;gap:.4rem;flex-wrap:wrap;margin:2rem 0;font-family:var(--mono);font-size:.75rem}
+.flow-step{padding:.5rem 1rem;border:1px solid rgba(0,0,0,.08);color:var(--ink);text-align:center}
+.flow-step.active{border-color:var(--gold);background:var(--gold-bg);color:var(--gold)}
+.flow-arrow{color:#ccc;font-size:1.2rem}
+
+/* ── FOOTER ── */
+.report-footer{text-align:center;padding:4rem 2rem;border-top:1px solid rgba(0,0,0,.06)}
+.report-footer .logo-f{font-family:var(--serif);font-size:1.4rem;color:var(--ink);margin-bottom:.5rem}
+.report-footer p{font-size:.82rem;color:#888;margin-bottom:.25rem}
+
+/* ── REVEAL ANIMATION ── */
+.reveal{opacity:0;transform:translateY(24px);transition:opacity .6s ease,transform .6s ease}
+.reveal.visible{opacity:1;transform:none}
+
+@media(max-width:640px){
+  .stat-row{grid-template-columns:1fr 1fr}
+  .hero h1{font-size:2rem}
+  .spear-nav-inner{gap:0}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════ HERO ═══════ -->
+<div class="hero" id="top">
+  <div class="hero-overline">Relatório SPEAR — Março 2026</div>
+  <div class="hero-rule"></div>
+  <h1>Paganini<br><em>AI Operating System</em></h1>
+  <p class="hero-sub">Como construímos um sistema operacional de IA autônomo para o mercado financeiro brasileiro — do zero a 21 agentes, 132 testes, e um modelo treinado por reinforcement learning.</p>
+  <p class="hero-meta">CONFIDENCIAL · PAGANINI AIOS · V2.0 · 23.03.2026</p>
+</div>
+
+<!-- ═══════ NAV ═══════ -->
+<nav class="spear-nav">
+  <div class="spear-nav-inner">
+    <span class="logo">🎻 Paganini</span>
+    <a href="#situation">Situação</a>
+    <a href="#problem">Problema</a>
+    <a href="#execution">Execução</a>
+    <a href="#achievement">Resultados</a>
+    <a href="#roadmap">Roadmap</a>
+  </div>
+</nav>
+
+<!-- ═══════ S — SITUATION ═══════ -->
+<section id="situation">
+  <div class="section-inner reveal">
+    <div class="section-label">S · Situação</div>
+    <h2 class="section-title">O Mercado de FIDC no Brasil é Gigante — e Analógico</h2>
+    <p class="section-lead">
+      R$ 589 bilhões em patrimônio líquido. 2.147 fundos registrados na CVM. 
+      E a maioria opera com processos manuais, planilhas Excel, e compliance reativa.
+    </p>
+
+    <div class="stat-row">
+      <div class="stat-card">
+        <div class="value">R$ 589<span class="unit">bi</span></div>
+        <div class="label">PL total FIDCs</div>
+      </div>
+      <div class="stat-card">
+        <div class="value">2.147</div>
+        <div class="label">Fundos registrados CVM</div>
+      </div>
+      <div class="stat-card">
+        <div class="value">72<span class="unit">%</span></div>
+        <div class="label">Ainda operam em planilhas</div>
+      </div>
+      <div class="stat-card">
+        <div class="value">R$ 4.2<span class="unit">mi</span></div>
+        <div class="label">Custo médio operacional/fundo/ano</div>
+      </div>
+    </div>
+
+    <p class="body-text">
+      A Resolução CVM 175 (outubro 2024) trouxe novas exigências de transparência, 
+      governança e monitoramento contínuo. Fundos que não se adequarem enfrentam 
+      sanções. A pressão regulatória está criando uma demanda por automação que 
+      o mercado não consegue atender com as ferramentas atuais.
+    </p>
+
+    <div class="pull-quote">
+      "Nenhum FIDC no Brasil tem um sistema de IA que monitora covenants 
+      em tempo real, detecta fraudes por PLD/AML, e gera relatórios regulatórios 
+      automaticamente. Até agora."
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ P — PROBLEM ═══════ -->
+<section id="problem">
+  <div class="section-inner reveal">
+    <div class="section-label">P · Problema</div>
+    <h2 class="section-title">5 Dores que Ninguém Resolve</h2>
+
+    <div class="card-grid">
+      <div class="card">
+        <div class="card-tag">Compliance</div>
+        <h3>Monitoramento Reativo</h3>
+        <p>Covenants são verificados semanalmente em Excel. Quando um desenquadramento é detectado, já passou dias do limite. CVM exige reporte em 1 dia útil.</p>
+      </div>
+      <div class="card">
+        <div class="card-tag">Segurança</div>
+        <h3>PLD/AML Manual</h3>
+        <p>Detecção de lavagem depende de analistas lendo transações. Padrões sofisticados (fracionamento, layering) passam despercebidos. COAF multa por omissão.</p>
+      </div>
+      <div class="card">
+        <div class="card-tag">Operacional</div>
+        <h3>Reporting Artesanal</h3>
+        <p>CADOC 3040, ICVM 489, informe mensal — tudo montado à mão. Um erro de arredondamento em PDD pode causar diferença material no NAV.</p>
+      </div>
+      <div class="card">
+        <div class="card-tag">Custo</div>
+        <h3>Equipe Inflacionada</h3>
+        <p>Um fundo médio precisa de 4-6 analistas full-time só para compliance e operação. A R$ 15K/mês cada, são R$ 720K-1.08M/ano em folha.</p>
+      </div>
+      <div class="card">
+        <div class="card-tag">Conhecimento</div>
+        <h3>Rotatividade Destrói Contexto</h3>
+        <p>Quando um analista sênior sai, leva anos de conhecimento regulatório. O próximo precisa de 6-12 meses para atingir o mesmo nível. O fundo fica vulnerável.</p>
+      </div>
+    </div>
+
+    <p class="body-text" style="margin-top:2rem">
+      O problema não é falta de tecnologia — é falta de um sistema que entenda o domínio. 
+      LLMs genéricos não conhecem CVM 175, não sabem calcular PDD, não entendem o que é 
+      subordinação mínima. O mercado precisa de IA especializada, não genérica.
+    </p>
+  </div>
+</section>
+
+<!-- ═══════ E — EXECUTION ═══════ -->
+<section id="execution">
+  <div class="section-inner reveal">
+    <div class="section-label">E · Execução</div>
+    <h2 class="section-title">Como Construímos o Paganini em 45 Dias</h2>
+    <p class="section-lead">
+      Uma plataforma de agentes autônomos com arquitetura dual-domain: 
+      12 agentes de código + 9 agentes financeiros, operando sobre um 
+      motor de IA que aprende com cada interação.
+    </p>
+
+    <!-- TIMELINE -->
+    <div class="timeline">
+      <div class="tl-item">
+        <div class="tl-date">Fev 08 — Semana 1</div>
+        <div class="tl-title">Kernel & Cognitive Router</div>
+        <div class="tl-text">Motor Moltis (Rust), roteamento inteligente de queries por domínio + embedding semântico. Pipeline de 6 guardrails hard-stop.</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">Fev 15 — Semana 2</div>
+        <div class="tl-title">9 Agentes FIDC com SOUL</div>
+        <div class="tl-text">Cada agente com identidade, escopo regulatório e guardrails específicos. Admin, Compliance, Custodiante, Due Diligence, Gestor, IR, Pricing, RegWatch, Reporting.</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">Fev 22 — Semana 3</div>
+        <div class="tl-title">Hybrid RAG & Corpus FIDC</div>
+        <div class="tl-text">164 documentos regulatórios indexados em 6.993 chunks. BM25 + dense vectors + graph traversal com reranking. 91% de precisão no eval set.</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">Mar 01 — Semana 4</div>
+        <div class="tl-title">MetaClaw & AutoResearch</div>
+        <div class="tl-text">Motor de autoaprendizado: intercepta queries, gera skills automaticamente, otimiza parâmetros do RAG via busca evolucionária. 8 skills promovidas.</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">Mar 10 — Semana 6</div>
+        <div class="tl-title">12 Code Agents + BMAD-CE</div>
+        <div class="tl-text">OraCLI, Code Agent, Codex, Architect, QA, Security, PM, Docs, Infra, Data, General, Context Scout. Pipeline BMAD-CE de 18 stages.</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">Mar 18 — Semana 7</div>
+        <div class="tl-title">Dashboard v2 Enterprise</div>
+        <div class="tl-text">10 páginas mobile-first. Design system: Space Grotesk + IBM Plex Mono, neon green, glass cards. Terminal ao vivo, quality gates, activity stream.</div>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">Mar 22-23 — Semana 8</div>
+        <div class="tl-title">RL Training (SFT → GRPO)</div>
+        <div class="tl-text">Qwen3.5-27B fine-tuned com 13.697 amostras dual-domain. SFT no RunPod A100 (87.75% accuracy). GRPO via Tinker API com reward function customizada. Modelos publicados no HuggingFace.</div>
+      </div>
+    </div>
+
+    <!-- ARCHITECTURE -->
+    <h3 style="font-family:var(--serif);font-size:1.3rem;margin:3rem 0 1rem">Arquitetura: 3 Camadas</h3>
+    
+    <div style="border:1px solid rgba(0,0,0,.06);padding:2rem;margin:1.5rem 0;font-family:var(--mono);font-size:.72rem;line-height:2.2;color:#555">
+      <div style="text-align:center;margin-bottom:1rem">
+        <span style="font-family:var(--serif);font-size:1rem;color:var(--ink)">DOMAIN PACKS</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:.75rem;margin-bottom:1.5rem">
+        <div style="border:1px solid var(--gold);padding:.75rem;text-align:center;background:var(--gold-bg)">
+          <strong style="color:var(--gold)">FIDC</strong><br>9 agentes · 6 gates
+        </div>
+        <div style="border:1px solid rgba(0,0,0,.08);padding:.75rem;text-align:center;color:#aaa">
+          Crypto<br><em>em breve</em>
+        </div>
+        <div style="border:1px solid rgba(0,0,0,.08);padding:.75rem;text-align:center;color:#aaa">
+          Supply Chain<br><em>em breve</em>
+        </div>
+      </div>
+      <div style="border:1px solid rgba(0,0,0,.08);padding:1rem;margin-bottom:.75rem;text-align:center">
+        <strong style="color:var(--green)">CODE LAYER</strong><br>
+        12 Code Agents · Review · Spec Gen · Deploy · Test · Security · Git Intelligence
+      </div>
+      <div style="border:1px solid rgba(0,0,0,.08);padding:1rem;text-align:center">
+        <strong style="color:var(--ink)">ENGINE</strong><br>
+        Cognitive Router · Hybrid RAG · MetaClaw · Memory Reflection · Guardrails · BYOK LLM
+      </div>
+    </div>
+
+    <!-- ALL 21 AGENTS -->
+    <h3 style="font-family:var(--serif);font-size:1.3rem;margin:3rem 0 1rem">21 Agentes Especializados</h3>
+    
+    <div class="agent-grid">
+      <div class="agent-pill"><span class="emoji">🎯</span>OraCLI<span class="domain code">CODE</span></div>
+      <div class="agent-pill"><span class="emoji">💻</span>Code Agent<span class="domain code">CODE</span></div>
+      <div class="agent-pill"><span class="emoji">⚡</span>Codex<span class="domain code">CODE</span></div>
+      <div class="agent-pill"><span class="emoji">🏗️</span>Architect<span class="domain code">CODE</span></div>
+      <div class="agent-pill"><span class="emoji">🧪</span>QA Agent<span class="domain code">CODE</span></div>
+      <div class="agent-pill"><span class="emoji">🔒</span>Security<span class="domain code">CODE</span></div>
+      <div class="agent-pill"><span class="emoji">📋</span>PM Agent<span class="domain code">CODE</span></div>
+      <div class="agent-pill"><span class="emoji">📝</span>Docs Agent<span class="domain code">CODE</span></div>
+      <div class="agent-pill"><span class="emoji">🏗</span>Infra Agent<span class="domain code">CODE</span></div>
+      <div class="agent-pill"><span class="emoji">📊</span>Data Agent<span class="domain code">CODE</span></div>
+      <div class="agent-pill"><span class="emoji">🔧</span>General<span class="domain code">CODE</span></div>
+      <div class="agent-pill"><span class="emoji">🔍</span>Context Scout<span class="domain code">CODE</span></div>
+      <div class="agent-pill"><span class="emoji">📋</span>Administrador<span class="domain fidc">FIDC</span></div>
+      <div class="agent-pill"><span class="emoji">⚖️</span>Compliance<span class="domain fidc">FIDC</span></div>
+      <div class="agent-pill"><span class="emoji">🔐</span>Custodiante<span class="domain fidc">FIDC</span></div>
+      <div class="agent-pill"><span class="emoji">🔍</span>Due Diligence<span class="domain fidc">FIDC</span></div>
+      <div class="agent-pill"><span class="emoji">📊</span>Gestor<span class="domain fidc">FIDC</span></div>
+      <div class="agent-pill"><span class="emoji">💬</span>Investor Relations<span class="domain fidc">FIDC</span></div>
+      <div class="agent-pill"><span class="emoji">💰</span>Pricing Engine<span class="domain fidc">FIDC</span></div>
+      <div class="agent-pill"><span class="emoji">📡</span>Regulatory Watch<span class="domain fidc">FIDC</span></div>
+      <div class="agent-pill"><span class="emoji">📄</span>Reporting<span class="domain fidc">FIDC</span></div>
+    </div>
+
+    <!-- RL TRAINING -->
+    <h3 style="font-family:var(--serif);font-size:1.3rem;margin:3rem 0 1rem">Modelo Próprio: SFT → GRPO</h3>
+    <p class="body-text">
+      Não usamos LLMs genéricos cegamente. Treinamos nosso próprio modelo via RL 
+      com uma função de recompensa dual-domain que entende tanto código quanto regulação financeira.
+    </p>
+
+    <div class="flow-diagram">
+      <div class="flow-step">Corpus FIDC<br><span class="caption">6.993 chunks</span></div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-step">Dataset Gen<br><span class="caption">13.697 Q&A</span></div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-step active">SFT<br><span class="caption">87.75% acc</span></div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-step active">GRPO<br><span class="caption">Dual reward</span></div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-step">HuggingFace<br><span class="caption">Público</span></div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-step">21 Agentes<br><span class="caption">Inferência</span></div>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-card">
+        <div class="value">Qwen3.5<span class="unit">-27B</span></div>
+        <div class="label">Modelo base</div>
+      </div>
+      <div class="stat-card">
+        <div class="value">13.697</div>
+        <div class="label">Amostras de treino</div>
+      </div>
+      <div class="stat-card">
+        <div class="value">LoRA<span class="unit"> r32</span></div>
+        <div class="label">Adapter 966MB</div>
+      </div>
+      <div class="stat-card">
+        <div class="value">23</div>
+        <div class="label">Training runs</div>
+      </div>
+    </div>
+
+    <!-- Reward Function -->
+    <div style="border:1px solid rgba(0,0,0,.06);padding:1.5rem;margin:2rem 0">
+      <div class="caption" style="margin-bottom:1rem">FUNÇÃO DE RECOMPENSA DUAL-DOMAIN</div>
+      <div style="font-family:var(--mono);font-size:.82rem;color:var(--gold);margin-bottom:1rem">
+        R(x) = λ·R_code + (1-λ)·R_finance + R_shared
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1.5rem;font-size:.82rem;color:#555">
+        <div>
+          <strong style="color:var(--green)">R_code</strong><br>
+          Spec adherence (+0.30)<br>
+          Architecture patterns (+0.25)<br>
+          Pipeline compliance (+0.15)<br>
+          Code blocks (+0.10)<br>
+          TDD terms (+0.10)
+        </div>
+        <div>
+          <strong style="color:var(--gold)">R_finance</strong><br>
+          Guardrail compliance (+0.35)<br>
+          CVM citation (+0.15)<br>
+          Article reference (+0.15)<br>
+          Source attribution (+0.20)
+        </div>
+        <div>
+          <strong style="color:#888">R_shared</strong><br>
+          Hallucination penalty (−0.15)<br>
+          Corporate speak (−0.05/ea)<br>
+          PT-BR bonus (+0.05)<br>
+          Length &lt; 50 (−0.20)
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ A — ACHIEVEMENT ═══════ -->
+<section id="achievement">
+  <div class="section-inner reveal">
+    <div class="section-label">A · Resultados</div>
+    <h2 class="section-title">O Que Entregamos — Em Números</h2>
+
+    <div class="stat-row">
+      <div class="stat-card">
+        <div class="value">28.422</div>
+        <div class="label">Linhas de código</div>
+      </div>
+      <div class="stat-card">
+        <div class="value">132</div>
+        <div class="label">Testes (18 suites)</div>
+      </div>
+      <div class="stat-card">
+        <div class="value">21</div>
+        <div class="label">Agentes autônomos</div>
+      </div>
+      <div class="stat-card">
+        <div class="value">6.993</div>
+        <div class="label">Chunks indexados</div>
+      </div>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-card">
+        <div class="value">91<span class="unit">%</span></div>
+        <div class="label">Precisão RAG</div>
+      </div>
+      <div class="stat-card">
+        <div class="value">6</div>
+        <div class="label">Guardrail gates</div>
+      </div>
+      <div class="stat-card">
+        <div class="value">8</div>
+        <div class="label">Skills MetaClaw promovidas</div>
+      </div>
+      <div class="stat-card">
+        <div class="value">2</div>
+        <div class="label">Modelos no HuggingFace</div>
+      </div>
+    </div>
+
+    <!-- Quality Bars -->
+    <h3 style="font-family:var(--serif);font-size:1.3rem;margin:3rem 0 1rem">Pipeline de Qualidade</h3>
+    
+    <div class="bar-chart">
+      <div class="bar-row">
+        <div class="bar-label">Testes</div>
+        <div class="bar-track"><div class="bar-fill" style="width:94%;background:var(--green)"></div></div>
+        <div class="bar-value">124/132</div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">Lint (ruff)</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:var(--green)"></div></div>
+        <div class="bar-value">0 erros</div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">Security</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:var(--green)"></div></div>
+        <div class="bar-value">CI green</div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">RAG Precision</div>
+        <div class="bar-track"><div class="bar-fill" style="width:91%;background:var(--gold)"></div></div>
+        <div class="bar-value">91.0%</div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">SFT Accuracy</div>
+        <div class="bar-track"><div class="bar-fill" style="width:87.75%;background:var(--gold)"></div></div>
+        <div class="bar-value">87.75%</div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">Guardrails</div>
+        <div class="bar-track"><div class="bar-fill" style="width:100%;background:var(--green)"></div></div>
+        <div class="bar-value">6/6 ativos</div>
+      </div>
+    </div>
+
+    <!-- Guardrail Pipeline -->
+    <h3 style="font-family:var(--serif);font-size:1.3rem;margin:3rem 0 1rem">6 Gates de Segurança</h3>
+    <div class="flow-diagram">
+      <div class="flow-step active">Eligibility<br><span class="caption">Cedente elegível?</span></div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-step active">Concentration<br><span class="caption">Limites ok?</span></div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-step active">Covenant<br><span class="caption">IS, RG, PDD</span></div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-step" style="border-color:var(--red);color:var(--red);background:rgba(139,32,32,.04)">PLD/AML<br><span class="caption">Anti-lavagem</span></div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-step active">Compliance<br><span class="caption">CVM 175</span></div>
+      <span class="flow-arrow">→</span>
+      <div class="flow-step active">Risk<br><span class="caption">VaR, stress</span></div>
+    </div>
+
+    <div class="pull-quote">
+      "Qualquer falha em qualquer gate bloqueia a operação inteira. 
+      Não existe bypass. É como o sistema imunológico do fundo."
+    </div>
+
+    <!-- Deliverables -->
+    <h3 style="font-family:var(--serif);font-size:1.3rem;margin:3rem 0 1rem">Entregáveis Tangíveis</h3>
+    <div class="card-grid">
+      <div class="card">
+        <div class="card-tag">Produto</div>
+        <h3>CLI Completa</h3>
+        <p><code style="font-family:var(--mono);font-size:.78rem;background:rgba(0,0,0,.04);padding:2px 6px">paganini init --pack fidc && paganini up</code> — instalação zero-config em qualquer máquina.</p>
+      </div>
+      <div class="card">
+        <div class="card-tag">Dashboard</div>
+        <h3>13 Páginas Enterprise</h3>
+        <p>Central de comando, agentes, guardrails, aprendizado, RL training, métricas, qualidade de código, planejamento, sprint, pipeline.</p>
+      </div>
+      <div class="card">
+        <div class="card-tag">Modelo</div>
+        <h3>2 Modelos HuggingFace</h3>
+        <p>SFT + GRPO LoRA adapters publicados. Qualquer um pode baixar e usar. Open source, open weights.</p>
+      </div>
+      <div class="card">
+        <div class="card-tag">Repositório</div>
+        <h3>CI 100% Green</h3>
+        <p>Lint (ruff), formatação (black), testes (pytest), security scan, SAST — tudo automatizado e passando.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ R — ROADMAP ═══════ -->
+<section id="roadmap">
+  <div class="section-inner reveal">
+    <div class="section-label">R · Roadmap</div>
+    <h2 class="section-title">Os Próximos 90 Dias</h2>
+    <p class="section-lead">
+      Do MVP validado para o primeiro cliente pagante. Três fases claras com 
+      milestones definidos e métricas de sucesso.
+    </p>
+
+    <div class="card-grid" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr))">
+      <div class="card" style="border-top:3px solid var(--gold)">
+        <div class="card-tag">Fase 1 · Abril 2026</div>
+        <h3>Piloto Controlado</h3>
+        <p>
+          1 fundo real, ambiente isolado. Monitoramento de covenants em tempo real 
+          + geração automatizada de CADOC 3040. Métricas: tempo de detecção de 
+          desenquadramento, accuracy vs equipe humana.
+        </p>
+      </div>
+      <div class="card" style="border-top:3px solid var(--green)">
+        <div class="card-tag">Fase 2 · Maio 2026</div>
+        <h3>3 Fundos + SLA</h3>
+        <p>
+          Expansão para 3 fundos com perfis diferentes (multicedente, mono-cedente, 
+          imobiliário). SLA de 99.9%. Integração com sistemas de custódia. 
+          Dashboard customizado por fundo.
+        </p>
+      </div>
+      <div class="card" style="border-top:3px solid var(--cyan)">
+        <div class="card-tag">Fase 3 · Junho 2026</div>
+        <h3>Comercialização</h3>
+        <p>
+          Tier Professional (R$ 8K/mês/fundo) + Enterprise (R$ 25K). 
+          Segundo domain pack (Crypto ou Supply Chain). 
+          Time comercial ativo. Meta: 5 fundos pagantes.
+        </p>
+      </div>
+    </div>
+
+    <!-- Revenue Model -->
+    <h3 style="font-family:var(--serif);font-size:1.3rem;margin:3rem 0 1rem">Modelo de Receita</h3>
+    
+    <div style="border:1px solid rgba(0,0,0,.06);padding:1.5rem;margin:1.5rem 0">
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:1rem;text-align:center">
+        <div>
+          <div style="font-family:var(--serif);font-size:1.3rem;color:var(--ink)">Starter</div>
+          <div style="font-family:var(--mono);font-size:.72rem;color:#888;margin:.5rem 0">OPEN SOURCE</div>
+          <div style="font-family:var(--serif);font-size:1.8rem;color:var(--ink)">Grátis</div>
+          <div style="font-size:.82rem;color:#555;margin-top:.5rem;text-align:left;padding:0 .5rem">
+            12 code agents<br>3 domain agents<br>Skills core (8)<br>MetaClaw skills_only
+          </div>
+        </div>
+        <div style="border-left:1px solid rgba(0,0,0,.06);border-right:1px solid rgba(0,0,0,.06)">
+          <div style="font-family:var(--serif);font-size:1.3rem;color:var(--gold)">Professional</div>
+          <div style="font-family:var(--mono);font-size:.72rem;color:var(--gold);margin:.5rem 0">POR FUNDO</div>
+          <div style="font-family:var(--serif);font-size:1.8rem;color:var(--ink)">R$ 8K<span style="font-size:.9rem;color:#888">/mês</span></div>
+          <div style="font-size:.82rem;color:#555;margin-top:.5rem;text-align:left;padding:0 .5rem">
+            9 domain agents<br>15 skills (code+domain)<br>MetaClaw RL (LoRA)<br>Guardrails completo
+          </div>
+        </div>
+        <div>
+          <div style="font-family:var(--serif);font-size:1.3rem;color:var(--ink)">Enterprise</div>
+          <div style="font-family:var(--mono);font-size:.72rem;color:#888;margin:.5rem 0">CUSTOMIZADO</div>
+          <div style="font-family:var(--serif);font-size:1.8rem;color:var(--ink)">R$ 25K<span style="font-size:.9rem;color:#888">/mês</span></div>
+          <div style="font-size:.82rem;color:#555;margin-top:.5rem;text-align:left;padding:0 .5rem">
+            Agents customizados<br>MetaClaw RL + OPD<br>SLA 99.9%<br>Suporte dedicado
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-card">
+        <div class="value">R$ 2.4<span class="unit">mi</span></div>
+        <div class="label">ARR potencial (5 fundos Pro + 2 Enterprise)</div>
+      </div>
+      <div class="stat-card">
+        <div class="value">85<span class="unit">%</span></div>
+        <div class="label">Margem bruta (SaaS puro)</div>
+      </div>
+      <div class="stat-card">
+        <div class="value">40<span class="unit">%</span></div>
+        <div class="label">Economia vs equipe manual</div>
+      </div>
+    </div>
+
+    <div class="pull-quote" style="margin-top:3rem">
+      "O Paganini não substitui pessoas. Ele dá superpoderes para quem já 
+      trabalha com fundos. Um analista com Paganini faz o trabalho de quatro."
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ FOOTER ═══════ -->
+<div class="report-footer">
+  <div class="logo-f">🎻 Paganini AIOS</div>
+  <p>Relatório SPEAR · Março 2026 · Confidencial</p>
+  <p style="margin-top:1rem">
+    <a href="https://dashboard-v2-pearl-rho.vercel.app" style="color:var(--gold);text-decoration:none;font-family:var(--mono);font-size:.72rem;letter-spacing:.08em">DASHBOARD</a>
+    &nbsp;&nbsp;·&nbsp;&nbsp;
+    <a href="https://github.com/juboyy/paganini-aios" style="color:var(--gold);text-decoration:none;font-family:var(--mono);font-size:.72rem;letter-spacing:.08em">GITHUB</a>
+    &nbsp;&nbsp;·&nbsp;&nbsp;
+    <a href="https://huggingface.co/sttjr" style="color:var(--gold);text-decoration:none;font-family:var(--mono);font-size:.72rem;letter-spacing:.08em">HUGGINGFACE</a>
+  </p>
+</div>
+
+<script>
+// Scroll reveal
+const obs = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); obs.unobserve(e.target); }});
+}, { threshold: 0.15 });
+document.querySelectorAll('.reveal').forEach(el => obs.observe(el));
+
+// Active nav
+const sections = document.querySelectorAll('section[id]');
+const navLinks = document.querySelectorAll('.spear-nav a');
+window.addEventListener('scroll', () => {
+  let current = '';
+  sections.forEach(s => { if (window.scrollY >= s.offsetTop - 120) current = s.id; });
+  navLinks.forEach(a => {
+    a.classList.remove('active');
+    if (a.getAttribute('href') === '#' + current) a.classList.add('active');
+  });
+});
+
+// Animate bars on scroll
+const barObs = new IntersectionObserver(entries => {
+  entries.forEach(e => {
+    if (e.isIntersecting) {
+      const fills = e.target.querySelectorAll('.bar-fill');
+      fills.forEach(f => { const w = f.style.width; f.style.width = '0'; requestAnimationFrame(() => { f.style.width = w; }); });
+      barObs.unobserve(e.target);
+    }
+  });
+}, { threshold: 0.3 });
+document.querySelectorAll('.bar-chart').forEach(el => barObs.observe(el));
+</script>
+</body>
+</html>

@@ -20,6 +20,9 @@ const PLATAFORMA_NAV = [
   { href: "/pipeline",      label: "EXECUÇÃO",      icon: "▷" },
   { href: "/symphony",      label: "ORQUESTRA",     icon: "≋" },
   { href: "/telemetry",     label: "TELEMETRIA",    icon: "△" },
+  { href: "/metrics",       label: "MÉTRICAS",      icon: "◫" },
+  { href: "/code-quality",  label: "QUALIDADE",     icon: "◇" },
+  { href: "/planning",      label: "PLANEJAMENTO",  icon: "⊡" },
   { href: "/integrations",  label: "INTEGRAÇÕES",   icon: "⊕" },
   { href: "/learning",      label: "APRENDIZADO",   icon: "🧠" },
   { href: "/settings",      label: "CONFIGURAÇÃO",  icon: "⚙" },
@@ -205,7 +208,7 @@ export function Sidebar() {
               opacity: 0.6,
             }}
           >
-            12 AGENTES • 52 CAPS • 6 GATES
+            21 AGENTES • 52 CAPS • 6 GATES
           </div>
         </div>
       </aside>
