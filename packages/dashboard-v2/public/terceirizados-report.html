@@ -96,8 +96,8 @@ body{font-family:var(--sans);color:var(--ink);background:var(--paper);line-heigh
 <div class="header">
   <div class="header-overline">DADOS ABERTOS · CGU</div>
   <h1>Terceirizados do Executivo Federal</h1>
-  <p>Análise de 1.163 mil registros em 14 períodos quadrimestrais (Jan/2019 a Set/2023). Pessoal terceirizado de 80 órgãos, 1.238 empresas contratadas, com custo mensal de até R$ 468 milhões.</p>
-  <div class="header-meta">FONTE: CGU / dados.gov.br · ATUALIZAÇÃO QUADRIMESTRAL · 23 COLUNAS POR REGISTRO</div>
+  <p>Análise de 1.163 mil registros em 14 períodos quadrimestrais (Jan/2019 a Set/2023), complementada com dados oficiais de 2024-2025. Pessoal terceirizado de 80 órgãos, 1.238 empresas contratadas, com custo mensal de até R$ 468 milhões.</p>
+  <div class="header-meta">FONTE: CGU / dados.gov.br · ATUALIZAÇÃO QUADRIMESTRAL · COMPLEMENTO: DECRETO 12.174/24, IN 381/2025, FENATI, MGI</div>
 </div>
 
 <div class="container">
@@ -107,6 +107,10 @@ body{font-family:var(--sans);color:var(--ink);background:var(--paper);line-heigh
     <div class="stat">
       <div class="n">81.941</div>
       <div class="l">TERCEIRIZADOS (SET/2023)</div>
+    </div>
+    <div class="stat">
+      <div class="n" style="font-size:1.6rem">~69.000</div>
+      <div class="l">ESTIMATIVA SET/2025</div>
     </div>
     <div class="stat">
       <div class="n">R$ 2.332</div>
@@ -150,13 +154,16 @@ body{font-family:var(--sans);color:var(--ink);background:var(--paper);line-heigh
       <div class="trend-bar" style="height:80.2%;background:var(--green)"><span class="tip">Jan/23: 78.480</span></div>
       <div class="trend-bar" style="height:75.1%;background:var(--blue)"><span class="tip">Mai/23: 73.515</span></div>
       <div class="trend-bar" style="height:83.8%;background:var(--blue)"><span class="tip">Set/23: 81.941</span></div>
+      <div class="trend-bar" style="height:74.6%;background:var(--gold);border:1px dashed rgba(0,0,0,.15)"><span class="tip">Set/24: ~73.000*</span></div>
+      <div class="trend-bar" style="height:70.5%;background:var(--red);border:1px dashed rgba(0,0,0,.15)"><span class="tip">Set/25: ~69.000*</span></div>
     </div>
     <div class="trend-labels">
-      <span>J19</span><span>M19</span><span>S19</span><span>J20</span><span>M20</span><span>S20</span><span>J21</span><span>M21</span><span>S21</span><span>J22</span><span>M22</span><span>J23</span><span>M23</span><span>S23</span>
+      <span>J19</span><span>M19</span><span>S19</span><span>J20</span><span>M20</span><span>S20</span><span>J21</span><span>M21</span><span>S21</span><span>J22</span><span>M22</span><span>J23</span><span>M23</span><span>S23</span><span>S24*</span><span>S25*</span>
     </div>
+    <div style="font-family:var(--mono);font-size:.6rem;color:#aaa;margin-top:.25rem">* Barras tracejadas: estimativas oficiais (Decreto 12.174/24 e IN 381/2025). CSVs detalhados indisponíveis no portal de dados abertos.</div>
 
     <div class="insight">
-      O efetivo caiu de <strong>97.827 (Jan/2019) para 68.705 (Jan/2021)</strong> — uma redução de 29.122 postos (-29.8%). A pandemia acelerou um movimento que já vinha de corte de contratos. A partir de 2021, houve recuperação gradual, mas o patamar de Set/2023 (81.941) ainda é <strong>16% abaixo do pico de 2019</strong>.
+      O efetivo caiu de <strong>97.827 (Jan/2019) para 68.705 (Jan/2021)</strong> — uma redução de 29.122 postos (-29.8%). Houve recuperação parcial até Set/2023 (81.941), mas dados oficiais de 2024-2025 indicam nova queda: <strong>~73 mil em Set/2024 e ~69 mil em Set/2025</strong>. O efetivo atual é <strong>29% menor que o pico de 2019</strong>. O Decreto 12.174/24 pode ter acelerado cortes ao encarecer contratos.
     </div>
   </div>
 
@@ -426,6 +433,65 @@ body{font-family:var(--sans);color:var(--ink);background:var(--paper);line-heigh
     </div>
   </div>
 
+  <!-- DECRETO 12.174 e CONTEXTO 2024-2025 -->
+  <div class="section">
+    <div class="section-title">2024-2025: Nova Regulação e Queda Contínua</div>
+    <div class="section-sub">Decreto 12.174/24 e IN 381/2025 mudaram o regime de terceirização federal. Dados granulares indisponíveis — CGU não publicou CSVs desde Set/2023.</div>
+
+    <div class="highlight-grid">
+      <div class="highlight" style="border-top:3px solid var(--gold)">
+        <div class="tag" style="color:var(--gold)">DECRETO 12.174/24</div>
+        <div class="title">Set/2024 — Novas Garantias</div>
+        <div class="desc">
+          Jornada reduzida de 44h para 40h (sem corte salarial) para órgãos que não operam nos finais de semana.
+          Recesso de fim de ano equiparado aos servidores. Canais obrigatórios contra assédio e discriminação.
+          Propostas em licitações devem apresentar salários compatíveis com custos reais — coibindo dumping salarial.
+          Responsabilidade solidária por violações de subcontratadas. Adequação progressiva em até 5 anos.
+        </div>
+      </div>
+      <div class="highlight" style="border-top:3px solid var(--green)">
+        <div class="tag" style="color:var(--green)">IN 381/2025</div>
+        <div class="title">Set/2025 — Ampliação</div>
+        <div class="desc">
+          Ampliou as categorias beneficiadas pela redução de jornada. Estimativa: ~19 mil trabalhadores impactados.
+          Efetivo total caiu para ~69 mil (vs 73 mil em 2024 e 82 mil em 2023).
+          Possível efeito colateral: contratos mais caros → menos vagas terceirizadas.
+        </div>
+      </div>
+      <div class="highlight" style="border-top:3px solid var(--red)">
+        <div class="tag" style="color:var(--red)">TRANSPARÊNCIA</div>
+        <div class="title">Dados abertos parados desde Set/2023</div>
+        <div class="desc">
+          A CGU não publicou CSVs detalhados desde setembro de 2023 — mais de 2 anos de lacuna.
+          Dados individuais (nome, CPF, salário, órgão, empresa) indisponíveis para 2024-2025.
+          Números agregados (~73K em 2024, ~69K em 2025) vêm de citações oficiais em decretos e notícias.
+          O monitor automático deste relatório verificará a cada 6h se novos CSVs foram publicados.
+        </div>
+      </div>
+    </div>
+
+    <div style="margin:1.5rem 0;padding:1.2rem;background:var(--gold-bg);border:1px solid rgba(184,134,11,.12)">
+      <div style="font-family:var(--serif);font-size:1rem;color:var(--ink);margin-bottom:.5rem">Evolução do efetivo: tendência de queda estrutural</div>
+      <table class="data-table" style="margin:0">
+        <thead>
+          <tr><th>Período</th><th class="num">Terceirizados</th><th class="pct">Var. vs 2019</th><th>Contexto</th></tr>
+        </thead>
+        <tbody>
+          <tr><td><strong>Jan/2019</strong></td><td class="num">97.827</td><td class="pct">—</td><td>Pico histórico</td></tr>
+          <tr><td>Jan/2021</td><td class="num">68.705</td><td class="pct" style="color:var(--red)">-29.8%</td><td>Vale pandêmico</td></tr>
+          <tr><td>Set/2023</td><td class="num">81.941</td><td class="pct" style="color:var(--red)">-16.2%</td><td>Último CSV publicado</td></tr>
+          <tr><td>Set/2024*</td><td class="num">~73.000</td><td class="pct" style="color:var(--red)">-25.4%</td><td>Decreto 12.174/24</td></tr>
+          <tr><td>Set/2025*</td><td class="num">~69.000</td><td class="pct" style="color:var(--red)">-29.5%</td><td>IN 381/2025</td></tr>
+        </tbody>
+      </table>
+      <div style="font-family:var(--mono);font-size:.6rem;color:#888;margin-top:.5rem">* Estimativas de fontes oficiais (Governo Federal, FENATI). Dados individuais não disponíveis.</div>
+    </div>
+
+    <div class="insight" style="border-left-color:var(--gold)">
+      <strong>Paradoxo regulatório:</strong> O Decreto 12.174/24 melhorou condições trabalhistas (jornada menor, anti-dumping salarial, anti-assédio) — mas ao encarecer contratos, pode estar acelerando a redução de vagas. De ~82K em Set/2023 para ~69K em Set/2025 = <strong>-13 mil postos em 2 anos</strong>. A questão é se esses postos foram substituídos por concursados ou simplesmente eliminados.
+    </div>
+  </div>
+
   <!-- INSIGHTS FINAIS -->
   <div class="section">
     <div class="section-title">Síntese e Observações</div>
@@ -443,7 +509,7 @@ body{font-family:var(--sans);color:var(--ink);background:var(--paper);line-heigh
     </div>
 
     <div class="insight" style="border-left-color:var(--purple)">
-      <strong>Dados parados desde Set/2023:</strong> A base não é atualizada desde setembro de 2023 — 18 meses de atraso. A CGU prometia atualização quadrimestral. Isso levanta preocupação sobre transparência: o governo pode ter aumentado ou cortado significativamente o efetivo sem que os dados reflitam.
+      <strong>Dados parados desde Set/2023:</strong> A CGU não publica CSVs detalhados há mais de 2 anos. Dados agregados indicam queda contínua (~69K em Set/2025 vs 82K em Set/2023). Sem microdados, é impossível saber quais órgãos cortaram, quais empresas saíram, ou se os salários acompanharam o SM de R$ 1.518. O cron deste relatório monitora o portal a cada 6h e avisará quando (se) novos dados forem publicados.
     </div>
 
     <div class="insight" style="border-left-color:var(--blue)">
