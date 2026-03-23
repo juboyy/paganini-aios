@@ -10,9 +10,11 @@ const PRODUTO_NAV = [
   { href: "/onboard",       label: "ONBOARDING",    icon: "⊙" },
   { href: "/guardrails",    label: "GUARDRAILS",    icon: "⛊" },
   { href: "/reports",       label: "RELATÓRIOS",    icon: "⊡" },
+  { href: "/extrato",       label: "EXTRATO",       icon: "☰" },
   { href: "/memory",        label: "CONHECIMENTO",  icon: "◈" },
   { href: "/capabilities",  label: "SKILLS",        icon: "⊞" },
   { href: "/fund",          label: "PACK FIDC",     icon: "▣" },
+  { href: "/chat",          label: "CHAT",          icon: "◆" },
 ];
 
 const PLATAFORMA_NAV = [
