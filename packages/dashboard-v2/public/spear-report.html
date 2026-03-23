@@ -119,6 +119,25 @@ section:nth-child(odd){background:var(--cream)}
 .dash-link::after{content:'→';font-size:.7rem;opacity:.5}
 .dash-link.dark{color:var(--gold-l);border-color:rgba(212,168,67,.2);background:rgba(212,168,67,.06)}
 .dash-link.dark:hover{background:rgba(212,168,67,.15)}
+
+/* ── MOBILE FIXES (OraCLI dark section) ── */
+@media(max-width:900px){
+  .capabilities-grid>div{border-right:1px solid rgba(248,246,242,.08)!important}
+}
+@media(max-width:640px){
+  .capabilities-grid{gap:.75rem!important}
+  .capabilities-grid>div{border:1px solid rgba(248,246,242,.08)!important;padding:1.5rem!important}
+}
+
+@media(max-width:480px){
+  .flow-diagram{font-size:.65rem!important}
+  .flow-step{padding:.35rem .6rem!important}
+  .flow-arrow{font-size:.9rem!important}
+  .stat-row{grid-template-columns:1fr 1fr!important}
+  .agent-grid{grid-template-columns:1fr!important}
+  .card-grid{grid-template-columns:1fr!important}
+  .spear-nav a{padding:.5rem .6rem!important;font-size:.6rem!important}
+}
 </style>
 </head>
 <body>
@@ -442,10 +461,10 @@ section:nth-child(odd){background:var(--cream)}
     <!-- OraCLI Architecture -->
     <div style="border:1px solid rgba(248,246,242,.08);padding:2rem;margin:2.5rem 0">
       <div class="caption" style="color:var(--gold-l);margin-bottom:1.5rem">COMO O ORACLI ORQUESTRA</div>
-      <div style="display:grid;grid-template-columns:1fr;gap:1.2rem;font-family:var(--mono);font-size:.78rem">
+      <div style="display:grid;grid-template-columns:1fr;gap:.8rem;font-family:var(--mono);font-size:.72rem">
         
         <div style="display:flex;align-items:stretch;gap:1rem">
-          <div style="min-width:140px;padding:.8rem 1rem;border:1px solid var(--gold);color:var(--gold-l);text-align:center;display:flex;flex-direction:column;justify-content:center">
+          <div style="min-width:100px;padding:.6rem .8rem;border:1px solid var(--gold);color:var(--gold-l);text-align:center;display:flex;flex-direction:column;justify-content:center">
             <strong>INPUT</strong><br>
             <span style="font-size:.68rem;opacity:.6">Jira · Linear · Chat · CLI</span>
           </div>
@@ -458,7 +477,7 @@ section:nth-child(odd){background:var(--cream)}
         </div>
 
         <div style="display:flex;align-items:stretch;gap:1rem">
-          <div style="min-width:140px;padding:.8rem 1rem;border:1px solid rgba(248,246,242,.15);color:rgba(248,246,242,.5);text-align:center;display:flex;flex-direction:column;justify-content:center">
+          <div style="min-width:100px;padding:.6rem .8rem;border:1px solid rgba(248,246,242,.15);color:rgba(248,246,242,.5);text-align:center;display:flex;flex-direction:column;justify-content:center">
             <strong style="color:var(--paper)">CLASSIFY</strong><br>
             <span style="font-size:.68rem">Micro · Quick · Feature · Epic</span>
           </div>
@@ -471,7 +490,7 @@ section:nth-child(odd){background:var(--cream)}
         </div>
 
         <div style="display:flex;align-items:stretch;gap:1rem">
-          <div style="min-width:140px;padding:.8rem 1rem;border:1px solid rgba(248,246,242,.15);color:rgba(248,246,242,.5);text-align:center;display:flex;flex-direction:column;justify-content:center">
+          <div style="min-width:100px;padding:.6rem .8rem;border:1px solid rgba(248,246,242,.15);color:rgba(248,246,242,.5);text-align:center;display:flex;flex-direction:column;justify-content:center">
             <strong style="color:var(--paper)">DISPATCH</strong><br>
             <span style="font-size:.68rem">Subagent Swarm</span>
           </div>
@@ -484,7 +503,7 @@ section:nth-child(odd){background:var(--cream)}
         </div>
 
         <div style="display:flex;align-items:stretch;gap:1rem">
-          <div style="min-width:140px;padding:.8rem 1rem;border:1px solid var(--gold);color:var(--gold-l);text-align:center;display:flex;flex-direction:column;justify-content:center">
+          <div style="min-width:100px;padding:.6rem .8rem;border:1px solid var(--gold);color:var(--gold-l);text-align:center;display:flex;flex-direction:column;justify-content:center">
             <strong>VALIDATE</strong><br>
             <span style="font-size:.68rem;opacity:.6">Review + Deploy + Log</span>
           </div>
@@ -538,7 +557,7 @@ section:nth-child(odd){background:var(--cream)}
     <!-- Models -->
     <div style="border:1px solid rgba(248,246,242,.08);padding:1.5rem;margin:1.5rem 0">
       <div class="caption" style="color:var(--gold-l);margin-bottom:1rem">MODELOS DE IA UTILIZADOS</div>
-      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:1rem;font-family:var(--mono);font-size:.75rem">
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:.75rem;font-family:var(--mono);font-size:.75rem">
         <div style="text-align:center;padding:.8rem;border:1px solid rgba(248,246,242,.06)">
           <div style="color:rgba(180,130,255,.9);font-weight:600">claude-opus-4-6</div>
           <div style="color:rgba(248,246,242,.4);margin-top:.3rem">OraCLI (principal)</div>
@@ -572,7 +591,7 @@ section:nth-child(odd){background:var(--cream)}
       A maioria dos sistemas de IA faz uma coisa. OraCLI faz três ao mesmo tempo. Opera a infraestrutura, gera visão executiva, e detecta padrões que humanos levam dias pra perceber.
     </p>
 
-    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:0;margin:1.5rem 0">
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:0;margin:1.5rem 0" class="capabilities-grid">
       
       <!-- OPERACIONAL -->
       <div style="border:1px solid rgba(248,246,242,.08);padding:2rem;border-right:none">
@@ -1021,25 +1040,25 @@ section:nth-child(odd){background:var(--cream)}
     <div style="margin:2rem 0 2.5rem">
       <div style="border-left:3px solid var(--gold);padding:1.2rem 0 1.2rem 1.5rem;margin-bottom:2rem">
         <div style="font-family:var(--serif);font-size:1.15rem;font-style:italic;color:var(--ink);line-height:1.45;max-width:42ch">
-          "People in college use ChatGPT as an operating system. We want to build a subscription operating system — but for AI."
+          "Jovens na universidade já usam o ChatGPT como sistema operacional. Queremos construir um OS por assinatura — mas para IA."
         </div>
         <div style="font-family:var(--mono);font-size:.72rem;color:var(--gold);margin-top:.6rem;letter-spacing:.08em">
-          SAM ALTMAN — CEO, OpenAI · Sequoia AI Ascent, Mai 2025
+          SAM ALTMAN — CEO, OpenAI · Sequoia AI Ascent, Maio 2025
         </div>
       </div>
 
       <div style="border-left:3px solid var(--green);padding:1.2rem 0 1.2rem 1.5rem;margin-bottom:2rem">
         <div style="font-family:var(--serif);font-size:1.15rem;font-style:italic;color:var(--ink);line-height:1.45;max-width:42ch">
-          "It's not an enterprise application — it's agents. And the operating system isn't something like VMware. It's something like an AI factory OS. Every company needs an agentic strategy."
+          "Não é uma aplicação enterprise — são agentes. E o sistema operacional não é algo como VMware. É algo como um OS de fábrica de IA. Toda empresa precisa de uma estratégia agêntica."
         </div>
         <div style="font-family:var(--mono);font-size:.72rem;color:var(--green);margin-top:.6rem;letter-spacing:.08em">
-          JENSEN HUANG — CEO, NVIDIA · GTC 2025 Keynote
+          JENSEN HUANG — CEO, NVIDIA · GTC 2025
         </div>
       </div>
 
       <div style="border-left:3px solid var(--cyan);padding:1.2rem 0 1.2rem 1.5rem;margin-bottom:2rem">
         <div style="font-family:var(--serif);font-size:1.15rem;font-style:italic;color:var(--ink);line-height:1.45;max-width:42ch">
-          "The business logic is all going to AI agents. They won't discriminate between backends — they'll update multiple databases. All the logic will be in the AI tier. SaaS as we know it will collapse."
+          "A lógica de negócio está toda migrando para agentes de IA. Eles não vão diferenciar entre backends — vão atualizar múltiplos bancos de dados. Toda a lógica vai estar no tier de IA. O SaaS como conhecemos vai colapsar."
         </div>
         <div style="font-family:var(--mono);font-size:.72rem;color:var(--cyan);margin-top:.6rem;letter-spacing:.08em">
           SATYA NADELLA — CEO, Microsoft · Build 2025
@@ -1048,10 +1067,10 @@ section:nth-child(odd){background:var(--cream)}
 
       <div style="border-left:3px solid #888;padding:1.2rem 0 1.2rem 1.5rem">
         <div style="font-family:var(--serif);font-size:1.15rem;font-style:italic;color:var(--ink);line-height:1.45;max-width:42ch">
-          "AI agents are the new apps. The companies that win will be the ones that build vertical AI systems with domain expertise — not horizontal chatbots."
+          "Agentes de IA são os novos apps. As empresas que vão vencer são as que constroem sistemas de IA verticais com expertise de domínio — não chatbots horizontais."
         </div>
         <div style="font-family:var(--mono);font-size:.72rem;color:#888;margin-top:.6rem;letter-spacing:.08em">
-          ANDREJ KARPATHY — Ex-Director of AI, Tesla · Jan 2025
+          ANDREJ KARPATHY — Ex-Diretor de IA, Tesla · Jan 2025
         </div>
       </div>
     </div>
