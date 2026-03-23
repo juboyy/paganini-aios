@@ -8,8 +8,9 @@
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-3776ab.svg)](https://python.org)
 [![License: Apache 2.0](https://img.shields.io/badge/License-Apache_2.0-blue.svg)](LICENSE)
 [![Dashboard](https://img.shields.io/badge/dashboard-live-blue.svg)](https://dashboard-v2-pearl-rho.vercel.app)
+[![HuggingFace](https://img.shields.io/badge/🤗_HuggingFace-Models-yellow.svg)](https://huggingface.co/sttjr)
 
-[Dashboard](https://dashboard-v2-pearl-rho.vercel.app) · [Docs](docs/) · [Instalar](#instalação) · [🇧🇷 Português](README.pt-BR.md)
+[Dashboard v2](https://dashboard-v2-pearl-rho.vercel.app) · [Dashboard v1 (demo)](https://paganini-demo.vercel.app) · [Docs](docs/) · [Instalar](#instalação) · [🇧🇷 Português](README.pt-BR.md)
 
 </div>
 
@@ -120,7 +121,7 @@ paganini up                                        # Dashboard + Telegram + Daem
 9 agentes de domínio financeiro construídos sobre a Code Layer. Cada um tem identidade própria (SOUL), escopo regulatório, e guardrails específicos.
 
 | | Agente | Especialidade |
-|---|-------|--------------|
+|---|-------|--------------| 
 | 📋 | **Administrador** | CVM 175, governança, filings regulatórios |
 | 🔐 | **Custodiante** | Reconciliação, sobrecolateralização, registro |
 | 📊 | **Gestor** | Análise de risco, modelagem PDD, otimização de portfólio |
@@ -144,7 +145,7 @@ paganini up                                        # Dashboard + Telegram + Daem
 | Modo | O Que Faz | Requisitos |
 |------|-----------|------------|
 | **skills_only** (default) | Intercepta cada interação. Injeta skills aprendidos. Gera novos automaticamente. | Apenas rede. Sem GPU. |
-| **rl** | + Fine-tuning **LoRA ao vivo** via Tinker Cloud. Modelo PRM avalia respostas. Pesos trocados sem downtime. | Tinker API key |
+| **rl** | + Fine-tuning **LoRA ao vivo** via Tinker Cloud. **Operacional** — 23 runs de treino concluídos. Modelo PRM avalia respostas com reward function dual (R_code + R_finance + R_shared). Pesos trocados sem downtime. | Tinker API key |
 | **opd** | + Destilação teacher-student. Modelo frontier ensina modelo menor. Mesma qualidade, 1/10 do custo. | Endpoint do modelo teacher |
 
 ### 🔍 AutoResearch — RAG Que Se Otimiza
@@ -154,6 +155,60 @@ Pipeline auto-modificável. Um LLM roda experimentos autônomos para otimizar 16
 ### 🧠 Memory Reflection
 
 Daemon diário. Revisa operações → extrai padrões → constrói grafo de conhecimento → promove memória episódica para semântica. O que o sistema aprende hoje beneficia todas as queries amanhã.
+
+---
+
+## Treinamento de Modelos
+
+O Paganini não apenas usa LLMs — **treina os seus próprios**. O pipeline completo vai do corpus bruto até modelos publicados no HuggingFace e prontos para inferência pelos agentes.
+
+### Pipeline
+
+```
+Corpus FIDC (6.993 chunks)
+        │
+        ▼
+Dataset Generation (13.697 pares Q&A dual-domain)
+        │
+        ├──────────────────────────────────────┐
+        ▼                                      ▼
+   SFT (Supervised)                    GRPO (Reinforcement)
+   Qwen3.5-27B · A100 80GB             Tinker API · LoRA rank 32
+   8.400 samples · 87,75% acc          13.697 samples · R_dual
+   loss 0,454                          R_code + R_finance + R_shared
+        │                                      │
+        ▼                                      ▼
+sttjr/paganini-qwen35-27b-sft-lora    sttjr/paganini-qwen35-27b-grpo-lora
+        │                                      │
+        └──────────────┬───────────────────────┘
+                       ▼
+               Agent Inference
+```
+
+### SFT — Supervised Fine-Tuning
+
+| Parâmetro | Valor |
+|-----------|-------|
+| **Modelo base** | Qwen3.5-27B |
+| **Hardware** | RunPod A100 80GB |
+| **Amostras** | 8.400 |
+| **Acurácia final** | 87,75% |
+| **Loss final** | 0,454 |
+| **HuggingFace** | [`sttjr/paganini-qwen35-27b-sft-lora`](https://huggingface.co/sttjr/paganini-qwen35-27b-sft-lora) |
+
+### GRPO — Reinforcement Learning
+
+| Parâmetro | Valor |
+|-----------|-------|
+| **Método** | Group Relative Policy Optimization (GRPO) |
+| **Infraestrutura** | Tinker API — Thinking Machines Lab |
+| **Amostras** | 13.697 (dual-domain: código + finanças) |
+| **LoRA rank** | 32 |
+| **Reward function** | R_total = R_code + R_finance + R_shared |
+| **Runs concluídos** | 23 |
+| **HuggingFace** | [`sttjr/paganini-qwen35-27b-grpo-lora`](https://huggingface.co/sttjr/paganini-qwen35-27b-grpo-lora) |
+
+Os modelos estão disponíveis publicamente em [huggingface.co/sttjr](https://huggingface.co/sttjr).
 
 ---
 
@@ -183,6 +238,8 @@ Daemon diário. Revisa operações → extrai padrões → constrói grafo de co
 | Guardrail Gates | 6 |
 | Chunks indexados | 6.993 |
 | Dependências | 87 |
+| Runs de treino GRPO | 23 |
+| Amostras de treino (total) | 22.097 (8.4K SFT + 13.7K GRPO) |
 
 ---
 
@@ -196,7 +253,10 @@ Daemon diário. Revisa operações → extrai padrões → constrói grafo de co
 | **RAG** | ChromaDB + all-MiniLM-L6-v2 (local, sem API) |
 | **LLM** | BYOK via LiteLLM (OpenAI / Anthropic / Google / Ollama) |
 | **Guardrails** | Pipeline de 6 gates com hard-stop |
-| **Dashboard** | Next.js — [live](https://dashboard-v2-pearl-rho.vercel.app) |
+| **Training** | Tinker API (Qwen3.5-27B + LoRA rank 32, GRPO) |
+| **Models** | HuggingFace ([sttjr/paganini-qwen35-27b-grpo-lora](https://huggingface.co/sttjr/paganini-qwen35-27b-grpo-lora)) |
+| **Dashboard v1** | Next.js — [demo](https://paganini-demo.vercel.app) |
+| **Dashboard v2** | Next.js — [enterprise](https://dashboard-v2-pearl-rho.vercel.app) (com aba RL Training) |
 
 ---
 
@@ -211,7 +271,7 @@ Daemon diário. Revisa operações → extrai padrões → constrói grafo de co
 
 <div align="center">
 
-**[Dashboard](https://dashboard-v2-pearl-rho.vercel.app)** · **rod.marques@aios.finance**
+**[Dashboard v2](https://dashboard-v2-pearl-rho.vercel.app)** · **[Dashboard v1](https://paganini-demo.vercel.app)** · **[🤗 HuggingFace](https://huggingface.co/sttjr)** · **rod.marques@aios.finance**
 
 <sub>Built with obsession. Shipped with discipline.</sub>
 

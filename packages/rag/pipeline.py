@@ -264,7 +264,7 @@ class RAGPipeline:
 
 Regras:
 1. Responda APENAS com base no contexto fornecido
-2. Cite as fontes usando [Fonte N] 
+2. Cite as fontes usando [Fonte N]
 3. Se não encontrar a resposta no contexto, diga explicitamente
 4. Seja preciso e objetivo
 5. Use terminologia técnica correta do mercado financeiro brasileiro"""

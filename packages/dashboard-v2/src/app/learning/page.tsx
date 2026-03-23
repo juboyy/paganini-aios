@@ -111,6 +111,65 @@ const AUTORESEARCH_RUNS = [
   },
 ];
 
+/* ── RL Training Runs ── */
+const RL_TRAINING_RUNS = [
+  {
+    id: "GRPO-001",
+    date: "2026-03-23",
+    status: "completed",
+    baseModel: "Qwen/Qwen3.5-27B",
+    method: "GRPO (Group Relative Policy Optimization)",
+    platform: "Tinker API (Thinking Machines Lab)",
+    loraConfig: { rank: 32, targets: "all-linear", type: "CAUSAL_LM" },
+    dataset: {
+      name: "dual-dataset-v2.jsonl",
+      samples: 13697,
+      domains: { code: 6848, finance: 6849 },
+      levels: { L1: 4566, L2: 4566, L3: 4565 },
+    },
+    reward: {
+      code: ["Spec adherence (+0.30)", "Architecture patterns (+0.25)", "Pipeline compliance (+0.15)", "Code blocks (+0.10)", "TDD terms (+0.10)"],
+      finance: ["Guardrail compliance (+0.35)", "CVM citation (+0.15)", "Article reference (+0.15)", "Source attribution (+0.20)"],
+      shared: ["Hallucination penalty (−0.15)", "Corporate speak (−0.05/each)", "PT-BR bonus (+0.05)", "Length < 50 (−0.20)"],
+    },
+    checkpoints: [
+      { name: "paganini-test", size: "2.7 GB", path: "tinker://7e18a5a1.../weights/paganini-test" },
+      { name: "paganini-rl-final", size: "2.7 GB", path: "tinker://7e18a5a1.../weights/paganini-rl-final" },
+    ],
+    huggingface: "sttjr/paganini-qwen35-27b-grpo-lora",
+    tinkerRunId: "7e18a5a1-8a6b-530d-b443-4f855a3aa8c4:train:0",
+    trainingRuns: 23,
+    duration: "~3h",
+  },
+  {
+    id: "SFT-001",
+    date: "2026-03-22",
+    status: "completed",
+    baseModel: "Qwen/Qwen3.5-27B",
+    method: "Supervised Fine-Tuning (SFT)",
+    platform: "RunPod (A100 80GB)",
+    loraConfig: { rank: 16, targets: "all-linear", type: "CAUSAL_LM" },
+    dataset: {
+      name: "paganini-fidc-sft-v1",
+      samples: 8400,
+      domains: { code: 3200, finance: 5200 },
+      levels: { L1: 2800, L2: 2800, L3: 2800 },
+    },
+    reward: {
+      code: [],
+      finance: [],
+      shared: ["Token accuracy: 87.75%", "Loss final: 0.454", "37 tok/s on A100"],
+    },
+    checkpoints: [
+      { name: "sft-final", size: "1.2 GB", path: "local:/workspace/output/sft-final" },
+    ],
+    huggingface: "sttjr/paganini-qwen35-27b-sft-lora",
+    tinkerRunId: "—",
+    trainingRuns: 1,
+    duration: "~45min",
+  },
+];
+
 /* ── Tópicos de Pesquisa ── */
 const RESEARCH_TOPICS = [
   {
@@ -161,7 +220,7 @@ const STATUS_CONFIG: Record<string, { color: string; label: string; bg: string }
 };
 
 export default function LearningPage() {
-  const [activeTab, setActiveTab] = useState<"metaclaw" | "autoresearch" | "research" | "code">("metaclaw");
+  const [activeTab, setActiveTab] = useState<"metaclaw" | "autoresearch" | "research" | "code" | "rl">("metaclaw");
   const [selectedRun, setSelectedRun] = useState<string | null>(null);
 
   const promoted = SKILLS_EVOLUTION.filter((s) => s.status === "promoted").length;
@@ -215,7 +274,7 @@ export default function LearningPage() {
 
       {/* Abas */}
       <div className="flex gap-1" style={{ borderBottom: "1px solid var(--border)" }}>
-        {(["metaclaw", "autoresearch", "code", "research"] as const).map((tab) => (
+        {(["metaclaw", "rl", "autoresearch", "code", "research"] as const).map((tab) => (
           <button
             key={tab}
             onClick={() => setActiveTab(tab)}
@@ -232,7 +291,7 @@ export default function LearningPage() {
               transition: "color 0.15s",
             }}
           >
-            {tab === "metaclaw" ? "🧠 METACLAW" : tab === "autoresearch" ? "🔬 AUTORESEARCH" : tab === "code" ? "💻 CÓDIGO" : "📚 PESQUISA"}
+            {tab === "metaclaw" ? "🧠 METACLAW" : tab === "rl" ? "🎯 RL TRAINING" : tab === "autoresearch" ? "🔬 AUTORESEARCH" : tab === "code" ? "💻 CÓDIGO" : "📚 PESQUISA"}
           </button>
         ))}
       </div>
@@ -752,6 +811,192 @@ class PLDAMLGate:
                     reason=f"Query bloqueada: padrão adversarial detectado"
                 )`}
             </pre>
+          </div>
+        </div>
+      )}
+
+      {/* Aba RL Training */}
+      {activeTab === "rl" && (
+        <div className="space-y-4">
+          <p className="section-help">
+            O Paganini treina seu próprio modelo de linguagem usando Reinforcement Learning com uma função
+            de recompensa dual-domain (código + finanças). O pipeline: SFT (base knowledge) → GRPO
+            (alignment via reward model) → deploy. Modelos treinados ficam disponíveis no HuggingFace e
+            são usados como backbone de inferência nos agentes FIDC.
+          </p>
+
+          {/* Stats */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {[
+              { label: "MODELO BASE", value: "Qwen3.5-27B", sub: "27 bilhões de parâmetros" },
+              { label: "DATASET", value: "13.7K", sub: "Amostras dual-domain (code+finance)" },
+              { label: "RUNS TINKER", value: "23", sub: "Execuções de treinamento na plataforma" },
+              { label: "CHECKPOINTS", value: "2", sub: "2.7 GB cada — LoRA rank 32" },
+            ].map((s) => (
+              <div key={s.label} className="glass-card p-4">
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", letterSpacing: "0.1em", color: "var(--text-4)", marginBottom: "8px" }}>
+                  {s.label}
+                </div>
+                <div className="stat-value" style={{ color: "var(--accent)" }}>{s.value}</div>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-3)", marginTop: "4px" }}>{s.sub}</div>
+              </div>
+            ))}
+          </div>
+
+          {/* Training Runs */}
+          {RL_TRAINING_RUNS.map((run) => (
+            <div key={run.id} className="glass-card p-5" style={{ borderLeftWidth: "3px", borderLeftColor: run.status === "completed" ? "var(--accent)" : "var(--cyan)" }}>
+              <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-3 mb-4">
+                <div>
+                  <div className="flex items-center gap-3 mb-1">
+                    <span style={{ fontFamily: "var(--font-mono)", fontSize: "1rem", fontWeight: 700, color: "var(--text-1)" }}>{run.id}</span>
+                    <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", padding: "2px 8px", borderRadius: "var(--radius)", background: "hsl(150 100% 50% / 0.1)", color: "var(--accent)", border: "1px solid hsl(150 100% 50% / 0.3)" }}>
+                      COMPLETO
+                    </span>
+                    <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-4)" }}>{run.date}</span>
+                  </div>
+                  <div style={{ fontSize: "0.875rem", color: "var(--text-2)", fontWeight: 600 }}>
+                    {run.method}
+                  </div>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: "var(--text-3)", marginTop: "2px" }}>
+                    Plataforma: {run.platform} · Duração: {run.duration}
+                  </div>
+                </div>
+                {run.huggingface && (
+                  <a
+                    href={`https://huggingface.co/${run.huggingface}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    style={{
+                      fontFamily: "var(--font-mono)", fontSize: "0.8125rem", padding: "6px 14px",
+                      borderRadius: "var(--radius)", background: "hsl(150 100% 50% / 0.08)",
+                      color: "var(--accent)", border: "1px solid hsl(150 100% 50% / 0.3)",
+                      textDecoration: "none", whiteSpace: "nowrap",
+                    }}
+                  >
+                    🤗 {run.huggingface}
+                  </a>
+                )}
+              </div>
+
+              {/* Grid de Detalhes */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: "12px" }}>
+                {/* Model Config */}
+                <div style={{ background: "hsl(0 0% 0% / 0.3)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "12px 16px" }}>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", letterSpacing: "0.1em", color: "var(--text-4)", marginBottom: "8px" }}>CONFIGURAÇÃO DO MODELO</div>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: "var(--cyan)", lineHeight: 1.8 }}>
+                    Base: {run.baseModel}<br />
+                    LoRA Rank: {run.loraConfig.rank}<br />
+                    Targets: {run.loraConfig.targets}<br />
+                    Task: {run.loraConfig.type}
+                  </div>
+                </div>
+
+                {/* Dataset */}
+                <div style={{ background: "hsl(0 0% 0% / 0.3)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "12px 16px" }}>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", letterSpacing: "0.1em", color: "var(--text-4)", marginBottom: "8px" }}>DATASET</div>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: "var(--cyan)", lineHeight: 1.8 }}>
+                    {run.dataset.name}<br />
+                    {run.dataset.samples.toLocaleString()} amostras<br />
+                    Code: {run.dataset.domains.code.toLocaleString()} · Finance: {run.dataset.domains.finance.toLocaleString()}<br />
+                    L1: {run.dataset.levels.L1} · L2: {run.dataset.levels.L2} · L3: {run.dataset.levels.L3}
+                  </div>
+                </div>
+
+                {/* Checkpoints */}
+                <div style={{ background: "hsl(0 0% 0% / 0.3)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "12px 16px" }}>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", letterSpacing: "0.1em", color: "var(--text-4)", marginBottom: "8px" }}>CHECKPOINTS</div>
+                  {run.checkpoints.map((cp) => (
+                    <div key={cp.name} style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: "var(--accent)", marginBottom: "4px" }}>
+                      ✓ {cp.name} — {cp.size}
+                    </div>
+                  ))}
+                  {run.tinkerRunId !== "—" && (
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-4)", marginTop: "8px" }}>
+                      Tinker Run: {run.tinkerRunId.slice(0, 16)}...
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Reward Function */}
+              {run.reward.code.length > 0 && (
+                <div style={{ marginTop: "16px", background: "hsl(0 0% 0% / 0.3)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "16px 20px" }}>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", letterSpacing: "0.1em", color: "var(--text-4)", marginBottom: "12px" }}>
+                    FUNÇÃO DE RECOMPENSA DUAL-DOMAIN
+                  </div>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: "var(--text-2)", marginBottom: "8px" }}>
+                    <span style={{ color: "var(--accent)" }}>R(x) = λ·R_code + (1-λ)·R_fin + R_shared</span>
+                  </div>
+                  <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: "12px" }}>
+                    <div>
+                      <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--cyan)", marginBottom: "4px" }}>R_CODE (λ=1.0)</div>
+                      {run.reward.code.map((r, i) => (
+                        <div key={i} style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-3)", padding: "2px 0" }}>• {r}</div>
+                      ))}
+                    </div>
+                    <div>
+                      <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "#f59e0b", marginBottom: "4px" }}>R_FINANCE (λ=0.0)</div>
+                      {run.reward.finance.map((r, i) => (
+                        <div key={i} style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-3)", padding: "2px 0" }}>• {r}</div>
+                      ))}
+                    </div>
+                    <div>
+                      <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-4)", marginBottom: "4px" }}>R_SHARED</div>
+                      {run.reward.shared.map((r, i) => (
+                        <div key={i} style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-3)", padding: "2px 0" }}>• {r}</div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* SFT metrics (for SFT-001) */}
+              {run.reward.code.length === 0 && run.reward.shared.length > 0 && (
+                <div style={{ marginTop: "16px", background: "hsl(0 0% 0% / 0.3)", border: "1px solid var(--border)", borderRadius: "var(--radius)", padding: "16px 20px" }}>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", letterSpacing: "0.1em", color: "var(--text-4)", marginBottom: "8px" }}>MÉTRICAS SFT</div>
+                  {run.reward.shared.map((r, i) => (
+                    <div key={i} style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: "var(--cyan)", padding: "2px 0" }}>✓ {r}</div>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
+
+          {/* Pipeline Diagram */}
+          <div className="glass-card p-5">
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", letterSpacing: "0.1em", color: "var(--text-4)", marginBottom: "16px" }}>
+              PIPELINE DE TREINAMENTO
+            </div>
+            <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap", fontFamily: "var(--font-mono)", fontSize: "0.8125rem" }}>
+              {[
+                { label: "Corpus FIDC", color: "var(--text-3)", desc: "6.983 chunks" },
+                { label: "→", color: "var(--text-4)", desc: "" },
+                { label: "Dataset Gen", color: "var(--cyan)", desc: "13.7K Q&A" },
+                { label: "→", color: "var(--text-4)", desc: "" },
+                { label: "SFT", color: "#a855f7", desc: "87.75% acc" },
+                { label: "→", color: "var(--text-4)", desc: "" },
+                { label: "GRPO", color: "var(--accent)", desc: "Dual reward" },
+                { label: "→", color: "var(--text-4)", desc: "" },
+                { label: "HuggingFace", color: "#f59e0b", desc: "Public" },
+                { label: "→", color: "var(--text-4)", desc: "" },
+                { label: "Agentes FIDC", color: "var(--accent)", desc: "14 agentes" },
+              ].map((step, i) => (
+                step.label === "→" ? (
+                  <span key={i} style={{ color: step.color, fontSize: "1.2rem" }}>→</span>
+                ) : (
+                  <div key={i} style={{
+                    padding: "6px 14px", borderRadius: "var(--radius)",
+                    background: `color-mix(in srgb, ${step.color} 10%, transparent)`,
+                    border: `1px solid color-mix(in srgb, ${step.color} 30%, transparent)`,
+                    color: step.color, textAlign: "center",
+                  }}>
+                    <div style={{ fontWeight: 600 }}>{step.label}</div>
+                    {step.desc && <div style={{ fontSize: "0.75rem", opacity: 0.7 }}>{step.desc}</div>}
+                  </div>
+                )
+              ))}
+            </div>
           </div>
         </div>
       )}

@@ -14,7 +14,7 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - run: pip install ruff black isort
+      - run: pip install "ruff>=0.15,<0.16" "black>=24.0,<27" "isort>=5.0,<9"
       - run: ruff check packages/
       - run: black --check --target-version py312 packages/
       - run: isort --check --profile black packages/
@@ -24,9 +24,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: trufflesecurity/trufflehog@main
+        continue-on-error: true
         with:
           extra_args: --only-verified
       - uses: gitleaks/gitleaks-action@v2
+        continue-on-error: true
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 

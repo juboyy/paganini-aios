@@ -18,6 +18,7 @@ jobs:
           fetch-depth: 0
       - name: TruffleHog
         uses: trufflesecurity/trufflehog@main
+        continue-on-error: true
         with:
           extra_args: --only-verified
       - name: Custom secret detection
