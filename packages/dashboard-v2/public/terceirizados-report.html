@@ -460,12 +460,13 @@ body{font-family:var(--sans);color:var(--ink);background:var(--paper);line-heigh
       </div>
       <div class="highlight" style="border-top:3px solid var(--red)">
         <div class="tag" style="color:var(--red)">TRANSPARÊNCIA</div>
-        <div class="title">Dados abertos parados desde Set/2023</div>
+        <div class="title">CSVs abertos parados desde Set/2023</div>
         <div class="desc">
-          A CGU não publicou CSVs detalhados desde setembro de 2023 — mais de 2 anos de lacuna.
-          Dados individuais (nome, CPF, salário, órgão, empresa) indisponíveis para 2024-2025.
-          Números agregados (~73K em 2024, ~69K em 2025) vêm de citações oficiais em decretos e notícias.
-          O monitor automático deste relatório verificará a cada 6h se novos CSVs foram publicados.
+          A CGU recebe os dados dos órgãos via STI a cada quadrimestre — os microdados existem internamente.
+          Porém, não são publicados no portal de dados abertos desde setembro de 2023 (2 anos e meio de lacuna).
+          Dados individuais (nome, CPF, salário, órgão, empresa) indisponíveis para consulta pública em 2024-2025.
+          Números agregados (~73K em 2024, ~69K em 2025) vêm de citações oficiais em decretos e comunicados do MGI.
+          O monitor automático verificará a cada 6h se novos CSVs foram publicados.
         </div>
       </div>
     </div>
@@ -509,7 +510,7 @@ body{font-family:var(--sans);color:var(--ink);background:var(--paper);line-heigh
     </div>
 
     <div class="insight" style="border-left-color:var(--purple)">
-      <strong>Dados parados desde Set/2023:</strong> A CGU não publica CSVs detalhados há mais de 2 anos. Dados agregados indicam queda contínua (~69K em Set/2025 vs 82K em Set/2023). Sem microdados, é impossível saber quais órgãos cortaram, quais empresas saíram, ou se os salários acompanharam o SM de R$ 1.518. O cron deste relatório monitora o portal a cada 6h e avisará quando (se) novos dados forem publicados.
+      <strong>CSVs abertos parados desde Set/2023:</strong> A CGU recebe os dados dos órgãos quadrimestralmente via STI (Sistema de Transferência de Informações) — os microdados existem internamente. Porém, <strong>não são publicados no portal de dados abertos desde setembro de 2023</strong> (2 anos e 6 meses de lacuna). Os números agregados (~73K em Set/2024, ~69K em Set/2025) vêm de citações oficiais em decretos e comunicados do MGI. Sem os CSVs, é impossível saber quais órgãos cortaram, quais empresas saíram, ou se os salários acompanharam o SM de R$ 1.518. O cron deste relatório monitora o portal a cada 6h e avisará quando novos CSVs forem publicados.
     </div>
 
     <div class="insight" style="border-left-color:var(--blue)">
