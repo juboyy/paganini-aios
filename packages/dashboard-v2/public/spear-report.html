@@ -158,6 +158,14 @@ section#oracli span{color:inherit}
 section#oracli div{color:inherit}
 section#oracli .dash-link{color:#d4a843!important}
 section#oracli .dash-link::after{color:#d4a843!important}
+
+@media(max-width:480px){
+  #achievement div[style*="grid-template-columns:2fr 1fr 1fr"]{
+    grid-template-columns:1.5fr 1fr 1fr!important;
+    font-size:.75rem!important;
+    padding:.5rem .6rem!important;
+  }
+}
 </style>
 </head>
 <body>
@@ -179,7 +187,9 @@ section#oracli .dash-link::after{color:#d4a843!important}
     <a href="#problem">Problema</a>
     <a href="#execution">Execução</a>
     <a href="#oracli">OraCLI</a>
+    <a href="#anatomia">Caso Real</a>
     <a href="#achievement">Resultados</a>
+    <a href="#moat">Moat</a>
     <a href="#roadmap">Roadmap</a>
   </div>
 </nav>
@@ -742,6 +752,111 @@ section#oracli .dash-link::after{color:#d4a843!important}
   </div>
 </section>
 
+<!-- ═══════ ANATOMIA DE UMA OPERAÇÃO ═══════ -->
+<section id="anatomia" style="background:var(--cream)">
+  <div class="section-inner reveal">
+    <div class="section-label">Caso Real</div>
+    <h2 class="section-title">Anatomia de Uma Operação</h2>
+    <p class="section-lead">
+      Cedente ACME Ltda solicita cessão de R$ 2.4M em duplicatas. 
+      Veja o que acontece nos próximos 47 segundos.
+    </p>
+
+    <div style="position:relative;padding-left:2.5rem;margin:2rem 0">
+      <!-- Vertical line -->
+      <div style="position:absolute;left:.85rem;top:0;bottom:0;width:2px;background:linear-gradient(var(--green),var(--gold),var(--green),var(--red),var(--green),var(--green))"></div>
+
+      <div style="margin-bottom:1.8rem;position:relative">
+        <div style="position:absolute;left:-2.15rem;top:.35rem;width:12px;height:12px;border-radius:50%;background:var(--green);border:3px solid var(--cream)"></div>
+        <div style="font-family:var(--mono);font-size:.6rem;color:var(--green);letter-spacing:.15em;margin-bottom:.2rem">T+0s · GATE 1 — ELIGIBILITY</div>
+        <div style="font-family:var(--serif);font-size:1rem;color:var(--ink);margin-bottom:.3rem">Cedente elegível?</div>
+        <div style="font-size:.82rem;color:#555;line-height:1.6">
+          Due Diligence Agent consulta CNPJ, histórico de inadimplência, 
+          e score interno. ACME tem 14 cessões anteriores, 0 defaults. 
+          <span style="color:var(--green);font-family:var(--mono);font-size:.72rem">PASS</span>
+        </div>
+      </div>
+
+      <div style="margin-bottom:1.8rem;position:relative">
+        <div style="position:absolute;left:-2.15rem;top:.35rem;width:12px;height:12px;border-radius:50%;background:var(--gold);border:3px solid var(--cream)"></div>
+        <div style="font-family:var(--mono);font-size:.6rem;color:var(--gold);letter-spacing:.15em;margin-bottom:.2rem">T+3s · GATE 2 — CONCENTRATION</div>
+        <div style="font-family:var(--serif);font-size:1rem;color:var(--ink);margin-bottom:.3rem">Limites de concentração ok?</div>
+        <div style="font-size:.82rem;color:#555;line-height:1.6">
+          Gestor Agent calcula: ACME representaria 16.2% do PL após cessão. 
+          Limite por cedente: 20%. Margem de 3.8%. 
+          <span style="color:var(--green);font-family:var(--mono);font-size:.72rem">PASS</span>
+          <span style="font-family:var(--mono);font-size:.68rem;color:#888"> — mas flag WARNING enviado pro Slack porque margem &lt; 5%</span>
+        </div>
+      </div>
+
+      <div style="margin-bottom:1.8rem;position:relative">
+        <div style="position:absolute;left:-2.15rem;top:.35rem;width:12px;height:12px;border-radius:50%;background:var(--green);border:3px solid var(--cream)"></div>
+        <div style="font-family:var(--mono);font-size:.6rem;color:var(--green);letter-spacing:.15em;margin-bottom:.2rem">T+8s · GATE 3 — COVENANT</div>
+        <div style="font-family:var(--serif);font-size:1rem;color:var(--ink);margin-bottom:.3rem">Índice de subordinação, razão de garantia, PDD</div>
+        <div style="font-size:.82rem;color:#555;line-height:1.6">
+          Compliance Agent recalcula IS pós-operação: 27.1% (mínimo: 25%). 
+          RG: 1.32 (mínimo: 1.20). PDD projetado: 2.8% (máximo: 5%). Tudo dentro.
+          <span style="color:var(--green);font-family:var(--mono);font-size:.72rem">PASS</span>
+        </div>
+      </div>
+
+      <div style="margin-bottom:1.8rem;position:relative">
+        <div style="position:absolute;left:-2.15rem;top:.35rem;width:12px;height:12px;border-radius:50%;background:var(--red);border:3px solid var(--cream)"></div>
+        <div style="font-family:var(--mono);font-size:.6rem;color:var(--red);letter-spacing:.15em;margin-bottom:.2rem">T+15s · GATE 4 — PLD/AML</div>
+        <div style="font-family:var(--serif);font-size:1rem;color:var(--ink);margin-bottom:.3rem">Anti-lavagem e financiamento ao terrorismo</div>
+        <div style="font-size:.82rem;color:#555;line-height:1.6">
+          Compliance Agent detecta: 3 duplicatas com sacado PF, mesmo CPF, 
+          valores fracionados (R$ 49.9K cada — logo abaixo do limite COAF de R$ 50K). 
+          Padrão clássico de fracionamento.
+          <span style="color:var(--red);font-family:var(--mono);font-size:.72rem">FLAG</span>
+          <span style="font-family:var(--mono);font-size:.68rem;color:#888"> — operação suspensa. Alerta CRITICAL enviado.</span>
+        </div>
+      </div>
+
+      <div style="margin-bottom:1.8rem;position:relative">
+        <div style="position:absolute;left:-2.15rem;top:.35rem;width:12px;height:12px;border-radius:50%;background:var(--green);border:3px solid var(--cream)"></div>
+        <div style="font-family:var(--mono);font-size:.6rem;color:var(--green);letter-spacing:.15em;margin-bottom:.2rem">T+22s · REVISÃO HUMANA</div>
+        <div style="font-family:var(--serif);font-size:1rem;color:var(--ink);margin-bottom:.3rem">Analista revisa o flag</div>
+        <div style="font-size:.82rem;color:#555;line-height:1.6">
+          Dashboard mostra as 3 duplicatas destacadas em vermelho com o motivo do flag. 
+          Analista verifica: sacado é filho do sócio da ACME. Relação legítima. 
+          Aprova com justificativa documentada. Sistema registra a decisão.
+          <span style="color:var(--green);font-family:var(--mono);font-size:.72rem">OVERRIDE AUTORIZADO</span>
+        </div>
+      </div>
+
+      <div style="margin-bottom:1.8rem;position:relative">
+        <div style="position:absolute;left:-2.15rem;top:.35rem;width:12px;height:12px;border-radius:50%;background:var(--green);border:3px solid var(--cream)"></div>
+        <div style="font-family:var(--mono);font-size:.6rem;color:var(--green);letter-spacing:.15em;margin-bottom:.2rem">T+35s · GATES 5-6 — COMPLIANCE + RISK</div>
+        <div style="font-family:var(--serif);font-size:1rem;color:var(--ink);margin-bottom:.3rem">CVM 175 e stress test</div>
+        <div style="font-size:.82rem;color:#555;line-height:1.6">
+          Compliance Agent confirma aderência à CVM 175 (art. 43, §2°). 
+          Risk Agent roda stress test: cenário de inadimplência de 15% no portfólio → 
+          fundo mantém IS acima do mínimo. VaR 95%: R$ 340K.
+          <span style="color:var(--green);font-family:var(--mono);font-size:.72rem">PASS</span>
+        </div>
+      </div>
+
+      <div style="position:relative">
+        <div style="position:absolute;left:-2.15rem;top:.35rem;width:12px;height:12px;border-radius:50%;background:var(--green);border:3px solid var(--cream);box-shadow:0 0 0 3px rgba(26,122,76,.2)"></div>
+        <div style="font-family:var(--mono);font-size:.6rem;color:var(--green);letter-spacing:.15em;margin-bottom:.2rem">T+47s · OPERAÇÃO APROVADA</div>
+        <div style="font-family:var(--serif);font-size:1rem;color:var(--ink);margin-bottom:.3rem">Cessão registrada. Reporting automático.</div>
+        <div style="font-size:.82rem;color:#555;line-height:1.6">
+          Reporting Agent gera: atualização do informe mensal, entrada no CADOC 3040, 
+          registro na posição do fundo. IR Agent prepara comunicado aos cotistas. 
+          Tudo em 47 segundos. Uma equipe humana levaria 2 a 4 horas.
+        </div>
+      </div>
+    </div>
+
+    <div class="pull-quote">
+      "O gate 4 flagou fracionamento real. O analista revisou em 7 segundos 
+      porque o dashboard mostrou exatamente o que olhar. Sem o sistema, 
+      essas 3 duplicatas teriam passado despercebidas."
+    </div>
+  </div>
+</section>
+
 <!-- ═══════ A — ACHIEVEMENT ═══════ -->
 <section id="achievement">
   <div class="section-inner reveal">
@@ -783,6 +898,54 @@ section#oracli .dash-link::after{color:#d4a843!important}
       <div class="stat-card">
         <div class="value">2</div>
         <div class="label">Modelos no HuggingFace</div>
+      </div>
+    </div>
+
+    <!-- ANTES VS DEPOIS -->
+    <h3 style="font-family:var(--serif);font-size:1.3rem;margin:3rem 0 1rem">Antes vs Depois — O Impacto Real</h3>
+    
+    <div style="border:1px solid rgba(0,0,0,.06);margin:1.5rem 0;overflow:hidden">
+      <div style="display:grid;grid-template-columns:2fr 1fr 1fr;font-family:var(--mono);font-size:.68rem;letter-spacing:.08em;color:#888;padding:.75rem 1rem;background:rgba(0,0,0,.02);border-bottom:1px solid rgba(0,0,0,.06)">
+        <span>OPERAÇÃO</span>
+        <span style="text-align:center;color:var(--red)">SEM PAGANINI</span>
+        <span style="text-align:center;color:var(--green)">COM PAGANINI</span>
+      </div>
+      <div style="font-size:.85rem;color:var(--ink)">
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr;padding:.65rem 1rem;border-bottom:1px solid rgba(0,0,0,.03);align-items:center">
+          <span>Detecção de desenquadramento</span>
+          <span style="text-align:center;color:var(--red);font-family:var(--mono);font-size:.82rem">7 dias</span>
+          <span style="text-align:center;color:var(--green);font-family:var(--mono);font-size:.82rem;font-weight:600">3 segundos</span>
+        </div>
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr;padding:.65rem 1rem;border-bottom:1px solid rgba(0,0,0,.03);align-items:center;background:rgba(0,0,0,.01)">
+          <span>Geração de CADOC 3040</span>
+          <span style="text-align:center;color:var(--red);font-family:var(--mono);font-size:.82rem">4 horas</span>
+          <span style="text-align:center;color:var(--green);font-family:var(--mono);font-size:.82rem;font-weight:600">12 minutos</span>
+        </div>
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr;padding:.65rem 1rem;border-bottom:1px solid rgba(0,0,0,.03);align-items:center">
+          <span>Análise PLD/AML por cessão</span>
+          <span style="text-align:center;color:var(--red);font-family:var(--mono);font-size:.82rem">30 min</span>
+          <span style="text-align:center;color:var(--green);font-family:var(--mono);font-size:.82rem;font-weight:600">15 segundos</span>
+        </div>
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr;padding:.65rem 1rem;border-bottom:1px solid rgba(0,0,0,.03);align-items:center;background:rgba(0,0,0,.01)">
+          <span>Monitoramento de covenants</span>
+          <span style="text-align:center;color:var(--red);font-family:var(--mono);font-size:.82rem">1x/semana</span>
+          <span style="text-align:center;color:var(--green);font-family:var(--mono);font-size:.82rem;font-weight:600">Contínuo</span>
+        </div>
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr;padding:.65rem 1rem;border-bottom:1px solid rgba(0,0,0,.03);align-items:center">
+          <span>Pesquisa regulatória (CVM/BACEN)</span>
+          <span style="text-align:center;color:var(--red);font-family:var(--mono);font-size:.82rem">Quando lembra</span>
+          <span style="text-align:center;color:var(--green);font-family:var(--mono);font-size:.82rem;font-weight:600">2x/dia auto</span>
+        </div>
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr;padding:.65rem 1rem;border-bottom:1px solid rgba(0,0,0,.03);align-items:center;background:rgba(0,0,0,.01)">
+          <span>Custo operacional anual</span>
+          <span style="text-align:center;color:var(--red);font-family:var(--mono);font-size:.82rem">R$ 1.08M</span>
+          <span style="text-align:center;color:var(--green);font-family:var(--mono);font-size:.82rem;font-weight:600">R$ 96K</span>
+        </div>
+        <div style="display:grid;grid-template-columns:2fr 1fr 1fr;padding:.65rem 1rem;align-items:center">
+          <span>Equipe necessária (compliance + ops)</span>
+          <span style="text-align:center;color:var(--red);font-family:var(--mono);font-size:.82rem">6 analistas</span>
+          <span style="text-align:center;color:var(--green);font-family:var(--mono);font-size:.82rem;font-weight:600">1 analista + IA</span>
+        </div>
       </div>
     </div>
 
@@ -1015,6 +1178,81 @@ section#oracli .dash-link::after{color:#d4a843!important}
         <h3>CI 100% Green</h3>
         <p>Lint (ruff), formatação (black), testes (pytest), security scan, SAST — tudo automatizado e passando.</p>
       </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ MOAT + TIMING ═══════ -->
+<section id="moat">
+  <div class="section-inner reveal">
+    <div class="section-label">Defensibilidade</div>
+    <h2 class="section-title">Por Que Ninguém Copia em 6 Meses</h2>
+
+    <div class="card-grid" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr))">
+      <div class="card" style="border-top:3px solid var(--gold)">
+        <div class="card-tag">Dados</div>
+        <h3>Corpus regulatório proprietário</h3>
+        <p>164 documentos da CVM, BACEN e ANBIMA fragmentados em 6.993 chunks com embeddings semânticos. Não é algo que se baixa da internet. Foi curado manualmente, validado contra jurisprudência, e indexado com relações entre normas via graph traversal.</p>
+      </div>
+      <div class="card" style="border-top:3px solid var(--green)">
+        <div class="card-tag">Modelo</div>
+        <h3>RL com reward function de domínio</h3>
+        <p>O modelo Qwen3.5-27B foi treinado com uma função de recompensa que pontua compliance regulatória (+0.35), citação de artigos (+0.15), e penaliza alucinação (-0.15). Nenhum modelo genérico tem isso. São 23 training runs e 13.697 amostras pra chegar aqui.</p>
+      </div>
+      <div class="card" style="border-top:3px solid var(--cyan)">
+        <div class="card-tag">Skills</div>
+        <h3>8 skills que só existem porque rodou</h3>
+        <p>MetaClaw gerou skills automaticamente a partir de queries reais que os agentes não souberam responder. Essas skills são conhecimento tácito — só existem porque o sistema operou e aprendeu. Começar do zero não te dá essas skills.</p>
+      </div>
+    </div>
+
+    <div class="pull-quote">
+      "Qualquer um pode baixar um LLM e fazer ele responder sobre FIDC. 
+      Ninguém consegue replicar 6.993 chunks curados, uma reward function 
+      calibrada em 23 runs, e 8 skills que nasceram de operação real."
+    </div>
+
+    <!-- TIMING REGULATÓRIO -->
+    <h3 style="font-family:var(--serif);font-size:1.3rem;margin:3rem 0 1rem">Timing: A CVM Criou a Urgência</h3>
+    
+    <div style="border:1px solid rgba(0,0,0,.06);padding:2rem;margin:1.5rem 0">
+      <div style="display:grid;grid-template-columns:auto 1fr;gap:1.5rem;align-items:start">
+        <div style="font-family:var(--serif);font-size:2.5rem;color:var(--red);line-height:1">⚖️</div>
+        <div>
+          <div style="font-family:var(--serif);font-size:1.1rem;color:var(--ink);margin-bottom:.5rem">Resolução CVM 175 — Outubro 2024</div>
+          <div style="font-size:.85rem;color:#555;line-height:1.65">
+            Novas exigências de monitoramento contínuo, governança reforçada, e transparência 
+            para investidores. Fundos que não se adequarem enfrentam sanções administrativas 
+            e multas. A CVM já sinalizou fiscalização ativa a partir de 2026.
+          </div>
+        </div>
+      </div>
+      
+      <div style="margin-top:1.5rem;display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:1rem">
+        <div style="background:rgba(139,32,32,.04);padding:1rem;border-left:3px solid var(--red)">
+          <div style="font-family:var(--mono);font-size:.68rem;color:var(--red);letter-spacing:.1em;margin-bottom:.3rem">OBRIGATÓRIO</div>
+          <div style="font-size:.82rem;color:#555">Monitoramento contínuo de covenants com reporte em D+1 útil</div>
+        </div>
+        <div style="background:rgba(139,32,32,.04);padding:1rem;border-left:3px solid var(--red)">
+          <div style="font-family:var(--mono);font-size:.68rem;color:var(--red);letter-spacing:.1em;margin-bottom:.3rem">OBRIGATÓRIO</div>
+          <div style="font-size:.82rem;color:#555">Controles de PLD/AML documentados e auditáveis</div>
+        </div>
+        <div style="background:rgba(139,32,32,.04);padding:1rem;border-left:3px solid var(--red)">
+          <div style="font-family:var(--mono);font-size:.68rem;color:var(--red);letter-spacing:.1em;margin-bottom:.3rem">OBRIGATÓRIO</div>
+          <div style="font-size:.82rem;color:#555">Stress tests periódicos com cenários de inadimplência</div>
+        </div>
+      </div>
+
+      <div style="margin-top:1.5rem;font-size:.88rem;color:var(--ink);line-height:1.6">
+        Isso não é "nice to have". É compliance obrigatória. Gestoras que ainda operam em 
+        planilha estão expostas a sanção. O Paganini automatiza exatamente o que a CVM 175 exige: 
+        monitoramento contínuo (gate 3), PLD/AML auditável (gate 4), e stress test (gate 6).
+      </div>
+    </div>
+
+    <div class="pull-quote">
+      "A CVM criou a demanda. A maioria das gestoras ainda não sabe 
+      como atender. Nós já construímos a solução."
     </div>
   </div>
 </section>
