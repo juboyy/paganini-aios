@@ -139,10 +139,14 @@ def _risk_score(p_default_dist: list[float], covenant_dist: list[float],
 
 
 def _risk_level(score: float) -> str:
-    if score < 0.15: return "LOW"
-    if score < 0.30: return "MEDIUM-LOW"
-    if score < 0.50: return "MEDIUM"
-    if score < 0.70: return "MEDIUM-HIGH"
+    if score < 0.15:
+        return "LOW"
+    if score < 0.30:
+        return "MEDIUM-LOW"
+    if score < 0.50:
+        return "MEDIUM"
+    if score < 0.70:
+        return "MEDIUM-HIGH"
     return "HIGH"
 
 

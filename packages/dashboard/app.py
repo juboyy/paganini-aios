@@ -21,13 +21,10 @@ logger = logging.getLogger(__name__)
 
 def create_app(config: dict) -> Any:  # noqa: ANN401
     """PAGANINI Dashboard Factory."""
-    import time
     from fastapi import FastAPI, HTTPException, Query, Request
     from fastapi.middleware.cors import CORSMiddleware
     from fastapi.responses import HTMLResponse, JSONResponse
-    from fastapi.staticfiles import StaticFiles
 
-    from packages.kernel.engine import load_config
     from packages.kernel.memory import MemoryManager
     from packages.kernel.metaclaw import MetaClawProxy
     from packages.kernel.moltis import get_llm_fn
@@ -49,14 +46,14 @@ def create_app(config: dict) -> Any:  # noqa: ANN401
 
     # Initialize components
     memory = MemoryManager(config)
-    metaclaw = MetaClawProxy(config)
+    _metaclaw = MetaClawProxy(config)  # noqa: F841 — initialized for side-effects
     rag = RAGPipeline(config)
     guardrails = GuardrailPipeline(config)
     registry = AgentRegistry()
     llm_fn = get_llm_fn(config)
 
     # Use existing router logic or direct RAG
-    router = CognitiveRouter(config)
+    _router = CognitiveRouter(config)  # noqa: F841 — initialized for side-effects
 
     # Middleware for API Key verification
     @app.middleware("http")
@@ -280,7 +277,7 @@ def create_app(config: dict) -> Any:  # noqa: ANN401
         result = subprocess.run(
             [
                 "grep", "-hoP",
-                "https://[a-z0-9-]+\.trycloudflare\.com",
+                r"https://[a-z0-9-]+\.trycloudflare\.com",
                 "/var/log/paganini-tunnel.log",
                 "/tmp/cloudflared.log",
             ],

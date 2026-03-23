@@ -11,7 +11,7 @@ from pathlib import Path
 
 def handle_context(task: str, stage, context: dict, run) -> dict:
     """Stage: Context Scout — search memory + corpus for relevant context."""
-    from packages.kernel.memory import EpisodicMemory, SemanticMemory
+    from packages.kernel.memory import EpisodicMemory
     try:
         mem = EpisodicMemory(Path.cwd() / "runtime" / "data")
         # Search episodic + semantic memory
@@ -75,7 +75,7 @@ def handle_validate(task: str, stage, context: dict, run) -> dict:
 
 def handle_knowledge(task: str, stage, context: dict, run) -> dict:
     """Stage: Knowledge Capture — persist to memory."""
-    from packages.kernel.memory import EpisodicMemory, SemanticMemory
+    from packages.kernel.memory import EpisodicMemory
     try:
         mem = EpisodicMemory(Path.cwd() / "runtime" / "data")
         mem.add(
