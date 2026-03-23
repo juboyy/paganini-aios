@@ -14,6 +14,7 @@ No pgmpy, no torch, no numpy. Just math.
 """
 
 from __future__ import annotations
+
 from typing import Any
 
 # ── Node definitions ──────────────────────────────────────────────
@@ -37,45 +38,70 @@ NODES = {
 # P(p_default | cdi_trend, setor, atrasos, rating)
 # Simplified: weighted combination of marginal effects
 _DEFAULT_MARGINALS = {
-    "cdi_trend":         {"up": [0.20, 0.40, 0.40], "stable": [0.50, 0.35, 0.15], "down": [0.65, 0.25, 0.10]},
-    "setor_cedente":     {"agro": [0.35, 0.40, 0.25], "industrial": [0.45, 0.35, 0.20], "servicos": [0.40, 0.35, 0.25], "financeiro": [0.55, 0.30, 0.15]},
-    "historico_atrasos": {"0": [0.70, 0.20, 0.10], "1-2": [0.25, 0.45, 0.30], "3+": [0.05, 0.25, 0.70]},
-    "rating_cedente":    {"AAA": [0.80, 0.15, 0.05], "AA": [0.65, 0.25, 0.10], "A": [0.45, 0.35, 0.20], "BBB": [0.25, 0.40, 0.35], "below": [0.10, 0.25, 0.65]},
+    "cdi_trend": {
+        "up": [0.20, 0.40, 0.40],
+        "stable": [0.50, 0.35, 0.15],
+        "down": [0.65, 0.25, 0.10],
+    },
+    "setor_cedente": {
+        "agro": [0.35, 0.40, 0.25],
+        "industrial": [0.45, 0.35, 0.20],
+        "servicos": [0.40, 0.35, 0.25],
+        "financeiro": [0.55, 0.30, 0.15],
+    },
+    "historico_atrasos": {
+        "0": [0.70, 0.20, 0.10],
+        "1-2": [0.25, 0.45, 0.30],
+        "3+": [0.05, 0.25, 0.70],
+    },
+    "rating_cedente": {
+        "AAA": [0.80, 0.15, 0.05],
+        "AA": [0.65, 0.25, 0.10],
+        "A": [0.45, 0.35, 0.20],
+        "BBB": [0.25, 0.40, 0.35],
+        "below": [0.10, 0.25, 0.65],
+    },
 }
-_DEFAULT_WEIGHTS = {"cdi_trend": 0.15, "setor_cedente": 0.15, "historico_atrasos": 0.35, "rating_cedente": 0.35}
+_DEFAULT_WEIGHTS = {
+    "cdi_trend": 0.15,
+    "setor_cedente": 0.15,
+    "historico_atrasos": 0.35,
+    "rating_cedente": 0.35,
+}
 
 # P(pdd_nivel | p_default)
 CPT_PDD = {
-    "low":    [0.75, 0.20, 0.05],
+    "low": [0.75, 0.20, 0.05],
     "medium": [0.20, 0.55, 0.25],
-    "high":   [0.05, 0.25, 0.70],
+    "high": [0.05, 0.25, 0.70],
 }
 
 # P(covenant_trigger | concentracao, pdd_nivel)
 CPT_COVENANT = {
-    ("low", "low"):     [0.92, 0.08],
-    ("low", "medium"):  [0.80, 0.20],
-    ("low", "high"):    [0.60, 0.40],
-    ("medium", "low"):  [0.78, 0.22],
-    ("medium", "medium"):[0.55, 0.45],
+    ("low", "low"): [0.92, 0.08],
+    ("low", "medium"): [0.80, 0.20],
+    ("low", "high"): [0.60, 0.40],
+    ("medium", "low"): [0.78, 0.22],
+    ("medium", "medium"): [0.55, 0.45],
     ("medium", "high"): [0.30, 0.70],
-    ("high", "low"):    [0.60, 0.40],
+    ("high", "low"): [0.60, 0.40],
     ("high", "medium"): [0.35, 0.65],
-    ("high", "high"):   [0.12, 0.88],
+    ("high", "high"): [0.12, 0.88],
 }
 
 # P(rating_impact | p_default, covenant_trigger)
 CPT_RATING = {
-    ("low", "no"):      [0.85, 0.12, 0.03],
-    ("low", "yes"):     [0.50, 0.38, 0.12],
-    ("medium", "no"):   [0.55, 0.35, 0.10],
-    ("medium", "yes"):  [0.20, 0.45, 0.35],
-    ("high", "no"):     [0.25, 0.40, 0.35],
-    ("high", "yes"):    [0.05, 0.25, 0.70],
+    ("low", "no"): [0.85, 0.12, 0.03],
+    ("low", "yes"): [0.50, 0.38, 0.12],
+    ("medium", "no"): [0.55, 0.35, 0.10],
+    ("medium", "yes"): [0.20, 0.45, 0.35],
+    ("high", "no"): [0.25, 0.40, 0.35],
+    ("high", "yes"): [0.05, 0.25, 0.70],
 }
 
 
 # ── Inference Engine ──────────────────────────────────────────────
+
 
 def _weighted_combine(evidence: dict[str, str]) -> list[float]:
     """Compute P(p_default) via weighted marginal combination."""
@@ -95,7 +121,9 @@ def _weighted_combine(evidence: dict[str, str]) -> list[float]:
     return result
 
 
-def _marginalize(cpt: dict, parent_dist: list[float], parent_states: list[str]) -> list[float]:
+def _marginalize(
+    cpt: dict, parent_dist: list[float], parent_states: list[str]
+) -> list[float]:
     """Marginalize a CPT over a parent distribution."""
     child_size = len(next(iter(cpt.values())))
     result = [0.0] * child_size
@@ -106,8 +134,13 @@ def _marginalize(cpt: dict, parent_dist: list[float], parent_states: list[str]) 
     return result
 
 
-def _marginalize_2(cpt: dict, dist1: list[float], states1: list[str],
-                    dist2: list[float], states2: list[str]) -> list[float]:
+def _marginalize_2(
+    cpt: dict,
+    dist1: list[float],
+    states1: list[str],
+    dist2: list[float],
+    states2: list[str],
+) -> list[float]:
     """Marginalize a CPT over two parent distributions."""
     child_size = len(next(iter(cpt.values())))
     result = [0.0] * child_size
@@ -126,15 +159,13 @@ def _dist_to_dict(dist: list[float], states: list[str]) -> dict[str, float]:
     return {s: round(p, 4) for s, p in zip(states, dist)}
 
 
-def _risk_score(p_default_dist: list[float], covenant_dist: list[float],
-                rating_dist: list[float]) -> float:
+def _risk_score(
+    p_default_dist: list[float], covenant_dist: list[float], rating_dist: list[float]
+) -> float:
     """Composite risk score 0-1. Weighted combination of worst-case probabilities."""
     # P(default=high) * 0.5 + P(covenant=yes) * 0.25 + P(rating=severe) * 0.25
     return round(
-        p_default_dist[2] * 0.50 +
-        covenant_dist[1] * 0.25 +
-        rating_dist[2] * 0.25,
-        4
+        p_default_dist[2] * 0.50 + covenant_dist[1] * 0.25 + rating_dist[2] * 0.25, 4
     )
 
 
@@ -162,6 +193,7 @@ def _recommendation(level: str) -> str:
 
 # ── Public API ────────────────────────────────────────────────────
 
+
 class FIDCRiskNetwork:
     """Bayesian risk scorer for FIDC operations."""
 
@@ -185,14 +217,16 @@ class FIDCRiskNetwork:
         conc = evidence.get("concentracao", "medium")
         conc_dist = [1.0 if s == conc else 0.0 for s in NODES["concentracao"]]
         p_covenant = _marginalize_2(
-            CPT_COVENANT, conc_dist, NODES["concentracao"],
-            p_pdd, NODES["pdd_nivel"]
+            CPT_COVENANT, conc_dist, NODES["concentracao"], p_pdd, NODES["pdd_nivel"]
         )
 
         # 4. P(rating_impact | default, covenant)
         p_rating = _marginalize_2(
-            CPT_RATING, p_default, NODES["p_default"],
-            p_covenant, NODES["covenant_trigger"]
+            CPT_RATING,
+            p_default,
+            NODES["p_default"],
+            p_covenant,
+            NODES["covenant_trigger"],
         )
 
         score = _risk_score(p_default, p_covenant, p_rating)

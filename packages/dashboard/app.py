@@ -25,13 +25,13 @@ def create_app(config: dict) -> Any:  # noqa: ANN401
     from fastapi.middleware.cors import CORSMiddleware
     from fastapi.responses import HTMLResponse, JSONResponse
 
+    from packages.agents.framework import AgentRegistry
     from packages.kernel.memory import MemoryManager
     from packages.kernel.metaclaw import MetaClawProxy
     from packages.kernel.moltis import get_llm_fn
     from packages.kernel.router import CognitiveRouter
     from packages.rag.pipeline import RAGPipeline
     from packages.shared.guardrails import GuardrailPipeline
-    from packages.agents.framework import AgentRegistry
 
     app = FastAPI(title="PAGANINI AIOS")
 
@@ -89,35 +89,38 @@ def create_app(config: dict) -> Any:  # noqa: ANN401
     # REST API
     # ----------------------------------------------------------------
 
-
     # AUTO-INGEST: Load corpus on startup if BM25 is empty
-    bm25_path = Path.cwd() / 'runtime' / 'data' / 'bm25_index.json'
+    bm25_path = Path.cwd() / "runtime" / "data" / "bm25_index.json"
     corpus_dirs = [
-        Path.cwd() / 'packs' / 'fidc' / 'corpus',
-        Path.cwd() / 'packs' / 'finance' / 'corpus',
-        Path.cwd() / 'data' / 'sample-corpus',
+        Path.cwd() / "packs" / "fidc" / "corpus",
+        Path.cwd() / "packs" / "finance" / "corpus",
+        Path.cwd() / "data" / "sample-corpus",
     ]
     need_ingest = True
     if bm25_path.exists():
         import json as _json
+
         try:
             _bm25 = _json.load(open(bm25_path))
-            if len(_bm25.get('ids', [])) >= 80:
+            if len(_bm25.get("ids", [])) >= 80:
                 need_ingest = False
         except Exception:
             pass
     if need_ingest:
         for cdir in corpus_dirs:
-            if cdir.exists() and list(cdir.rglob('*.md')):
+            if cdir.exists() and list(cdir.rglob("*.md")):
                 try:
                     from packages.rag.pipeline import RAGPipeline
-                    rag = RAGPipeline.from_config(Path.cwd() / 'config.yaml')
+
+                    rag = RAGPipeline.from_config(Path.cwd() / "config.yaml")
                     stats = rag.ingest(str(cdir))
-                    print(f'[auto-ingest] {cdir.name}: {stats["chunks"]} chunks from {stats["files"]} files')
-                    if stats.get('chunks', 0) > 0:
+                    print(
+                        f'[auto-ingest] {cdir.name}: {stats["chunks"]} chunks from {stats["files"]} files'
+                    )
+                    if stats.get("chunks", 0) > 0:
                         break
                 except Exception as e:
-                    print(f'[auto-ingest] {cdir.name} failed: {e}')
+                    print(f"[auto-ingest] {cdir.name} failed: {e}")
 
     @app.get("/api/health")
     async def health() -> dict:
@@ -240,8 +243,8 @@ def create_app(config: dict) -> Any:  # noqa: ANN401
                 "gates": [
                     {"gate": g.gate, "passed": g.passed, "reason": g.reason}
                     for g in post_guard.gates
-                ]
-            }
+                ],
+            },
         }
 
     @app.get("/api/funds")
@@ -249,6 +252,7 @@ def create_app(config: dict) -> Any:  # noqa: ANN401
         """Return all onboarded fund profiles."""
         try:
             from packages.kernel.engine import load_funds
+
             funds = load_funds(config)
         except Exception as exc:
             raise HTTPException(status_code=500, detail=str(exc)) from exc
@@ -258,6 +262,7 @@ def create_app(config: dict) -> Any:  # noqa: ANN401
     async def daemons() -> dict:
         try:
             from packages.kernel.daemons import DaemonManager
+
             dm = DaemonManager(config)
             return {"daemons": dm.list()}
         except Exception as exc:
@@ -274,9 +279,11 @@ def create_app(config: dict) -> Any:  # noqa: ANN401
     @app.get("/api/tunnel-url")
     async def tunnel_url() -> dict:
         import subprocess
+
         result = subprocess.run(
             [
-                "grep", "-hoP",
+                "grep",
+                "-hoP",
                 r"https://[a-z0-9-]+\.trycloudflare\.com",
                 "/var/log/paganini-tunnel.log",
                 "/tmp/cloudflared.log",
@@ -288,11 +295,11 @@ def create_app(config: dict) -> Any:  # noqa: ANN401
         url = urls[-1] if urls else "unknown"
         return {"tunnel_url": url}
 
-
     @app.get("/api/chunks")
     async def list_chunks(source: str = None, limit: int = 20) -> dict:
         """List indexed chunks with optional source filter."""
         import json as _json
+
         bm25_path = Path.cwd() / "runtime" / "data" / "bm25_index.json"
         if not bm25_path.exists():
             return {"total": 0, "chunks": [], "sources": []}
@@ -301,11 +308,20 @@ def create_app(config: dict) -> Any:  # noqa: ANN401
         metas = data.get("metadatas", [])
         sources = list(set(m.get("source", "?") for m in metas))
         if source:
-            filtered = [(i, m) for i, m in zip(ids, metas) if source.lower() in m.get("source", "").lower()]
+            filtered = [
+                (i, m)
+                for i, m in zip(ids, metas)
+                if source.lower() in m.get("source", "").lower()
+            ]
         else:
             filtered = list(zip(ids, metas))
         chunks = [{"id": i, **m} for i, m in filtered[:limit]]
-        return {"total": len(ids), "showing": len(chunks), "sources": sources, "chunks": chunks}
+        return {
+            "total": len(ids),
+            "showing": len(chunks),
+            "sources": sources,
+            "chunks": chunks,
+        }
 
     @app.get("/api/chunks/export")
     async def export_chunks() -> dict:
@@ -313,6 +329,7 @@ def create_app(config: dict) -> Any:  # noqa: ANN401
         export_path = Path.cwd() / "runtime" / "rl-training-data.json"
         if export_path.exists():
             import json as _json
+
             return _json.load(open(export_path))
         return {"error": "Run: python3 scripts/export_chunks_for_rl.py"}
 
@@ -326,6 +343,7 @@ def create_app(config: dict) -> Any:  # noqa: ANN401
     ):
         try:
             from packages.kernel.bayesian_risk import FIDCRiskNetwork
+
             net = FIDCRiskNetwork()
             result = net.score(
                 setor_cedente=setor,
@@ -340,11 +358,12 @@ def create_app(config: dict) -> Any:  # noqa: ANN401
                 raise HTTPException(status_code=400, detail=result["error"])
             return result
         except (ImportError, ModuleNotFoundError):
-            raise HTTPException(status_code=501, detail="Bayesian Network module not available.")
+            raise HTTPException(
+                status_code=501, detail="Bayesian Network module not available."
+            )
         except Exception as exc:
             logger.error("Risk score error: %s", exc)
             raise HTTPException(status_code=500, detail=str(exc))
-
 
     # ── Pipeline Engine ──────────────────────────────────────────
     @app.get("/api/pipeline/packs")
@@ -357,16 +376,19 @@ def create_app(config: dict) -> Any:  # noqa: ANN401
                 pipeline_file = p / "pipeline.yaml"
                 if pipeline_file.exists():
                     import yaml
+
                     data = yaml.safe_load(pipeline_file.read_text())
-                    packs.append({
-                        "domain": data.get("domain", p.name),
-                        "version": data.get("version", "?"),
-                        "stages": len(data.get("stages", [])),
-                        "tiers": [t["name"] for t in data.get("tiers", [])],
-                        "guardrails": data.get("guardrail_gates", []),
-                        "execution_engine": data.get("execution_engine", ""),
-                        "intelligence_layer": data.get("intelligence_layer", ""),
-                    })
+                    packs.append(
+                        {
+                            "domain": data.get("domain", p.name),
+                            "version": data.get("version", "?"),
+                            "stages": len(data.get("stages", [])),
+                            "tiers": [t["name"] for t in data.get("tiers", [])],
+                            "guardrails": data.get("guardrail_gates", []),
+                            "execution_engine": data.get("execution_engine", ""),
+                            "intelligence_layer": data.get("intelligence_layer", ""),
+                        }
+                    )
         return {"packs": packs}
 
     @app.get("/api/pipeline/{domain}")
@@ -376,13 +398,15 @@ def create_app(config: dict) -> Any:  # noqa: ANN401
         if not pipeline_file.exists():
             raise HTTPException(status_code=404, detail=f"Pack not found: {domain}")
         import yaml
+
         return yaml.safe_load(pipeline_file.read_text())
 
     @app.get("/api/pipeline/{domain}/classify")
     async def pipeline_classify(domain: str, task: str = "general task") -> dict:
         """Classify a task into a pipeline tier."""
         try:
-            from packages.kernel.pipeline import load_pipeline, PipelineEngine
+            from packages.kernel.pipeline import PipelineEngine, load_pipeline
+
             cfg = load_pipeline(Path.cwd() / "packs" / domain / "pipeline.yaml")
             engine = PipelineEngine(cfg)
             tier = engine.classify(task)
@@ -393,7 +417,10 @@ def create_app(config: dict) -> Any:  # noqa: ANN401
                 "tier": tier.name,
                 "criteria": tier.criteria,
                 "max_minutes": tier.max_minutes,
-                "stages": [{"id": s.id, "name": s.name, "kind": s.kind.value, "agent": s.agent} for s in stages_in_tier],
+                "stages": [
+                    {"id": s.id, "name": s.name, "kind": s.kind.value, "agent": s.agent}
+                    for s in stages_in_tier
+                ],
             }
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
@@ -402,7 +429,8 @@ def create_app(config: dict) -> Any:  # noqa: ANN401
     async def pipeline_dry_run(domain: str, task: str = "test task") -> dict:
         """Dry-run a pipeline for a task (no execution, shows plan)."""
         try:
-            from packages.kernel.pipeline import load_pipeline, PipelineEngine
+            from packages.kernel.pipeline import PipelineEngine, load_pipeline
+
             cfg = load_pipeline(Path.cwd() / "packs" / domain / "pipeline.yaml")
             engine = PipelineEngine(cfg)
             run = engine.execute(task, dry_run=True)
@@ -410,29 +438,33 @@ def create_app(config: dict) -> Any:  # noqa: ANN401
         except Exception as e:
             raise HTTPException(status_code=500, detail=str(e))
 
-
-
     @app.get("/api/pipeline/{domain}/execute")
     async def pipeline_execute(domain: str, task: str = "test task") -> dict:
         """Execute a pipeline for real with wired handlers."""
         try:
-            from packages.kernel.pipeline import load_pipeline, PipelineEngine
+            from packages.kernel.pipeline import PipelineEngine, load_pipeline
             from packages.kernel.pipeline_handlers import wire_handlers
+
             cfg = load_pipeline(Path.cwd() / "packs" / domain / "pipeline.yaml")
             engine = wire_handlers(PipelineEngine(cfg))
             run = engine.execute(task)
             return run.to_dict()
         except Exception as e:
             import traceback
-            raise HTTPException(status_code=500, detail=f"{e}\n{traceback.format_exc()}")
+
+            raise HTTPException(
+                status_code=500, detail=f"{e}\n{traceback.format_exc()}"
+            )
 
     @app.get("/api/risk/simulate")
     async def risk_simulate(
         scenarios: str = Query(..., description="JSON list of scenario dicts")
     ):
         import json
+
         try:
             from packages.kernel.bayesian_risk import FIDCRiskNetwork
+
             net = FIDCRiskNetwork()
             data = json.loads(scenarios)
             results = []
@@ -444,7 +476,6 @@ def create_app(config: dict) -> Any:  # noqa: ANN401
             raise HTTPException(status_code=400, detail=f"Simulation error: {str(exc)}")
 
     @app.exception_handler(Exception)
-
     async def generic_exception_handler(
         request: Any, exc: Exception
     ) -> JSONResponse:  # noqa: ANN401

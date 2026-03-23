@@ -17,34 +17,36 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Callable, Optional
 
-
 # ── Stage Abstraction ──────────────────────────────────────────────
+
 
 class StageKind(str, Enum):
     """Universal stage types that map to any domain."""
-    CONTEXT    = "context"      # Gather context (memory, search, prior decisions)
-    RESEARCH   = "research"     # Domain research, competitive analysis
-    DESIGN     = "design"       # Architecture, data models, system design
-    SPEC       = "spec"         # Specification: the source of truth
-    PLAN       = "plan"         # Decompose spec into tasks
-    EXECUTE    = "execute"      # Do the work (code, analysis, generation)
-    REVIEW     = "review"       # Peer review, quality gate
-    VALIDATE   = "validate"     # Automated validation (tests, guardrails)
-    DEPLOY     = "deploy"       # Publish, deploy, deliver
-    KNOWLEDGE  = "knowledge"    # Persist what was learned
-    REPORT     = "report"       # Stakeholder communication
-    FEEDBACK   = "feedback"     # Production feedback → next iteration
+
+    CONTEXT = "context"  # Gather context (memory, search, prior decisions)
+    RESEARCH = "research"  # Domain research, competitive analysis
+    DESIGN = "design"  # Architecture, data models, system design
+    SPEC = "spec"  # Specification: the source of truth
+    PLAN = "plan"  # Decompose spec into tasks
+    EXECUTE = "execute"  # Do the work (code, analysis, generation)
+    REVIEW = "review"  # Peer review, quality gate
+    VALIDATE = "validate"  # Automated validation (tests, guardrails)
+    DEPLOY = "deploy"  # Publish, deploy, deliver
+    KNOWLEDGE = "knowledge"  # Persist what was learned
+    REPORT = "report"  # Stakeholder communication
+    FEEDBACK = "feedback"  # Production feedback → next iteration
 
 
 @dataclass
 class Stage:
     """A single pipeline stage definition."""
+
     id: int
     name: str
     kind: StageKind
-    agent: str              # Agent slug responsible
+    agent: str  # Agent slug responsible
     description: str = ""
-    required: bool = True   # Must this stage run?
+    required: bool = True  # Must this stage run?
     artifacts: list[str] = field(default_factory=list)  # Expected outputs
     depends_on: list[int] = field(default_factory=list)  # Stage IDs
     guardrails: list[str] = field(default_factory=list)  # Guardrail gates to check
@@ -53,32 +55,36 @@ class Stage:
 @dataclass
 class Tier:
     """Task classification tier with its stage subset."""
+
     name: str
-    criteria: str           # When to use this tier
-    stages: list[int]       # Stage IDs to execute
-    max_minutes: int = 0    # Time budget (0 = unlimited)
+    criteria: str  # When to use this tier
+    stages: list[int]  # Stage IDs to execute
+    max_minutes: int = 0  # Time budget (0 = unlimited)
 
 
 @dataclass
 class PipelineConfig:
     """Complete pipeline definition for a domain."""
-    domain: str             # e.g., "fidc", "code", "legal"
+
+    domain: str  # e.g., "fidc", "code", "legal"
     version: str
     stages: list[Stage]
     tiers: list[Tier]
-    execution_engine: str   # Module path for the executor
+    execution_engine: str  # Module path for the executor
     intelligence_layer: str  # Module path for context/search
     guardrail_gates: list[str] = field(default_factory=list)
 
 
 # ── Pipeline Executor ──────────────────────────────────────────────
 
+
 @dataclass
 class StageResult:
     """Result of executing a single stage."""
+
     stage_id: int
     stage_name: str
-    status: str             # "pass" | "fail" | "skip"
+    status: str  # "pass" | "fail" | "skip"
     duration_ms: float
     artifacts: dict[str, Any] = field(default_factory=dict)
     error: Optional[str] = None
@@ -87,6 +93,7 @@ class StageResult:
 @dataclass
 class PipelineRun:
     """Complete pipeline execution record."""
+
     run_id: str
     domain: str
     tier: str
@@ -147,7 +154,9 @@ class PipelineEngine:
 
         # Auto-classify by keyword heuristics
         task_lower = task.lower()
-        if any(w in task_lower for w in ["typo", "fix", "config", "rename", "update value"]):
+        if any(
+            w in task_lower for w in ["typo", "fix", "config", "rename", "update value"]
+        ):
             return self._tier_by_name("micro")
         elif any(w in task_lower for w in ["bug", "hotfix", "patch", "small"]):
             return self._tier_by_name("quick")
@@ -185,25 +194,29 @@ class PipelineEngine:
 
         for stage in stages_to_run:
             if dry_run:
-                run.stages.append(StageResult(
-                    stage_id=stage.id,
-                    stage_name=stage.name,
-                    status="skip",
-                    duration_ms=0,
-                ))
+                run.stages.append(
+                    StageResult(
+                        stage_id=stage.id,
+                        stage_name=stage.name,
+                        status="skip",
+                        duration_ms=0,
+                    )
+                )
                 continue
 
             t0 = time.time()
             handler = self._stage_handlers.get(stage.kind.value)
 
             if handler is None:
-                run.stages.append(StageResult(
-                    stage_id=stage.id,
-                    stage_name=stage.name,
-                    status="skip",
-                    duration_ms=(time.time() - t0) * 1000,
-                    error=f"No handler for {stage.kind.value}",
-                ))
+                run.stages.append(
+                    StageResult(
+                        stage_id=stage.id,
+                        stage_name=stage.name,
+                        status="skip",
+                        duration_ms=(time.time() - t0) * 1000,
+                        error=f"No handler for {stage.kind.value}",
+                    )
+                )
                 continue
 
             try:
@@ -213,21 +226,25 @@ class PipelineEngine:
                     context=context or {},
                     run=run,
                 )
-                run.stages.append(StageResult(
-                    stage_id=stage.id,
-                    stage_name=stage.name,
-                    status="pass",
-                    duration_ms=(time.time() - t0) * 1000,
-                    artifacts=artifacts or {},
-                ))
+                run.stages.append(
+                    StageResult(
+                        stage_id=stage.id,
+                        stage_name=stage.name,
+                        status="pass",
+                        duration_ms=(time.time() - t0) * 1000,
+                        artifacts=artifacts or {},
+                    )
+                )
             except Exception as e:
-                run.stages.append(StageResult(
-                    stage_id=stage.id,
-                    stage_name=stage.name,
-                    status="fail",
-                    duration_ms=(time.time() - t0) * 1000,
-                    error=str(e),
-                ))
+                run.stages.append(
+                    StageResult(
+                        stage_id=stage.id,
+                        stage_name=stage.name,
+                        status="fail",
+                        duration_ms=(time.time() - t0) * 1000,
+                        error=str(e),
+                    )
+                )
                 run.status = "failed"
                 break
 
@@ -257,6 +274,7 @@ class PipelineEngine:
 
 # ── YAML Loader ────────────────────────────────────────────────────
 
+
 def load_pipeline(path: str | Path) -> PipelineConfig:
     """Load a pipeline definition from YAML."""
     import yaml
@@ -266,26 +284,30 @@ def load_pipeline(path: str | Path) -> PipelineConfig:
 
     stages = []
     for s in data.get("stages", []):
-        stages.append(Stage(
-            id=s["id"],
-            name=s["name"],
-            kind=StageKind(s["kind"]),
-            agent=s.get("agent", "orchestrator"),
-            description=s.get("description", ""),
-            required=s.get("required", True),
-            artifacts=s.get("artifacts", []),
-            depends_on=s.get("depends_on", []),
-            guardrails=s.get("guardrails", []),
-        ))
+        stages.append(
+            Stage(
+                id=s["id"],
+                name=s["name"],
+                kind=StageKind(s["kind"]),
+                agent=s.get("agent", "orchestrator"),
+                description=s.get("description", ""),
+                required=s.get("required", True),
+                artifacts=s.get("artifacts", []),
+                depends_on=s.get("depends_on", []),
+                guardrails=s.get("guardrails", []),
+            )
+        )
 
     tiers = []
     for t in data.get("tiers", []):
-        tiers.append(Tier(
-            name=t["name"],
-            criteria=t.get("criteria", ""),
-            stages=t["stages"],
-            max_minutes=t.get("max_minutes", 0),
-        ))
+        tiers.append(
+            Tier(
+                name=t["name"],
+                criteria=t.get("criteria", ""),
+                stages=t["stages"],
+                max_minutes=t.get("max_minutes", 0),
+            )
+        )
 
     return PipelineConfig(
         domain=data["domain"],

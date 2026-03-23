@@ -78,7 +78,8 @@ class GuardrailPipeline:
         # CVM 240/2026: mark result as compliant if eligibility gate applied CVM 240 rules
         eligibility_gate = next((g for g in gates if g.gate == "eligibility"), None)
         cvm_240_applied = eligibility_gate is not None and (
-            "CVM 240" in eligibility_gate.reason or "recuperação judicial" in eligibility_gate.reason.lower()
+            "CVM 240" in eligibility_gate.reason
+            or "recuperação judicial" in eligibility_gate.reason.lower()
         )
 
         return GuardrailResult(
@@ -111,12 +112,24 @@ class GuardrailPipeline:
 
         if is_rj_context:
             # CVM 240: performados from RJ are now padronizados — ALLOWED
-            performado_keywords = ["performado", "crédito performado", "credito performado", "adimplente"]
+            performado_keywords = [
+                "performado",
+                "crédito performado",
+                "credito performado",
+                "adimplente",
+            ]
             is_performado = any(kw in response_lower for kw in performado_keywords)
 
             # Non-performing from RJ — warn but don't block (may be restructuring scenario)
-            inadimplente_keywords = ["inadimplente", "não performado", "nao performado", "em atraso"]
-            is_non_performing = any(kw in response_lower for kw in inadimplente_keywords)
+            inadimplente_keywords = [
+                "inadimplente",
+                "não performado",
+                "nao performado",
+                "em atraso",
+            ]
+            is_non_performing = any(
+                kw in response_lower for kw in inadimplente_keywords
+            )
 
             if is_performado and not is_non_performing:
                 return GateResult(

@@ -12,6 +12,7 @@ from pathlib import Path
 def handle_context(task: str, stage, context: dict, run) -> dict:
     """Stage: Context Scout — search memory + corpus for relevant context."""
     from packages.kernel.memory import EpisodicMemory
+
     try:
         mem = EpisodicMemory(Path.cwd() / "runtime" / "data")
         # Search episodic + semantic memory
@@ -24,6 +25,7 @@ def handle_context(task: str, stage, context: dict, run) -> dict:
 def handle_research(task: str, stage, context: dict, run) -> dict:
     """Stage: Research — RAG query for regulatory/domain context."""
     from packages.rag.pipeline import RAGPipeline
+
     try:
         rag = RAGPipeline.from_config(Path.cwd() / "config.yaml")
         result = rag.query(task)
@@ -40,6 +42,7 @@ def handle_risk(task: str, stage, context: dict, run) -> dict:
     """Stage: Risk Assessment — Bayesian risk scoring."""
     try:
         from packages.kernel.bayesian_risk import FIDCRiskNetwork
+
         net = FIDCRiskNetwork()
         # Extract parameters from task context or use defaults
         params = context.get("risk_params", {})
@@ -57,6 +60,7 @@ def handle_compliance(task: str, stage, context: dict, run) -> dict:
     """Stage: Compliance Gate — run guardrails."""
     try:
         from packages.shared.guardrails import GuardrailPipeline
+
         gp = GuardrailPipeline()
         result = gp.evaluate(task)
         return {
@@ -65,7 +69,11 @@ def handle_compliance(task: str, stage, context: dict, run) -> dict:
         }
     except Exception:
         # Fallback: all gates pass (guardrails module may not be fully wired)
-        return {"passed": True, "gates_checked": 0, "note": "guardrails not fully wired"}
+        return {
+            "passed": True,
+            "gates_checked": 0,
+            "note": "guardrails not fully wired",
+        }
 
 
 def handle_validate(task: str, stage, context: dict, run) -> dict:
@@ -76,6 +84,7 @@ def handle_validate(task: str, stage, context: dict, run) -> dict:
 def handle_knowledge(task: str, stage, context: dict, run) -> dict:
     """Stage: Knowledge Capture — persist to memory."""
     from packages.kernel.memory import EpisodicMemory
+
     try:
         mem = EpisodicMemory(Path.cwd() / "runtime" / "data")
         mem.add(
@@ -111,7 +120,7 @@ def handle_feedback(task: str, stage, context: dict, run) -> dict:
 HANDLERS = {
     "context": handle_context,
     "research": handle_research,
-    "design": handle_risk,       # risk assessment is the "design" stage for FIDC
+    "design": handle_risk,  # risk assessment is the "design" stage for FIDC
     "validate": handle_validate,
     "spec": lambda **kw: {"spec": "generated"},  # placeholder
     "execute": lambda **kw: {"executed": "placeholder"},  # needs domain executor

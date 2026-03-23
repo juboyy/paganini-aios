@@ -135,6 +135,7 @@ def _resolve_env_vars(obj):
 def load_funds(config: dict = None) -> list:
     """Load all fund profiles from runtime/funds/."""
     import json
+
     funds_dir = Path.cwd() / "runtime" / "funds"
     if not funds_dir.exists():
         funds_dir = Path(__file__).resolve().parent.parent.parent / "runtime" / "funds"
