@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 
 /* ── Types ── */
 interface Message {
@@ -10,7 +10,6 @@ interface Message {
   timestamp: Date;
   agent?: string;
   tokens?: number;
-  thinking?: boolean;
 }
 
 /* ── Typing indicator ── */
@@ -22,8 +21,7 @@ function TypingDots() {
           key={i}
           style={{
             width: 6, height: 6, borderRadius: "50%",
-            background: "var(--accent)",
-            opacity: 0.5,
+            background: "var(--accent)", opacity: 0.5,
             animation: `pulse 1.2s ease-in-out ${i * 0.2}s infinite`,
           }}
         />
@@ -54,12 +52,10 @@ function ChatBubble({ msg }: { msg: Message }) {
 
   return (
     <div style={{
-      display: "flex",
-      flexDirection: "column",
+      display: "flex", flexDirection: "column",
       alignItems: isUser ? "flex-end" : "flex-start",
       marginBottom: "0.75rem",
     }}>
-      {/* Agent label */}
       {!isUser && msg.agent && (
         <div style={{
           fontFamily: "var(--font-mono)", fontSize: "0.6rem", letterSpacing: "0.12em",
@@ -69,123 +65,190 @@ function ChatBubble({ msg }: { msg: Message }) {
         </div>
       )}
 
-      {/* Bubble */}
       <div style={{
-        maxWidth: "80%",
-        padding: "0.75rem 1rem",
+        maxWidth: "85%", padding: "0.75rem 1rem",
         borderRadius: isUser ? "12px 12px 2px 12px" : "12px 12px 12px 2px",
         background: isUser ? "var(--accent-bg)" : "var(--bg-card)",
         border: `1px solid ${isUser ? "var(--accent)" : "var(--border)"}`,
-        color: "var(--text-1)",
-        fontSize: "0.88rem",
-        lineHeight: 1.55,
-        whiteSpace: "pre-wrap",
-        wordBreak: "break-word",
+        color: "var(--text-1)", fontSize: "0.88rem", lineHeight: 1.55,
+        whiteSpace: "pre-wrap", wordBreak: "break-word",
       }}>
         {msg.content}
+        {!isUser && msg.content === "" && <TypingDots />}
       </div>
 
-      {/* Meta */}
       <div style={{
         display: "flex", gap: "0.5rem", alignItems: "center",
-        marginTop: "0.15rem", paddingLeft: isUser ? 0 : "0.25rem", paddingRight: isUser ? "0.25rem" : 0,
+        marginTop: "0.15rem",
+        paddingLeft: isUser ? 0 : "0.25rem",
+        paddingRight: isUser ? "0.25rem" : 0,
       }}>
         <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.6rem", color: "var(--text-4)" }}>
           {msg.timestamp.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
         </span>
-        {msg.tokens && (
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.6rem", color: "var(--text-4)" }}>
-            {msg.tokens > 1000 ? `${(msg.tokens / 1000).toFixed(1)}K` : msg.tokens} tok
-          </span>
-        )}
       </div>
     </div>
   );
 }
 
-/* ── Suggested prompts ── */
+/* ── Suggestions ── */
 const SUGGESTIONS = [
-  "Status dos agentes FIDC",
+  "Status dos 9 agentes FIDC",
   "Último relatório de guardrails",
   "Resumo do sprint atual",
   "Quantas operações passaram nos gates hoje?",
   "Analise o risco do cedente ACME Corp",
   "Gere um relatório CADOC para o fundo Alpha",
+  "Explique como funciona o gate PLD/AML",
+  "Qual o custo anual de operação do sistema?",
 ];
 
 export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([
     {
-      id: "sys1",
-      role: "system",
+      id: "sys1", role: "system",
       content: "PAGANINI AIOS · KERNEL v3.2 · 21 AGENTES ONLINE",
       timestamp: new Date(),
     },
     {
-      id: "welcome",
-      role: "assistant",
-      agent: "OraCLI",
+      id: "welcome", role: "assistant", agent: "Kernel",
       content: "Sistema operacional. 9 agentes FIDC + 12 agentes de código ativos.\n\nPosso executar análises de risco, gerar relatórios regulatórios, verificar status de guardrails, ou coordenar qualquer operação do pipeline.\n\nO que precisa?",
       timestamp: new Date(),
-      tokens: 450,
     },
   ]);
   const [input, setInput] = useState("");
-  const [isTyping, setIsTyping] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState("auto");
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const abortRef = useRef<AbortController | null>(null);
 
-  // Auto-scroll
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isTyping]);
+  }, [messages, isStreaming]);
 
-  // Auto-resize textarea
   const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(e.target.value);
     e.target.style.height = "auto";
     e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px";
   };
 
-  // Demo response
-  const simulateResponse = (userMsg: string) => {
-    setIsTyping(true);
-    const agent = selectedAgent === "auto" ? detectAgent(userMsg) : selectedAgent;
-
-    setTimeout(() => {
-      const response = generateResponse(userMsg, agent);
-      setMessages((prev) => [
-        ...prev,
-        {
-          id: `a${Date.now()}`,
-          role: "assistant",
-          agent,
-          content: response.text,
-          timestamp: new Date(),
-          tokens: response.tokens,
-        },
-      ]);
-      setIsTyping(false);
-    }, 1200 + Math.random() * 1800);
+  const detectAgent = (msg: string): string => {
+    const l = msg.toLowerCase();
+    if (l.includes("risco") || l.includes("risk")) return "Risk Agent";
+    if (l.includes("compliance") || l.includes("pld") || l.includes("aml")) return "Compliance Agent";
+    if (l.includes("preç") || l.includes("pricing") || l.includes("taxa")) return "Pricing Agent";
+    if (l.includes("due diligence") || l.includes("cedente") || l.includes("sacado")) return "Due Diligence Agent";
+    if (l.includes("cadoc") || l.includes("relatório")) return "Reporting Agent";
+    if (l.includes("código") || l.includes("code") || l.includes("deploy")) return "Code Agent";
+    return "Kernel";
   };
+
+  const sendMessage = useCallback(async (text: string) => {
+    const agent = selectedAgent === "auto" ? detectAgent(text) : selectedAgent;
+
+    const userMsg: Message = {
+      id: `u${Date.now()}`, role: "user", content: text, timestamp: new Date(),
+    };
+    const assistantMsg: Message = {
+      id: `a${Date.now()}`, role: "assistant", agent, content: "", timestamp: new Date(),
+    };
+
+    setMessages((prev) => [...prev, userMsg, assistantMsg]);
+    setIsStreaming(true);
+
+    // Build API messages (exclude system UI messages)
+    const apiMessages = [...messages, userMsg]
+      .filter((m) => m.role !== "system")
+      .map((m) => ({ role: m.role, content: m.content }));
+
+    try {
+      abortRef.current = new AbortController();
+
+      const res = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: apiMessages }),
+        signal: abortRef.current.signal,
+      });
+
+      if (!res.ok) {
+        const errText = await res.text();
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === assistantMsg.id
+              ? { ...m, content: `Erro ${res.status}: ${errText}` }
+              : m
+          )
+        );
+        setIsStreaming(false);
+        return;
+      }
+
+      const reader = res.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (!reader) {
+        setIsStreaming(false);
+        return;
+      }
+
+      let buffer = "";
+      let fullContent = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (!trimmed || !trimmed.startsWith("data: ")) continue;
+          const data = trimmed.slice(6);
+          if (data === "[DONE]") continue;
+
+          try {
+            const parsed = JSON.parse(data);
+            if (parsed.content) {
+              fullContent += parsed.content;
+              setMessages((prev) =>
+                prev.map((m) =>
+                  m.id === assistantMsg.id ? { ...m, content: fullContent } : m
+                )
+              );
+            }
+          } catch {
+            // skip
+          }
+        }
+      }
+    } catch (err: unknown) {
+      if (err instanceof Error && err.name === "AbortError") {
+        // user cancelled
+      } else {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === assistantMsg.id
+              ? { ...m, content: "Erro de conexão. Tente novamente." }
+              : m
+          )
+        );
+      }
+    } finally {
+      setIsStreaming(false);
+      abortRef.current = null;
+    }
+  }, [messages, selectedAgent]);
 
   const handleSend = () => {
     const text = input.trim();
-    if (!text) return;
-
-    setMessages((prev) => [
-      ...prev,
-      {
-        id: `u${Date.now()}`,
-        role: "user",
-        content: text,
-        timestamp: new Date(),
-      },
-    ]);
+    if (!text || isStreaming) return;
     setInput("");
     if (inputRef.current) inputRef.current.style.height = "auto";
-    simulateResponse(text);
+    sendMessage(text);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -195,9 +258,9 @@ export default function ChatPage() {
     }
   };
 
-  const handleSuggestion = (s: string) => {
-    setInput(s);
-    inputRef.current?.focus();
+  const handleStop = () => {
+    abortRef.current?.abort();
+    setIsStreaming(false);
   };
 
   return (
@@ -224,11 +287,12 @@ export default function ChatPage() {
               }}
             >
               <option value="auto">Auto-route</option>
-              <option value="OraCLI">OraCLI</option>
+              <option value="Kernel">Kernel</option>
               <option value="Compliance Agent">Compliance</option>
               <option value="Risk Agent">Risk</option>
               <option value="Pricing Agent">Pricing</option>
               <option value="Due Diligence Agent">Due Diligence</option>
+              <option value="Reporting Agent">Reporting</option>
               <option value="Code Agent">Code Agent</option>
             </select>
           </div>
@@ -240,24 +304,16 @@ export default function ChatPage() {
         {messages.map((msg) => (
           <ChatBubble key={msg.id} msg={msg} />
         ))}
-        {isTyping && (
-          <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", paddingLeft: "0.25rem" }}>
-            <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.6rem", color: "var(--accent)" }}>
-              {selectedAgent === "auto" ? "Processando" : selectedAgent}
-            </span>
-            <TypingDots />
-          </div>
-        )}
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Suggestions (show when few messages) */}
-      {messages.length <= 3 && (
+      {/* Suggestions */}
+      {messages.length <= 3 && !isStreaming && (
         <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", padding: "0.5rem 0", flexShrink: 0 }}>
           {SUGGESTIONS.map((s) => (
             <button
               key={s}
-              onClick={() => handleSuggestion(s)}
+              onClick={() => { setInput(""); sendMessage(s); }}
               style={{
                 background: "var(--bg-card)", border: "1px solid var(--border)", borderRadius: "var(--radius)",
                 color: "var(--text-3)", padding: "0.35rem 0.75rem", fontFamily: "var(--font-mono)", fontSize: "0.7rem",
@@ -284,199 +340,45 @@ export default function ChatPage() {
           onKeyDown={handleKeyDown}
           placeholder="Mensagem para o Paganini AIOS..."
           rows={1}
+          disabled={isStreaming}
           style={{
             flex: 1, resize: "none", background: "var(--bg-card)", border: "1px solid var(--border)",
             borderRadius: "var(--radius)", color: "var(--text-1)", padding: "0.65rem 0.85rem",
             fontFamily: "var(--font-display)", fontSize: "0.88rem", lineHeight: 1.5,
             outline: "none", transition: "border-color 0.15s", maxHeight: 120,
+            opacity: isStreaming ? 0.5 : 1,
           }}
           onFocus={(e) => (e.target.style.borderColor = "var(--accent)")}
           onBlur={(e) => (e.target.style.borderColor = "var(--border)")}
         />
-        <button
-          onClick={handleSend}
-          disabled={!input.trim() || isTyping}
-          style={{
-            background: input.trim() && !isTyping ? "var(--accent)" : "var(--bg-card)",
-            border: "1px solid var(--border)", borderRadius: "var(--radius)",
-            color: input.trim() && !isTyping ? "var(--bg)" : "var(--text-4)",
-            padding: "0.65rem 1rem", fontFamily: "var(--font-mono)", fontSize: "0.8rem",
-            fontWeight: 600, cursor: input.trim() && !isTyping ? "pointer" : "not-allowed",
-            transition: "all 0.15s", letterSpacing: "0.08em",
-          }}
-        >
-          ▶
-        </button>
+        {isStreaming ? (
+          <button
+            onClick={handleStop}
+            style={{
+              background: "var(--red)", border: "1px solid var(--red)", borderRadius: "var(--radius)",
+              color: "#fff", padding: "0.65rem 1rem", fontFamily: "var(--font-mono)", fontSize: "0.75rem",
+              fontWeight: 600, cursor: "pointer", letterSpacing: "0.08em",
+            }}
+          >
+            ■
+          </button>
+        ) : (
+          <button
+            onClick={handleSend}
+            disabled={!input.trim()}
+            style={{
+              background: input.trim() ? "var(--accent)" : "var(--bg-card)",
+              border: "1px solid var(--border)", borderRadius: "var(--radius)",
+              color: input.trim() ? "var(--bg)" : "var(--text-4)",
+              padding: "0.65rem 1rem", fontFamily: "var(--font-mono)", fontSize: "0.8rem",
+              fontWeight: 600, cursor: input.trim() ? "pointer" : "not-allowed",
+              transition: "all 0.15s", letterSpacing: "0.08em",
+            }}
+          >
+            ▶
+          </button>
+        )}
       </div>
     </div>
   );
-}
-
-/* ── Demo logic ── */
-function detectAgent(msg: string): string {
-  const lower = msg.toLowerCase();
-  if (lower.includes("risco") || lower.includes("risk")) return "Risk Agent";
-  if (lower.includes("compliance") || lower.includes("pld") || lower.includes("aml") || lower.includes("regulat")) return "Compliance Agent";
-  if (lower.includes("preç") || lower.includes("pricing") || lower.includes("taxa")) return "Pricing Agent";
-  if (lower.includes("due diligence") || lower.includes("cedente") || lower.includes("sacado")) return "Due Diligence Agent";
-  if (lower.includes("código") || lower.includes("code") || lower.includes("deploy") || lower.includes("bug")) return "Code Agent";
-  if (lower.includes("cadoc") || lower.includes("relatório")) return "Reporting Agent";
-  return "OraCLI";
-}
-
-function generateResponse(msg: string, agent: string): { text: string; tokens: number } {
-  const lower = msg.toLowerCase();
-
-  if (lower.includes("status") && lower.includes("agent")) {
-    return {
-      text: `┌─ STATUS DOS AGENTES FIDC ─────────────────┐
-│                                           │
-│  ✅ Admin Agent         — online (idle)   │
-│  ✅ Compliance Agent    — online (idle)   │
-│  ✅ Custódia Agent      — online (idle)   │
-│  ✅ Due Diligence Agent — online (idle)   │
-│  ✅ Gestor Agent        — online (idle)   │
-│  ✅ IR Agent            — online (idle)   │
-│  ✅ Pricing Agent       — online (idle)   │
-│  ✅ Reg Watch Agent     — online (active) │
-│  ✅ Reporting Agent     — online (idle)   │
-│                                           │
-│  9/9 agentes operacionais                 │
-│  Último health check: há 12 min           │
-│  Uptime: 99.7% (30d)                     │
-└───────────────────────────────────────────┘`,
-      tokens: 2800,
-    };
-  }
-
-  if (lower.includes("guardrail")) {
-    return {
-      text: `6 gates operacionais. Últimas 24h:
-
-Gate 1 — Eligibility:  47 passed, 2 rejected
-Gate 2 — Concentration: 49 passed, 0 warnings
-Gate 3 — Covenant:     49 passed, 0 breach
-Gate 4 — PLD/AML:      48 passed, 1 flagged (fracionamento R$ 49.9K — override aprovado)
-Gate 5 — Compliance:   49 passed
-Gate 6 — Risk:         49 passed
-
-Taxa de aprovação: 95.9%
-Tempo médio por operação: 47s
-Flags PLD revisados por humano: 1/1 (100%)`,
-      tokens: 3400,
-    };
-  }
-
-  if (lower.includes("sprint")) {
-    return {
-      text: `Sprint 12 — "Compliance Engine v2"
-Período: 17/03 → 28/03/2026
-
-Progresso: ████████░░ 78%
-
-Concluído (7):
-  ✅ SPEAR report — 4 seções investidor
-  ✅ Monitor UFLA + relatório
-  ✅ Monitor Terceirizados + relatório
-  ✅ CI green (ruff + security)
-  ✅ HuggingFace model card GRPO
-  ✅ README paganini-aios
-  ✅ Dashboard v2 — 3 novas páginas
-
-Em andamento (2):
-  🔄 Extrato + Chat interface
-  🔄 CodeRabbit features absorção
-
-Pendente (1):
-  ⏳ Backend paganini-aios — 6 features CodeRabbit
-
-Velocity: 9.2 pontos/dia`,
-      tokens: 4200,
-    };
-  }
-
-  if (lower.includes("cadoc")) {
-    return {
-      text: `Gerando relatório CADOC...
-
-Fundo: Alpha FIDC
-Referência: Março 2026
-Tipo: CADOC 4010 — Demonstrativo de Composição e Diversificação
-
-⏳ Coletando dados de lastro... (237 operações)
-⏳ Calculando concentração por cedente...
-⏳ Verificando limites regulatórios...
-✅ Relatório gerado
-
-Resumo:
-• PL: R$ 42.3M
-• Operações: 237 ativas
-• Concentração máxima: 8.2% (cedente ACME — dentro do limite de 10%)
-• Inadimplência: 2.1% (dentro do covenant de 5%)
-• Prazo médio: 47 dias
-
-📄 Arquivo: cadoc-4010-alpha-mar2026.pdf
-Pronto para envio ao administrador.`,
-      tokens: 5100,
-    };
-  }
-
-  if (lower.includes("cedente") || lower.includes("acme")) {
-    return {
-      text: `Due Diligence — Cedente ACME Corp
-
-┌─ PERFIL ──────────────────────────────────┐
-│ CNPJ: 12.345.678/0001-90                  │
-│ Setor: Indústria — Autopeças              │
-│ Faturamento: R$ 180M/ano                  │
-│ Rating interno: B+ (estável)              │
-│ Histórico: 14 cessões, 0 defaults         │
-└───────────────────────────────────────────┘
-
-Análise de risco:
-• Score PLD/AML: 72/100 (baixo risco)
-• Concentração no fundo: 6.4% (limite: 10%)
-• Inadimplência sacados: 1.8%
-• Prazo médio recebíveis: 52 dias
-• Último covenant check: PASS (há 3 dias)
-
-⚠️ Observação: 3 notas de R$ 49.9K para mesmo sacado
-   detectadas no último lote — padrão de fracionamento.
-   Recomendação: solicitar justificativa ao cedente.`,
-      tokens: 4800,
-    };
-  }
-
-  if (lower.includes("operaç") && lower.includes("gate")) {
-    return {
-      text: `Operações processadas hoje (23/03/2026):
-
-Total: 49 operações
-Volume: R$ 12.7M
-
-Por resultado:
-  ✅ Aprovadas diretas:     45 (91.8%)
-  ⚠️ Aprovadas com flag:    2 (4.1%)
-  ❌ Rejeitadas:             2 (4.1%)
-
-Rejeições:
-  1. Cedente XYZ — Gate 1 (Eligibility): inadimplência > 5%
-  2. Cedente QRS — Gate 2 (Concentration): excederia 10% do PL
-
-Tempo médio: 47 segundos/operação
-Gate mais lento: PLD/AML (avg 12s)`,
-      tokens: 3600,
-    };
-  }
-
-  // Default
-  return {
-    text: `Processando: "${msg.slice(0, 60)}${msg.length > 60 ? "..." : ""}"
-
-Roteado para: ${agent}
-Contexto carregado: 6.993 chunks regulatórios + histórico do fundo
-
-Resposta em desenvolvimento. Em produção, essa interface conectará diretamente ao kernel Paganini para execução em tempo real.`,
-    tokens: 1800,
-  };
 }
