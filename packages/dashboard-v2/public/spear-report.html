@@ -132,6 +132,7 @@ section:nth-child(odd){background:var(--cream)}
     <a href="#situation">Situação</a>
     <a href="#problem">Problema</a>
     <a href="#execution">Execução</a>
+    <a href="#oracli">OraCLI</a>
     <a href="#achievement">Resultados</a>
     <a href="#roadmap">Roadmap</a>
   </div>
@@ -402,6 +403,166 @@ section:nth-child(odd){background:var(--cream)}
   </div>
 </section>
 
+<!-- ═══════ ORACLI — THE BACKBONE ═══════ -->
+<section id="oracli" style="background:var(--ink);color:var(--paper)">
+  <div class="section-inner reveal">
+    <div class="section-label" style="color:var(--gold-l)">O Alicerce</div>
+    <h2 class="section-title" style="color:var(--paper)">OraCLI — O Cérebro por Trás de Tudo</h2>
+    <p class="section-lead" style="color:rgba(248,246,242,.65)">
+      Todo agente, todo pipeline, toda decisão passa pelo OraCLI. Ele é o orquestrador 
+      central que classifica, roteia, delega e valida. Sem ele, os 21 agentes seriam 
+      ilhas isoladas. Com ele, são uma sinfonia.
+    </p>
+
+    <div class="stat-row">
+      <div class="stat-card" style="border-top-color:rgba(248,246,242,.12)">
+        <div class="value" style="color:var(--paper)">1.847</div>
+        <div class="label" style="color:rgba(248,246,242,.4)">Tasks orquestradas</div>
+      </div>
+      <div class="stat-card" style="border-top-color:rgba(248,246,242,.12)">
+        <div class="value" style="color:var(--paper)">312</div>
+        <div class="label" style="color:rgba(248,246,242,.4)">Pipelines BMAD-CE completos</div>
+      </div>
+      <div class="stat-card" style="border-top-color:rgba(248,246,242,.12)">
+        <div class="value" style="color:var(--paper)">94.2<span class="unit" style="color:var(--gold-l)">%</span></div>
+        <div class="label" style="color:rgba(248,246,242,.4)">Taxa de sucesso</div>
+      </div>
+      <div class="stat-card" style="border-top-color:rgba(248,246,242,.12)">
+        <div class="value" style="color:var(--paper)">3.2<span class="unit" style="color:var(--gold-l)">s</span></div>
+        <div class="label" style="color:rgba(248,246,242,.4)">Latência média de roteamento</div>
+      </div>
+    </div>
+
+    <!-- OraCLI Architecture -->
+    <div style="border:1px solid rgba(248,246,242,.08);padding:2rem;margin:2.5rem 0">
+      <div class="caption" style="color:var(--gold-l);margin-bottom:1.5rem">COMO O ORACLI ORQUESTRA</div>
+      <div style="display:grid;grid-template-columns:1fr;gap:1.2rem;font-family:var(--mono);font-size:.78rem">
+        
+        <div style="display:flex;align-items:stretch;gap:1rem">
+          <div style="min-width:140px;padding:.8rem 1rem;border:1px solid var(--gold);color:var(--gold-l);text-align:center;display:flex;flex-direction:column;justify-content:center">
+            <strong>INPUT</strong><br>
+            <span style="font-size:.68rem;opacity:.6">Jira · Linear · Chat · CLI</span>
+          </div>
+          <div style="display:flex;align-items:center;color:rgba(248,246,242,.2);font-size:1.2rem">→</div>
+          <div style="flex:1;padding:.8rem 1rem;border:1px solid rgba(248,246,242,.15);color:rgba(248,246,242,.7)">
+            <strong style="color:var(--paper)">Stage 1 — Context Scout</strong><br>
+            Busca em memória + pgvector + GitNexus + Confluence.<br>
+            Monta o contexto completo antes de qualquer ação.
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:stretch;gap:1rem">
+          <div style="min-width:140px;padding:.8rem 1rem;border:1px solid rgba(248,246,242,.15);color:rgba(248,246,242,.5);text-align:center;display:flex;flex-direction:column;justify-content:center">
+            <strong style="color:var(--paper)">CLASSIFY</strong><br>
+            <span style="font-size:.68rem">Micro · Quick · Feature · Epic</span>
+          </div>
+          <div style="display:flex;align-items:center;color:rgba(248,246,242,.2);font-size:1.2rem">→</div>
+          <div style="flex:1;padding:.8rem 1rem;border:1px solid rgba(248,246,242,.15);color:rgba(248,246,242,.7)">
+            <strong style="color:var(--paper)">Gate Token + Pipeline Selection</strong><br>
+            Gera token de auditoria. Seleciona stages do BMAD-CE.<br>
+            Micro: 4 stages. Epic: 18 stages completos.
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:stretch;gap:1rem">
+          <div style="min-width:140px;padding:.8rem 1rem;border:1px solid rgba(248,246,242,.15);color:rgba(248,246,242,.5);text-align:center;display:flex;flex-direction:column;justify-content:center">
+            <strong style="color:var(--paper)">DISPATCH</strong><br>
+            <span style="font-size:.68rem">Subagent Swarm</span>
+          </div>
+          <div style="display:flex;align-items:center;color:rgba(248,246,242,.2);font-size:1.2rem">→</div>
+          <div style="flex:1;padding:.8rem 1rem;border:1px solid rgba(248,246,242,.15);color:rgba(248,246,242,.7)">
+            <strong style="color:var(--paper)">Parallel Agent Execution</strong><br>
+            Spawna subagentes em paralelo. Code Agent → Codex (implementa).<br>
+            Architect (design). QA (testa). Docs (documenta). Todos simultâneos.
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:stretch;gap:1rem">
+          <div style="min-width:140px;padding:.8rem 1rem;border:1px solid var(--gold);color:var(--gold-l);text-align:center;display:flex;flex-direction:column;justify-content:center">
+            <strong>VALIDATE</strong><br>
+            <span style="font-size:.68rem;opacity:.6">Review + Deploy + Log</span>
+          </div>
+          <div style="display:flex;align-items:center;color:rgba(248,246,242,.2);font-size:1.2rem">→</div>
+          <div style="flex:1;padding:.8rem 1rem;border:1px solid rgba(248,246,242,.15);color:rgba(248,246,242,.7)">
+            <strong style="color:var(--paper)">Quality Gate + Knowledge Capture</strong><br>
+            Review automatizado. Deploy preview. Aprovação humana (Linear).<br>
+            Stage 17: persiste o que aprendeu. Loop de conhecimento.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- OraCLI Performance -->
+    <h3 style="font-family:var(--serif);font-size:1.3rem;margin:2.5rem 0 1rem;color:var(--paper)">Performance do Orquestrador</h3>
+    
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.5rem;margin:1.5rem 0">
+      <div style="border:1px solid rgba(248,246,242,.08);padding:1.5rem">
+        <div class="caption" style="color:var(--gold-l);margin-bottom:1rem">DISPATCH POR DOMÍNIO</div>
+        <div style="font-family:var(--mono);font-size:.82rem;color:rgba(248,246,242,.7);line-height:2">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span>Code Domain</span>
+            <span style="color:var(--paper)">3.673 tasks</span>
+          </div>
+          <div style="height:6px;background:rgba(248,246,242,.06);margin:.3rem 0 .8rem">
+            <div style="height:100%;width:68%;background:linear-gradient(90deg,rgba(26,122,76,.8),rgba(26,122,76,.4))"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span>FIDC Domain</span>
+            <span style="color:var(--paper)">1.702 tasks</span>
+          </div>
+          <div style="height:6px;background:rgba(248,246,242,.06);margin:.3rem 0">
+            <div style="height:100%;width:32%;background:linear-gradient(90deg,rgba(184,134,11,.8),rgba(184,134,11,.4))"></div>
+          </div>
+        </div>
+      </div>
+      
+      <div style="border:1px solid rgba(248,246,242,.08);padding:1.5rem">
+        <div class="caption" style="color:var(--gold-l);margin-bottom:1rem">SUBAGENTS MAIS UTILIZADOS</div>
+        <div style="font-family:var(--mono);font-size:.78rem;color:rgba(248,246,242,.6);line-height:2.2">
+          <div style="display:flex;justify-content:space-between"><span>🔍 Context Scout</span><span style="color:var(--paper)">1.847 calls</span></div>
+          <div style="display:flex;justify-content:space-between"><span>💻 Code Agent</span><span style="color:var(--paper)">312 calls</span></div>
+          <div style="display:flex;justify-content:space-between"><span>⚡ Codex</span><span style="color:var(--paper)">289 calls</span></div>
+          <div style="display:flex;justify-content:space-between"><span>⚖️ Compliance</span><span style="color:var(--paper)">312 calls</span></div>
+          <div style="display:flex;justify-content:space-between"><span>📊 Gestor</span><span style="color:var(--paper)">267 calls</span></div>
+          <div style="display:flex;justify-content:space-between"><span>🧪 QA Agent</span><span style="color:var(--paper)">198 calls</span></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Models -->
+    <div style="border:1px solid rgba(248,246,242,.08);padding:1.5rem;margin:1.5rem 0">
+      <div class="caption" style="color:var(--gold-l);margin-bottom:1rem">MODELOS DE IA UTILIZADOS</div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:1rem;font-family:var(--mono);font-size:.75rem">
+        <div style="text-align:center;padding:.8rem;border:1px solid rgba(248,246,242,.06)">
+          <div style="color:rgba(180,130,255,.9);font-weight:600">claude-opus-4-6</div>
+          <div style="color:rgba(248,246,242,.4);margin-top:.3rem">OraCLI (principal)</div>
+          <div style="color:var(--paper);font-size:.88rem;margin-top:.3rem">34.2M tokens</div>
+        </div>
+        <div style="text-align:center;padding:.8rem;border:1px solid rgba(248,246,242,.06)">
+          <div style="color:rgba(100,200,220,.9);font-weight:600">claude-sonnet-4-6</div>
+          <div style="color:rgba(248,246,242,.4);margin-top:.3rem">Subagentes</div>
+          <div style="color:var(--paper);font-size:.88rem;margin-top:.3rem">52.1M tokens</div>
+        </div>
+        <div style="text-align:center;padding:.8rem;border:1px solid rgba(248,246,242,.06)">
+          <div style="color:rgba(255,200,80,.9);font-weight:600">gpt-5.3-codex</div>
+          <div style="color:rgba(248,246,242,.4);margin-top:.3rem">Codex (execução)</div>
+          <div style="color:var(--paper);font-size:.88rem;margin-top:.3rem">15.2M tokens</div>
+        </div>
+        <div style="text-align:center;padding:.8rem;border:1px solid rgba(248,246,242,.06)">
+          <div style="color:rgba(100,180,120,.9);font-weight:600">Qwen3.5-27B</div>
+          <div style="color:rgba(248,246,242,.4);margin-top:.3rem">Modelo próprio (GRPO)</div>
+          <div style="color:var(--paper);font-size:.88rem;margin-top:.3rem">2.1M tokens</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pull-quote" style="color:var(--paper);border-left-color:var(--gold-l)">
+      "OraCLI não é um chatbot. É um sistema operacional cognitivo que 
+      pensa antes de agir, delega com contexto, e nunca esquece o que aprendeu."
+    </div>
+  </div>
+</section>
+
 <!-- ═══════ A — ACHIEVEMENT ═══════ -->
 <section id="achievement">
   <div class="section-inner reveal">
@@ -444,6 +605,158 @@ section:nth-child(odd){background:var(--cream)}
         <div class="value">2</div>
         <div class="label">Modelos no HuggingFace</div>
       </div>
+    </div>
+
+    <!-- ROI FINANCEIRO -->
+    <h3 style="font-family:var(--serif);font-size:1.3rem;margin:3rem 0 1rem">ROI — Retorno Sobre Investimento</h3>
+
+    <div style="text-align:center;padding:3rem 0;margin:1.5rem 0;border:1px solid rgba(0,0,0,.06)">
+      <div style="font-family:var(--serif);font-size:clamp(3rem,8vw,5.5rem);color:var(--gold);line-height:1">61.6x</div>
+      <div style="font-family:var(--mono);font-size:.72rem;letter-spacing:.25em;color:#888;margin-top:.75rem">RETORNO SOBRE INVESTIMENTO EM COMPUTE</div>
+    </div>
+
+    <div class="stat-row">
+      <div class="stat-card">
+        <div class="value">$1.899</div>
+        <div class="label">Total investido em compute</div>
+      </div>
+      <div class="stat-card">
+        <div class="value">2.340<span class="unit">h</span></div>
+        <div class="label">Horas humanas economizadas</div>
+      </div>
+      <div class="stat-card">
+        <div class="value">$117<span class="unit">K</span></div>
+        <div class="label">Valor gerado (a $50/h)</div>
+      </div>
+      <div class="stat-card">
+        <div class="value">45<span class="unit"> dias</span></div>
+        <div class="label">Do zero ao MVP funcional</div>
+      </div>
+    </div>
+
+    <!-- Cost Breakdown -->
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:1.5rem;margin:2.5rem 0">
+      <div style="border:1px solid rgba(0,0,0,.06);padding:1.5rem">
+        <div class="caption" style="margin-bottom:1rem">CUSTO POR MODELO DE IA</div>
+        <div style="font-family:var(--mono);font-size:.82rem;color:#555;line-height:2.2">
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span>claude-opus-4-6-thinking</span>
+            <span style="color:var(--ink);font-weight:600">$678</span>
+          </div>
+          <div style="height:4px;background:rgba(0,0,0,.04);margin:.2rem 0 .6rem">
+            <div style="height:100%;width:35.7%;background:var(--gold)"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span>claude-sonnet-4-6</span>
+            <span style="color:var(--ink);font-weight:600">$523</span>
+          </div>
+          <div style="height:4px;background:rgba(0,0,0,.04);margin:.2rem 0 .6rem">
+            <div style="height:100%;width:27.5%;background:var(--green)"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span>gpt-5.3-codex</span>
+            <span style="color:var(--ink);font-weight:600">$456</span>
+          </div>
+          <div style="height:4px;background:rgba(0,0,0,.04);margin:.2rem 0 .6rem">
+            <div style="height:100%;width:24%;background:var(--cyan)"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span>Qwen3.5-27B (Tinker)</span>
+            <span style="color:var(--ink);font-weight:600">$200</span>
+          </div>
+          <div style="height:4px;background:rgba(0,0,0,.04);margin:.2rem 0 .6rem">
+            <div style="height:100%;width:10.5%;background:rgba(0,0,0,.15)"></div>
+          </div>
+          <div style="display:flex;justify-content:space-between;align-items:center">
+            <span>gemini-3-flash</span>
+            <span style="color:var(--ink);font-weight:600">$42</span>
+          </div>
+          <div style="height:4px;background:rgba(0,0,0,.04);margin:.2rem 0">
+            <div style="height:100%;width:2.2%;background:rgba(0,0,0,.1)"></div>
+          </div>
+        </div>
+        <div style="font-family:var(--mono);font-size:.72rem;color:#888;margin-top:1rem;padding-top:.75rem;border-top:1px solid rgba(0,0,0,.06);display:flex;justify-content:space-between">
+          <span>TOTAL</span>
+          <span style="color:var(--ink);font-weight:600">$1.899</span>
+        </div>
+      </div>
+
+      <div style="border:1px solid rgba(0,0,0,.06);padding:1.5rem">
+        <div class="caption" style="margin-bottom:1rem">CRESCIMENTO MENSAL DO ROI</div>
+        <div style="font-family:var(--mono);font-size:.82rem;color:#555">
+          <div style="margin-bottom:1.2rem">
+            <div style="display:flex;justify-content:space-between;margin-bottom:.3rem">
+              <span>Janeiro 2026</span>
+              <span style="color:var(--ink);font-weight:600">53x ROI</span>
+            </div>
+            <div style="display:flex;gap:4px;height:20px">
+              <div style="flex:234;background:var(--red);opacity:.3" title="Investido: $234"></div>
+              <div style="flex:12400;background:var(--green);opacity:.5" title="Valor gerado: $12.400"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:.68rem;color:#aaa;margin-top:.2rem">
+              <span>$234 investido</span>
+              <span>$12.4K gerado</span>
+            </div>
+          </div>
+          <div style="margin-bottom:1.2rem">
+            <div style="display:flex;justify-content:space-between;margin-bottom:.3rem">
+              <span>Fevereiro 2026</span>
+              <span style="color:var(--ink);font-weight:600">63x ROI</span>
+            </div>
+            <div style="display:flex;gap:4px;height:20px">
+              <div style="flex:456;background:var(--red);opacity:.3" title="Investido: $456"></div>
+              <div style="flex:28900;background:var(--green);opacity:.6" title="Valor gerado: $28.900"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:.68rem;color:#aaa;margin-top:.2rem">
+              <span>$456 investido</span>
+              <span>$28.9K gerado</span>
+            </div>
+          </div>
+          <div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:.3rem">
+              <span>Março 2026</span>
+              <span style="color:var(--gold);font-weight:600">63x ROI</span>
+            </div>
+            <div style="display:flex;gap:4px;height:20px">
+              <div style="flex:1209;background:var(--red);opacity:.3" title="Investido: $1.209"></div>
+              <div style="flex:75700;background:var(--green);opacity:.7" title="Valor gerado: $75.700"></div>
+            </div>
+            <div style="display:flex;justify-content:space-between;font-size:.68rem;color:#aaa;margin-top:.2rem">
+              <span>$1.209 investido</span>
+              <span>$75.7K gerado</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Token Economy -->
+    <div style="border:1px solid rgba(0,0,0,.06);padding:1.5rem;margin:1.5rem 0">
+      <div class="caption" style="margin-bottom:1rem">ECONOMIA DE TOKENS — 109M PROCESSADOS</div>
+      <div class="stat-row" style="margin:1rem 0 0">
+        <div class="stat-card">
+          <div class="value">109<span class="unit">M</span></div>
+          <div class="label">Tokens totais processados</div>
+        </div>
+        <div class="stat-card">
+          <div class="value">$0.017</div>
+          <div class="label">Custo médio por 1K tokens</div>
+        </div>
+        <div class="stat-card">
+          <div class="value">5.375</div>
+          <div class="label">Tasks totais (code + FIDC)</div>
+        </div>
+        <div class="stat-card">
+          <div class="value">$0.35</div>
+          <div class="label">Custo médio por task</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="pull-quote">
+      "Cada task custa em média $0.35 em compute. A mesma task feita por 
+      um analista humano custa ~$25 (30 minutos a $50/hora). 
+      Economia de 98.6% por operação."
     </div>
 
     <!-- Quality Bars -->
