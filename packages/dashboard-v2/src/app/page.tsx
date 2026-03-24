@@ -90,51 +90,87 @@ function StatusDot({ active = true }: { active?: boolean }) {
   );
 }
 
-// Heatmap SVG — 7 dias × 24 horas de commits
+// Heatmap SVG — 90 days of real GitHub commits
 function GitHeatmap() {
-  const days = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
-  const hours = Array.from({ length: 24 }, (_, i) => i);
-  const cellW = 18, cellH = 14, gapX = 2, gapY = 2;
-  // deterministic-ish seed
-  const seed = (d: number, h: number) => {
-    const n = d * 100 + h;
-    return ((Math.sin(n * 9301 + 49297) + 1) / 2);
-  };
+  const [heatData, setHeatData] = useState<{ date: string; count: number }[]>([]);
+  const [stats, setStats] = useState<{ totalCommits: number; activeDays: number; maxDay: number }>({ totalCommits: 0, activeDays: 0, maxDay: 0 });
+
+  useEffect(() => {
+    fetch("/api/github")
+      .then(r => r.json())
+      .then(d => {
+        if (d.heatmap) setHeatData(d.heatmap);
+        if (d.stats) setStats(d.stats);
+      })
+      .catch(() => {});
+  }, []);
+
+  // Layout: 13 weeks × 7 days (like GitHub)
+  const cellSize = 11, gap = 2;
+  const weeks = 13;
+  const width = weeks * (cellSize + gap);
+  const height = 7 * (cellSize + gap) + 24;
+  const dayLabels = ["", "Seg", "", "Qua", "", "Sex", ""];
+
+  // Build grid from last 91 days
+  const cells: { x: number; y: number; count: number; date: string }[] = [];
+  const data = heatData.length > 0 ? heatData.slice(-91) : [];
+  
+  if (data.length > 0) {
+    // Align to start of week (Sunday)
+    const firstDate = new Date(data[0].date);
+    const startDow = firstDate.getDay(); // 0=Sun
+    
+    for (let i = 0; i < data.length; i++) {
+      const dayIndex = startDow + i;
+      const week = Math.floor(dayIndex / 7);
+      const dow = dayIndex % 7;
+      cells.push({ x: week * (cellSize + gap), y: dow * (cellSize + gap) + 16, count: data[i].count, date: data[i].date });
+    }
+  }
+
+  const maxCount = stats.maxDay || 1;
+
   return (
-    <svg
-      width={24 * (cellW + gapX)}
-      height={7 * (cellH + gapY) + 20}
-      style={{ display: "block", overflow: "visible" }}
-    >
-      {/* Hour labels */}
-      {[0, 6, 12, 18, 23].map(h => (
-        <text key={h} x={h * (cellW + gapX) + cellW / 2} y={10} fontSize="12" fill="rgba(255,255,255,0.2)" textAnchor="middle">
-          {h}h
-        </text>
-      ))}
-      {days.map((day, d) =>
-        hours.map(h => {
-          const alpha = 0.05 + seed(d, h) * 0.85;
+    <div>
+      <svg width={width + 30} height={height} style={{ display: "block", overflow: "visible" }}>
+        {/* Day labels */}
+        {dayLabels.map((label, i) => label ? (
+          <text key={i} x={-2} y={i * (cellSize + gap) + 16 + cellSize / 2 + 3} fontSize="9" fill="rgba(255,255,255,0.25)" textAnchor="end">
+            {label}
+          </text>
+        ) : null)}
+        {/* Cells */}
+        {cells.map((c, i) => {
+          const level = c.count === 0 ? 0 : Math.min(Math.ceil((c.count / maxCount) * 4), 4);
+          const alphas = [0.04, 0.2, 0.4, 0.65, 0.9];
           return (
             <rect
-              key={`${d}-${h}`}
-              x={h * (cellW + gapX)}
-              y={d * (cellH + gapY) + 14}
-              width={cellW}
-              height={cellH}
+              key={i}
+              x={c.x + 20}
+              y={c.y}
+              width={cellSize}
+              height={cellSize}
               rx={2}
-              fill={`hsl(150 100% 50% / ${alpha.toFixed(2)})`}
-            />
+              fill={`hsl(150 100% 50% / ${alphas[level]})`}
+            >
+              <title>{c.date}: {c.count} commits</title>
+            </rect>
           );
-        })
-      )}
-      {/* Day labels */}
-      {days.map((day, d) => (
-        <text key={day} x={-2} y={d * (cellH + gapY) + 14 + cellH / 2 + 3} fontSize="12" fill="rgba(255,255,255,0.2)" textAnchor="end">
-          {day}
-        </text>
-      ))}
-    </svg>
+        })}
+      </svg>
+      <div style={{ display: "flex", gap: "1rem", marginTop: 6, fontFamily: "var(--font-mono)", fontSize: "0.7rem", color: "var(--text-4)" }}>
+        <span><strong style={{ color: "var(--accent)" }}>{stats.totalCommits}</strong> commits</span>
+        <span><strong style={{ color: "var(--accent)" }}>{stats.activeDays}</strong> dias ativos</span>
+        <span style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 3 }}>
+          menos
+          {[0.04, 0.2, 0.4, 0.65, 0.9].map((a, i) => (
+            <span key={i} style={{ display: "inline-block", width: 9, height: 9, borderRadius: 2, background: `hsl(150 100% 50% / ${a})` }} />
+          ))}
+          mais
+        </span>
+      </div>
+    </div>
   );
 }
 
