@@ -67,6 +67,24 @@ export async function GET(req: NextRequest) {
     const events = eventsRes.data || [];
     const traces = tracesRes.data || [];
 
+    // Get real counts (not capped by fetchLimit)
+    const [tasksCnt, intCnt, evtCnt, trcCnt] = await Promise.all([
+      supabase.from("tasks").select("id", { count: "exact", head: true })
+        .gte("created_at", dayStart).lte("created_at", dayEnd),
+      supabase.from("interactions").select("id", { count: "exact", head: true })
+        .gte("created_at", dayStart).lte("created_at", dayEnd),
+      supabase.from("timeline_events").select("id", { count: "exact", head: true })
+        .gte("created_at", dayStart).lte("created_at", dayEnd),
+      supabase.from("traces").select("id", { count: "exact", head: true })
+        .gte("created_at", dayStart).lte("created_at", dayEnd),
+    ]);
+    const realCounts = {
+      tasks: tasksCnt.count ?? tasks.length,
+      interactions: intCnt.count ?? interactions.length,
+      events: evtCnt.count ?? events.length,
+      traces: trcCnt.count ?? traces.length,
+    };
+
     // Unify into ExtratoEntry[]
     const unified: ExtratoEntry[] = [
       ...tasks.map((t) => ({
@@ -173,13 +191,13 @@ export async function GET(req: NextRequest) {
     // Sort by timestamp desc
     filtered.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
 
-    // Compute stats from ALL filtered entries (before limit)
+    // Compute stats using REAL counts (not capped)
     const stats = {
-      total: filtered.length,
-      tasks: filtered.filter((e) => e.type === "task").length,
-      interactions: filtered.filter((e) => e.type === "interaction").length,
-      events: filtered.filter((e) => e.type === "event").length,
-      traces: filtered.filter((e) => e.type === "trace").length,
+      total: realCounts.tasks + realCounts.interactions + realCounts.events + realCounts.traces,
+      tasks: realCounts.tasks,
+      interactions: realCounts.interactions,
+      events: realCounts.events,
+      traces: realCounts.traces,
       totalCost: filtered.reduce((s, e) => s + (e.cost || 0), 0),
       totalTokens: filtered.reduce((s, e) => s + (e.tokens || 0), 0),
       agents: [...new Set(filtered.map((e) => e.agent_id))],

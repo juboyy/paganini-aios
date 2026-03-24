@@ -90,39 +90,115 @@ function SuccessBar({ rate }: { rate: number }) {
   );
 }
 
-// ─── Cost Bar Chart ───────────────────────────────────────────────────────────
+// ─── Provider Cost Chart (Stacked) ───────────────────────────────────────────
 
-function CostBarChart({ costs }: { costs: DailyCost[] }) {
+const PROVIDERS = [
+  { key: "google"    as keyof DailyCost, label: "Google",    color: "var(--accent)" },
+  { key: "anthropic" as keyof DailyCost, label: "Anthropic", color: "#a78bfa" },
+  { key: "openai"    as keyof DailyCost, label: "OpenAI",    color: "hsl(190 100% 55%)" },
+] as const;
+
+function ProviderCostChart({ costs }: { costs: DailyCost[] }) {
   const last7 = costs.slice(-7);
   if (last7.length === 0) return null;
-  const max = Math.max(...last7.map(c => c.total), 0.01);
+
+  const max = Math.max(
+    ...last7.map(c => (c.google ?? 0) + (c.anthropic ?? 0) + (c.openai ?? 0)),
+    0.01
+  );
+  const CHART_H = 120; // px — inner bar area height
+  const MIN_SEG  = 2;  // px minimum for non-zero segments
 
   return (
-    <div style={{ display: "flex", alignItems: "flex-end", gap: "1rem", height: 160, padding: "1rem 0" }}>
-      {last7.map((c) => {
-        const h = Math.max((c.total / max) * 100, c.total > 0 ? 8 : 0); // minimum 8% height for non-zero values
-        return (
-          <div key={c.date} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.65rem", color: "var(--accent)", marginBottom: 2 }}>
-              ${c.total.toFixed(2)}
+    <div>
+      {/* Bar area */}
+      <div style={{ display: "flex", alignItems: "flex-end", gap: "1rem", height: CHART_H + 40, paddingTop: "1.25rem" }}>
+        {last7.map((c) => {
+          const gVal = c.google    ?? 0;
+          const aVal = c.anthropic ?? 0;
+          const oVal = c.openai    ?? 0;
+          const sum  = gVal + aVal + oVal;
+          const total = sum > 0 ? sum : 0;
+
+          // Segment heights in px
+          const scale   = (v: number) => v > 0 ? Math.max((v / max) * CHART_H, MIN_SEG) : 0;
+          const gH = scale(gVal);
+          const aH = scale(aVal);
+          const oH = scale(oVal);
+
+          const [mm, dd] = c.date.split("-").slice(1);
+          const dateLabel = mm && dd ? `${mm}/${dd}` : c.date;
+
+          return (
+            <div key={c.date} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
+              {/* Total label above bar */}
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6rem", color: "var(--text-3)", whiteSpace: "nowrap" }}>
+                ${total.toFixed(2)}
+              </div>
+
+              {/* Stacked bar */}
+              <div style={{
+                width: "100%",
+                height: CHART_H,
+                background: "rgba(255,255,255,0.02)",
+                borderRadius: 4,
+                position: "relative",
+                overflow: "hidden",
+                display: "flex",
+                flexDirection: "column",
+                justifyContent: "flex-end",
+              }}>
+                {/* Google — bottom */}
+                {gH > 0 && (
+                  <div style={{
+                    width: "100%", height: gH,
+                    background: "var(--accent)",
+                    boxShadow: "0 0 10px hsl(150 100% 50% / 0.35)",
+                    flexShrink: 0,
+                    transition: "height 0.6s ease",
+                  }} />
+                )}
+                {/* Anthropic — middle */}
+                {aH > 0 && (
+                  <div style={{
+                    width: "100%", height: aH,
+                    background: "#a78bfa",
+                    boxShadow: "0 0 10px #a78bfa44",
+                    flexShrink: 0,
+                    transition: "height 0.6s ease",
+                  }} />
+                )}
+                {/* OpenAI — top */}
+                {oH > 0 && (
+                  <div style={{
+                    width: "100%", height: oH,
+                    background: "hsl(190 100% 55%)",
+                    boxShadow: "0 0 10px hsl(190 100% 55% / 0.35)",
+                    borderRadius: "4px 4px 0 0",
+                    flexShrink: 0,
+                    transition: "height 0.6s ease",
+                  }} />
+                )}
+              </div>
+
+              {/* Date label below */}
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6rem", color: "var(--text-4)" }}>
+                {dateLabel}
+              </div>
             </div>
-            <div style={{ width: "100%", height: 120, background: "rgba(255,255,255,0.02)", borderRadius: 4, position: "relative", overflow: "hidden" }}>
-              <div 
-                style={{ 
-                  position: "absolute", bottom: 0, left: 0, width: "100%", height: `${h}%`, 
-                  background: "linear-gradient(0deg, hsl(150 100% 50% / 0.2), hsl(150 100% 50%))",
-                  boxShadow: "0 0 15px hsl(150 100% 50% / 0.3)",
-                  borderRadius: "4px 4px 0 0",
-                  transition: "height 0.6s ease",
-                }} 
-              />
-            </div>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.65rem", color: "var(--text-4)" }}>
-              {c.date.split("-").slice(1).join("/") || c.date}
-            </div>
+          );
+        })}
+      </div>
+
+      {/* Legend */}
+      <div style={{ display: "flex", gap: "1.5rem", justifyContent: "center", marginTop: "1.25rem", flexWrap: "wrap" }}>
+        {PROVIDERS.map(({ label, color }) => (
+          <div key={label} style={{ display: "flex", alignItems: "center", gap: 6 }}>
+            <div style={{ width: 8, height: 8, borderRadius: "50%", background: color, boxShadow: `0 0 6px ${color}` }} />
+            <span style={{ fontFamily: "var(--font-display)", fontSize: "0.75rem", color: "var(--text-3)" }}>{label}</span>
           </div>
-        );
-      })}
+        ))}
+      </div>
     </div>
   );
 }
@@ -228,9 +304,9 @@ export default function MetricsPage() {
             <StatCard label="Total Tasks" value={formatNumber(ts.total)} sub="Tasks executadas" />
           </div>
 
-          <SectionTitle>Custo Diário — Últimos 7 Dias</SectionTitle>
+          <SectionTitle>Custo Diário por Provedor — Últimos 7 Dias</SectionTitle>
           <div className="glass-card" style={{ padding: "1.5rem" }}>
-            <CostBarChart costs={data.daily_costs} />
+            <ProviderCostChart costs={data.daily_costs} />
             <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "1rem", paddingTop: "1rem", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
               <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: "var(--text-4)" }}>TOTAL SEMANA</span>
               <span style={{ fontFamily: "var(--font-display)", fontSize: "1.25rem", fontWeight: 700, color: "var(--accent)" }}>${formatCost(totalCostLast7)}</span>

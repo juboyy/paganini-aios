@@ -80,6 +80,9 @@ function MemCard({ entry }: { entry: MemoryEntry }) {
 
 export default function MemoryPage() {
   const [entries, setEntries] = useState<MemoryEntry[]>([]);
+  const [totalCount, setTotalCount] = useState(0);
+  const [dbCategories, setDbCategories] = useState<string[]>([]);
+  const [dbAgents, setDbAgents] = useState<string[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [filterCat, setFilterCat] = useState<string>("all");
@@ -96,7 +99,16 @@ export default function MemoryPage() {
         return r.json();
       })
       .then((data) => {
-        setEntries(Array.isArray(data) ? data : []);
+        // Support both old array format and new object format
+        if (Array.isArray(data)) {
+          setEntries(data);
+          setTotalCount(data.length);
+        } else {
+          setEntries(data.entries ?? []);
+          setTotalCount(data.total ?? (data.entries ?? []).length);
+          if (data.categories) setDbCategories(data.categories);
+          if (data.agents) setDbAgents(data.agents);
+        }
         setError(null);
         setLoading(false);
       })
@@ -112,8 +124,8 @@ export default function MemoryPage() {
     return () => clearInterval(interval);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const cats = Array.from(new Set(entries.map((e) => e.type).filter(Boolean))) as string[];
-  const agents = Array.from(new Set(entries.map((e) => e.source_agent).filter(Boolean))) as string[];
+  const cats = dbCategories.length > 0 ? dbCategories : Array.from(new Set(entries.map((e) => e.type).filter(Boolean))) as string[];
+  const agents = dbAgents.length > 0 ? dbAgents : Array.from(new Set(entries.map((e) => e.source_agent).filter(Boolean))) as string[];
 
   const displayed = entries.filter((e) => {
     if (filterCat !== "all" && e.type !== filterCat) return false;
@@ -151,7 +163,7 @@ export default function MemoryPage() {
           </h1>
           <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
             <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", padding: "4px 14px", borderRadius: "var(--radius)", background: "rgba(0,255,255,0.08)", border: "1px solid rgba(0,255,255,0.25)", color: "hsl(180,100%,50%)", fontWeight: 700 }}>
-              {loading ? "..." : `${displayed.length} / ${entries.length} ENTRADAS`}
+              {loading ? "..." : `${displayed.length} / ${totalCount} ENTRADAS`}
             </span>
             {!loading && (
               <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", padding: "4px 14px", borderRadius: "var(--radius)", background: "rgba(0,255,128,0.08)", border: "1px solid rgba(0,255,128,0.15)", color: "var(--accent)" }}>
@@ -165,7 +177,7 @@ export default function MemoryPage() {
       {/* ── Stats ── */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "1rem" }}>
         {[
-          { label: "Entradas",   value: entries.length,          color: "var(--accent)" },
+          { label: "Entradas",   value: totalCount,               color: "var(--accent)" },
           { label: "Categorias", value: cats.length,             color: "hsl(180,100%,50%)" },
           { label: "Agentes",    value: agents.length,           color: "#a78bfa" },
           { label: "Exibindo",   value: displayed.length,        color: "var(--text-2)" },
