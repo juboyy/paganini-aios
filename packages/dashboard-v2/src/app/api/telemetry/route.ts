@@ -92,11 +92,13 @@ export async function GET() {
         .from("tasks")
         .select("id", { count: "exact", head: true })
         .gte("created_at", since30dTs),
-      // ROI Costs
+      // ROI Costs — REAL cost = only Google API (pay-per-use)
+      // Antigravity (Claude) = flat subscription = $0/inference
+      // Codex (ChatGPT Team) = flat subscription = $0/inference
       supabase
         .from("daily_costs")
-        .select("total")
-        .gte("date", since7d), // Using 7d as a proxy if 30d is missing, but aiming for 30
+        .select("total, google")
+        .gte("date", since7d),
     ]);
 
     // 1. Process LOC / HORA (Histogram 24h)
@@ -142,18 +144,20 @@ export async function GET() {
     const agentPerformance = Array.from(agentPerfMap.values())
       .sort((a, b) => b.loc - a.loc);
 
-    // 4. ROI Calculation
-    const totalCost30d = (dailyCosts30d ?? []).reduce((s, r) => s + (r.total ?? 0), 0) || 847;
+    // 4. ROI Calculation — uses REAL cost (Google API only)
+    const theoreticalCost30d = (dailyCosts30d ?? []).reduce((s, r) => s + (r.total ?? 0), 0);
+    const realCost30d = (dailyCosts30d ?? []).reduce((s, r) => s + (r.google ?? 0), 0);
+    const effectiveCost = Math.max(realCost30d, 0.01); // avoid div by zero
     const tasks30d = taskCount30d ?? 142;
     const avgTaskMin = 4.2;
     const hoursAutomated = parseFloat(((tasks30d * avgTaskMin) / 60).toFixed(1));
     const humanCostPerHour = 85; 
     const headcountEquivalent = hoursAutomated * humanCostPerHour;
-    const multiplier = totalCost30d > 0 ? parseFloat((headcountEquivalent / totalCost30d).toFixed(1)) : 7.3;
+    const multiplier = effectiveCost > 0 ? parseFloat((headcountEquivalent / effectiveCost).toFixed(1)) : 0;
 
     const roi: RoiStats = {
       hoursAutomated,
-      costAI30d: totalCost30d,
+      costAI30d: realCost30d,
       costEquivalentHeadcount: headcountEquivalent,
       savingsMultiplier: multiplier,
       tasksCompleted30d: tasks30d,

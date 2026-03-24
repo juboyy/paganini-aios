@@ -3,28 +3,36 @@ import { supabase } from "../../../lib/supabase";
 
 export async function GET() {
   try {
-    // 1. Efficiency vs Human Team: Sum(tasks completed) * $50 / Sum(total cost)
+    // 1. Tasks completed
     const { data: completedTasks } = await supabase
       .from("tasks")
       .select("id")
       .eq("status", "done");
     
+    // 2. Daily costs — separate real vs theoretical
+    // Real cost = only Google (pay-per-use API)
+    // Antigravity (Claude) = flat subscription = $0 inference
+    // Codex (ChatGPT Team) = flat subscription = $0 inference
     const { data: totalCosts } = await supabase
       .from("daily_costs")
-      .select("total");
+      .select("total, google");
     
     const taskCount = completedTasks?.length || 0;
-    const totalCost = (totalCosts || []).reduce((sum, r) => sum + (r.total || 0), 0) || 1; // avoid div by zero
-    const efficiency = (taskCount * 50) / totalCost;
+    const theoreticalCost = (totalCosts || []).reduce((sum, r) => sum + (r.total || 0), 0);
+    const realCost = (totalCosts || []).reduce((sum, r) => sum + (r.google || 0), 0);
+    const effectiveCost = Math.max(realCost, 0.01); // avoid div by zero
+    
+    // Efficiency uses REAL cost (not theoretical)
+    const efficiency = (taskCount * 50) / effectiveCost;
 
-    // 2. Lines of Code Generated: Sum(deliverables.lines_changed)
+    // 3. Lines of Code Generated: Sum(deliverables.lines_changed)
     const { data: deliverables } = await supabase
       .from("deliverables")
       .select("lines_changed");
     
     const totalLines = (deliverables || []).reduce((sum, r) => sum + (r.lines_changed || 0), 0) || 0;
 
-    // 3. Success Rate: pipeline_runs(status=done) / total_runs
+    // 4. Success Rate: pipeline_runs(status=done) / total_runs
     const { count: doneRuns } = await supabase
       .from("pipeline_runs")
       .select("id", { count: "exact", head: true })
@@ -36,10 +44,10 @@ export async function GET() {
     
     const successRate = totalRuns && totalRuns > 0 ? (doneRuns || 0) / totalRuns : 0;
 
-    // 4. Cost per Line: total cost / total lines generated
-    const costPerLine = totalLines > 0 ? totalCost / totalLines : 0;
+    // 5. Cost per Line uses REAL cost
+    const costPerLine = totalLines > 0 ? effectiveCost / totalLines : 0;
 
-    // Legacy / Other stats for the UI layers/counters
+    // Legacy / Other stats
     const { count: activeAgents } = await supabase
       .from("agents")
       .select("id", { count: "exact", head: true })
@@ -54,13 +62,20 @@ export async function GET() {
       .select("id", { count: "exact", head: true })
       .eq("status", "pass");
 
+    // Format cost display
+    const fmtCost = (v: number) => v >= 1 ? `$${v.toFixed(2)}` : `$${v.toFixed(4)}`;
+
     const stats = {
       efficiency: efficiency.toFixed(1),
       totalLines: totalLines,
       successRate: (successRate * 100).toFixed(1),
-      costPerLine: costPerLine.toFixed(4),
-      humanCost: (taskCount * 50).toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
-      aiCost: totalCost.toLocaleString('pt-BR', { style: 'currency', currency: 'BRL' }),
+      costPerLine: costPerLine.toFixed(6),
+      // Show REAL cost model
+      humanCost: `R$ ${(taskCount * 50).toLocaleString()}`,
+      aiCost: fmtCost(realCost),
+      theoreticalCost: fmtCost(theoreticalCost),
+      realCost: fmtCost(realCost),
+      costModel: "Antigravity (flat) + Codex (flat) + Google API (pay-per-use)",
       
       activeAgents: activeAgents || 0,
       totalAgents: totalAgents || 0,
@@ -86,9 +101,9 @@ export async function GET() {
           color: "var(--cyan)",
         },
         {
-          label: "TOTAL COST",
-          value: `$${totalCost.toFixed(2)}`,
-          delta: "all time",
+          label: "CUSTO REAL",
+          value: fmtCost(realCost),
+          delta: `teórico: ${fmtCost(theoreticalCost)}`,
           color: "var(--accent)",
         },
       ]

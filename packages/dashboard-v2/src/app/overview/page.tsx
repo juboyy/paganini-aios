@@ -132,8 +132,8 @@ export default function OverviewPage() {
   const metrics = [
     { 
       value: stats ? `${stats.efficiency}×` : "—", 
-      label: "Eficiência vs equipe humana", 
-      sub: stats ? `${stats.humanCost} → ${stats.aiCost}/mês` : "calculando..." 
+      label: "ROI vs equipe humana", 
+      sub: stats ? `Custo real: ${stats.realCost} (flat subs) · Equivalente humano: ${stats.humanCost}` : "calculando..." 
     },
     { 
       value: stats ? formatLines(stats.totalLines) : "—", 
