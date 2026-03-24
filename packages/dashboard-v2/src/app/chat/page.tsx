@@ -117,8 +117,9 @@ function DotGrid({ zoom }: { zoom: number }) {
 }
 
 /* ── Agent Tile ── */
-function AgentTile({ tile, onChat }: { tile: TileData; onChat: (agent: string) => void }) {
-  const statusColor = tile.status === "active" ? "var(--accent)" : tile.status === "watching" ? "var(--cyan)" : "var(--text-4)";
+function AgentTile({ tile, onChat, liveData }: { tile: TileData; onChat: (agent: string) => void; liveData?: Record<string, unknown> }) {
+  const statusColor = tile.status === "active" || tile.status === "online" ? "var(--accent)" : tile.status === "watching" ? "var(--cyan)" : "var(--text-4)";
+  const d = liveData || {};
 
   return (
     <div style={{ padding: "0.75rem", height: "100%", display: "flex", flexDirection: "column" }}>
@@ -131,7 +132,7 @@ function AgentTile({ tile, onChat }: { tile: TileData; onChat: (agent: string) =
           <div style={{ display: "flex", alignItems: "center", gap: "0.35rem" }}>
             <div style={{ width: 6, height: 6, borderRadius: "50%", background: statusColor, boxShadow: `0 0 6px ${statusColor}` }} />
             <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.6rem", color: "var(--text-4)", letterSpacing: "0.1em" }}>
-              {tile.status?.toUpperCase()}
+              {(d.status as string || tile.status || "unknown").toUpperCase()}
             </span>
           </div>
         </div>
@@ -140,14 +141,16 @@ function AgentTile({ tile, onChat }: { tile: TileData; onChat: (agent: string) =
       <div style={{
         flex: 1, background: "rgba(0,0,0,0.3)", borderRadius: 6, padding: "0.5rem",
         fontFamily: "var(--font-mono)", fontSize: "0.65rem", color: "var(--accent)",
-        lineHeight: 1.6, overflow: "auto",
+        lineHeight: 1.7, overflow: "auto",
       }}>
         <div style={{ color: "var(--text-4)" }}>$ paganini agent status {tile.agent}</div>
-        <div>● PID 4{Math.floor(Math.random() * 900 + 100)} | mem 128MB</div>
-        <div>● Last heartbeat: {Math.floor(Math.random() * 30)}s ago</div>
-        <div>● Tasks today: {Math.floor(Math.random() * 20 + 5)}</div>
-        <div>● Queue: {Math.floor(Math.random() * 3)} pending</div>
-        <div style={{ color: "var(--text-4)", marginTop: "0.5rem" }}>$ _</div>
+        {d.model && <div>● model: <span style={{ color: "var(--cyan)" }}>{d.model as string}</span></div>}
+        <div>● tasks: <span style={{ color: "var(--text-1)" }}>{d.tasks_completed as number ?? "—"}</span></div>
+        <div>● avg time: {d.avg_time as string ?? "—"}</div>
+        <div>● error rate: {typeof d.error_rate === "number" ? `${(d.error_rate as number).toFixed(1)}%` : "—"}</div>
+        <div>● cost: <span style={{ color: "var(--cyan)" }}>${typeof d.total_cost === "number" ? (d.total_cost as number).toFixed(2) : "0"}</span></div>
+        {d.role && <div>● role: {d.role as string}</div>}
+        <div style={{ color: "var(--text-4)", marginTop: "0.25rem" }}>$ _</div>
       </div>
 
       <button
@@ -373,7 +376,27 @@ export default function CanvasPage() {
   const [dragging, setDragging] = useState<{ id: string; offsetX: number; offsetY: number } | null>(null);
   const [panning, setPanning] = useState<Vec | null>(null);
   const [maxZ, setMaxZ] = useState(25);
+  const [liveAgents, setLiveAgents] = useState<Record<string, Record<string, unknown>>>({});
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Fetch live data from Supabase
+  useEffect(() => {
+    async function fetchLive() {
+      try {
+        const res = await fetch("/api/canvas-data");
+        if (!res.ok) return;
+        const data = await res.json();
+        const agentMap: Record<string, Record<string, unknown>> = {};
+        for (const a of (data.agents || [])) {
+          agentMap[a.id] = a;
+        }
+        setLiveAgents(agentMap);
+      } catch {}
+    }
+    fetchLive();
+    const iv = setInterval(fetchLive, 30000);
+    return () => clearInterval(iv);
+  }, []);
 
   // Pan on middle click or space+drag
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
@@ -613,7 +636,7 @@ export default function CanvasPage() {
             {/* Content */}
             {!tile.minimized && (
               <div style={{ flex: 1, overflow: "hidden" }}>
-                {tile.type === "agent" && <AgentTile tile={tile} onChat={openAgentChat} />}
+                {tile.type === "agent" && <AgentTile tile={tile} onChat={openAgentChat} liveData={liveAgents[tile.agent || ""] || {}} />}
                 {tile.type === "chat" && <ChatTile tile={tile} />}
                 {(tile.type === "guardrail" || tile.type === "data" || tile.type === "metric") && <DataTile tile={tile} />}
               </div>
