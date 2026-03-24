@@ -90,112 +90,253 @@ function SuccessBar({ rate }: { rate: number }) {
   );
 }
 
-// ─── Provider Cost Chart (Stacked) ───────────────────────────────────────────
+// ─── Provider Cost Chart (Stacked Area — SVG) ───────────────────────────────
 
 const PROVIDERS = [
-  { key: "google"    as keyof DailyCost, label: "Google",    color: "var(--accent)" },
-  { key: "anthropic" as keyof DailyCost, label: "Anthropic", color: "#a78bfa" },
-  { key: "openai"    as keyof DailyCost, label: "OpenAI",    color: "hsl(190 100% 55%)" },
+  { key: "google"    as keyof DailyCost, label: "Google",    color: "#00ff88", colorRgb: "0,255,136" },
+  { key: "anthropic" as keyof DailyCost, label: "Anthropic", color: "#a78bfa", colorRgb: "167,139,250" },
+  { key: "openai"    as keyof DailyCost, label: "OpenAI",    color: "#22d3ee", colorRgb: "34,211,238" },
 ] as const;
 
 function ProviderCostChart({ costs }: { costs: DailyCost[] }) {
+  const [hover, setHover] = useState<number | null>(null);
   const last7 = costs.slice(-7);
   if (last7.length === 0) return null;
 
-  const max = Math.max(
-    ...last7.map(c => (c.google ?? 0) + (c.anthropic ?? 0) + (c.openai ?? 0)),
-    0.01
-  );
-  const CHART_H = 120; // px — inner bar area height
-  const MIN_SEG  = 2;  // px minimum for non-zero segments
+  // Chart dimensions
+  const W = 700, H = 220;
+  const PAD = { top: 24, right: 24, bottom: 36, left: 52 };
+  const cW = W - PAD.left - PAD.right;
+  const cH = H - PAD.top - PAD.bottom;
+
+  // Stack data: [google, google+anthropic, google+anthropic+openai]
+  const stacked = last7.map(c => {
+    const g = c.google ?? 0, a = c.anthropic ?? 0, o = c.openai ?? 0;
+    return { g, a, o, s1: g, s2: g + a, s3: g + a + o, date: c.date };
+  });
+  const maxY = Math.max(...stacked.map(s => s.s3), 1);
+
+  // Scale helpers
+  const xScale = (i: number) => PAD.left + (i / Math.max(last7.length - 1, 1)) * cW;
+  const yScale = (v: number) => PAD.top + cH - (v / maxY) * cH;
+
+  // Generate smooth bezier path for an area between top and bottom curves
+  function areaPath(topVals: number[], botVals: number[]) {
+    const n = topVals.length;
+    if (n === 0) return "";
+    // Move to first top point
+    let d = `M ${xScale(0)} ${yScale(topVals[0])}`;
+    // Cubic bezier through top points (left to right)
+    for (let i = 1; i < n; i++) {
+      const x0 = xScale(i - 1), y0 = yScale(topVals[i - 1]);
+      const x1 = xScale(i), y1 = yScale(topVals[i]);
+      const cx = (x0 + x1) / 2;
+      d += ` C ${cx} ${y0}, ${cx} ${y1}, ${x1} ${y1}`;
+    }
+    // Line to last bottom point, then bezier back (right to left)
+    d += ` L ${xScale(n - 1)} ${yScale(botVals[n - 1])}`;
+    for (let i = n - 2; i >= 0; i--) {
+      const x0 = xScale(i + 1), y0 = yScale(botVals[i + 1]);
+      const x1 = xScale(i), y1 = yScale(botVals[i]);
+      const cx = (x0 + x1) / 2;
+      d += ` C ${cx} ${y0}, ${cx} ${y1}, ${x1} ${y1}`;
+    }
+    d += " Z";
+    return d;
+  }
+
+  // Line path for top stroke
+  function linePath(vals: number[]) {
+    if (vals.length === 0) return "";
+    let d = `M ${xScale(0)} ${yScale(vals[0])}`;
+    for (let i = 1; i < vals.length; i++) {
+      const x0 = xScale(i - 1), y0 = yScale(vals[i - 1]);
+      const x1 = xScale(i), y1 = yScale(vals[i]);
+      const cx = (x0 + x1) / 2;
+      d += ` C ${cx} ${y0}, ${cx} ${y1}, ${x1} ${y1}`;
+    }
+    return d;
+  }
+
+  // Y-axis ticks (5 ticks)
+  const yTicks = Array.from({ length: 5 }, (_, i) => (maxY / 4) * i);
+
+  // Layer data (bottom to top)
+  const layers = [
+    { id: "google",    topVals: stacked.map(s => s.s1), botVals: stacked.map(() => 0), ...PROVIDERS[0] },
+    { id: "anthropic", topVals: stacked.map(s => s.s2), botVals: stacked.map(s => s.s1), ...PROVIDERS[1] },
+    { id: "openai",    topVals: stacked.map(s => s.s3), botVals: stacked.map(s => s.s2), ...PROVIDERS[2] },
+  ];
 
   return (
     <div>
-      {/* Bar area */}
-      <div style={{ display: "flex", alignItems: "flex-end", gap: "1rem", height: CHART_H + 40, paddingTop: "1.25rem" }}>
-        {last7.map((c) => {
-          const gVal = c.google    ?? 0;
-          const aVal = c.anthropic ?? 0;
-          const oVal = c.openai    ?? 0;
-          const sum  = gVal + aVal + oVal;
-          const total = sum > 0 ? sum : 0;
+      <svg
+        viewBox={`0 0 ${W} ${H}`}
+        width="100%"
+        height="auto"
+        style={{ overflow: "visible", cursor: "crosshair" }}
+        onMouseLeave={() => setHover(null)}
+      >
+        <defs>
+          {/* Gradient fills for each provider */}
+          {PROVIDERS.map(p => (
+            <linearGradient key={p.key} id={`grad-${p.key}`} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stopColor={`rgba(${p.colorRgb}, 0.5)`} />
+              <stop offset="100%" stopColor={`rgba(${p.colorRgb}, 0.05)`} />
+            </linearGradient>
+          ))}
+          {/* Glow filter */}
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="3" result="blur" />
+            <feMerge>
+              <feMergeNode in="blur" />
+              <feMergeNode in="SourceGraphic" />
+            </feMerge>
+          </filter>
+        </defs>
 
-          // Segment heights in px
-          const scale   = (v: number) => v > 0 ? Math.max((v / max) * CHART_H, MIN_SEG) : 0;
-          const gH = scale(gVal);
-          const aH = scale(aVal);
-          const oH = scale(oVal);
+        {/* Grid lines */}
+        {yTicks.map((v, i) => (
+          <g key={i}>
+            <line
+              x1={PAD.left} y1={yScale(v)}
+              x2={W - PAD.right} y2={yScale(v)}
+              stroke="rgba(255,255,255,0.06)"
+              strokeDasharray={i === 0 ? "none" : "4 4"}
+            />
+            <text
+              x={PAD.left - 8}
+              y={yScale(v) + 4}
+              textAnchor="end"
+              fill="rgba(255,255,255,0.3)"
+              fontSize="10"
+              fontFamily="var(--font-mono)"
+            >
+              ${v.toFixed(v >= 10 ? 0 : v >= 1 ? 1 : 2)}
+            </text>
+          </g>
+        ))}
 
+        {/* Stacked areas (bottom to top) */}
+        {layers.map(layer => (
+          <g key={layer.id}>
+            <path
+              d={areaPath(layer.topVals, layer.botVals)}
+              fill={`url(#grad-${layer.key})`}
+              style={{ transition: "d 0.6s ease" }}
+            />
+            <path
+              d={linePath(layer.topVals)}
+              fill="none"
+              stroke={layer.color}
+              strokeWidth={1.5}
+              strokeLinejoin="round"
+              filter="url(#glow)"
+              style={{ transition: "d 0.6s ease" }}
+            />
+          </g>
+        ))}
+
+        {/* Data points — small glowing dots on top line */}
+        {stacked.map((s, i) => (
+          <circle
+            key={i}
+            cx={xScale(i)} cy={yScale(s.s3)}
+            r={hover === i ? 5 : 3}
+            fill="#22d3ee"
+            stroke="rgba(0,0,0,0.5)"
+            strokeWidth={1}
+            filter="url(#glow)"
+            style={{ transition: "r 0.2s ease" }}
+          />
+        ))}
+
+        {/* Date labels (X axis) */}
+        {last7.map((c, i) => {
           const [mm, dd] = c.date.split("-").slice(1);
-          const dateLabel = mm && dd ? `${mm}/${dd}` : c.date;
-
           return (
-            <div key={c.date} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 6 }}>
-              {/* Total label above bar */}
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6rem", color: "var(--text-3)", whiteSpace: "nowrap" }}>
-                ${total.toFixed(2)}
-              </div>
-
-              {/* Stacked bar */}
-              <div style={{
-                width: "100%",
-                height: CHART_H,
-                background: "rgba(255,255,255,0.02)",
-                borderRadius: 4,
-                position: "relative",
-                overflow: "hidden",
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "flex-end",
-              }}>
-                {/* Google — bottom */}
-                {gH > 0 && (
-                  <div style={{
-                    width: "100%", height: gH,
-                    background: "var(--accent)",
-                    boxShadow: "0 0 10px hsl(150 100% 50% / 0.35)",
-                    flexShrink: 0,
-                    transition: "height 0.6s ease",
-                  }} />
-                )}
-                {/* Anthropic — middle */}
-                {aH > 0 && (
-                  <div style={{
-                    width: "100%", height: aH,
-                    background: "#a78bfa",
-                    boxShadow: "0 0 10px #a78bfa44",
-                    flexShrink: 0,
-                    transition: "height 0.6s ease",
-                  }} />
-                )}
-                {/* OpenAI — top */}
-                {oH > 0 && (
-                  <div style={{
-                    width: "100%", height: oH,
-                    background: "hsl(190 100% 55%)",
-                    boxShadow: "0 0 10px hsl(190 100% 55% / 0.35)",
-                    borderRadius: "4px 4px 0 0",
-                    flexShrink: 0,
-                    transition: "height 0.6s ease",
-                  }} />
-                )}
-              </div>
-
-              {/* Date label below */}
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6rem", color: "var(--text-4)" }}>
-                {dateLabel}
-              </div>
-            </div>
+            <text
+              key={c.date}
+              x={xScale(i)}
+              y={H - 8}
+              textAnchor="middle"
+              fill="rgba(255,255,255,0.35)"
+              fontSize="10"
+              fontFamily="var(--font-mono)"
+            >
+              {mm}/{dd}
+            </text>
           );
         })}
-      </div>
+
+        {/* Hover zones (invisible rects for each day) */}
+        {last7.map((_, i) => {
+          const slotW = cW / Math.max(last7.length - 1, 1);
+          return (
+            <rect
+              key={i}
+              x={xScale(i) - slotW / 2}
+              y={PAD.top}
+              width={slotW}
+              height={cH}
+              fill="transparent"
+              onMouseEnter={() => setHover(i)}
+            />
+          );
+        })}
+
+        {/* Hover line + tooltip */}
+        {hover !== null && stacked[hover] && (
+          <g>
+            <line
+              x1={xScale(hover)} y1={PAD.top}
+              x2={xScale(hover)} y2={PAD.top + cH}
+              stroke="rgba(255,255,255,0.2)"
+              strokeDasharray="3 3"
+            />
+            {/* Tooltip background */}
+            <rect
+              x={xScale(hover) + (hover > stacked.length / 2 ? -130 : 10)}
+              y={PAD.top + 4}
+              width={120}
+              height={72}
+              rx={6}
+              fill="rgba(10,14,20,0.92)"
+              stroke="rgba(255,255,255,0.1)"
+              strokeWidth={1}
+            />
+            {/* Tooltip text */}
+            {(() => {
+              const s = stacked[hover];
+              const tx = xScale(hover) + (hover > stacked.length / 2 ? -122 : 18);
+              const [,mm,dd] = s.date.split("-");
+              return (
+                <>
+                  <text x={tx} y={PAD.top + 20} fill="rgba(255,255,255,0.7)" fontSize="10" fontFamily="var(--font-mono)" fontWeight="700">
+                    {mm}/{dd} — ${s.s3.toFixed(2)}
+                  </text>
+                  <text x={tx} y={PAD.top + 36} fill="#00ff88" fontSize="10" fontFamily="var(--font-mono)">
+                    ● Google: ${s.g.toFixed(2)}
+                  </text>
+                  <text x={tx} y={PAD.top + 50} fill="#a78bfa" fontSize="10" fontFamily="var(--font-mono)">
+                    ● Anthropic: ${s.a.toFixed(2)}
+                  </text>
+                  <text x={tx} y={PAD.top + 64} fill="#22d3ee" fontSize="10" fontFamily="var(--font-mono)">
+                    ● OpenAI: ${s.o.toFixed(2)}
+                  </text>
+                </>
+              );
+            })()}
+          </g>
+        )}
+      </svg>
 
       {/* Legend */}
-      <div style={{ display: "flex", gap: "1.5rem", justifyContent: "center", marginTop: "1.25rem", flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: "1.5rem", justifyContent: "center", marginTop: "1rem", flexWrap: "wrap" }}>
         {PROVIDERS.map(({ label, color }) => (
           <div key={label} style={{ display: "flex", alignItems: "center", gap: 6 }}>
             <div style={{ width: 8, height: 8, borderRadius: "50%", background: color, boxShadow: `0 0 6px ${color}` }} />
-            <span style={{ fontFamily: "var(--font-display)", fontSize: "0.75rem", color: "var(--text-3)" }}>{label}</span>
+            <span style={{ fontFamily: "var(--font-display)", fontSize: "0.75rem", color: "rgba(255,255,255,0.5)" }}>{label}</span>
           </div>
         ))}
       </div>

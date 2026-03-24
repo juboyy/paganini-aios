@@ -168,8 +168,8 @@ export default function TelemetryPage() {
           },
           {
             label: "TOKENS PROCESSADOS",
-            value: loading ? "..." : (latestTokens > 0 ? `${(latestTokens / 1000).toFixed(0)}K` : totalTokensDisplay),
-            sub: loading ? "" : (latestTokens > 0 ? "última hora" : "últimos 7 dias"),
+            value: loading ? "..." : totalTokensDisplay,
+            sub: loading ? "" : "últimos 7 dias",
             color: "var(--accent)",
             extra: loading ? "" : `${tokenUsage.length} dias registrados`,
           },
