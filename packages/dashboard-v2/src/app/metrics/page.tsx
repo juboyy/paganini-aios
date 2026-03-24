@@ -100,15 +100,20 @@ function CostBarChart({ costs }: { costs: DailyCost[] }) {
   return (
     <div style={{ display: "flex", alignItems: "flex-end", gap: "1rem", height: 160, padding: "1rem 0" }}>
       {last7.map((c) => {
-        const h = (c.total / max) * 100;
+        const h = Math.max((c.total / max) * 100, c.total > 0 ? 8 : 0); // minimum 8% height for non-zero values
         return (
           <div key={c.date} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.65rem", color: "var(--accent)", marginBottom: 2 }}>
+              ${c.total.toFixed(2)}
+            </div>
             <div style={{ width: "100%", height: 120, background: "rgba(255,255,255,0.02)", borderRadius: 4, position: "relative", overflow: "hidden" }}>
               <div 
                 style={{ 
                   position: "absolute", bottom: 0, left: 0, width: "100%", height: `${h}%`, 
-                  background: "linear-gradient(0deg, var(--accent)20, var(--accent))",
-                  boxShadow: "0 0 15px var(--accent)30"
+                  background: "linear-gradient(0deg, hsl(150 100% 50% / 0.2), hsl(150 100% 50%))",
+                  boxShadow: "0 0 15px hsl(150 100% 50% / 0.3)",
+                  borderRadius: "4px 4px 0 0",
+                  transition: "height 0.6s ease",
                 }} 
               />
             </div>

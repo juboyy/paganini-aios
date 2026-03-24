@@ -26,7 +26,7 @@ export function Topbar() {
         <div className="hidden sm:flex items-center gap-1.5">
           <span className="tag-badge">12 AGENTES DE CÓDIGO</span>
           <span className="tag-badge-cyan">52 CAPACIDADES</span>
-          <span className="tag-badge" style={{ background: "hsl(45 100% 50% / 0.08)", color: "hsl(45 100% 50%)", borderColor: "hsl(45 100% 50% / 0.25)" }}>6 GATES</span>
+          <span className="tag-badge" style={{ background: "hsl(45 100% 50% / 0.08)", color: "hsl(45 100% 50%)", borderColor: "hsl(45 100% 50% / 0.25)" }}>6 GUARDRAILS</span>
         </div>
         <div className="flex items-center gap-1.5" style={{ color: "var(--accent)" }}>
           <span

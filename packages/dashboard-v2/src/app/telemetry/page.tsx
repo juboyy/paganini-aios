@@ -244,12 +244,12 @@ export default function TelemetryPage() {
       </ErrorBoundary>
 
       {/* ── Tabela de Performance por Agente ── */}
-      <div className="glass-card" style={{ padding: "1.25rem" }}>
+      <div className="glass-card" style={{ padding: "1.25rem", overflow: "visible" }}>
         <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "1rem" }}>
           PERFORMANCE POR AGENTE · {agentPerformance.length} AGENTES
         </div>
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "var(--font-mono)", fontSize: "0.8125rem" }}>
+        <div style={{ overflowX: "auto", overflowY: "visible" }}>
+          <table style={{ width: "100%", minWidth: 600, borderCollapse: "collapse", fontFamily: "var(--font-mono)", fontSize: "0.8125rem" }}>
             <thead>
               <tr style={{ borderBottom: "1px solid var(--border)" }}>
                 {["AGENTE", "LOC GERADAS", "PRs", "LATÊNCIA", "CUSTO TOTAL"].map(h => (

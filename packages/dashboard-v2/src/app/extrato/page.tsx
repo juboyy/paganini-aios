@@ -274,7 +274,7 @@ function EntryRow({ entry, index, total }: { entry: ExtratoEntry; index: number;
         </div>
 
         {/* Content */}
-        <div>
+        <div style={{ minWidth: 0, overflow: "hidden" }}>
           {/* Agent + title */}
           <div style={{ display: "flex", alignItems: "center", gap: "0.5rem", flexWrap: "wrap", marginBottom: "0.2rem" }}>
             <span style={{
@@ -289,6 +289,9 @@ function EntryRow({ entry, index, total }: { entry: ExtratoEntry; index: number;
             fontSize: "0.84rem",
             color: "var(--text-1)",
             lineHeight: 1.45,
+            overflow: "hidden",
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
           }}>
             {entry.title}
           </div>

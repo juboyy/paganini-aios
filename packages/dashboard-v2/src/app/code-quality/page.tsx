@@ -213,6 +213,20 @@ export default function CodeQualityPage() {
                 Sem execuções registradas.
               </div>
             )}
+            {/* Explanatory note: gate failures ≠ trace errors */}
+            <div style={{
+              marginTop: "0.5rem",
+              padding: "0.625rem 0.875rem",
+              background: "rgba(245,158,11,0.06)",
+              border: "1px solid rgba(245,158,11,0.2)",
+              borderRadius: "var(--radius)",
+              fontFamily: "var(--font-mono)",
+              fontSize: "0.72rem",
+              color: "rgba(245,158,11,0.85)",
+              lineHeight: 1.6,
+            }}>
+              ℹ︎ <strong>Nota:</strong> Gate FAILED ≠ erros de trace. Gate runs avaliam critérios de qualidade de código (lint, cobertura, segurança); traces registram execuções de agentes em produção. São métricas independentes — um gate pode falhar com 0 erros de trace.
+            </div>
           </div>
         </div>
 

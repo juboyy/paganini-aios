@@ -175,13 +175,20 @@ function ArchDiagram() {
   );
 }
 
+// ── AI Cost Formatting ─────────────────────────────────────────────────────────
+function formatAgentCost(cost: number): string {
+  if (cost === 0) return "—";
+  if (cost >= 1) return `$${cost.toFixed(2)}`;
+  return `$${cost.toFixed(4)}`;
+}
+
 // ── AI Cost Section ────────────────────────────────────────────────────────────
 function AICostSection({ aiCosts }: { aiCosts: FundData["aiCosts"] }) {
   if (!aiCosts) return null;
 
   const { total, projectedMonthly, dailyCosts, perAgent } = aiCosts;
   const topAgents = perAgent.filter(a => a.computed_cost > 0).slice(0, 6);
-  const maxAgentCost = Math.max(...topAgents.map(a => a.computed_cost), 0.001);
+  const maxAgentCost = Math.max(...topAgents.map(a => a.computed_cost), 0.0001);
 
   return (
     <div className="glass-card" style={{ padding: "1.25rem", background: "linear-gradient(135deg, hsl(180 100% 50% / 0.04) 0%, hsl(220 18% 7%) 100%)", marginBottom: "1.5rem" }}>
@@ -226,7 +233,7 @@ function AICostSection({ aiCosts }: { aiCosts: FundData["aiCosts"] }) {
                     {agent.emoji ? `${agent.emoji} ` : ""}{agent.name}
                   </span>
                   <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--accent)", fontWeight: 700 }}>
-                    ${agent.computed_cost.toFixed(3)}
+                    {formatAgentCost(agent.computed_cost)}
                   </span>
                 </div>
                 <div style={{ height: "4px", background: "rgba(255,255,255,0.08)", borderRadius: "2px" }}>

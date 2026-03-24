@@ -176,7 +176,7 @@ export default function SymphonyPage() {
             <div key={s.label} className="glass-card" style={{ padding: "1.25rem" }}>
               <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.7rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "0.5rem" }}>{s.label}</div>
               <div style={{ fontFamily: "var(--font-mono)", fontSize: "1.75rem", fontWeight: 700, color: "var(--accent)", lineHeight: 1 }}>{s.value}</div>
-              <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.7rem", color: "var(--text-3)", marginTop: "0.25rem" }}>{s.sub}</div>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.7rem", color: "var(--text-3)", marginTop: "0.25rem", wordBreak: "break-word", whiteSpace: "normal" }}>{s.sub}</div>
             </div>
           ))}
         </div>

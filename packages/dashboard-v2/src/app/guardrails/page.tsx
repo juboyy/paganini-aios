@@ -222,8 +222,8 @@ export default function GuardrailsPage() {
     ? mergedGates.reduce((s, g) => s + g.passRate, 0) / mergedGates.length
     : 97.7;
 
-  const totalChecks = gates.reduce((s, g) => s + (g.checks ?? 0), 0) || 1847;
-  const passRate = parseFloat(avgPassRate.toFixed(1));
+  const totalChecks = gates.reduce((s, g) => s + (Array.isArray(g.checks) ? g.checks.length : (typeof g.checks === 'number' ? g.checks : 0)), 0) || 1847;
+  const passRate = isNaN(avgPassRate) ? 97.7 : parseFloat(avgPassRate.toFixed(1));
   const blocks = 42;
   const falsePositive = 0.2;
 

@@ -43,11 +43,11 @@ export async function GET() {
     
     const totalLines = (deliverables || []).reduce((sum, r) => sum + (r.lines_changed || 0), 0) || 0;
 
-    // 4. Success Rate: pipeline_runs(status=done) / total_runs
+    // 4. Success Rate: pipeline_runs(done/completed) / total_runs
     const { count: doneRuns } = await supabase
       .from("pipeline_runs")
       .select("id", { count: "exact", head: true })
-      .eq("status", "done");
+      .in("status", ["done", "completed"]);
     
     const { count: totalRuns } = await supabase
       .from("pipeline_runs")

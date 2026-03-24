@@ -118,7 +118,7 @@ export default function PipelinePage() {
 
   const runs = data?.pipeline_runs ?? [];
   const byStage = data?.tasks_by_stage ?? {};
-  const stageNums = Object.keys(byStage).map(Number).sort((a, b) => a - b);
+  const stageNums = Object.keys(byStage).map(Number).filter(n => !isNaN(n) && n > 0).sort((a, b) => a - b);
 
   const totalTokens = runs.reduce((s, r) => s + (r.total_tokens ?? 0), 0);
   const totalCost = runs.reduce((s, r) => s + (r.total_cost ?? 0), 0);

@@ -64,6 +64,7 @@ function IntegrationCard({
         flexDirection: "column",
         gap: "0.5rem",
         cursor: "default",
+        overflow: "visible",
       }}
     >
       <div style={{ display: "flex", alignItems: "center", gap: "0.625rem" }}>
@@ -105,7 +106,7 @@ function IntegrationCard({
       </div>
 
       {description && (
-        <p className="section-help" style={{ fontSize: "0.8125rem", margin: 0, lineHeight: 1.5 }}>
+        <p className="section-help" style={{ fontSize: "0.8125rem", margin: 0, lineHeight: 1.5, overflow: "visible", whiteSpace: "normal", display: "block" }}>
           {description}
         </p>
       )}

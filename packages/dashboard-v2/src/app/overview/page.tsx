@@ -133,7 +133,7 @@ export default function OverviewPage() {
     { 
       value: stats ? `${stats.efficiency}×` : "—", 
       label: "ROI vs equipe humana", 
-      sub: stats ? `$${stats.realMonthlyCost}/mês real → $${stats.humanCost} equivalente humano` : "calculando..." 
+      sub: stats ? `$${stats.realMonthlyCost}/mês real → ${stats.humanCost} equivalente humano` : "calculando..." 
     },
     { 
       value: stats ? formatLines(stats.totalLines) : "—", 
@@ -476,9 +476,9 @@ export default function OverviewPage() {
             gap: "1rem",
           }}
         >
-          {metrics.map((m) => (
+          {metrics.map((m, idx) => (
             <div
-              key={m.value}
+              key={m.label}
               className="glass-card"
               style={{ padding: "1.25rem", textAlign: "center" }}
             >
