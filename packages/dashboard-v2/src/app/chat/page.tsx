@@ -609,7 +609,22 @@ export default function CanvasPage() {
         const data = await res.json();
         const agentMap: Record<string, Record<string, unknown>> = {};
         for (const a of (data.agents || [])) {
+          // Index by id, name (lowercase), and common aliases
           agentMap[a.id] = a;
+          if (a.name) {
+            agentMap[a.name.toLowerCase()] = a;
+            // Map FIDC agent names to Supabase agents
+            const n = a.name.toLowerCase();
+            if (n.includes("compliance") || n.includes("security")) agentMap["compliance"] = a;
+            if (n.includes("risk") || n.includes("qa")) agentMap["risk"] = a;
+            if (n.includes("pricing") || n.includes("data")) agentMap["pricing"] = a;
+            if (n.includes("infra") || n.includes("devops")) agentMap["custodia"] = a;
+            if (n.includes("general")) agentMap["duediligence"] = a;
+            if (n.includes("architect") || n.includes("gestor")) agentMap["gestor"] = a;
+            if (n.includes("pm") || n.includes("ir")) agentMap["ir"] = a;
+            if (n.includes("docs") || n.includes("reg")) agentMap["regwatch"] = a;
+            if (n.includes("code") && !n.includes("codex")) agentMap["reporting"] = a;
+          }
         }
         setLiveAgents(agentMap);
 
