@@ -1291,9 +1291,9 @@ export default function CanvasPage() {
               </div>
             </div>
 
-            {/* Content */}
+            {/* Content — stop wheel propagation to prevent canvas zoom while scrolling inside tiles */}
             {!tile.minimized && (
-              <div style={{ flex: 1, overflow: "hidden" }}>
+              <div style={{ flex: 1, overflow: "hidden" }} onWheel={(e) => e.stopPropagation()}>
                 {tile.type === "agent" && <AgentTile tile={tile} onChat={openAgentChat} liveData={liveAgents[tile.agent || ""] || {}} />}
                 {tile.type === "chat" && <ChatTile tile={tile} />}
                 {tile.type === "action" && tile.id === "new-task" && <NewTaskTile />}
