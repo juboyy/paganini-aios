@@ -90,23 +90,47 @@ export async function GET(req: NextRequest) {
         },
       })),
 
-      ...interactions.map((i) => ({
-        id: `interaction-${i.id}`,
-        timestamp: i.created_at,
-        type: "interaction" as const,
-        agent_id: i.from_agent || "unknown",
-        title: `${i.from_agent || "?"} → ${i.to_agent || "?"}: ${(i.message || "").slice(0, 80)}${(i.message || "").length > 80 ? "…" : ""}`,
-        status: "info",
-        tokens: i.tokens,
-        detail: {
-          from_agent: i.from_agent,
-          to_agent: i.to_agent,
-          interaction_type: i.type,
-          message: i.message,
-          latency: i.latency,
-          mission_id: i.mission_id,
-        },
-      })),
+      ...interactions.map((i) => {
+        // Estimate cost from tokens if not explicit
+        // Approximate: $0.003/1K input + $0.015/1K output (Gemini/Claude blend)
+        const estimatedCost = i.tokens ? (i.tokens / 1000) * 0.005 : undefined;
+        
+        // Parse message for better display
+        let parsedTitle = "";
+        let parsedMessage = i.message || "";
+        try {
+          if (parsedMessage.startsWith("{") || parsedMessage.startsWith("[")) {
+            const parsed = JSON.parse(parsedMessage);
+            if (parsed.content) parsedMessage = parsed.content;
+            else if (parsed.text) parsedMessage = parsed.text;
+            else if (parsed.message) parsedMessage = parsed.message;
+            else if (parsed.tool_call) parsedTitle = `[tool: ${parsed.tool_call.name || "?"}] `;
+            else if (parsed.function_call) parsedTitle = `[fn: ${parsed.function_call.name || "?"}] `;
+          }
+        } catch {}
+        
+        const preview = parsedMessage.replace(/\n/g, " ").slice(0, 100);
+        
+        return {
+          id: `interaction-${i.id}`,
+          timestamp: i.created_at,
+          type: "interaction" as const,
+          agent_id: i.from_agent || "unknown",
+          title: `${i.from_agent || "?"} → ${i.to_agent || "?"}: ${parsedTitle}${preview}${parsedMessage.length > 100 ? "…" : ""}`,
+          status: "info",
+          cost: estimatedCost,
+          tokens: i.tokens,
+          detail: {
+            from_agent: i.from_agent,
+            to_agent: i.to_agent,
+            interaction_type: i.type,
+            message: parsedMessage,
+            latency: i.latency,
+            mission_id: i.mission_id,
+            estimated_cost: estimatedCost ? true : false,
+          },
+        };
+      }),
 
       ...events.map((e) => ({
         id: `event-${e.id}`,

@@ -19,6 +19,7 @@ interface ExtratoDetail {
   interaction_type?: string | null;
   message?: string | null;
   latency?: number | null;
+  estimated_cost?: boolean;
   // trace
   spans?: unknown;
   error?: string | null;
@@ -154,10 +155,13 @@ function DetailPanel({ entry }: { entry: ExtratoEntry }) {
     if (d.to_agent) rows.push(["To", d.to_agent]);
     if (d.interaction_type) rows.push(["Sub-type", d.interaction_type]);
     if (entry.tokens) rows.push(["Tokens", formatTokens(entry.tokens)]);
+    if (entry.cost != null) rows.push(["Cost", `$${entry.cost.toFixed(4)}${d.estimated_cost ? " (est.)" : ""}`]);
     if (d.latency != null) rows.push(["Latency", `${d.latency}ms`]);
     if (d.mission_id) rows.push(["Mission", d.mission_id]);
     if (d.message) {
-      rows.push(["Message", d.message.length > 200 ? d.message.slice(0, 200) + "…" : d.message]);
+      // Render full message with proper formatting
+      const msg = d.message;
+      rows.push(["Message", msg.length > 500 ? msg.slice(0, 500) + "…" : msg]);
     }
   }
 
@@ -320,8 +324,15 @@ function EntryRow({ entry, index, total }: { entry: ExtratoEntry; index: number;
             </div>
           )}
           {entry.cost != null && entry.cost > 0 && (
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.62rem", color: "var(--amber, #f59e0b)" }}>
-              ${entry.cost.toFixed(3)}
+            <div style={{
+              fontFamily: "var(--font-mono)", fontSize: "0.68rem", fontWeight: 600,
+              color: "var(--amber, #f59e0b)",
+              background: "color-mix(in srgb, var(--amber, #f59e0b) 10%, transparent)",
+              padding: "0.05rem 0.3rem",
+              borderRadius: "3px",
+              border: "1px solid color-mix(in srgb, var(--amber, #f59e0b) 20%, transparent)",
+            }}>
+              ${entry.cost.toFixed(4)}
             </div>
           )}
           <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.58rem", color: "var(--text-4)", opacity: 0.5, marginTop: "0.15rem" }}>
