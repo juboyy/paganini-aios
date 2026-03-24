@@ -7,70 +7,59 @@ export async function GET(req: NextRequest) {
     const category = searchParams.get("category");
     const agent_id = searchParams.get("agent_id");
 
-    let query = supabase
-      .from("memory_entries")
-      .select("id, content, type, source_agent, tags, confidence, access_count, created_at")
-      .order("created_at", { ascending: false })
-      .limit(500);
+    // Get total count + categories + agents in parallel
+    const [countRes, metaRes] = await Promise.all([
+      supabase.from("memory_entries").select("id", { count: "exact", head: true }),
+      supabase.from("memory_entries").select("type, source_agent").limit(1000),
+    ]);
+    const totalCount = countRes.count ?? 0;
+    const categories = [...new Set((metaRes.data ?? []).map(e => e.type).filter(Boolean))];
+    const agents = [...new Set((metaRes.data ?? []).map(e => e.source_agent).filter(Boolean))];
 
-    if (category && category !== "all") query = query.eq("type", category);
-    if (agent_id && agent_id !== "all") query = query.eq("source_agent", agent_id);
-    
-    // By default, exclude heartbeat spam AND low-value "context" entries 
-    // Show decisions, facts, error_patterns, preferences first
+    let entries: any[] = [];
+
     if (!category || category === "all") {
-      query = query.not("content", "like", "Read HEARTBEAT.md%");
-      // Prioritize non-context entries by fetching them separately
-      const { data: priorityEntries } = await supabase
-        .from("memory_entries")
-        .select("id, content, type, source_agent, tags, confidence, access_count, created_at")
-        .in("type", ["decision", "fact", "error_pattern", "preference", "learning", "task", "error"])
-        .order("created_at", { ascending: false })
-        .limit(100);
-      
-      const { data: contextEntries } = await query.limit(200);
-      
-      // Merge: priority entries first, then context, deduplicated
+      // Default view: show priority entries (decisions, facts, errors) first,
+      // then recent context (excluding heartbeat spam)
+      const [priorityRes, contextRes] = await Promise.all([
+        supabase
+          .from("memory_entries")
+          .select("id, content, type, source_agent, tags, confidence, access_count, created_at")
+          .in("type", ["decision", "fact", "error_pattern", "preference", "learning", "task", "error"])
+          .order("created_at", { ascending: false })
+          .limit(100),
+        supabase
+          .from("memory_entries")
+          .select("id, content, type, source_agent, tags, confidence, access_count, created_at")
+          .not("content", "like", "Read HEARTBEAT.md%")
+          .order("created_at", { ascending: false })
+          .limit(300),
+      ]);
+
+      // Merge: priority first, then context, deduplicated
       const seenIds = new Set<string>();
-      const merged: typeof priorityEntries = [];
-      for (const e of [...(priorityEntries ?? []), ...(contextEntries ?? [])]) {
+      for (const e of [...(priorityRes.data ?? []), ...(contextRes.data ?? [])]) {
         if (!seenIds.has(e.id)) {
           seenIds.add(e.id);
-          merged.push(e);
+          entries.push(e);
         }
       }
+    } else {
+      // Filtered view
+      let query = supabase
+        .from("memory_entries")
+        .select("id, content, type, source_agent, tags, confidence, access_count, created_at")
+        .order("created_at", { ascending: false })
+        .limit(500);
 
-      return NextResponse.json({
-        entries: merged,
-        total: totalCount ?? merged.length,
-        categories,
-        agents,
-      });
+      if (category !== "all") query = query.eq("type", category);
+      if (agent_id && agent_id !== "all") query = query.eq("source_agent", agent_id);
+
+      const { data } = await query;
+      entries = data ?? [];
     }
 
-    const { data, error } = await query;
-    if (error) throw error;
-
-    // Get total count
-    const { count: totalCount } = await supabase
-      .from("memory_entries")
-      .select("id", { count: "exact", head: true });
-
-    // Get unique categories and agents for filters
-    const { data: allEntries } = await supabase
-      .from("memory_entries")
-      .select("type, source_agent")
-      .limit(1000);
-
-    const categories = [...new Set((allEntries ?? []).map(e => e.type).filter(Boolean))];
-    const agents = [...new Set((allEntries ?? []).map(e => e.source_agent).filter(Boolean))];
-
-    return NextResponse.json({
-      entries: data ?? [],
-      total: totalCount ?? (data ?? []).length,
-      categories,
-      agents,
-    });
+    return NextResponse.json({ entries, total: totalCount, categories, agents });
   } catch {
     return NextResponse.json({ entries: [], total: 0, categories: [], agents: [] });
   }
