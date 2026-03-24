@@ -15,6 +15,11 @@ export async function GET(req: NextRequest) {
 
     if (category && category !== "all") query = query.eq("type", category);
     if (agent_id && agent_id !== "all") query = query.eq("source_agent", agent_id);
+    
+    // By default, exclude heartbeat spam (context entries that start with "Read HEARTBEAT")
+    if (!category || category === "all") {
+      query = query.not("content", "like", "Read HEARTBEAT.md%");
+    }
 
     const { data, error } = await query;
     if (error) throw error;
