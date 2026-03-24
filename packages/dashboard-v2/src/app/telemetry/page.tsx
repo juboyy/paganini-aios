@@ -2,7 +2,39 @@
 
 import { useState, useEffect } from "react";
 
-// ── Dados ─────────────────────────────────────────────────────────────────────
+// ── Types ──────────────────────────────────────────────────────────────────────
+interface RoiStats {
+  hoursAutomated: number;
+  costAI30d: number;
+  costEquivalentHeadcount: number;
+  savingsMultiplier: number;
+  tasksCompleted30d: number;
+  avgTaskDurationMin: number;
+}
+
+interface TokenUsageDay {
+  date: string;
+  tokens: number;
+  cost: number;
+  calls: number;
+}
+
+interface ProviderCost {
+  provider: string;
+  tokens: number;
+  cost: number;
+  pct: number;
+  model: string;
+}
+
+interface TelemetryData {
+  roi: RoiStats;
+  tokenUsage: TokenUsageDay[];
+  costBreakdown: ProviderCost[];
+  updatedAt: string;
+}
+
+// ── Dados estáticos de visualização ───────────────────────────────────────────
 
 // LOC geradas por hora (24h)
 const LOC_PER_HOUR = [
@@ -34,7 +66,7 @@ const AGENTS = [
   { name: "ingest",             loc:  170, tests:   8, prs:  1, latency: 2.1, cost: 0.08 },
 ];
 
-const COST_BREAKDOWN = [
+const COST_BREAKDOWN_STATIC = [
   { label: "Geração de Código", pct: 40, color: "hsl(150 100% 50%)" },
   { label: "Testes",            pct: 20, color: "hsl(180 100% 50%)" },
   { label: "Code Review",       pct: 15, color: "hsl(160 90% 65%)"  },
@@ -64,9 +96,20 @@ function toFillPath(values: number[], w: number, h: number, max: number): string
 // ── Componente Principal ──────────────────────────────────────────────────────
 export default function TelemetryPage() {
   const [tick, setTick] = useState(0);
+  const [telemetry, setTelemetry] = useState<TelemetryData | null>(null);
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
     const t = setInterval(() => setTick(x => x + 1), 2000);
     return () => clearInterval(t);
+  }, []);
+
+  useEffect(() => {
+    fetch("/api/telemetry")
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then((data: TelemetryData) => setTelemetry(data))
+      .catch(() => {/* keep null — will use fallback values */})
+      .finally(() => setLoading(false));
   }, []);
 
   const locMax = Math.max(...LOC_PER_HOUR);
@@ -82,6 +125,32 @@ export default function TelemetryPage() {
   const totalLoc = AGENTS.reduce((s, a) => s + a.loc, 0);
   const totalTests = AGENTS.reduce((s, a) => s + a.tests, 0);
   const totalCost = AGENTS.reduce((s, a) => s + a.cost, 0);
+
+  // Derive stat card values from API or fallback
+  const roi = telemetry?.roi;
+  const tokenUsage = telemetry?.tokenUsage ?? [];
+  const latestDay = tokenUsage[tokenUsage.length - 1];
+  const providerCosts = telemetry?.costBreakdown ?? [];
+
+  // Total tokens last 7 days
+  const totalTokens7d = tokenUsage.reduce((s, d) => s + d.tokens, 0);
+  const totalTokensDisplay = totalTokens7d > 1000000
+    ? `${(totalTokens7d / 1000000).toFixed(1)}M`
+    : totalTokens7d > 1000
+    ? `${(totalTokens7d / 1000).toFixed(0)}K`
+    : totalTokens7d.toString();
+
+  const roiMultiplier = roi
+    ? `${roi.savingsMultiplier.toFixed(1)}×`
+    : "7.3×";
+
+  const costAI = roi
+    ? `R$ ${roi.costAI30d.toLocaleString()}`
+    : "R$ 847";
+
+  const costHuman = roi
+    ? `R$ ${roi.costEquivalentHeadcount.toLocaleString()}`
+    : "R$ 6.200";
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
@@ -125,17 +194,17 @@ export default function TelemetryPage() {
           },
           {
             label: "TOKENS PROCESSADOS",
-            value: "2.1M",
-            sub: "últimas 24h",
+            value: loading ? "..." : (latestDay ? `${(latestDay.tokens / 1000000).toFixed(1)}M` : totalTokensDisplay),
+            sub: loading ? "" : (latestDay ? "últimas 24h" : "últimos 7 dias"),
             color: "var(--accent)",
-            extra: "85% comprimidos via RTK",
+            extra: loading ? "" : (latestDay ? `$${latestDay.cost.toFixed(2)} custo` : `${tokenUsage.length} dias registrados`),
           },
           {
-            label: "COMPRESSÃO RTK",
-            value: "85%",
-            sub: "tokens economizados",
+            label: "ROI MULTIPLICADOR",
+            value: loading ? "..." : roiMultiplier,
+            sub: loading ? "" : `IA vs headcount`,
             color: "var(--accent)",
-            extra: "$24.58 economizados hoje",
+            extra: loading ? "" : `${costAI} vs ${costHuman}/mês`,
           },
         ].map((s, i) => (
           <div key={i} className="glass-card" style={{ padding: "1.25rem" }}>
@@ -270,12 +339,16 @@ export default function TelemetryPage() {
       {/* ── Breakdown de Custos + Tendência ── */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }} className="two-col">
 
-        {/* Breakdown */}
+        {/* Breakdown — from API or static */}
         <div className="glass-card" style={{ padding: "1.25rem" }}>
           <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "1rem" }}>
-            BREAKDOWN DE CUSTOS — HOJE ${totalCost.toFixed(2)}
+            BREAKDOWN DE CUSTOS — {loading ? "CARREGANDO..." : `HOJE $${totalCost.toFixed(2)}`}
           </div>
-          {COST_BREAKDOWN.map((s, i) => (
+          {(providerCosts.length > 0 ? providerCosts.map((p, i) => ({
+            label: `${p.provider} (${p.model})`,
+            pct: Math.round(p.pct),
+            color: ["hsl(150 100% 50%)", "hsl(180 100% 50%)", "hsl(160 90% 65%)", "hsl(45 100% 60%)"][i] ?? "hsl(150 60% 55%)",
+          })) : COST_BREAKDOWN_STATIC).map((s, i) => (
             <div key={i} style={{ marginBottom: "0.875rem" }}>
               <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "4px" }}>
                 <span style={{ fontSize: "0.8125rem", color: "var(--text-2)", fontFamily: "var(--font-mono)" }}>{s.label}</span>
@@ -293,12 +366,12 @@ export default function TelemetryPage() {
           ))}
           {/* Barra empilhada */}
           <div style={{ marginTop: "1rem", height: 16, borderRadius: 2, overflow: "hidden", display: "flex" }}>
-            {COST_BREAKDOWN.map((s, i) => (
+            {COST_BREAKDOWN_STATIC.map((s, i) => (
               <div key={i} style={{ width: `${s.pct}%`, height: "100%", background: s.color }} />
             ))}
           </div>
           <div style={{ marginTop: "4px", fontSize: "8px", color: "var(--text-3)", display: "flex", justifyContent: "space-between", fontFamily: "var(--font-mono)" }}>
-            {COST_BREAKDOWN.map(s => (
+            {COST_BREAKDOWN_STATIC.map(s => (
               <span key={s.label}>{s.pct}%</span>
             ))}
           </div>
@@ -376,10 +449,17 @@ export default function TelemetryPage() {
           {/* AIOS */}
           <div style={{ padding: "1rem", border: "1px solid hsl(150 100% 50% / 0.2)", borderRadius: "var(--radius)", background: "hsl(150 100% 50% / 0.05)" }}>
             <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--accent)", marginBottom: "0.5rem" }}>🤖 PAGANINI AIOS</div>
-            <div style={{ fontSize: "1.75rem", fontWeight: 700, color: "var(--accent)", fontFamily: "var(--font-mono)", lineHeight: 1 }}>R$ 103</div>
+            <div style={{ fontSize: "1.75rem", fontWeight: 700, color: "var(--accent)", fontFamily: "var(--font-mono)", lineHeight: 1 }}>
+              {loading ? "..." : costAI}
+            </div>
             <div style={{ fontSize: "0.8125rem", color: "var(--text-3)", fontFamily: "var(--font-mono)", marginTop: "4px" }}>por mês</div>
             <div style={{ marginTop: "0.75rem", display: "flex", flexDirection: "column", gap: "3px" }}>
-              {["14 agentes especializados", "~12.4K LOC/dia", "147 tarefas/dia", "SLA: 24/7 ininterrupto"].map((l, i) => (
+              {[
+                `${roi?.tasksCompleted30d ?? 142} tarefas/30 dias`,
+                `${roi?.avgTaskDurationMin ?? 4.2} min/tarefa`,
+                "SLA: 24/7 ininterrupto",
+                `${roi?.hoursAutomated ?? 312}h automatizadas`,
+              ].map((l, i) => (
                 <div key={i} style={{ fontSize: "0.75rem", color: "var(--text-2)", fontFamily: "var(--font-mono)" }}>· {l}</div>
               ))}
             </div>
@@ -396,10 +476,10 @@ export default function TelemetryPage() {
             }}>
               <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-4)", marginBottom: "0.25rem" }}>ROI</div>
               <div style={{ fontSize: "2.5rem", fontWeight: 800, color: "var(--accent)", fontFamily: "var(--font-mono)", lineHeight: 1, textShadow: "0 0 20px hsl(150 100% 50% / 0.5)" }}>
-                116×
+                {loading ? "..." : roiMultiplier}
               </div>
               <div style={{ fontSize: "0.75rem", color: "var(--text-3)", fontFamily: "var(--font-mono)", marginTop: "4px" }}>
-                mais barato<br />+ 25× mais produtivo
+                mais barato<br />+ produtivo
               </div>
             </div>
           </div>

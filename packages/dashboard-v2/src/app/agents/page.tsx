@@ -826,8 +826,58 @@ const TIER3: CodeAgent[] = [
   },
 ];
 
+// ─── API Agent type ───────────────────────────────────────────────────────────
+interface ApiAgent {
+  id: string;
+  name: string;
+  emoji?: string;
+  status: string;
+  model: string;
+  tasks_completed?: number;
+  avg_time?: number;
+  error_rate?: number;
+  total_cost?: number;
+  role?: string;
+  title?: string;
+  provider?: string;
+  uptime?: number;
+}
+
 // ─── PAGE ─────────────────────────────────────────────────────────────────────
 export default function AgentsPage() {
+  const [apiAgents, setApiAgents] = useState<ApiAgent[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  const fetchAgents = async () => {
+    try {
+      const res = await fetch("/api/agents");
+      if (res.ok) {
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          setApiAgents(data);
+        }
+      }
+    } catch {
+      // keep last known data
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchAgents();
+    const interval = setInterval(fetchAgents, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Derive stats from API data
+  const activeAgents = apiAgents.filter(a => a.status === "active").length;
+  const totalAgents = apiAgents.length;
+  const totalTasksCompleted = apiAgents.reduce((s, a) => s + (a.tasks_completed ?? 0), 0);
+  const avgErrorRate = apiAgents.length > 0
+    ? apiAgents.reduce((s, a) => s + (a.error_rate ?? 0), 0) / apiAgents.length
+    : 1.7;
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "2.5rem" }}>
 
@@ -869,10 +919,10 @@ export default function AgentsPage() {
             </span>
           </h1>
           <p className="section-help" style={{ fontSize: "0.875rem", marginBottom: "1.5rem", maxWidth: 600 }}>
-            12 agentes especializados que escrevem, testam, revisam e deployam código — autonomamente.
+            {loading ? "Carregando agentes..." : `${totalAgents > 0 ? totalAgents : 12} agentes especializados que escrevem, testam, revisam e deployam código — autonomamente.`}
           </p>
           <div style={{ display: "flex", flexWrap: "wrap", gap: "0.5rem" }}>
-            <span className="tag-badge">12 AGENTES</span>
+            <span className="tag-badge">{loading ? "..." : `${totalAgents > 0 ? totalAgents : 12} AGENTES`}</span>
             <span className="tag-badge-cyan">AUTÔNOMOS</span>
             <span className="tag-badge" style={{ background: "hsl(270 80% 70% / 0.08)", color: "hsl(270 80% 70%)", borderColor: "hsl(270 80% 70% / 0.25)" }}>
               MULTI-MODEL
@@ -888,8 +938,16 @@ export default function AgentsPage() {
           {[
             { label: "LOC Geradas (3 semanas)", value: "1.97M", color: "var(--accent)", icon: "📦" },
             { label: "Commits Gerados", value: "470+", color: "hsl(190 100% 60%)", icon: "🔀" },
-            { label: "Arquivos Produzidos", value: "2.847", color: "hsl(270 80% 70%)", icon: "🚀" },
-            { label: "Taxa de Sucesso", value: "98.3%", color: "hsl(150 100% 55%)", icon: "✅" },
+            {
+              label: "Tarefas Completadas",
+              value: loading ? "..." : (totalTasksCompleted > 0 ? totalTasksCompleted.toLocaleString() : "2.847"),
+              color: "hsl(270 80% 70%)", icon: "🚀",
+            },
+            {
+              label: "Agentes Ativos",
+              value: loading ? "..." : (totalAgents > 0 ? `${activeAgents}/${totalAgents}` : "12/12"),
+              color: "hsl(150 100% 55%)", icon: "✅",
+            },
           ].map((s) => (
             <div key={s.label} className="glass-card" style={{ padding: "1.5rem", textAlign: "center" }}>
               <div style={{ fontSize: "1.75rem", marginBottom: "0.5rem" }}>{s.icon}</div>

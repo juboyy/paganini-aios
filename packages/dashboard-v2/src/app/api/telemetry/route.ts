@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { supabase } from "@/lib/supabase";
 
 interface RoiStats {
   hoursAutomated: number;
@@ -41,100 +42,141 @@ interface TelemetryData {
   updatedAt: string;
 }
 
-const ROI: RoiStats = {
-  hoursAutomated: 312,
-  costAI30d: 847,
-  costEquivalentHeadcount: 6200,
-  savingsMultiplier: 7.3,
-  tasksCompleted30d: 142,
-  avgTaskDurationMin: 4.2,
+const FALLBACK_ROI: RoiStats = {
+  hoursAutomated: 0,
+  costAI30d: 0,
+  costEquivalentHeadcount: 0,
+  savingsMultiplier: 0,
+  tasksCompleted30d: 0,
+  avgTaskDurationMin: 0,
 };
 
-// Last 7 days — most recent last
-const TOKEN_USAGE: TokenUsageDay[] = [
-  { date: "2026-03-12", tokens: 142000, cost: 4.26, calls: 89 },
-  { date: "2026-03-13", tokens: 198000, cost: 5.94, calls: 124 },
-  { date: "2026-03-14", tokens: 87000, cost: 2.61, calls: 51 },
-  { date: "2026-03-15", tokens: 64000, cost: 1.92, calls: 38 },
-  { date: "2026-03-16", tokens: 221000, cost: 6.63, calls: 138 },
-  { date: "2026-03-17", tokens: 275000, cost: 8.25, calls: 162 },
-  { date: "2026-03-18", tokens: 189000, cost: 5.67, calls: 117 },
-];
-
-const COST_BREAKDOWN: ProviderCost[] = [
-  {
-    provider: "Anthropic",
-    tokens: 620000,
-    cost: 18.60,
-    pct: 47.3,
-    model: "claude-sonnet-4-6",
-  },
-  {
-    provider: "OpenAI",
-    tokens: 380000,
-    cost: 14.25,
-    pct: 36.2,
-    model: "gpt-5.3-codex",
-  },
-  {
-    provider: "Google",
-    tokens: 180000,
-    cost: 4.32,
-    pct: 11.0,
-    model: "gemini-2.5-pro",
-  },
-  {
-    provider: "Groq",
-    tokens: 95000,
-    cost: 2.19,
-    pct: 5.5,
-    model: "llama-3.3-70b",
-  },
-];
-
-const PROVIDER_HEALTH: ProviderHealth[] = [
-  {
-    provider: "Anthropic",
-    uptime: 99.94,
-    status: "operational",
-    avgLatencyMs: 1240,
-    p99LatencyMs: 4800,
-    errors24h: 2,
-  },
-  {
-    provider: "OpenAI",
-    uptime: 99.71,
-    status: "operational",
-    avgLatencyMs: 980,
-    p99LatencyMs: 3600,
-    errors24h: 5,
-  },
-  {
-    provider: "Google",
-    uptime: 98.82,
-    status: "degraded",
-    avgLatencyMs: 2100,
-    p99LatencyMs: 8200,
-    errors24h: 18,
-  },
-  {
-    provider: "Groq",
-    uptime: 99.98,
-    status: "operational",
-    avgLatencyMs: 420,
-    p99LatencyMs: 1100,
-    errors24h: 0,
-  },
-];
-
 export async function GET() {
-  const data: TelemetryData = {
-    roi: ROI,
-    tokenUsage: TOKEN_USAGE,
-    costBreakdown: COST_BREAKDOWN,
-    providerHealth: PROVIDER_HEALTH,
-    updatedAt: new Date().toISOString(),
-  };
+  try {
+    const since30d = new Date(Date.now() - 30 * 86400000).toISOString().split("T")[0];
+    const since30dTs = new Date(Date.now() - 30 * 86400000).toISOString();
 
-  return NextResponse.json(data);
+    // Fetch in parallel
+    const [
+      { data: dailyCosts },
+      { data: tokenUsageRaw },
+      { data: providerBreakdown },
+      { data: agentPerf },
+      { count: taskCount },
+    ] = await Promise.all([
+      supabase
+        .from("daily_costs")
+        .select("date, total, openai, anthropic, google")
+        .gte("date", since30d)
+        .order("date", { ascending: true }),
+      supabase
+        .from("daily_token_usage")
+        .select("date, total_tokens, total_cost, total_calls")
+        .gte("date", since30d)
+        .order("date", { ascending: true }),
+      supabase
+        .from("provider_breakdown")
+        .select("provider, tokens, cost, model")
+        .gte("date", since30d),
+      supabase
+        .from("agents")
+        .select("id, status, tasks_completed, avg_time, error_rate, total_cost, uptime, provider"),
+      supabase
+        .from("tasks")
+        .select("id", { count: "exact", head: true })
+        .gte("created_at", since30dTs),
+    ]);
+
+    // Build token usage timeline
+    const tokenUsage: TokenUsageDay[] = (tokenUsageRaw ?? []).map((r) => ({
+      date: r.date,
+      tokens: r.total_tokens ?? 0,
+      cost: r.total_cost ?? 0,
+      calls: r.total_calls ?? 0,
+    }));
+
+    // Build cost breakdown by provider
+    const providerMap = new Map<string, { tokens: number; cost: number; model: string }>();
+    for (const row of providerBreakdown ?? []) {
+      const key = row.provider as string;
+      const existing = providerMap.get(key) ?? { tokens: 0, cost: 0, model: row.model ?? "" };
+      providerMap.set(key, {
+        tokens: existing.tokens + (row.tokens ?? 0),
+        cost: existing.cost + (row.cost ?? 0),
+        model: row.model ?? existing.model,
+      });
+    }
+    const totalProviderCost = Array.from(providerMap.values()).reduce((s, v) => s + v.cost, 0);
+    const costBreakdown: ProviderCost[] = Array.from(providerMap.entries()).map(([provider, v]) => ({
+      provider,
+      tokens: v.tokens,
+      cost: v.cost,
+      pct: totalProviderCost > 0 ? parseFloat(((v.cost / totalProviderCost) * 100).toFixed(1)) : 0,
+      model: v.model,
+    }));
+
+    // Build provider health from agent uptime grouped by provider
+    const providerHealthMap = new Map<string, { uptime: number[]; errors: number; latency: number[] }>();
+    for (const agent of agentPerf ?? []) {
+      if (!agent.provider) continue;
+      const key = agent.provider as string;
+      const existing = providerHealthMap.get(key) ?? { uptime: [], errors: 0, latency: [] };
+      if (agent.uptime != null) existing.uptime.push(agent.uptime);
+      if (agent.error_rate != null) existing.errors += agent.error_rate;
+      if (agent.avg_time != null) {
+        const ms = parseFloat(String(agent.avg_time).replace("s", "")) * 1000;
+        if (!isNaN(ms)) existing.latency.push(ms);
+      }
+      providerHealthMap.set(key, existing);
+    }
+    const providerHealth: ProviderHealth[] = Array.from(providerHealthMap.entries()).map(([provider, v]) => {
+      const avgUptime = v.uptime.length > 0 ? v.uptime.reduce((a, b) => a + b, 0) / v.uptime.length : 99.9;
+      const avgLatency = v.latency.length > 0 ? v.latency.reduce((a, b) => a + b, 0) / v.latency.length : 1000;
+      return {
+        provider,
+        uptime: parseFloat(avgUptime.toFixed(2)),
+        status: avgUptime >= 99.5 ? "operational" : avgUptime >= 98 ? "degraded" : "outage",
+        avgLatencyMs: Math.round(avgLatency),
+        p99LatencyMs: Math.round(avgLatency * 3.5),
+        errors24h: Math.round(v.errors),
+      };
+    });
+
+    // Build ROI stats from real data
+    const totalCost30d = (dailyCosts ?? []).reduce((s, r) => s + (r.total ?? 0), 0);
+    const tasks30d = taskCount ?? 0;
+    const avgTaskMin = 4.2; // estimated average per task
+    const hoursAutomated = parseFloat(((tasks30d * avgTaskMin) / 60).toFixed(1));
+    const humanCostPerHour = 85; // USD/hr equivalent headcount
+    const headcountEquivalent = parseFloat((hoursAutomated * humanCostPerHour).toFixed(0));
+    const multiplier = totalCost30d > 0 ? parseFloat((headcountEquivalent / totalCost30d).toFixed(1)) : 0;
+
+    const roi: RoiStats = {
+      hoursAutomated,
+      costAI30d: parseFloat(totalCost30d.toFixed(2)),
+      costEquivalentHeadcount: headcountEquivalent,
+      savingsMultiplier: multiplier,
+      tasksCompleted30d: tasks30d,
+      avgTaskDurationMin: avgTaskMin,
+    };
+
+    const data: TelemetryData = {
+      roi: Object.values(roi).every((v) => v === 0) ? FALLBACK_ROI : roi,
+      tokenUsage,
+      costBreakdown,
+      providerHealth,
+      updatedAt: new Date().toISOString(),
+    };
+
+    return NextResponse.json(data);
+  } catch {
+    const data: TelemetryData = {
+      roi: FALLBACK_ROI,
+      tokenUsage: [],
+      costBreakdown: [],
+      providerHealth: [],
+      updatedAt: new Date().toISOString(),
+    };
+    return NextResponse.json(data);
+  }
 }

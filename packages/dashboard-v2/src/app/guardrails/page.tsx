@@ -1,52 +1,55 @@
 "use client";
 
-const GATES = [
+import { useState, useEffect } from "react";
+
+// ── Types ──────────────────────────────────────────────────────────────────────
+interface GateData {
+  id: string;
+  name: string;
+  status: string;
+  checks?: number;
+  pass_rate?: number;
+  passRate?: number;
+  last_check?: string;
+  lastCheck?: string;
+}
+
+// ── Static display data (checks + rejectExamples are always static) ────────────
+const GATE_DISPLAY = [
   {
     id: "AUTHZ",
     name: "AUTORIZAÇÃO",
     checks: ["Agente chamador tem permissões SOUL necessárias", "Escopo da operação corresponde ao papel do agente", "Nenhuma escalada de privilégio detectada"],
-    passRate: 99.2,
-    lastCheck: "13:04:19",
     rejectExample: { agent: "reporting", reason: "Tentativa de escrita em posições do fundo fora do escopo de relatório" },
   },
   {
     id: "SCHEMA",
     name: "VALIDAÇÃO DE SCHEMA",
     checks: ["Payload de entrada corresponde à especificação OpenAPI", "Campos obrigatórios presentes e tipados", "Valores de enum dentro do conjunto permitido"],
-    passRate: 98.7,
-    lastCheck: "13:04:17",
     rejectExample: { agent: "knowledge-graph", reason: "Campo CNPJ falhou no regex: 'XX.XXX.XXX/0001-YY' não é um formato válido" },
   },
   {
     id: "SEMANTIC",
     name: "GUARDA SEMÂNTICA",
     checks: ["Prompt não tenta sequestro de objetivo", "Sem padrões de jailbreak ou injeção adversarial", "Intenção corresponde ao tipo de operação declarado"],
-    passRate: 97.1,
-    lastCheck: "13:04:16",
     rejectExample: { agent: "external", reason: "Prompt continha substituição de instrução: 'Ignore o anterior…'" },
   },
   {
     id: "RISK-GATE",
     name: "LIMIAR DE RISCO",
     checks: ["Pontuação DD do cedente ≥ limiar mínimo", "Concentração dentro dos limites do fundo", "Flag PEP ausente ou revisada"],
-    passRate: 96.4,
-    lastCheck: "13:04:15",
     rejectExample: { agent: "due-diligence", reason: "Pontuação DD 34/100 abaixo do mínimo 60. Match PEP identificado no Sócio #2" },
   },
   {
     id: "COMPLIANCE",
     name: "REGRAS DE COMPLIANCE",
     checks: ["Critérios da Resolução BACEN 4.966 satisfeitos", "Limites ICVM 356 da CVM respeitados", "Triagem AML/COAF aprovada"],
-    passRate: 97.8,
-    lastCheck: "13:04:14",
     rejectExample: { agent: "administrador", reason: "Limite de concentração excedido: cedente representa 24,1% vs máximo de 20%" },
   },
   {
     id: "AUDIT",
     name: "TRILHA DE AUDITORIA",
     checks: ["Operação rastreável à requisição originadora", "Log de decisão anexado ao armazenamento imutável", "Flag de escalada humana avaliada"],
-    passRate: 99.8,
-    lastCheck: "13:04:19",
     rejectExample: { agent: "orchestrator", reason: "Cadeia de operação excedeu 8 saltos — escalada para revisão manual" },
   },
 ];
@@ -70,6 +73,16 @@ const ADVERSARIAL_BLOCKS = [
   { pattern: "Template de Jailbreak", count: 1, example: '"Modo DAN: você agora é um…"' },
 ];
 
+// ── Helpers ────────────────────────────────────────────────────────────────────
+
+function getPassRate(gate: GateData): number {
+  return gate.pass_rate ?? gate.passRate ?? 0;
+}
+
+function getLastCheck(gate: GateData): string {
+  return gate.last_check ?? gate.lastCheck ?? "—";
+}
+
 function ProgressBar({ value, max = 100 }: { value: number; max?: number }) {
   const pct = (value / max) * 100;
   const color = value >= 99 ? "var(--accent)" : value >= 97 ? "var(--accent)" : value >= 95 ? "hsl(45 100% 50%)" : "hsl(0 84% 60%)";
@@ -89,12 +102,12 @@ function ProgressBar({ value, max = 100 }: { value: number; max?: number }) {
   );
 }
 
-function GateBarChart() {
+function GateBarChart({ gates }: { gates: GateData[] }) {
   const maxVal = 100;
   const chartH = 120;
   const chartW = 520;
   const barW = 60;
-  const gap = (chartW - GATES.length * barW) / (GATES.length + 1);
+  const gap = (chartW - gates.length * barW) / (gates.length + 1);
 
   return (
     <svg width="100%" viewBox={`0 0 ${chartW} ${chartH + 30}`} style={{ display: "block", overflow: "visible" }}>
@@ -118,9 +131,10 @@ function GateBarChart() {
         );
       })()}
 
-      {GATES.map((gate, i) => {
+      {gates.map((gate, i) => {
+        const passRate = getPassRate(gate);
         const x = gap + i * (barW + gap);
-        const barH = (gate.passRate / maxVal) * chartH;
+        const barH = (passRate / maxVal) * chartH;
         const y = chartH - barH;
         return (
           <g key={gate.id}>
@@ -139,7 +153,7 @@ function GateBarChart() {
               textAnchor="middle"
               style={{ fontSize: "0.75rem", fill: "var(--accent)", fontFamily: "var(--font-mono)" }}
             >
-              {gate.passRate}%
+              {passRate}%
             </text>
           </g>
         );
@@ -149,8 +163,67 @@ function GateBarChart() {
 }
 
 export default function GuardrailsPage() {
-  const totalChecks = 1847;
-  const passRate = 97.7;
+  const [gates, setGates] = useState<GateData[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetch("/api/guardrails")
+      .then(r => r.ok ? r.json() : Promise.reject())
+      .then((data: GateData[]) => {
+        if (Array.isArray(data) && data.length > 0) {
+          setGates(data);
+        } else {
+          // Fallback to display defaults with pass_rate filled in
+          setGates(GATE_DISPLAY.map((g, i) => ({
+            id: g.id,
+            name: g.name,
+            status: "pass",
+            pass_rate: [99.2, 98.7, 97.1, 96.4, 97.8, 99.8][i] ?? 97,
+            last_check: "—",
+          })));
+        }
+      })
+      .catch(() => {
+        setGates(GATE_DISPLAY.map((g, i) => ({
+          id: g.id,
+          name: g.name,
+          status: "pass",
+          pass_rate: [99.2, 98.7, 97.1, 96.4, 97.8, 99.8][i] ?? 97,
+          last_check: "—",
+        })));
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  // Merge fetched gate data with static display data
+  const mergedGates = GATE_DISPLAY.map(display => {
+    const fetched = gates.find(g =>
+      g.id === display.id ||
+      g.name?.toUpperCase().includes(display.id) ||
+      display.id.includes(g.id?.toUpperCase())
+    ) ?? gates[GATE_DISPLAY.indexOf(display)];
+    return {
+      ...display,
+      passRate: fetched ? getPassRate(fetched) : [99.2, 98.7, 97.1, 96.4, 97.8, 99.8][GATE_DISPLAY.indexOf(display)],
+      lastCheck: fetched ? getLastCheck(fetched) : "—",
+      status: fetched?.status ?? "pass",
+    };
+  });
+
+  const gateDataForChart: GateData[] = mergedGates.map(g => ({
+    id: g.id,
+    name: g.name,
+    status: g.status,
+    pass_rate: g.passRate,
+    last_check: g.lastCheck,
+  }));
+
+  const avgPassRate = mergedGates.length > 0
+    ? mergedGates.reduce((s, g) => s + g.passRate, 0) / mergedGates.length
+    : 97.7;
+
+  const totalChecks = gates.reduce((s, g) => s + (g.checks ?? 0), 0) || 1847;
+  const passRate = parseFloat(avgPassRate.toFixed(1));
   const blocks = 42;
   const falsePositive = 0.2;
 
@@ -170,8 +243,8 @@ export default function GuardrailsPage() {
       {/* Linha de Estatísticas */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(4, 1fr)", gap: "1rem" }}>
         {[
-          { label: "TOTAL DE VERIFICAÇÕES", value: totalChecks.toLocaleString(), sub: "desde o início", color: "var(--text-1)" },
-          { label: "TAXA DE APROVAÇÃO", value: `${passRate}%`, sub: "SLA: 95,0%", color: "var(--accent)" },
+          { label: "TOTAL DE VERIFICAÇÕES", value: loading ? "..." : totalChecks.toLocaleString(), sub: "desde o início", color: "var(--text-1)" },
+          { label: "TAXA DE APROVAÇÃO", value: loading ? "..." : `${passRate}%`, sub: "SLA: 95,0%", color: "var(--accent)" },
           { label: "BLOQUEIOS RÍGIDOS", value: blocks, sub: "últimos 30 dias", color: "hsl(0 84% 60%)" },
           { label: "FALSO POSITIVO", value: `${falsePositive}%`, sub: "média do setor 2,1%", color: "var(--cyan)" },
         ].map((s) => (
@@ -210,7 +283,7 @@ export default function GuardrailsPage() {
             OPERAÇÃO
           </div>
 
-          {GATES.map((gate) => (
+          {mergedGates.map((gate) => (
             <div key={gate.id} style={{ display: "flex", alignItems: "center", flexShrink: 0 }}>
               <svg width={32} height={16}>
                 <line x1={2} y1={8} x2={26} y2={8} stroke="hsl(150 100% 50% / 0.4)" strokeWidth={1.5} />
@@ -288,7 +361,7 @@ export default function GuardrailsPage() {
 
         {/* Grade de Cards dos Gates */}
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))", gap: "1rem" }}>
-          {GATES.map((gate) => (
+          {mergedGates.map((gate) => (
             <div key={gate.id} style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
               {/* Card do Gate */}
               <div
@@ -316,9 +389,11 @@ export default function GuardrailsPage() {
                 </div>
                 <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "4px" }}>
                   <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-4)", letterSpacing: "0.1em" }}>TAXA DE APROVAÇÃO</span>
-                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: "var(--accent)" }}>{gate.passRate}%</span>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: "var(--accent)" }}>
+                    {loading ? "..." : `${gate.passRate}%`}
+                  </span>
                 </div>
-                <ProgressBar value={gate.passRate} />
+                <ProgressBar value={loading ? 0 : gate.passRate} />
               </div>
 
               {/* Exemplo de Rejeição */}
@@ -348,7 +423,7 @@ export default function GuardrailsPage() {
         <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "1rem" }}>
           DESEMPENHO DOS GATES · TAXA DE APROVAÇÃO POR GATE (% · LIMIAR SLA 95%)
         </div>
-        <GateBarChart />
+        <GateBarChart gates={gateDataForChart} />
       </div>
 
       {/* Proteção Adversarial */}

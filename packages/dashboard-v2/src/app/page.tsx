@@ -2,6 +2,21 @@
 
 import { useEffect, useState, useRef } from "react";
 
+// ── Tipos ──────────────────────────────────────────────────────────────────────
+interface StatCard {
+  label: string;
+  value: string;
+  delta: string;
+  color: string;
+}
+
+interface ActivityItem {
+  time: string;
+  agent: string;
+  action: string;
+  type: string;
+}
+
 // ── Dados de execução — tema dev ──────────────────────────────────────────────
 const EXECUTION_LINES = [
   { ts: "13:04:12", text: 'Orchestrator recebeu: "implementar módulo de PDD aging"', color: "var(--text-2)" },
@@ -21,32 +36,16 @@ const EXECUTION_LINES = [
 // Commits por hora (24h)
 const COMMITS_PER_HOUR = [2, 1, 0, 1, 3, 5, 8, 12, 15, 18, 22, 19, 17, 21, 24, 20, 16, 13, 10, 8, 6, 5, 4, 3];
 
-const AGENTS = [
-  { name: "orchestrator",       task: "Coordenando sprint #47 — 3 módulos",        loc: "—",  tests: "—",  cost: "$0.021", active: true },
-  { name: "pricing",            task: "Gerando pricing/yield_calculator.py",        loc: "89", tests: "8",  cost: "$0.013", active: true },
-  { name: "compliance",         task: "Review: compliance/gates.py",                loc: "—",  tests: "—",  cost: "$0.010", active: true },
-  { name: "auditor",            task: "Code review lote #12 — 4 PRs",              loc: "—",  tests: "—",  cost: "$0.008", active: true },
-  { name: "risk",               task: "Gerando risk/pdd_aging.py",                  loc: "142",tests: "12", cost: "$0.019", active: true },
-  { name: "treasury",           task: "Calculando curvas de yield — 3 fundos",     loc: "67", tests: "5",  cost: "$0.009", active: true },
-  { name: "due-diligence",      task: "Gerando due_diligence/scoring.py",           loc: "203",tests: "18", cost: "$0.027", active: true },
-  { name: "knowledge-graph",    task: "Ingerindo circular CVM 3.822/2025",         loc: "—",  tests: "—",  cost: "$0.031", active: true },
-  { name: "reporting",          task: "Gerando reporting/monthly_nav.py",           loc: "98", tests: "7",  cost: "$0.012", active: true },
-  { name: "admin",              task: "Aguardando — sem tarefas ativas",            loc: "—",  tests: "—",  cost: "$0.001", active: false },
-  { name: "investor-relations", task: "Gerando ir/investor_report.py",              loc: "55", tests: "4",  cost: "$0.007", active: true },
-  { name: "regulatory-watch",   task: "Monitorando publicações BACEN/CVM",         loc: "—",  tests: "—",  cost: "$0.004", active: true },
-  { name: "metaclaw",           task: "Avaliando 3 padrões candidatos de skill",   loc: "—",  tests: "—",  cost: "$0.006", active: true },
-  { name: "ingest",             task: "Aguardando — em standby",                    loc: "—",  tests: "—",  cost: "$0.001", active: false },
-];
-
 const GATES = ["LINT", "TYPES", "TESTES", "SECURITY", "COMPLIANCE", "DEPLOY"];
 
-const ALERTS = [
-  { type: "warn", time: "13:02:44", msg: "Build falhou: pricing/yield_v2.py — timeout em 30s" },
-  { type: "ok",   time: "13:01:11", msg: "Deploy prod: administrador.py v1.4.2 — smoke tests OK" },
-  { type: "err",  time: "12:58:30", msg: "2 testes falharam: risk/stress_test.py — AssertionError linha 87" },
-  { type: "ok",   time: "12:55:18", msg: "Cobertura subiu para 87.3% (+0.8% vs ontem)" },
-  { type: "warn", time: "12:44:03", msg: "Agente auditor: latência elevada 8.2s (limite: 6s)" },
+const DEFAULT_STATS: StatCard[] = [
+  { label: "AGENTS ACTIVE", value: "...", delta: "NOMINAL", color: "var(--cyan)" },
+  { label: "GUARDRAILS", value: "...", delta: "ALL PASS", color: "var(--accent)" },
+  { label: "TASKS / 30D", value: "...", delta: "—", color: "var(--cyan)" },
+  { label: "COST / 30D", value: "...", delta: "—", color: "var(--accent)" },
 ];
+
+const DEFAULT_ACTIVITY: ActivityItem[] = [];
 
 // ── Componentes auxiliares ────────────────────────────────────────────────────
 function Sparkline({ data, w = 80, h = 28, color = "var(--accent)" }: { data: number[]; w?: number; h?: number; color?: string }) {
@@ -96,12 +95,6 @@ function GitHeatmap() {
   const days = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
   const hours = Array.from({ length: 24 }, (_, i) => i);
   const cellW = 18, cellH = 14, gapX = 2, gapY = 2;
-  const intensity = (d: number, h: number) => {
-    const base = [2, 5, 7, 6, 8, 4, 1][d];
-    const hourBoost = h >= 9 && h <= 18 ? 1.4 : h >= 19 && h <= 22 ? 0.8 : 0.2;
-    const val = base * hourBoost * (0.5 + Math.random() * 0.5);
-    return Math.min(1, val / 10);
-  };
   // deterministic-ish seed
   const seed = (d: number, h: number) => {
     const n = d * 100 + h;
@@ -152,6 +145,38 @@ export default function OverviewPage() {
   const traceRef = useRef<HTMLDivElement>(null);
   const [tick, setTick] = useState(0);
 
+  // ── API State ──────────────────────────────────────────────────────────────
+  const [apiStats, setApiStats] = useState<StatCard[]>(DEFAULT_STATS);
+  const [activity, setActivity] = useState<ActivityItem[]>(DEFAULT_ACTIVITY);
+  const [loading, setLoading] = useState(true);
+
+  const fetchData = async () => {
+    try {
+      const [statsRes, activityRes] = await Promise.all([
+        fetch("/api/stats"),
+        fetch("/api/activity"),
+      ]);
+      if (statsRes.ok) {
+        const data = await statsRes.json();
+        setApiStats(data);
+      }
+      if (activityRes.ok) {
+        const data = await activityRes.json();
+        setActivity(data);
+      }
+    } catch {
+      // keep last known data
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchData();
+    const interval = setInterval(fetchData, 30000);
+    return () => clearInterval(interval);
+  }, []);
+
   useEffect(() => {
     const interval = setInterval(() => {
       setVisibleLines(v => {
@@ -180,6 +205,12 @@ export default function OverviewPage() {
 
   const now = new Date();
   const timeStr = now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+
+  // Build STATS from apiStats + sparklines
+  const agentsCard = apiStats.find(s => s.label === "AGENTS ACTIVE");
+  const tasksCard = apiStats.find(s => s.label === "TASKS / 30D");
+  const costCard = apiStats.find(s => s.label === "COST / 30D");
+  const guardrailsCard = apiStats.find(s => s.label === "GUARDRAILS");
 
   const STATS = [
     {
@@ -211,19 +242,34 @@ export default function OverviewPage() {
       sparkData: [84, 84.2, 84.5, 84.8, 85.1, 85.5, 85.9, 86.2, 86.4, 86.7, 86.9, 87.0, 87.1, 87.2, 87.2, 87.3, 87.3, 87.3, 87.3, 87.3, 87.3, 87.3, 87.3, 87.3],
     },
     {
-      label: "DEPLOYS",
-      value: "8",
-      sub: "7 prod · 1 preview",
+      label: "TAREFAS / 30D",
+      value: loading ? "..." : (tasksCard?.value ?? "—"),
+      sub: loading ? "" : (tasksCard?.delta ?? "—"),
       color: "var(--cyan)",
       sparkData: [0, 0, 0, 1, 1, 1, 2, 2, 3, 3, 4, 4, 5, 5, 6, 6, 7, 7, 7, 7, 8, 8, 8, 8],
     },
     {
       label: "AGENTES ATIVOS",
-      value: "12/14",
-      sub: "2 em standby",
+      value: loading ? "..." : (agentsCard?.value ?? "—"),
+      sub: loading ? "" : (agentsCard?.delta ?? ""),
       color: "var(--accent)",
       sparkData: [8, 8, 9, 10, 11, 12, 13, 13, 13, 14, 13, 13, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12, 12],
     },
+  ];
+
+  // Map activity types to alert types
+  const typeToAlertType = (type: string) => {
+    if (type === "pass") return "ok";
+    if (type === "warn" || type === "alert") return "warn";
+    return "ok";
+  };
+
+  const displayActivity = activity.length > 0 ? activity : [
+    { time: "13:02:44", agent: "Pricing", action: "Build falhou: pricing/yield_v2.py — timeout em 30s", type: "warn" },
+    { time: "13:01:11", agent: "Infra", action: "Deploy prod: administrador.py v1.4.2 — smoke tests OK", type: "ok" },
+    { time: "12:58:30", agent: "QA", action: "2 testes falharam: risk/stress_test.py — AssertionError linha 87", type: "err" },
+    { time: "12:55:18", agent: "Auditor", action: "Cobertura subiu para 87.3% (+0.8% vs ontem)", type: "ok" },
+    { time: "12:44:03", agent: "Monitoring", action: "Agente auditor: latência elevada 8.2s (limite: 6s)", type: "warn" },
   ];
 
   return (
@@ -349,7 +395,7 @@ export default function OverviewPage() {
               textAlign: "center",
               fontWeight: 700,
             }}>
-              ✓ TODOS OS GATES APROVADOS
+              {loading ? "VERIFICANDO..." : `✓ ${guardrailsCard?.value ?? "6/6"} GATES OK`}
             </div>
           </div>
 
@@ -359,9 +405,10 @@ export default function OverviewPage() {
               ALERTAS RECENTES
             </div>
             <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
-              {ALERTS.map((a, i) => {
-                const col = a.type === "ok" ? "var(--accent)" : a.type === "warn" ? "#f59e0b" : "#ef4444";
-                const icon = a.type === "ok" ? "✓" : a.type === "warn" ? "⚠" : "✗";
+              {displayActivity.slice(0, 5).map((a, i) => {
+                const alertType = typeToAlertType(a.type);
+                const col = alertType === "ok" ? "var(--accent)" : alertType === "warn" ? "#f59e0b" : "#ef4444";
+                const icon = alertType === "ok" ? "✓" : alertType === "warn" ? "⚠" : "✗";
                 return (
                   <div key={i} style={{
                     display: "flex", gap: "8px", alignItems: "flex-start",
@@ -373,7 +420,7 @@ export default function OverviewPage() {
                     <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: col, flexShrink: 0 }}>{icon}</span>
                     <div>
                       <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-3)" }}>{a.time}</div>
-                      <div style={{ fontSize: "0.75rem", color: "var(--text-2)", marginTop: "2px", lineHeight: 1.4 }}>{a.msg}</div>
+                      <div style={{ fontSize: "0.75rem", color: "var(--text-2)", marginTop: "2px", lineHeight: 1.4 }}>{a.action}</div>
                     </div>
                   </div>
                 );
@@ -428,49 +475,27 @@ export default function OverviewPage() {
       {/* ── Tabela de Atividade dos Agentes ── */}
       <div className="glass-card" style={{ padding: "1.25rem" }}>
         <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "1rem" }}>
-          ATIVIDADE DOS AGENTES · {AGENTS.filter(a => a.active).length}/{AGENTS.length} ATIVOS
+          ATIVIDADE RECENTE {loading ? "· CARREGANDO..." : `· ${displayActivity.length} EVENTOS`}
         </div>
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "var(--font-mono)", fontSize: "0.8125rem" }}>
-            <thead>
-              <tr style={{ borderBottom: "1px solid var(--border)" }}>
-                {["AGENTE", "STATUS", "TAREFA ATUAL", "LOC", "TESTES", "CUSTO"].map(h => (
-                  <th key={h} style={{ textAlign: "left", padding: "0.5rem 0.75rem", color: "var(--text-4)", fontSize: "0.75rem", letterSpacing: "0.12em", fontWeight: 500 }}>
-                    {h}
-                  </th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {AGENTS.map((agent, i) => (
-                <tr key={agent.name} style={{ borderBottom: "1px solid hsl(150 100% 50% / 0.04)", background: i % 2 === 0 ? "rgba(0,0,0,0.15)" : "transparent" }}>
-                  <td style={{ padding: "0.6rem 0.75rem", color: "var(--accent)" }}>{agent.name}</td>
-                  <td style={{ padding: "0.6rem 0.75rem" }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
-                      <StatusDot active={agent.active} />
-                      <span style={{ color: agent.active ? "var(--text-2)" : "var(--text-4)", fontSize: "0.75rem" }}>
-                        {agent.active ? "ATIVO" : "STANDBY"}
-                      </span>
-                    </div>
-                  </td>
-                  <td style={{ padding: "0.6rem 0.75rem", color: agent.active ? "var(--text-2)" : "var(--text-4)", maxWidth: 260, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", fontSize: "0.8125rem" }}>
-                    {agent.task}
-                  </td>
-                  <td style={{ padding: "0.6rem 0.75rem", color: "var(--cyan)" }}>{agent.loc}</td>
-                  <td style={{ padding: "0.6rem 0.75rem", color: "var(--text-2)" }}>{agent.tests}</td>
-                  <td style={{ padding: "0.6rem 0.75rem", color: "var(--text-2)" }}>{agent.cost}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        <div style={{ marginTop: "0.75rem", display: "flex", justifyContent: "flex-end", gap: "1rem" }}>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: "var(--text-4)" }}>
-            TOTAL HOJE:{" "}
-            <span style={{ color: "var(--accent)" }}>1.97M LOC</span> ·{" "}
-            <span style={{ color: "var(--accent)" }}>347 testes</span> ·{" "}
-            <span style={{ color: "var(--accent)" }}>$0.19</span>
-          </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+          {displayActivity.map((item, i) => {
+            const alertType = typeToAlertType(item.type);
+            const col = alertType === "ok" ? "var(--accent)" : alertType === "warn" ? "#f59e0b" : "#ef4444";
+            const icon = alertType === "ok" ? "✓" : alertType === "warn" ? "⚠" : "✗";
+            return (
+              <div key={i} style={{
+                display: "flex", gap: "0.75rem", alignItems: "flex-start",
+                padding: "0.5rem 0.75rem",
+                background: i % 2 === 0 ? "rgba(0,0,0,0.15)" : "transparent",
+                borderRadius: "var(--radius)",
+              }}>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: col, flexShrink: 0 }}>{icon}</span>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-4)", flexShrink: 0, minWidth: 48 }}>{item.time}</span>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--cyan)", flexShrink: 0, minWidth: 100 }}>{item.agent}</span>
+                <span style={{ fontSize: "0.8125rem", color: "var(--text-2)", lineHeight: 1.4 }}>{item.action}</span>
+              </div>
+            );
+          })}
         </div>
       </div>
 

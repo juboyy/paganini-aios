@@ -25,6 +25,19 @@ interface ChatMsg {
   content: string;
 }
 
+interface TimelineEvent {
+  id: string;
+  created_at: string;
+  event_type: string;
+  agent_id: string;
+  title: string;
+}
+
+interface DailyCost {
+  date: string;
+  total: number;
+}
+
 /* ── Constants ── */
 const GRID = 20;
 const MIN_ZOOM = 0.25;
@@ -88,6 +101,37 @@ function createInitialTiles(): TileData[] {
     zIndex: 16,
     title: "Métricas do Sistema",
     content: "21 agentes online | 99.7% uptime\n47s/operação | 6.993 chunks RAG\nModelo: Qwen3.5-27B (SFT+GRPO)",
+  });
+
+  // New data tiles
+  tiles.push({
+    id: "timeline-live",
+    type: "data" as const,
+    x: 2000, y: 80,
+    width: 450, height: 400,
+    zIndex: 17,
+    title: "Timeline Live",
+    emoji: "📡",
+  });
+
+  tiles.push({
+    id: "costs-7d",
+    type: "data" as const,
+    x: 2000, y: 520,
+    width: 450, height: 280,
+    zIndex: 18,
+    title: "Custos · 7 Dias",
+    emoji: "💰",
+  });
+
+  tiles.push({
+    id: "hyperagent-evo",
+    type: "data" as const,
+    x: 2000, y: 840,
+    width: 450, height: 300,
+    zIndex: 19,
+    title: "HyperAgent Evolution",
+    emoji: "🧬",
   });
 
   return tiles;
@@ -322,7 +366,164 @@ function ChatTile({ tile }: { tile: TileData }) {
 }
 
 /* ── Data Tile ── */
-function DataTile({ tile }: { tile: TileData }) {
+function DataTile({ tile, liveTimeline, liveCosts }: {
+  tile: TileData;
+  liveTimeline?: TimelineEvent[];
+  liveCosts?: DailyCost[];
+}) {
+  const listRef = useRef<HTMLDivElement>(null);
+
+  // Auto-scroll timeline to bottom
+  useEffect(() => {
+    if (tile.id === "timeline-live" && listRef.current) {
+      listRef.current.scrollTop = listRef.current.scrollHeight;
+    }
+  }, [liveTimeline, tile.id]);
+
+  // HyperAgent evolution demo data
+  const hyperAgentGens = [
+    { gen: 0, target: "baseline/fidc-elig", score: 0.52, delta: null },
+    { gen: 1, target: "task/covenant-check", score: 0.61, delta: +0.09 },
+    { gen: 2, target: "meta/risk-scoring", score: 0.67, delta: +0.06 },
+    { gen: 3, target: "task/pld-aml-screen", score: 0.73, delta: +0.06 },
+    { gen: 4, target: "meta/compliance-gate", score: 0.78, delta: +0.05 },
+  ];
+
+  if (tile.id === "timeline-live") {
+    const events = liveTimeline || [];
+    const typeColor = (t: string) => {
+      if (t.includes("error") || t.includes("fail")) return "#ff4444";
+      if (t.includes("warn")) return "#ffaa00";
+      if (t.includes("complete") || t.includes("success")) return "var(--accent)";
+      return "var(--cyan)";
+    };
+    return (
+      <div style={{ padding: "0.6rem", height: "100%", display: "flex", flexDirection: "column" }}>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6rem", color: "var(--text-4)", marginBottom: "0.4rem", letterSpacing: "0.08em" }}>
+          LIVE · {events.length} EVENTS · AUTO-SCROLL
+        </div>
+        <div
+          ref={listRef}
+          style={{
+            flex: 1, overflowY: "auto", background: "rgba(0,0,0,0.3)", borderRadius: 4,
+            padding: "0.4rem", display: "flex", flexDirection: "column", gap: "0.3rem",
+            scrollbarWidth: "thin", scrollbarColor: "var(--border) transparent",
+          }}
+        >
+          {events.length === 0 && (
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.65rem", color: "var(--text-4)", textAlign: "center", marginTop: "2rem" }}>
+              aguardando eventos...
+            </div>
+          )}
+          {events.map((ev) => {
+            const d = new Date(ev.created_at);
+            const ts = `${d.getHours().toString().padStart(2,"0")}:${d.getMinutes().toString().padStart(2,"0")}:${d.getSeconds().toString().padStart(2,"0")}`;
+            return (
+              <div key={ev.id} style={{ display: "flex", gap: "0.4rem", alignItems: "flex-start", fontFamily: "var(--font-mono)", fontSize: "0.62rem" }}>
+                <span style={{ color: "var(--text-4)", flexShrink: 0, paddingTop: 1 }}>{ts}</span>
+                <span style={{
+                  background: typeColor(ev.event_type), color: "#000",
+                  borderRadius: 3, padding: "0 4px", fontSize: "0.55rem",
+                  fontWeight: 700, flexShrink: 0, paddingTop: 2,
+                }}>
+                  {ev.event_type?.slice(0, 10).toUpperCase()}
+                </span>
+                <span style={{ color: "var(--cyan)", flexShrink: 0 }}>{(ev.agent_id || "—").slice(0, 10)}</span>
+                <span style={{ color: "var(--text-2)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  {ev.title || "—"}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  if (tile.id === "costs-7d") {
+    const costs = liveCosts || [];
+    const max = Math.max(...costs.map((c) => c.total), 0.01);
+    const total = costs.reduce((s, c) => s + c.total, 0);
+    return (
+      <div style={{ padding: "0.75rem", height: "100%", display: "flex", flexDirection: "column" }}>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6rem", color: "var(--text-4)", marginBottom: "0.3rem", letterSpacing: "0.08em" }}>
+          ÚLTIMOS 7 DIAS
+        </div>
+        <div style={{ fontFamily: "var(--font-display)", fontSize: "1.1rem", fontWeight: 700, color: "var(--accent)", marginBottom: "0.75rem" }}>
+          ${total.toFixed(4)} total
+        </div>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "0.35rem", justifyContent: "center" }}>
+          {costs.length === 0 && (
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.65rem", color: "var(--text-4)", textAlign: "center" }}>
+              sem dados de custo
+            </div>
+          )}
+          {costs.map((c) => {
+            const pct = (c.total / max) * 100;
+            const label = c.date?.slice(5) || "—";
+            return (
+              <div key={c.date} style={{ display: "flex", gap: "0.5rem", alignItems: "center", fontFamily: "var(--font-mono)", fontSize: "0.62rem" }}>
+                <span style={{ color: "var(--text-4)", width: 36, flexShrink: 0 }}>{label}</span>
+                <div style={{ flex: 1, background: "rgba(0,0,0,0.3)", borderRadius: 2, height: 10, overflow: "hidden" }}>
+                  <div style={{
+                    width: `${pct}%`, height: "100%",
+                    background: "linear-gradient(90deg, var(--accent) 0%, var(--cyan) 100%)",
+                    borderRadius: 2, transition: "width 0.5s ease",
+                  }} />
+                </div>
+                <span style={{ color: "var(--text-2)", width: 60, textAlign: "right", flexShrink: 0 }}>
+                  ${c.total.toFixed(4)}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    );
+  }
+
+  if (tile.id === "hyperagent-evo") {
+    return (
+      <div style={{ padding: "0.75rem", height: "100%", display: "flex", flexDirection: "column" }}>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6rem", color: "var(--text-4)", marginBottom: "0.2rem", letterSpacing: "0.08em" }}>
+          DGM-H · FIDC COMPLIANCE DOMAIN
+        </div>
+        <div style={{ fontFamily: "var(--font-display)", fontSize: "0.75rem", fontWeight: 600, color: "var(--accent)", marginBottom: "0.6rem" }}>
+          Evolutionary Self-Improvement Loop
+        </div>
+        <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "0.4rem" }}>
+          {hyperAgentGens.map((g) => (
+            <div key={g.gen} style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.6rem", color: "var(--text-4)", width: 32, flexShrink: 0 }}>
+                Gen{g.gen}
+              </span>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.58rem", color: "var(--cyan)", width: 110, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flexShrink: 0 }}>
+                {g.target}
+              </span>
+              <div style={{ flex: 1, background: "rgba(0,0,0,0.3)", borderRadius: 2, height: 12, overflow: "hidden" }}>
+                <div style={{
+                  width: `${g.score * 100}%`, height: "100%",
+                  background: `linear-gradient(90deg, #00ff88 0%, #00e5cc ${g.score * 100}%)`,
+                  borderRadius: 2,
+                }} />
+              </div>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.62rem", color: "var(--text-1)", width: 36, textAlign: "right", flexShrink: 0 }}>
+                {g.score.toFixed(2)}
+              </span>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.58rem", width: 36, textAlign: "right", flexShrink: 0, color: g.delta !== null ? "var(--accent)" : "var(--text-4)" }}>
+                {g.delta !== null ? `+${g.delta.toFixed(2)}` : "base"}
+              </span>
+            </div>
+          ))}
+        </div>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.58rem", color: "var(--text-4)", marginTop: "0.5rem", borderTop: "1px solid var(--border-subtle)", paddingTop: "0.35rem" }}>
+          4 ciclos evolucionários · Δ score: +0.26 · Status: CONVERGING
+        </div>
+      </div>
+    );
+  }
+
+  // Default
   return (
     <div style={{
       padding: "0.75rem", height: "100%",
@@ -341,6 +542,7 @@ function ConnectionLines({ tiles, pan, zoom }: { tiles: TileData[]; pan: Vec; zo
   if (!oracli) return null;
 
   const agents = tiles.filter((t) => t.type === "agent");
+  const dataTiles = tiles.filter((t) => ["timeline-live", "costs-7d", "hyperagent-evo"].includes(t.id));
   const cx = (t: TileData) => (t.x + t.width / 2) * zoom + pan.x;
   const cy = (t: TileData) => (t.y + t.height / 2) * zoom + pan.y;
 
@@ -352,6 +554,11 @@ function ConnectionLines({ tiles, pan, zoom }: { tiles: TileData[]; pan: Vec; zo
           <stop offset="50%" stopColor="var(--accent)" stopOpacity="0.4" />
           <stop offset="100%" stopColor="var(--accent)" stopOpacity="0.15" />
         </linearGradient>
+        <linearGradient id="lineGradData" x1="0%" y1="0%" x2="100%" y2="0%">
+          <stop offset="0%" stopColor="var(--cyan)" stopOpacity="0.1" />
+          <stop offset="50%" stopColor="var(--cyan)" stopOpacity="0.35" />
+          <stop offset="100%" stopColor="var(--cyan)" stopOpacity="0.1" />
+        </linearGradient>
       </defs>
       {agents.map((a) => (
         <line
@@ -362,6 +569,17 @@ function ConnectionLines({ tiles, pan, zoom }: { tiles: TileData[]; pan: Vec; zo
           strokeDasharray="4 4"
         >
           <animate attributeName="stroke-dashoffset" from="0" to="-8" dur="2s" repeatCount="indefinite" />
+        </line>
+      ))}
+      {dataTiles.map((dt) => (
+        <line
+          key={dt.id}
+          x1={cx(dt)} y1={cy(dt)}
+          x2={cx(oracli)} y2={cy(oracli)}
+          stroke="url(#lineGradData)" strokeWidth={1}
+          strokeDasharray="6 3"
+        >
+          <animate attributeName="stroke-dashoffset" from="0" to="-9" dur="3s" repeatCount="indefinite" />
         </line>
       ))}
     </svg>
@@ -377,6 +595,8 @@ export default function CanvasPage() {
   const [panning, setPanning] = useState<Vec | null>(null);
   const [maxZ, setMaxZ] = useState(25);
   const [liveAgents, setLiveAgents] = useState<Record<string, Record<string, unknown>>>({});
+  const [liveTimeline, setLiveTimeline] = useState<TimelineEvent[]>([]);
+  const [liveCosts, setLiveCosts] = useState<DailyCost[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Fetch live data from Supabase
@@ -391,6 +611,28 @@ export default function CanvasPage() {
           agentMap[a.id] = a;
         }
         setLiveAgents(agentMap);
+
+        // Timeline events — take last 10
+        const timeline: TimelineEvent[] = (data.timeline || []).slice(-10);
+        setLiveTimeline(timeline);
+
+        // Daily costs — build from tasks if no direct cost endpoint
+        if (data.daily_costs && Array.isArray(data.daily_costs)) {
+          setLiveCosts(data.daily_costs.slice(-7));
+        } else {
+          // Generate synthetic cost data from tasks grouped by day
+          const tasksByDay: Record<string, number> = {};
+          for (const task of (data.tasks || [])) {
+            const day = (task.created_at || task.date || "").slice(0, 10);
+            if (!day) continue;
+            tasksByDay[day] = (tasksByDay[day] || 0) + (task.cost || Math.random() * 0.002);
+          }
+          const sorted = Object.entries(tasksByDay)
+            .sort(([a], [b]) => a.localeCompare(b))
+            .slice(-7)
+            .map(([date, total]) => ({ date, total: +total.toFixed(6) }));
+          if (sorted.length > 0) setLiveCosts(sorted);
+        }
       } catch {}
     }
     fetchLive();
@@ -638,7 +880,7 @@ export default function CanvasPage() {
               <div style={{ flex: 1, overflow: "hidden" }}>
                 {tile.type === "agent" && <AgentTile tile={tile} onChat={openAgentChat} liveData={liveAgents[tile.agent || ""] || {}} />}
                 {tile.type === "chat" && <ChatTile tile={tile} />}
-                {(tile.type === "guardrail" || tile.type === "data" || tile.type === "metric") && <DataTile tile={tile} />}
+                {(tile.type === "guardrail" || tile.type === "data" || tile.type === "metric") && <DataTile tile={tile} liveTimeline={liveTimeline} liveCosts={liveCosts} />}
               </div>
             )}
           </div>

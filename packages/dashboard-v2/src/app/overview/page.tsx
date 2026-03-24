@@ -8,6 +8,7 @@ function useCounter(target: number, duration = 1800) {
   const ref = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
+    setValue(0);
     const steps = 60;
     const step = target / steps;
     let current = 0;
@@ -63,11 +64,76 @@ function TermLine({
   );
 }
 
+// ── Types ──────────────────────────────────────────────────────────────────────
+interface StatCard {
+  label: string;
+  value: string;
+  delta: string;
+  color: string;
+}
+
+interface ActivityItem {
+  time: string;
+  agent: string;
+  action: string;
+  type: string;
+}
+
 export default function OverviewPage() {
-  const agents = useCounter(12, 1500);
+  // ── API state ────────────────────────────────────────────────────────────────
+  const [apiStats, setApiStats] = useState<StatCard[]>([]);
+  const [activity, setActivity] = useState<ActivityItem[]>([]);
+  const [agentCount, setAgentCount] = useState(12);
+  const [activeAgentCount, setActiveAgentCount] = useState(12);
+  const [guardrailCount, setGuardrailCount] = useState(6);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchAll = async () => {
+      try {
+        const [statsRes, activityRes, agentsRes] = await Promise.all([
+          fetch("/api/stats"),
+          fetch("/api/activity"),
+          fetch("/api/agents"),
+        ]);
+
+        if (statsRes.ok) {
+          const stats: StatCard[] = await statsRes.json();
+          setApiStats(stats);
+          // Extract guardrail count from stats
+          const guardrailStat = stats.find(s => s.label === "GUARDRAILS");
+          if (guardrailStat) {
+            const match = guardrailStat.value.match(/^(\d+)/);
+            if (match) setGuardrailCount(parseInt(match[1]));
+          }
+        }
+
+        if (activityRes.ok) {
+          const data = await activityRes.json();
+          setActivity(data);
+        }
+
+        if (agentsRes.ok) {
+          const agents = await agentsRes.json();
+          if (Array.isArray(agents) && agents.length > 0) {
+            setAgentCount(agents.length);
+            setActiveAgentCount(agents.filter((a: { status: string }) => a.status === "active").length);
+          }
+        }
+      } catch {
+        // keep defaults
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAll();
+  }, []);
+
+  const agents = useCounter(agentCount, 1500);
   const agentsDomain = useCounter(14, 1500);
   const caps = useCounter(52, 1500);
-  const guards = useCounter(6, 1500);
+  const guards = useCounter(guardrailCount, 1500);
 
   const metrics = [
     { value: "116×", label: "Eficiência vs equipe humana", sub: "R$ 12K → R$ 103/mês" },
@@ -97,7 +163,7 @@ export default function OverviewPage() {
     },
     {
       label: "AGENTES",
-      desc: "12 Dev Team · 14 FIDC Specialists · Codex",
+      desc: `${loading ? 12 : agentCount} Dev Team · 14 FIDC Specialists · Codex`,
       color: "hsl(270 80% 70%)",
       bg: "hsl(270 80% 10% / 0.35)",
       border: "hsl(270 80% 70% / 0.3)",
@@ -121,7 +187,7 @@ export default function OverviewPage() {
     },
     {
       label: "GUARDRAILS",
-      desc: "6 Gates de segurança · Approval humana · Audit trail",
+      desc: `${loading ? 6 : guardrailCount} Gates de segurança · Approval humana · Audit trail`,
       color: "hsl(0 80% 60%)",
       bg: "hsl(0 80% 8% / 0.4)",
       border: "hsl(0 80% 60% / 0.3)",
@@ -159,7 +225,7 @@ export default function OverviewPage() {
     { text: '  Aging: 0-30d: R$ 200M (0.5%), 31-60d: R$ 30M (1.0%)...', isCmd: false, delay: 1100 },
     { text: "", isCmd: false, delay: 1300 },
     { text: "$ paganini up", isCmd: true, delay: 1500 },
-    { text: "→ ✓ Kernel iniciado (14 agentes, 6 guardrails)", isCmd: false, delay: 2000 },
+    { text: `→ ✓ Kernel iniciado (${loading ? 14 : agentCount} agentes, ${loading ? 6 : guardrailCount} guardrails)`, isCmd: false, delay: 2000 },
     { text: "→ ✓ ChromaDB: 5,640 documentos indexados", isCmd: false, delay: 2200 },
     { text: "→ ✓ RTK: compressão 85% ativa", isCmd: false, delay: 2400 },
     { text: "", isCmd: false, delay: 2600 },
@@ -544,6 +610,36 @@ export default function OverviewPage() {
           </div>
         </div>
       </div>
+
+      {/* ── Atividade Recente ── */}
+      {activity.length > 0 && (
+        <div style={{ marginBottom: "2.5rem" }}>
+          <SectionTitle>Atividade Recente</SectionTitle>
+          <div className="glass-card" style={{ padding: "1.25rem", display: "flex", flexDirection: "column", gap: "6px" }}>
+            {activity.slice(0, 6).map((item, i) => {
+              const col = item.type === "pass" || item.type === "info" ? "var(--accent)"
+                : item.type === "warn" || item.type === "alert" ? "#f59e0b"
+                : "#ef4444";
+              const icon = item.type === "pass" || item.type === "info" ? "✓"
+                : item.type === "warn" || item.type === "alert" ? "⚠"
+                : "✗";
+              return (
+                <div key={i} style={{
+                  display: "flex", gap: "0.75rem", alignItems: "flex-start",
+                  padding: "0.5rem 0.75rem",
+                  background: i % 2 === 0 ? "rgba(0,0,0,0.15)" : "transparent",
+                  borderRadius: "var(--radius)",
+                }}>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: col, flexShrink: 0 }}>{icon}</span>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-4)", flexShrink: 0, minWidth: 40 }}>{item.time}</span>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--cyan)", flexShrink: 0, minWidth: 100 }}>{item.agent}</span>
+                  <span style={{ fontSize: "0.8125rem", color: "var(--text-2)", lineHeight: 1.4 }}>{item.action}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {/* ── Roadmap ── */}
       <div>
