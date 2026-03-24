@@ -225,6 +225,32 @@ Regras:
     
     yield "data: [DONE]\n\n"
 
+# ── Gateway Proxy ──
+# Allows Vercel serverless to reach the OpenClaw gateway via EC2
+
+OPENCLAW_GATEWAY_URL = os.environ.get("OPENCLAW_GATEWAY_URL", "http://localhost:18789")
+OPENCLAW_GATEWAY_TOKEN = os.environ.get("OPENCLAW_GATEWAY_TOKEN", "")
+
+class GatewayProxyRequest(BaseModel):
+    tool: str
+    args: dict = {}
+
+@app.post("/gateway-proxy", dependencies=[Depends(verify_token)])
+async def gateway_proxy(req: GatewayProxyRequest):
+    """Proxy tool invocations to the OpenClaw gateway."""
+    headers = {"Content-Type": "application/json"}
+    if OPENCLAW_GATEWAY_TOKEN:
+        headers["Authorization"] = f"Bearer {OPENCLAW_GATEWAY_TOKEN}"
+    
+    async with httpx.AsyncClient(timeout=30) as client:
+        resp = await client.post(
+            f"{OPENCLAW_GATEWAY_URL}/tools/invoke",
+            headers=headers,
+            json={"tool": req.tool, "args": req.args},
+        )
+        data = resp.json()
+        return data
+
 # ── Routes ──
 
 @app.get("/health")

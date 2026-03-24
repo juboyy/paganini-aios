@@ -184,6 +184,16 @@ function createInitialTiles(): TileData[] {
     emoji: "⚡",
   });
 
+  tiles.push({
+    id: "live-sessions",
+    type: "data" as const,
+    x: 2460, y: 520,
+    width: 420, height: 450,
+    zIndex: 23,
+    title: "Live Sessions",
+    emoji: "🔴",
+  });
+
   return tiles;
 }
 
@@ -621,6 +631,195 @@ function NewTaskTile() {
           ❌ {errorMsg}
         </div>
       )}
+    </div>
+  );
+}
+
+/* ── Live Sessions Tile ── */
+function LiveSessionsTile() {
+  const [sessions, setSessions] = useState<{
+    key: string; label: string; model: string;
+    totalTokens: number; contextTokens: number; contextPercent: number;
+    channel: string; updatedAt: number;
+  }[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [spawning, setSpawning] = useState(false);
+  const [taskInput, setTaskInput] = useState("");
+  const [expandedSession, setExpandedSession] = useState<string | null>(null);
+  const [sessionOutput, setSessionOutput] = useState<string>("");
+
+  // Fetch sessions
+  useEffect(() => {
+    const fetchSessions = async () => {
+      try {
+        const res = await fetch("/api/sessions?minutes=120&limit=15");
+        if (res.ok) {
+          const data = await res.json();
+          setSessions(data.sessions || []);
+        }
+      } catch {} finally { setLoading(false); }
+    };
+    fetchSessions();
+    const interval = setInterval(fetchSessions, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Spawn agent
+  const spawnAgent = async () => {
+    const task = taskInput.trim();
+    if (!task || spawning) return;
+    setSpawning(true);
+    setTaskInput("");
+    try {
+      const res = await fetch("/api/sessions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "spawn", task, label: `canvas-${Date.now()}` }),
+      });
+      if (res.ok) {
+        // Refresh session list
+        const listRes = await fetch("/api/sessions?minutes=120&limit=15");
+        if (listRes.ok) {
+          const data = await listRes.json();
+          setSessions(data.sessions || []);
+        }
+      }
+    } catch {} finally { setSpawning(false); }
+  };
+
+  // Fetch session history
+  const toggleSession = async (key: string) => {
+    if (expandedSession === key) {
+      setExpandedSession(null);
+      setSessionOutput("");
+      return;
+    }
+    setExpandedSession(key);
+    setSessionOutput("carregando...");
+    try {
+      const res = await fetch("/api/sessions", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "history", sessionKey: key, limit: 5 }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const result = data.result;
+        // Parse history
+        let text = "";
+        if (result?.content) {
+          for (const c of (Array.isArray(result.content) ? result.content : [result.content])) {
+            if (typeof c === "string") text += c;
+            else if (c?.text) text += c.text;
+          }
+        }
+        setSessionOutput(text.slice(-500) || "sem dados");
+      }
+    } catch { setSessionOutput("erro ao carregar"); }
+  };
+
+  return (
+    <div style={{ padding: "0.5rem", height: "100%", display: "flex", flexDirection: "column" }}>
+      {/* Spawn input */}
+      <div style={{ display: "flex", gap: "4px", marginBottom: "0.5rem" }}>
+        <input
+          value={taskInput}
+          onChange={(e) => setTaskInput(e.target.value)}
+          onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); spawnAgent(); } }}
+          placeholder="→ Despachar agente..."
+          disabled={spawning}
+          onMouseDown={(e) => e.stopPropagation()}
+          style={{
+            flex: 1, background: "rgba(0,0,0,0.3)", border: "1px solid var(--border)",
+            borderRadius: 3, color: "var(--text-1)", padding: "0.3rem 0.5rem",
+            fontFamily: "var(--font-mono)", fontSize: "0.65rem", outline: "none",
+          }}
+        />
+        <button
+          onClick={spawnAgent}
+          disabled={spawning}
+          onMouseDown={(e) => e.stopPropagation()}
+          style={{
+            padding: "0.3rem 0.5rem", border: "1px solid var(--accent)", borderRadius: 3,
+            background: spawning ? "var(--text-4)" : "var(--accent)",
+            color: "var(--bg)", fontFamily: "var(--font-mono)", fontSize: "0.6rem",
+            fontWeight: 600, cursor: spawning ? "wait" : "pointer",
+          }}
+        >
+          {spawning ? "..." : "▶ SPAWN"}
+        </button>
+      </div>
+
+      {/* Sessions list */}
+      <div style={{ flex: 1, overflowY: "auto", scrollbarWidth: "thin", scrollbarColor: "var(--border) transparent" }}>
+        {loading ? (
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.65rem", color: "var(--text-4)", textAlign: "center", padding: "1rem" }}>
+            CARREGANDO...
+          </div>
+        ) : sessions.length === 0 ? (
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.65rem", color: "var(--text-4)", textAlign: "center", padding: "1rem" }}>
+            NENHUMA SESSÃO ATIVA
+          </div>
+        ) : sessions.map(s => (
+          <div
+            key={s.key}
+            onClick={() => toggleSession(s.key)}
+            onMouseDown={(e) => e.stopPropagation()}
+            style={{
+              padding: "0.4rem 0.5rem", marginBottom: "0.3rem",
+              background: expandedSession === s.key ? "rgba(0,255,136,0.06)" : "rgba(0,0,0,0.2)",
+              border: `1px solid ${expandedSession === s.key ? "var(--accent)" : "var(--border-subtle, rgba(255,255,255,0.06))"}`,
+              borderRadius: 4, cursor: "pointer",
+              transition: "all 0.15s",
+            }}
+          >
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.62rem", fontWeight: 600, color: "var(--text-2)" }}>
+                {s.label.length > 25 ? s.label.slice(0, 25) + "…" : s.label}
+              </div>
+              <div style={{
+                fontFamily: "var(--font-mono)", fontSize: "0.55rem",
+                color: s.contextPercent > 80 ? "var(--red, #ef4444)" : s.contextPercent > 50 ? "var(--amber)" : "var(--text-4)",
+              }}>
+                {s.contextPercent}%
+              </div>
+            </div>
+            <div style={{ display: "flex", gap: "0.5rem", marginTop: "0.2rem" }}>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", color: "var(--text-4)" }}>
+                {s.model.split("/").pop()?.slice(0, 20)}
+              </span>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", color: "var(--cyan)" }}>
+                {s.totalTokens >= 1000 ? `${(s.totalTokens / 1000).toFixed(0)}K tok` : `${s.totalTokens} tok`}
+              </span>
+            </div>
+
+            {/* Expanded: session output */}
+            {expandedSession === s.key && (
+              <div style={{
+                marginTop: "0.4rem", padding: "0.3rem", background: "rgba(0,0,0,0.3)",
+                borderRadius: 3, maxHeight: 150, overflowY: "auto",
+              }}
+              onWheel={(e) => e.stopPropagation()}
+              >
+                <pre style={{
+                  fontFamily: "var(--font-mono)", fontSize: "0.55rem", color: "var(--text-3)",
+                  whiteSpace: "pre-wrap", wordBreak: "break-all", margin: 0,
+                }}>
+                  {sessionOutput}
+                </pre>
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      {/* Footer */}
+      <div style={{
+        fontFamily: "var(--font-mono)", fontSize: "0.5rem", color: "var(--text-4)",
+        textAlign: "center", marginTop: "0.3rem", letterSpacing: "0.08em",
+      }}>
+        {sessions.length} SESSIONS · AUTO-REFRESH 10s · CLICK = EXPAND
+      </div>
     </div>
   );
 }
@@ -1210,7 +1409,7 @@ export default function CanvasPage() {
     const chatTiles = tiles.filter(t => t.type === "chat");
     const agentTiles = tiles.filter(t => t.type === "agent");
     const dataTiles = tiles.filter(t => ["data", "metric", "guardrail"].includes(t.type) || ["timeline-live", "costs-7d", "hyperagent-evo", "system-metrics"].includes(t.id));
-    const actionTiles = tiles.filter(t => t.type === "action" || t.id === "active-tasks" || t.id === "new-task");
+    const actionTiles = tiles.filter(t => t.type === "action" || t.id === "active-tasks" || t.id === "new-task" || t.id === "live-sessions");
 
     const visibleTiles = mobileTab === "chat" ? chatTiles
       : mobileTab === "agents" ? agentTiles
@@ -1329,6 +1528,7 @@ export default function CanvasPage() {
                 {tile.type === "chat" && <ChatTile tile={tile} />}
                 {tile.type === "action" && tile.id === "new-task" && <NewTaskTile />}
                 {tile.id === "active-tasks" && <ActiveTasksTile />}
+                {tile.id === "live-sessions" && <LiveSessionsTile />}
                 {(tile.type === "guardrail" || tile.type === "data" || tile.type === "metric") && (
                   <DataTile
                     tile={tile}
