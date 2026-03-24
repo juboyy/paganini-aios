@@ -2,585 +2,374 @@
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <title>Paganini BI</title>
-<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-:root {
-  --bg:#080b10; --s1:rgba(255,255,255,0.03); --s2:rgba(255,255,255,0.06);
-  --bd:rgba(255,255,255,0.06); --t1:#e8e6e3; --t2:rgba(255,255,255,0.55);
-  --t3:rgba(255,255,255,0.28); --ok:#10b981; --danger:#ef4444; --accent:#3b82f6;
-  --f:'Space Grotesk',system-ui; --m:'IBM Plex Mono',monospace;
-  --gold:#f59e0b; --purple:#a78bfa;
-}
+:root{--bg:#06080c;--c1:rgba(255,255,255,0.025);--c2:rgba(255,255,255,0.05);--bd:rgba(255,255,255,0.05);--t1:#e2e0dd;--t2:rgba(255,255,255,0.5);--t3:rgba(255,255,255,0.22);--ok:#10b981;--ng:#ef4444;--ac:#3b82f6;--m:'JetBrains Mono',monospace;--f:'Inter',system-ui}
 *{margin:0;padding:0;box-sizing:border-box}
-html{scroll-behavior:smooth}
-body{background:var(--bg);color:var(--t1);font-family:var(--f);overflow-x:hidden}
+body{background:var(--bg);color:var(--t1);font-family:var(--f);-webkit-font-smoothing:antialiased}
 
-/* ── TOP BAR ── */
-.topbar{background:rgba(8,11,16,0.95);backdrop-filter:blur(20px);border-bottom:1px solid var(--bd);padding:0.5rem 1rem;position:sticky;top:0;z-index:100;display:flex;align-items:center;gap:1rem;overflow-x:auto}
-.topbar .logo{font-weight:700;font-size:0.85rem;color:var(--accent);white-space:nowrap;letter-spacing:-0.02em}
-.topbar .logo span{color:var(--t3);font-weight:400}
-.tb-item{display:flex;align-items:center;gap:0.35rem;white-space:nowrap}
-.tb-item .tb-lbl{font-family:var(--m);font-size:0.55rem;color:var(--t3);text-transform:uppercase}
-.tb-item .tb-val{font-family:var(--m);font-size:0.7rem;font-weight:600}
-.tb-item svg{flex-shrink:0}
-.tb-sep{width:1px;height:20px;background:var(--bd);flex-shrink:0}
-.pos{color:var(--ok)}.neg{color:var(--danger)}
+/* ── TICKER STRIP ── */
+.strip{background:rgba(255,255,255,0.015);border-bottom:1px solid var(--bd);padding:6px 0;overflow:hidden;position:sticky;top:0;z-index:100;backdrop-filter:blur(16px)}
+.strip-inner{display:flex;gap:1.5rem;padding:0 1rem;animation:scroll 30s linear infinite;width:max-content}
+@keyframes scroll{0%{transform:translateX(0)}100%{transform:translateX(-50%)}}
+.strip-item{font-family:var(--m);font-size:0.6rem;display:flex;gap:0.35rem;align-items:center;white-space:nowrap}
+.strip-item .nm{color:var(--t3)}
+.pos{color:var(--ok)}.neg{color:var(--ng)}
 
-/* ── SECTIONS ── */
-.container{max-width:440px;margin:0 auto;padding:0 1rem}
-@media(min-width:768px){.container{max-width:960px}}
+.wrap{max-width:420px;margin:0 auto;padding:0.75rem}
+@media(min-width:768px){.wrap{max-width:880px;padding:1.5rem}}
 
-.section{padding:1.5rem 0;border-bottom:1px solid var(--bd)}
-.sec-hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:1rem}
-.sec-t{font-family:var(--m);font-size:0.6rem;color:var(--t3);text-transform:uppercase;letter-spacing:0.12em}
-.sec-badge{font-family:var(--m);font-size:0.55rem;padding:2px 8px;border-radius:10px;background:rgba(59,130,246,0.12);color:var(--accent)}
+/* ── HEADER ── */
+.hdr{padding:1rem 0 0.75rem;display:flex;justify-content:space-between;align-items:flex-end}
+.hdr h1{font-size:1.1rem;font-weight:800;letter-spacing:-0.03em}
+.hdr h1 b{color:var(--ac)}
+.hdr .ts{font-family:var(--m);font-size:0.5rem;color:var(--t3)}
 
-/* ── MACRO STRIP ── */
-.macro-strip{display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-bottom:0}
-@media(min-width:768px){.macro-strip{grid-template-columns:repeat(4,1fr)}}
-.mc{background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:0.75rem}
-.mc .mc-top{display:flex;justify-content:space-between;align-items:center}
-.mc .mc-lbl{font-family:var(--m);font-size:0.55rem;color:var(--t3);text-transform:uppercase;letter-spacing:0.1em}
-.mc .mc-val{font-size:1.1rem;font-weight:700;font-family:var(--m);margin-top:0.25rem}
-.mc .mc-chart{margin-top:0.35rem}
+/* ── PULSE ROW ── */
+.pulse{display:flex;gap:0.5rem;align-items:center;padding:0.75rem;background:var(--c1);border:1px solid var(--bd);border-radius:10px;margin-bottom:0.75rem}
+.pulse-gauges{display:flex;gap:0.25rem}
+.pulse-stats{flex:1;display:grid;grid-template-columns:1fr 1fr;gap:0.25rem 0.75rem}
+.ps{display:flex;justify-content:space-between;align-items:center}
+.ps .k{font-family:var(--m);font-size:0.5rem;color:var(--t3);text-transform:uppercase}
+.ps .v{font-family:var(--m);font-size:0.65rem;font-weight:600}
 
-/* ── TREEMAP ── */
-.tm-wrap{background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:0.5rem;overflow:hidden}
-.tm-legend{display:flex;justify-content:center;gap:1rem;margin-top:0.5rem;font-family:var(--m);font-size:0.55rem;color:var(--t3)}
-.tm-legend span{display:flex;align-items:center;gap:3px}
-.tm-legend .dot{width:8px;height:8px;border-radius:2px}
+/* ── MACRO ROW ── */
+.macro-row{display:grid;grid-template-columns:1fr 1fr;gap:0.5rem;margin-bottom:0.75rem}
+@media(min-width:768px){.macro-row{grid-template-columns:1fr 1fr}}
+.mx{background:var(--c1);border:1px solid var(--bd);border-radius:10px;padding:0.5rem 0.6rem;overflow:hidden}
+.mx-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:0.25rem}
+.mx-lbl{font-family:var(--m);font-size:0.5rem;color:var(--t3);text-transform:uppercase;letter-spacing:0.08em}
+.mx-val{font-family:var(--m);font-size:0.85rem;font-weight:700}
+.mx-chg{font-family:var(--m);font-size:0.6rem;font-weight:600}
 
-/* ── SECTOR BARS ── */
-.sb-row{display:flex;align-items:center;gap:0.5rem;padding:0.4rem 0;border-bottom:1px solid rgba(255,255,255,0.02)}
-.sb-label{font-family:var(--m);font-size:0.65rem;color:var(--t2);width:90px;flex-shrink:0}
-.sb-bar-wrap{flex:1;display:flex;align-items:center;gap:0.5rem}
-.sb-bar{height:6px;border-radius:3px;transition:width 0.6s ease}
-.sb-bar.pos{background:var(--ok)}.sb-bar.neg{background:var(--danger)}
-.sb-val{font-family:var(--m);font-size:0.65rem;font-weight:600;min-width:45px}
-.sb-tks{font-family:var(--m);font-size:0.5rem;color:var(--t3);display:none}
-@media(min-width:768px){.sb-tks{display:block;width:150px}}
+/* ── SECTION ── */
+.sec{margin-bottom:0.75rem}
+.sec-h{display:flex;justify-content:space-between;align-items:center;margin-bottom:0.5rem}
+.sec-t{font-family:var(--m);font-size:0.5rem;color:var(--t3);text-transform:uppercase;letter-spacing:0.1em}
+.sec-b{font-family:var(--m);font-size:0.45rem;padding:2px 6px;border-radius:8px;background:rgba(59,130,246,0.1);color:var(--ac)}
+.box{background:var(--c1);border:1px solid var(--bd);border-radius:10px;overflow:hidden}
 
-/* ── CHARTS ── */
-.chart-box{background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:0.5rem;overflow:hidden}
-.chart-row{display:grid;grid-template-columns:1fr;gap:0.75rem}
-@media(min-width:768px){.chart-row{grid-template-columns:1fr 1fr}}
-.chart-label{font-family:var(--m);font-size:0.55rem;color:var(--t3);text-transform:uppercase;margin-bottom:0.35rem;padding-left:0.25rem}
+/* ── MOVERS ── */
+.movers{display:grid;grid-template-columns:1fr 1fr;gap:0.5rem}
+.mv-col{background:var(--c1);border:1px solid var(--bd);border-radius:10px;padding:0.5rem}
+.mv-title{font-family:var(--m);font-size:0.5rem;color:var(--t3);text-transform:uppercase;margin-bottom:0.35rem;letter-spacing:0.1em}
+.mv-row{display:flex;align-items:center;gap:0.3rem;padding:3px 0;font-family:var(--m);font-size:0.6rem}
+.mv-rank{color:var(--t3);font-size:0.5rem;width:16px}
+.mv-tk{font-weight:700;width:42px;color:var(--t1)}
+.mv-nm{flex:1;color:var(--t3);font-size:0.5rem;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mv-ret{font-weight:600;text-align:right;min-width:42px}
 
-/* ── CORRELATION ── */
-.corr-wrap{display:flex;justify-content:center;padding:0.5rem 0}
+/* ── SECTOR ROTATION ── */
+.sr-row{display:flex;align-items:center;gap:0.5rem;padding:4px 0}
+.sr-label{font-family:var(--m);font-size:0.6rem;width:80px;text-align:right}
+.sr-bar-area{flex:1;height:8px;background:var(--c1);border-radius:4px;position:relative;overflow:hidden}
+.sr-center{position:absolute;left:50%;top:0;bottom:0;width:1px;background:rgba(255,255,255,0.1)}
+.sr-fill{height:100%;border-radius:4px;position:absolute;top:0}
+.sr-fill.pos{background:var(--ok)}.sr-fill.neg{background:var(--ng)}
+.sr-val{font-family:var(--m);font-size:0.6rem;width:45px;text-align:right;font-weight:600}
 
-/* ── SCREENER ── */
-.sc-row{display:flex;align-items:center;padding:0.75rem;border-bottom:1px solid rgba(255,255,255,0.03);gap:0.75rem;transition:background 0.15s}
-.sc-row:hover{background:var(--s2)}
-.sc-left{min-width:60px}
-.sc-tk{font-family:var(--m);font-size:0.75rem;font-weight:700;color:var(--accent)}
-.sc-name{font-size:0.6rem;color:var(--t2)}
-.sc-sec{font-family:var(--m);font-size:0.5rem;color:var(--t3)}
-.sc-mid{flex:1;display:none}
-@media(min-width:768px){.sc-mid{display:block}}
-.sc-narr{font-size:0.7rem;color:var(--t2);line-height:1.4}
-.sc-right{text-align:right;min-width:80px}
-.sc-price{font-family:var(--m);font-size:0.8rem;font-weight:600}
-.sc-rets{font-family:var(--m);font-size:0.65rem;display:flex;gap:0.25rem;justify-content:flex-end}
-.sc-sep{color:var(--t3)}
+/* ── SCREENER GRID ── */
+.sg-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:4px}
+@media(min-width:768px){.sg-grid{grid-template-columns:repeat(4,1fr)}}
+.sg-card{background:var(--c1);border:1px solid var(--bd);border-radius:8px;padding:0.5rem;transition:background 0.15s}
+.sg-card:hover{background:var(--c2)}
+.sg-top{display:flex;justify-content:space-between;margin-bottom:0.2rem}
+.sg-tk{font-family:var(--m);font-size:0.7rem;font-weight:700}
+.sg-sec{font-family:var(--m);font-size:0.5rem}
+.sg-price{font-family:var(--m);font-size:0.75rem;font-weight:600;margin:0.15rem 0}
+.sg-rets{display:flex;justify-content:space-between;font-family:var(--m);font-size:0.6rem}
+.sg-lbl{color:var(--t3);font-size:0.45rem;text-transform:uppercase}
 
 /* ── TECH INDEX ── */
-.idx-card{background:linear-gradient(135deg,rgba(59,130,246,0.08),rgba(168,85,247,0.05));border:1px solid rgba(59,130,246,0.15);border-radius:12px;padding:1.25rem;margin-bottom:1rem}
-.idx-val{font-size:2rem;font-weight:700;font-family:var(--m);background:linear-gradient(135deg,#3b82f6,#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.idx-sub{font-family:var(--m);font-size:0.6rem;color:var(--t3);margin-top:0.25rem}
-.idx-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:0.5rem;margin-top:1rem}
-.idx-metric{text-align:center}
-.idx-metric .v{font-family:var(--m);font-size:0.85rem;font-weight:600}
-.idx-metric .l{font-family:var(--m);font-size:0.5rem;color:var(--t3);text-transform:uppercase}
+.ti-card{background:linear-gradient(135deg,rgba(99,102,241,0.06),rgba(59,130,246,0.03));border:1px solid rgba(99,102,241,0.12);border-radius:12px;padding:1rem}
+.ti-hero{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:0.75rem}
+.ti-pts{font-size:2rem;font-weight:800;font-family:var(--m);background:linear-gradient(135deg,#6366f1,#3b82f6);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.ti-row{display:flex;align-items:center;gap:0.4rem;padding:4px 0;font-family:var(--m);font-size:0.65rem}
+.ti-tk{font-weight:700;width:42px}
+.ti-bar-wrap{flex:1;height:6px;background:rgba(255,255,255,0.03);border-radius:3px;overflow:hidden}
+.ti-bar{height:100%;border-radius:3px}.ti-bar.pos{background:var(--ok)}.ti-bar.neg{background:var(--ng)}
+.ti-val{width:48px;text-align:right;font-weight:600}
 
-.idx-row{display:flex;align-items:center;padding:0.5rem 0;border-bottom:1px solid rgba(255,255,255,0.03);gap:0.5rem;font-family:var(--m);font-size:0.7rem}
-.idx-tk{font-weight:700;color:var(--accent);width:50px}
-.idx-name{color:var(--t2);flex:1;font-size:0.65rem}
-.idx-price{width:65px;text-align:right;font-weight:500}
-.idx-ret{width:55px;text-align:right;font-weight:600;font-size:0.65rem}
-
-/* ── FOOTER ── */
-.footer{text-align:center;padding:2rem 1rem;font-family:var(--m);font-size:0.55rem;color:var(--t3);line-height:1.6}
-.footer a{color:var(--accent);text-decoration:none}
+.ft{text-align:center;padding:1.5rem 0;font-family:var(--m);font-size:0.45rem;color:var(--t3);line-height:1.8}
 </style>
 </head>
 <body>
 
-<!-- TOP BAR -->
-<div class="topbar">
-<div class="logo">PAGANINI <span>BI</span></div>
-<div class="tb-sep"></div>
-<div class="tb-item"><span class="tb-lbl">IBOV</span><span class="tb-val">181,558</span><span class="tb-val neg" style="font-size:0.6rem">-0.2%</span>
-<svg viewBox="0 0 50 16" width="50" height="16"><path d="M 0.0,1.0 L 2.6,1.2 L 5.3,3.3 L 7.9,2.8 L 10.5,8.6 L 13.2,6.5 L 15.8,11.0 L 18.4,12.1 L 21.1,10.6 L 23.7,8.3 L 26.3,7.8 L 28.9,12.1 L 31.6,13.7 L 34.2,11.6 L 36.8,11.1 L 39.5,11.8 L 42.1,11.2 L 44.7,15.0 L 47.4,9.7 L 50.0,10.0" fill="none" stroke="var(--danger)" stroke-width="1.2"/></svg></div>
-<div class="tb-sep"></div>
-<div class="tb-item"><span class="tb-lbl">USD</span><span class="tb-val">R$5.26</span>
-<svg viewBox="0 0 50 16" width="50" height="16"><path d="M 0.0,14.5 L 2.6,15.0 L 5.3,13.9 L 7.9,9.2 L 10.5,1.1 L 13.2,8.4 L 15.8,5.0 L 18.4,1.0 L 21.1,7.9 L 23.7,12.8 L 26.3,13.0 L 28.9,8.7 L 31.6,4.2 L 34.2,3.2 L 36.8,9.0 L 39.5,8.2 L 42.1,3.7 L 44.7,1.7 L 47.4,5.1 L 50.0,3.6" fill="none" stroke="var(--purple)" stroke-width="1.2"/></svg></div>
-<div class="tb-sep"></div>
-<div class="tb-item"><span class="tb-lbl">SELIC</span><span class="tb-val">0.00%</span></div>
-<div class="tb-sep"></div>
-<div class="tb-item"><span class="tb-lbl">IPCA</span><span class="tb-val">8.7%</span></div>
+<!-- TICKER STRIP -->
+<div class="strip"><div class="strip-inner"><div class="strip-item"><span class="nm">EMBR3</span><span>R$86.99</span><span class="pos">+73.6%</span></div><div class="strip-item"><span class="nm">ELET3</span><span>R$58.68</span><span class="pos">+57.3%</span></div><div class="strip-item"><span class="nm">PETR4</span><span>R$47.30</span><span class="pos">+54.0%</span></div><div class="strip-item"><span class="nm">JBSS3</span><span>R$39.03</span><span class="pos">+36.6%</span></div><div class="strip-item"><span class="nm">B3SA3</span><span>R$17.21</span><span class="pos">+28.1%</span></div><div class="strip-item"><span class="nm">INTB3</span><span>R$14.72</span><span class="pos">+26.9%</span></div><div class="strip-item"><span class="nm">LREN3</span><span>R$15.58</span><span class="pos">+16.4%</span></div><div class="strip-item"><span class="nm">TOTS3</span><span>R$34.69</span><span class="neg">-15.3%</span></div><div class="strip-item"><span class="nm">SBSP3</span><span>R$152.02</span><span class="pos">+14.2%</span></div><div class="strip-item"><span class="nm">BBAS3</span><span>R$23.49</span><span class="pos">+8.3%</span></div><div class="strip-item"><span class="nm">ITUB4</span><span>R$42.22</span><span class="pos">+7.8%</span></div><div class="strip-item"><span class="nm">VALE3</span><span>R$77.94</span><span class="pos">+7.7%</span></div><div class="strip-item"><span class="nm">ABEV3</span><span>R$14.64</span><span class="pos">+7.3%</span></div><div class="strip-item"><span class="nm">LWSA3</span><span>R$3.84</span><span class="neg">-6.8%</span></div><div class="strip-item"><span class="nm">RENT3</span><span>R$46.03</span><span class="pos">+6.0%</span></div><div class="strip-item"><span class="nm">WEGE3</span><span>R$46.86</span><span class="neg">-2.9%</span></div><div class="strip-item"><span class="nm">BBDC4</span><span>R$18.73</span><span class="pos">+2.8%</span></div><div class="strip-item"><span class="nm">POSI3</span><span>R$4.20</span><span class="pos">+2.2%</span></div><div class="strip-item"><span class="nm">CASH3</span><span>R$3.88</span><span class="pos">+1.3%</span></div><div class="strip-item"><span class="nm">MGLU3</span><span>R$8.74</span><span class="neg">-1.0%</span></div><div class="strip-item"><span class="nm">EMBR3</span><span>R$86.99</span><span class="pos">+73.6%</span></div><div class="strip-item"><span class="nm">ELET3</span><span>R$58.68</span><span class="pos">+57.3%</span></div><div class="strip-item"><span class="nm">PETR4</span><span>R$47.30</span><span class="pos">+54.0%</span></div><div class="strip-item"><span class="nm">JBSS3</span><span>R$39.03</span><span class="pos">+36.6%</span></div><div class="strip-item"><span class="nm">B3SA3</span><span>R$17.21</span><span class="pos">+28.1%</span></div><div class="strip-item"><span class="nm">INTB3</span><span>R$14.72</span><span class="pos">+26.9%</span></div><div class="strip-item"><span class="nm">LREN3</span><span>R$15.58</span><span class="pos">+16.4%</span></div><div class="strip-item"><span class="nm">TOTS3</span><span>R$34.69</span><span class="neg">-15.3%</span></div><div class="strip-item"><span class="nm">SBSP3</span><span>R$152.02</span><span class="pos">+14.2%</span></div><div class="strip-item"><span class="nm">BBAS3</span><span>R$23.49</span><span class="pos">+8.3%</span></div><div class="strip-item"><span class="nm">ITUB4</span><span>R$42.22</span><span class="pos">+7.8%</span></div><div class="strip-item"><span class="nm">VALE3</span><span>R$77.94</span><span class="pos">+7.7%</span></div><div class="strip-item"><span class="nm">ABEV3</span><span>R$14.64</span><span class="pos">+7.3%</span></div><div class="strip-item"><span class="nm">LWSA3</span><span>R$3.84</span><span class="neg">-6.8%</span></div><div class="strip-item"><span class="nm">RENT3</span><span>R$46.03</span><span class="pos">+6.0%</span></div><div class="strip-item"><span class="nm">WEGE3</span><span>R$46.86</span><span class="neg">-2.9%</span></div><div class="strip-item"><span class="nm">BBDC4</span><span>R$18.73</span><span class="pos">+2.8%</span></div><div class="strip-item"><span class="nm">POSI3</span><span>R$4.20</span><span class="pos">+2.2%</span></div><div class="strip-item"><span class="nm">CASH3</span><span>R$3.88</span><span class="pos">+1.3%</span></div><div class="strip-item"><span class="nm">MGLU3</span><span>R$8.74</span><span class="neg">-1.0%</span></div></div></div>
+
+<div class="wrap">
+
+<!-- HEADER -->
+<div class="hdr">
+<h1><b>PAGANINI</b> BI</h1>
+<div class="ts">REAL-TIME MARKET INTELLIGENCE<br>UPD 24/03 21:46 UTC</div>
 </div>
 
-<div class="container">
-
-<!-- MACRO DASHBOARD -->
-<div class="section">
-<div class="sec-hdr"><div class="sec-t">Macro Dashboard</div><div class="sec-badge">LIVE</div></div>
-<div class="chart-row">
-<div class="chart-box"><div class="chart-label">IBOVESPA — Últimos 200 Pregões</div><svg viewBox="0 0 380 120" style="width:100%;height:auto"><line x1="45" y1="102" x2="372" y2="102" stroke="rgba(255,255,255,0.04)" stroke-dasharray="2 2"/><text x="42" y="102" text-anchor="end" fill="rgba(255,255,255,0.2)" font-size="7" font-family="var(--m)" dy="3">132K</text><line x1="45" y1="78" x2="372" y2="78" stroke="rgba(255,255,255,0.04)" stroke-dasharray="2 2"/><text x="42" y="78" text-anchor="end" fill="rgba(255,255,255,0.2)" font-size="7" font-family="var(--m)" dy="3">147K</text><line x1="45" y1="55" x2="372" y2="55" stroke="rgba(255,255,255,0.04)" stroke-dasharray="2 2"/><text x="42" y="55" text-anchor="end" fill="rgba(255,255,255,0.2)" font-size="7" font-family="var(--m)" dy="3">162K</text><line x1="45" y1="32" x2="372" y2="32" stroke="rgba(255,255,255,0.04)" stroke-dasharray="2 2"/><text x="42" y="32" text-anchor="end" fill="rgba(255,255,255,0.2)" font-size="7" font-family="var(--m)" dy="3">177K</text><line x1="45" y1="8" x2="372" y2="8" stroke="rgba(255,255,255,0.04)" stroke-dasharray="2 2"/><text x="42" y="8" text-anchor="end" fill="rgba(255,255,255,0.2)" font-size="7" font-family="var(--m)" dy="3">191K</text><path d="M 45.0,95.7 L 46.6,96.3 L 48.3,95.2 L 49.9,94.1 L 51.6,93.0 L 53.2,93.9 L 54.9,90.7 L 56.5,91.4 L 58.1,91.6 L 59.8,94.1 L 61.4,95.0 L 63.1,94.0 L 64.7,96.2 L 66.4,94.1 L 68.0,94.5 L 69.6,91.3 L 71.3,90.3 L 72.9,91.0 L 74.6,88.1 L 76.2,87.2 L 77.9,90.3 L 79.5,90.6 L 81.2,93.5 L 82.8,94.7 L 84.4,95.6 L 86.1,97.0 L 87.7,97.1 L 89.4,96.6 L 91.0,96.6 L 92.7,100.0 L 94.3,98.8 L 95.9,99.0 L 97.6,96.9 L 99.2,99.3 L 100.9,99.8 L 102.5,102.0 L 104.2,101.1 L 105.8,99.1 L 107.4,100.5 L 109.1,101.5 L 110.7,100.7 L 112.4,100.4 L 114.0,98.2 L 115.7,95.0 L 117.3,96.0 L 118.9,96.5 L 120.6,92.8 L 122.2,94.8 L 123.9,95.3 L 125.5,95.3 L 127.2,93.8 L 128.8,98.4 L 130.4,98.0 L 132.1,98.2 L 133.7,92.8 L 135.4,92.7 L 137.0,93.1 L 138.7,90.8 L 140.3,87.9 L 141.9,87.3 L 143.6,87.8 L 145.2,89.0 L 146.9,89.8 L 148.5,88.0 L 150.2,85.4 L 151.8,86.7 L 153.5,87.0 L 155.1,85.8 L 156.7,84.5 L 158.4,85.9 L 160.0,83.9 L 161.7,83.1 L 163.3,80.7 L 165.0,80.8 L 166.6,80.2 L 168.2,81.4 L 169.9,79.4 L 171.5,79.3 L 173.2,81.1 L 174.8,80.9 L 176.5,79.5 L 178.1,79.7 L 179.7,80.8 L 181.4,83.3 L 183.0,82.9 L 184.7,83.8 L 186.3,87.4 L 188.0,86.1 L 189.6,86.8 L 191.2,88.5 L 192.9,86.7 L 194.5,86.9 L 196.2,85.4 L 197.8,86.1 L 199.5,84.2 L 201.1,82.4 L 202.7,83.1 L 204.4,81.8 L 206.0,80.5 L 207.7,79.8 L 209.3,78.5 L 211.0,77.8 L 212.6,75.9 L 214.3,75.6 L 215.9,74.4 L 217.5,73.0 L 219.2,72.6 L 220.8,68.5 L 222.5,68.4 L 224.1,67.3 L 225.8,65.4 L 227.4,61.4 L 229.0,61.6 L 230.7,62.4 L 232.3,61.4 L 234.0,62.6 L 235.6,63.4 L 237.3,65.2 L 238.9,66.1 L 240.5,65.3 L 242.2,64.3 L 243.8,60.2 L 245.5,60.6 L 247.1,59.3 L 248.8,60.1 L 250.4,56.1 L 252.0,55.1 L 253.7,50.8 L 255.3,62.0 L 257.0,60.7 L 258.6,61.1 L 260.3,59.3 L 261.9,59.1 L 263.5,56.7 L 265.2,53.9 L 266.8,60.1 L 268.5,62.1 L 270.1,61.2 L 271.8,60.3 L 273.4,60.8 L 275.1,57.1 L 276.7,56.4 L 278.3,57.1 L 280.0,56.1 L 281.6,57.0 L 283.3,54.9 L 284.9,52.1 L 286.6,54.7 L 288.2,53.2 L 289.8,52.5 L 291.5,52.9 L 293.1,54.7 L 294.8,49.7 L 296.4,49.0 L 298.1,50.3 L 299.7,50.2 L 301.3,47.9 L 303.0,39.2 L 304.6,33.2 L 306.3,28.0 L 307.9,28.2 L 309.6,23.2 L 311.2,18.8 L 312.8,21.2 L 314.5,24.0 L 316.1,21.8 L 317.8,17.2 L 319.4,23.5 L 321.1,22.8 L 322.7,21.5 L 324.3,16.3 L 326.0,16.8 L 327.6,10.8 L 329.3,13.9 L 330.9,16.0 L 332.6,16.7 L 334.2,12.7 L 335.8,9.5 L 337.5,12.2 L 339.1,8.0 L 340.8,8.4 L 342.4,8.8 L 344.1,12.3 L 345.7,11.5 L 347.4,21.3 L 349.0,17.7 L 350.6,25.5 L 352.3,27.2 L 353.9,24.7 L 355.6,20.7 L 357.2,19.9 L 358.9,27.3 L 360.5,29.9 L 362.1,26.4 L 363.8,25.5 L 365.4,26.8 L 367.1,25.8 L 368.7,32.2 L 370.4,23.1 L 372.0,23.7 L 372.0,102 L 45.0,102 Z" fill="#0ea5e9" opacity="0.08"/><path d="M 45.0,95.7 L 46.6,96.3 L 48.3,95.2 L 49.9,94.1 L 51.6,93.0 L 53.2,93.9 L 54.9,90.7 L 56.5,91.4 L 58.1,91.6 L 59.8,94.1 L 61.4,95.0 L 63.1,94.0 L 64.7,96.2 L 66.4,94.1 L 68.0,94.5 L 69.6,91.3 L 71.3,90.3 L 72.9,91.0 L 74.6,88.1 L 76.2,87.2 L 77.9,90.3 L 79.5,90.6 L 81.2,93.5 L 82.8,94.7 L 84.4,95.6 L 86.1,97.0 L 87.7,97.1 L 89.4,96.6 L 91.0,96.6 L 92.7,100.0 L 94.3,98.8 L 95.9,99.0 L 97.6,96.9 L 99.2,99.3 L 100.9,99.8 L 102.5,102.0 L 104.2,101.1 L 105.8,99.1 L 107.4,100.5 L 109.1,101.5 L 110.7,100.7 L 112.4,100.4 L 114.0,98.2 L 115.7,95.0 L 117.3,96.0 L 118.9,96.5 L 120.6,92.8 L 122.2,94.8 L 123.9,95.3 L 125.5,95.3 L 127.2,93.8 L 128.8,98.4 L 130.4,98.0 L 132.1,98.2 L 133.7,92.8 L 135.4,92.7 L 137.0,93.1 L 138.7,90.8 L 140.3,87.9 L 141.9,87.3 L 143.6,87.8 L 145.2,89.0 L 146.9,89.8 L 148.5,88.0 L 150.2,85.4 L 151.8,86.7 L 153.5,87.0 L 155.1,85.8 L 156.7,84.5 L 158.4,85.9 L 160.0,83.9 L 161.7,83.1 L 163.3,80.7 L 165.0,80.8 L 166.6,80.2 L 168.2,81.4 L 169.9,79.4 L 171.5,79.3 L 173.2,81.1 L 174.8,80.9 L 176.5,79.5 L 178.1,79.7 L 179.7,80.8 L 181.4,83.3 L 183.0,82.9 L 184.7,83.8 L 186.3,87.4 L 188.0,86.1 L 189.6,86.8 L 191.2,88.5 L 192.9,86.7 L 194.5,86.9 L 196.2,85.4 L 197.8,86.1 L 199.5,84.2 L 201.1,82.4 L 202.7,83.1 L 204.4,81.8 L 206.0,80.5 L 207.7,79.8 L 209.3,78.5 L 211.0,77.8 L 212.6,75.9 L 214.3,75.6 L 215.9,74.4 L 217.5,73.0 L 219.2,72.6 L 220.8,68.5 L 222.5,68.4 L 224.1,67.3 L 225.8,65.4 L 227.4,61.4 L 229.0,61.6 L 230.7,62.4 L 232.3,61.4 L 234.0,62.6 L 235.6,63.4 L 237.3,65.2 L 238.9,66.1 L 240.5,65.3 L 242.2,64.3 L 243.8,60.2 L 245.5,60.6 L 247.1,59.3 L 248.8,60.1 L 250.4,56.1 L 252.0,55.1 L 253.7,50.8 L 255.3,62.0 L 257.0,60.7 L 258.6,61.1 L 260.3,59.3 L 261.9,59.1 L 263.5,56.7 L 265.2,53.9 L 266.8,60.1 L 268.5,62.1 L 270.1,61.2 L 271.8,60.3 L 273.4,60.8 L 275.1,57.1 L 276.7,56.4 L 278.3,57.1 L 280.0,56.1 L 281.6,57.0 L 283.3,54.9 L 284.9,52.1 L 286.6,54.7 L 288.2,53.2 L 289.8,52.5 L 291.5,52.9 L 293.1,54.7 L 294.8,49.7 L 296.4,49.0 L 298.1,50.3 L 299.7,50.2 L 301.3,47.9 L 303.0,39.2 L 304.6,33.2 L 306.3,28.0 L 307.9,28.2 L 309.6,23.2 L 311.2,18.8 L 312.8,21.2 L 314.5,24.0 L 316.1,21.8 L 317.8,17.2 L 319.4,23.5 L 321.1,22.8 L 322.7,21.5 L 324.3,16.3 L 326.0,16.8 L 327.6,10.8 L 329.3,13.9 L 330.9,16.0 L 332.6,16.7 L 334.2,12.7 L 335.8,9.5 L 337.5,12.2 L 339.1,8.0 L 340.8,8.4 L 342.4,8.8 L 344.1,12.3 L 345.7,11.5 L 347.4,21.3 L 349.0,17.7 L 350.6,25.5 L 352.3,27.2 L 353.9,24.7 L 355.6,20.7 L 357.2,19.9 L 358.9,27.3 L 360.5,29.9 L 362.1,26.4 L 363.8,25.5 L 365.4,26.8 L 367.1,25.8 L 368.7,32.2 L 370.4,23.1 L 372.0,23.7" fill="none" stroke="#0ea5e9" stroke-width="1.5" stroke-linejoin="round"/><circle cx="372.0" cy="23.7" r="3" fill="#0ea5e9"/><circle cx="372.0" cy="23.7" r="6" fill="#0ea5e9" opacity="0.2"/></svg></div>
-<div class="chart-box"><div class="chart-label">USD/BRL — Câmbio</div><svg viewBox="0 0 380 120" style="width:100%;height:auto"><line x1="45" y1="102" x2="372" y2="102" stroke="rgba(255,255,255,0.04)" stroke-dasharray="2 2"/><text x="42" y="102" text-anchor="end" fill="rgba(255,255,255,0.2)" font-size="7" font-family="var(--m)" dy="3">R$5.14</text><line x1="45" y1="78" x2="372" y2="78" stroke="rgba(255,255,255,0.04)" stroke-dasharray="2 2"/><text x="42" y="78" text-anchor="end" fill="rgba(255,255,255,0.2)" font-size="7" font-family="var(--m)" dy="3">R$5.25</text><line x1="45" y1="55" x2="372" y2="55" stroke="rgba(255,255,255,0.04)" stroke-dasharray="2 2"/><text x="42" y="55" text-anchor="end" fill="rgba(255,255,255,0.2)" font-size="7" font-family="var(--m)" dy="3">R$5.36</text><line x1="45" y1="32" x2="372" y2="32" stroke="rgba(255,255,255,0.04)" stroke-dasharray="2 2"/><text x="42" y="32" text-anchor="end" fill="rgba(255,255,255,0.2)" font-size="7" font-family="var(--m)" dy="3">R$5.46</text><line x1="45" y1="8" x2="372" y2="8" stroke="rgba(255,255,255,0.04)" stroke-dasharray="2 2"/><text x="42" y="8" text-anchor="end" fill="rgba(255,255,255,0.2)" font-size="7" font-family="var(--m)" dy="3">R$5.57</text><path d="M 45.0,58.1 L 48.3,48.8 L 51.6,48.9 L 54.9,56.2 L 58.2,48.8 L 61.5,49.9 L 64.8,57.4 L 68.1,54.9 L 71.4,63.2 L 74.7,72.9 L 78.0,69.6 L 81.3,71.0 L 84.6,68.1 L 87.9,64.8 L 91.2,59.3 L 94.5,59.6 L 97.8,47.6 L 101.2,46.6 L 104.5,48.9 L 107.8,52.1 L 111.1,56.5 L 114.4,59.8 L 117.7,57.0 L 121.0,57.1 L 124.3,64.6 L 127.6,68.1 L 130.9,58.4 L 134.2,40.1 L 137.5,33.2 L 140.8,31.4 L 144.1,40.4 L 147.4,45.3 L 150.7,47.0 L 154.0,34.6 L 157.3,21.9 L 160.6,17.8 L 163.9,20.5 L 167.2,15.6 L 170.5,10.1 L 173.8,16.4 L 177.1,15.0 L 180.4,8.0 L 183.7,23.4 L 187.0,23.4 L 190.3,37.5 L 193.6,37.9 L 196.9,49.9 L 200.2,48.1 L 203.5,48.5 L 206.8,51.8 L 210.2,50.7 L 213.5,50.6 L 216.8,49.9 L 220.1,48.8 L 223.4,49.9 L 226.7,53.0 L 230.0,50.0 L 233.3,59.2 L 236.6,64.5 L 239.9,69.7 L 243.2,72.3 L 246.5,80.2 L 249.8,92.2 L 253.1,89.6 L 256.4,82.2 L 259.7,76.0 L 263.0,83.6 L 266.3,80.9 L 269.6,76.2 L 272.9,81.3 L 276.2,89.9 L 279.5,88.2 L 282.8,92.2 L 286.1,95.7 L 289.4,82.5 L 292.7,81.1 L 296.0,83.1 L 299.3,88.5 L 302.6,96.5 L 305.9,95.5 L 309.2,100.7 L 312.5,102.0 L 315.8,99.6 L 319.2,88.6 L 322.5,69.9 L 325.8,86.7 L 329.1,79.0 L 332.4,69.7 L 335.7,85.7 L 339.0,96.8 L 342.3,97.4 L 345.6,87.6 L 348.9,77.0 L 352.2,74.7 L 355.5,88.2 L 358.8,86.3 L 362.1,76.0 L 365.4,71.4 L 368.7,79.2 L 372.0,75.7 L 372.0,102 L 45.0,102 Z" fill="#a78bfa" opacity="0.08"/><path d="M 45.0,58.1 L 48.3,48.8 L 51.6,48.9 L 54.9,56.2 L 58.2,48.8 L 61.5,49.9 L 64.8,57.4 L 68.1,54.9 L 71.4,63.2 L 74.7,72.9 L 78.0,69.6 L 81.3,71.0 L 84.6,68.1 L 87.9,64.8 L 91.2,59.3 L 94.5,59.6 L 97.8,47.6 L 101.2,46.6 L 104.5,48.9 L 107.8,52.1 L 111.1,56.5 L 114.4,59.8 L 117.7,57.0 L 121.0,57.1 L 124.3,64.6 L 127.6,68.1 L 130.9,58.4 L 134.2,40.1 L 137.5,33.2 L 140.8,31.4 L 144.1,40.4 L 147.4,45.3 L 150.7,47.0 L 154.0,34.6 L 157.3,21.9 L 160.6,17.8 L 163.9,20.5 L 167.2,15.6 L 170.5,10.1 L 173.8,16.4 L 177.1,15.0 L 180.4,8.0 L 183.7,23.4 L 187.0,23.4 L 190.3,37.5 L 193.6,37.9 L 196.9,49.9 L 200.2,48.1 L 203.5,48.5 L 206.8,51.8 L 210.2,50.7 L 213.5,50.6 L 216.8,49.9 L 220.1,48.8 L 223.4,49.9 L 226.7,53.0 L 230.0,50.0 L 233.3,59.2 L 236.6,64.5 L 239.9,69.7 L 243.2,72.3 L 246.5,80.2 L 249.8,92.2 L 253.1,89.6 L 256.4,82.2 L 259.7,76.0 L 263.0,83.6 L 266.3,80.9 L 269.6,76.2 L 272.9,81.3 L 276.2,89.9 L 279.5,88.2 L 282.8,92.2 L 286.1,95.7 L 289.4,82.5 L 292.7,81.1 L 296.0,83.1 L 299.3,88.5 L 302.6,96.5 L 305.9,95.5 L 309.2,100.7 L 312.5,102.0 L 315.8,99.6 L 319.2,88.6 L 322.5,69.9 L 325.8,86.7 L 329.1,79.0 L 332.4,69.7 L 335.7,85.7 L 339.0,96.8 L 342.3,97.4 L 345.6,87.6 L 348.9,77.0 L 352.2,74.7 L 355.5,88.2 L 358.8,86.3 L 362.1,76.0 L 365.4,71.4 L 368.7,79.2 L 372.0,75.7" fill="none" stroke="#a78bfa" stroke-width="1.5" stroke-linejoin="round"/><circle cx="372.0" cy="75.7" r="3" fill="#a78bfa"/><circle cx="372.0" cy="75.7" r="6" fill="#a78bfa" opacity="0.2"/></svg></div>
-</div>
-</div>
-
-<!-- MAPA SETORIAL -->
-<div class="section">
-<div class="sec-hdr"><div class="sec-t">Mapa Setorial — Treemap B3</div><div class="sec-badge">YTD</div></div>
-<div class="tm-wrap">
-<svg viewBox="0 0 380 280" style="width:100%;height:auto"><rect x="0.0" y="0.0" width="170.9" height="104.4" fill="rgba(34, 255, 94, 0.85)" stroke="var(--bg)" stroke-width="1.5" rx="3"/><text x="85" y="48" text-anchor="middle" fill="#fff" font-size="11" font-weight="700" font-family="var(--m)">PETR4</text><text x="85" y="60" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="9" font-family="var(--m)">+54.0%</text><rect x="0.0" y="104.4" width="170.9" height="59.0" fill="rgba(34, 96, 94, 0.85)" stroke="var(--bg)" stroke-width="1.5" rx="3"/><text x="85" y="130" text-anchor="middle" fill="#fff" font-size="11" font-weight="700" font-family="var(--m)">BBDC4</text><text x="85" y="142" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="9" font-family="var(--m)">+2.8%</text><rect x="0.0" y="163.4" width="170.9" height="58.7" fill="rgba(34, 122, 94, 0.85)" stroke="var(--bg)" stroke-width="1.5" rx="3"/><text x="85" y="189" text-anchor="middle" fill="#fff" font-size="11" font-weight="700" font-family="var(--m)">ABEV3</text><text x="85" y="201" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="9" font-family="var(--m)">+7.3%</text><rect x="0.0" y="222.1" width="170.9" height="57.9" fill="rgba(34, 244, 94, 0.85)" stroke="var(--bg)" stroke-width="1.5" rx="3"/><text x="85" y="247" text-anchor="middle" fill="#fff" font-size="11" font-weight="700" font-family="var(--m)">B3SA3</text><text x="85" y="259" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="9" font-family="var(--m)">+28.1%</text><rect x="170.9" y="0.0" width="78.9" height="119.0" fill="rgba(34, 255, 94, 0.85)" stroke="var(--bg)" stroke-width="1.5" rx="3"/><text x="210" y="56" text-anchor="middle" fill="#fff" font-size="11" font-weight="700" font-family="var(--m)">JBSS3</text><text x="210" y="68" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="9" font-family="var(--m)">+36.6%</text><rect x="249.8" y="0.0" width="65.4" height="119.0" fill="rgba(34, 124, 94, 0.85)" stroke="var(--bg)" stroke-width="1.5" rx="3"/><text x="282" y="56" text-anchor="middle" fill="#fff" font-size="11" font-weight="700" font-family="var(--m)">VALE3</text><text x="282" y="68" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="8" font-family="var(--m)">+7.7%</text><rect x="315.2" y="0.0" width="64.8" height="119.0" fill="rgba(34, 125, 94, 0.85)" stroke="var(--bg)" stroke-width="1.5" rx="3"/><text x="348" y="56" text-anchor="middle" fill="#fff" font-size="11" font-weight="700" font-family="var(--m)">ITUB4</text><text x="348" y="68" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="8" font-family="var(--m)">+7.8%</text><rect x="170.9" y="119.0" width="116.3" height="62.3" fill="rgba(34, 128, 94, 0.85)" stroke="var(--bg)" stroke-width="1.5" rx="3"/><text x="229" y="146" text-anchor="middle" fill="#fff" font-size="11" font-weight="700" font-family="var(--m)">BBAS3</text><text x="229" y="158" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="9" font-family="var(--m)">+8.3%</text><rect x="170.9" y="181.3" width="116.3" height="51.9" fill="rgba(85, 68, 68, 0.85)" stroke="var(--bg)" stroke-width="1.5" rx="3"/><text x="229" y="203" text-anchor="middle" fill="#fff" font-size="11" font-weight="700" font-family="var(--m)">MGLU3</text><text x="229" y="215" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="9" font-family="var(--m)">-1.0%</text><rect x="170.9" y="233.2" width="116.3" height="46.8" fill="rgba(34, 175, 94, 0.85)" stroke="var(--bg)" stroke-width="1.5" rx="3"/><text x="229" y="253" text-anchor="middle" fill="#fff" font-size="11" font-weight="700" font-family="var(--m)">LREN3</text><text x="229" y="265" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="9" font-family="var(--m)">+16.4%</text><rect x="287.2" y="119.0" width="53.0" height="70.2" fill="rgba(34, 114, 94, 0.85)" stroke="var(--bg)" stroke-width="1.5" rx="3"/><text x="314" y="150" text-anchor="middle" fill="#fff" font-size="9" font-weight="700" font-family="var(--m)">RENT3</text><text x="314" y="162" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="7" font-family="var(--m)">+6.0%</text><rect x="340.2" y="119.0" width="39.8" height="70.2" fill="rgba(34, 255, 94, 0.85)" stroke="var(--bg)" stroke-width="1.5" rx="3"/><text x="360" y="150" text-anchor="middle" fill="#fff" font-size="7" font-weight="700" font-family="var(--m)">ELET3</text><text x="360" y="162" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="6" font-family="var(--m)">+57.3%</text><rect x="287.2" y="189.2" width="49.0" height="38.0" fill="rgba(96, 68, 68, 0.85)" stroke="var(--bg)" stroke-width="1.5" rx="3"/><text x="312" y="204" text-anchor="middle" fill="#fff" font-size="8" font-weight="700" font-family="var(--m)">WEGE3</text><text x="312" y="216" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="6" font-family="var(--m)">-2.9%</text><rect x="287.2" y="227.1" width="49.0" height="26.5" fill="rgba(169, 68, 68, 0.85)" stroke="var(--bg)" stroke-width="1.5" rx="3"/><text x="312" y="236" text-anchor="middle" fill="#fff" font-size="8" font-weight="700" font-family="var(--m)">TOTS3</text><text x="312" y="248" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="6" font-family="var(--m)">-15.3%</text><rect x="287.2" y="253.6" width="49.0" height="26.4" fill="rgba(34, 255, 94, 0.85)" stroke="var(--bg)" stroke-width="1.5" rx="3"/><text x="312" y="263" text-anchor="middle" fill="#fff" font-size="8" font-weight="700" font-family="var(--m)">EMBR3</text><text x="312" y="275" text-anchor="middle" fill="rgba(255,255,255,0.8)" font-size="6" font-family="var(--m)">+73.6%</text><rect x="336.1" y="189.2" width="22.9" height="49.1" fill="rgba(119, 68, 68, 0.85)" stroke="var(--bg)" stroke-width="1.5" rx="3"/><text x="348" y="217" text-anchor="middle" fill="#fff" font-size="6" font-family="var(--m)">LWSA3</text><rect x="359.0" y="189.2" width="21.0" height="49.1" fill="rgba(34, 163, 94, 0.85)" stroke="var(--bg)" stroke-width="1.5" rx="3"/><text x="370" y="217" text-anchor="middle" fill="#fff" font-size="6" font-family="var(--m)">SBSP3</text><rect x="336.1" y="238.3" width="20.0" height="41.7" fill="rgba(34, 87, 94, 0.85)" stroke="var(--bg)" stroke-width="1.5" rx="3"/><text x="346" y="262" text-anchor="middle" fill="#fff" font-size="6" font-family="var(--m)">CASH3</text><rect x="356.2" y="238.3" width="23.8" height="25.7" fill="rgba(34, 236, 94, 0.85)" stroke="var(--bg)" stroke-width="1.5" rx="3"/><text x="368" y="254" text-anchor="middle" fill="#fff" font-size="6" font-family="var(--m)">INTB3</text><rect x="356.2" y="264.0" width="23.8" height="16.0" fill="rgba(34, 92, 94, 0.85)" stroke="var(--bg)" stroke-width="1.5" rx="3"/><text x="368" y="275" text-anchor="middle" fill="#fff" font-size="6" font-family="var(--m)">POSI3</text></svg>
-<div class="tm-legend">
-<span><div class="dot" style="background:rgba(239,68,68,0.8)"></div>Queda forte</span>
-<span><div class="dot" style="background:rgba(239,68,68,0.3)"></div>Queda leve</span>
-<span><div class="dot" style="background:rgba(34,197,94,0.3)"></div>Alta leve</span>
-<span><div class="dot" style="background:rgba(34,197,94,0.8)"></div>Alta forte</span>
-</div>
+<!-- MARKET PULSE -->
+<div class="pulse">
+<svg viewBox="0 0 80 50" style="width:80px">
+<circle cx="40" cy="38" r="32" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="5"/>
+<circle cx="40" cy="38" r="32" fill="none" stroke="#3b82f6" stroke-width="5" 
+  stroke-dasharray="160.8 40.2" stroke-dashoffset="50.3" stroke-linecap="round" opacity="0.8"/>
+<text x="40" y="36" text-anchor="middle" fill="#3b82f6" font-size="11" font-weight="700" font-family="var(--m)">80%</text>
+<text x="40" y="46" text-anchor="middle" fill="var(--t3)" font-size="5" font-family="var(--m)">BREADTH</text>
+</svg>
+<div class="pulse-stats">
+<div class="ps"><span class="k">SELIC</span><span class="v">0.00%</span></div>
+<div class="ps"><span class="k">IBOV</span><span class="v">181,558</span></div>
+<div class="ps"><span class="k">USD</span><span class="v">R$5.26</span></div>
+<div class="ps"><span class="k">IPCA 12M</span><span class="v">8.7%</span></div>
+<div class="ps"><span class="k">AVG YTD</span><span class="v pos">+16.2%</span></div>
+<div class="ps"><span class="k">UP/DOWN</span><span class="v"><span class="pos">16</span>/<span class="neg">4</span></span></div>
 </div>
 </div>
 
-<!-- SECTOR PERFORMANCE -->
-<div class="section">
-<div class="sec-hdr"><div class="sec-t">Performance por Setor</div><div class="sec-badge">YTD MÉDIO</div></div>
-<div class="sb-row">
-<div class="sb-label">Energia</div>
-<div class="sb-bar-wrap">
-<div class="sb-bar pos" style="width:100%"></div>
-<span class="sb-val pos">+54.0%</span>
+<!-- MACRO CHARTS -->
+<div class="macro-row">
+<div class="mx">
+<div class="mx-top"><span class="mx-lbl">IBOVESPA</span><span class="mx-chg neg">-0.2%</span></div>
+<div class="mx-val">181,558</div>
+<svg viewBox="0 0 380 100"><line x1="42" y1="86" x2="372" y2="86" stroke="rgba(255,255,255,0.03)"/><text x="38" y="86" text-anchor="end" fill="rgba(255,255,255,0.15)" font-size="6.5" font-family="var(--m)" dy="2.5">132K</text><line x1="42" y1="67" x2="372" y2="67" stroke="rgba(255,255,255,0.03)"/><text x="38" y="67" text-anchor="end" fill="rgba(255,255,255,0.15)" font-size="6.5" font-family="var(--m)" dy="2.5">147K</text><line x1="42" y1="48" x2="372" y2="48" stroke="rgba(255,255,255,0.03)"/><text x="38" y="48" text-anchor="end" fill="rgba(255,255,255,0.15)" font-size="6.5" font-family="var(--m)" dy="2.5">162K</text><line x1="42" y1="29" x2="372" y2="29" stroke="rgba(255,255,255,0.03)"/><text x="38" y="29" text-anchor="end" fill="rgba(255,255,255,0.15)" font-size="6.5" font-family="var(--m)" dy="2.5">177K</text><line x1="42" y1="10" x2="372" y2="10" stroke="rgba(255,255,255,0.03)"/><text x="38" y="10" text-anchor="end" fill="rgba(255,255,255,0.15)" font-size="6.5" font-family="var(--m)" dy="2.5">191K</text><defs><linearGradient id="g_3b82f6" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#3b82f6" stop-opacity="0.15"/><stop offset="100%" stop-color="#3b82f6" stop-opacity="0"/></linearGradient></defs><path d="M 42.0,80.9 L 43.7,81.4 L 45.3,80.5 L 47.0,79.6 L 48.6,78.7 L 50.3,79.5 L 51.9,76.9 L 53.6,77.4 L 55.3,77.6 L 56.9,79.6 L 58.6,80.3 L 60.2,79.6 L 61.9,81.3 L 63.6,79.6 L 65.2,79.9 L 66.9,77.4 L 68.5,76.5 L 70.2,77.1 L 71.8,74.7 L 73.5,74.0 L 75.2,76.6 L 76.8,76.8 L 78.5,79.1 L 80.1,80.1 L 81.8,80.8 L 83.5,81.9 L 85.1,82.0 L 86.8,81.7 L 88.4,81.6 L 90.1,84.4 L 91.7,83.4 L 93.4,83.6 L 95.1,81.9 L 96.7,83.9 L 98.4,84.2 L 100.0,86.0 L 101.7,85.2 L 103.4,83.6 L 105.0,84.8 L 106.7,85.6 L 108.3,84.9 L 110.0,84.7 L 111.6,82.9 L 113.3,80.4 L 115.0,81.2 L 116.6,81.5 L 118.3,78.6 L 119.9,80.2 L 121.6,80.6 L 123.3,80.6 L 124.9,79.4 L 126.6,83.1 L 128.2,82.8 L 129.9,83.0 L 131.5,78.5 L 133.2,78.5 L 134.9,78.8 L 136.5,76.9 L 138.2,74.6 L 139.8,74.1 L 141.5,74.5 L 143.2,75.5 L 144.8,76.1 L 146.5,74.7 L 148.1,72.5 L 149.8,73.6 L 151.4,73.9 L 153.1,72.9 L 154.8,71.9 L 156.4,73.0 L 158.1,71.4 L 159.7,70.7 L 161.4,68.8 L 163.1,68.9 L 164.7,68.4 L 166.4,69.4 L 168.0,67.7 L 169.7,67.6 L 171.3,69.1 L 173.0,68.9 L 174.7,67.8 L 176.3,67.9 L 178.0,68.9 L 179.6,70.9 L 181.3,70.5 L 183.0,71.3 L 184.6,74.2 L 186.3,73.2 L 187.9,73.7 L 189.6,75.1 L 191.2,73.6 L 192.9,73.8 L 194.6,72.6 L 196.2,73.1 L 197.9,71.6 L 199.5,70.1 L 201.2,70.7 L 202.9,69.7 L 204.5,68.6 L 206.2,68.0 L 207.8,67.0 L 209.5,66.4 L 211.1,64.9 L 212.8,64.7 L 214.5,63.7 L 216.1,62.5 L 217.8,62.2 L 219.4,58.9 L 221.1,58.8 L 222.8,57.9 L 224.4,56.4 L 226.1,53.2 L 227.7,53.3 L 229.4,54.0 L 231.0,53.2 L 232.7,54.2 L 234.4,54.8 L 236.0,56.2 L 237.7,57.0 L 239.3,56.4 L 241.0,55.6 L 242.7,52.2 L 244.3,52.5 L 246.0,51.5 L 247.6,52.1 L 249.3,48.9 L 250.9,48.1 L 252.6,44.6 L 254.3,53.7 L 255.9,52.6 L 257.6,52.9 L 259.2,51.5 L 260.9,51.4 L 262.6,49.3 L 264.2,47.1 L 265.9,52.1 L 267.5,53.7 L 269.2,53.0 L 270.8,52.3 L 272.5,52.7 L 274.2,49.7 L 275.8,49.2 L 277.5,49.7 L 279.1,48.9 L 280.8,49.6 L 282.5,47.9 L 284.1,45.6 L 285.8,47.8 L 287.4,46.6 L 289.1,46.0 L 290.7,46.3 L 292.4,47.8 L 294.1,43.7 L 295.7,43.2 L 297.4,44.2 L 299.0,44.1 L 300.7,42.3 L 302.4,35.2 L 304.0,30.4 L 305.7,26.2 L 307.3,26.3 L 309.0,22.3 L 310.6,18.7 L 312.3,20.7 L 314.0,23.0 L 315.6,21.1 L 317.3,17.4 L 318.9,22.5 L 320.6,22.0 L 322.3,20.9 L 323.9,16.7 L 325.6,17.1 L 327.2,12.3 L 328.9,14.8 L 330.5,16.4 L 332.2,17.0 L 333.9,13.8 L 335.5,11.2 L 337.2,13.4 L 338.8,10.0 L 340.5,10.3 L 342.2,10.6 L 343.8,13.5 L 345.5,12.8 L 347.1,20.7 L 348.8,17.8 L 350.4,24.1 L 352.1,25.5 L 353.8,23.5 L 355.4,20.3 L 357.1,19.6 L 358.7,25.6 L 360.4,27.7 L 362.1,24.9 L 363.7,24.2 L 365.4,25.2 L 367.0,24.4 L 368.7,29.6 L 370.3,22.2 L 372.0,22.7 L 372.0,86 L 42.0,86 Z" fill="url(#g_3b82f6)"/><path d="M 42.0,80.9 L 43.7,81.4 L 45.3,80.5 L 47.0,79.6 L 48.6,78.7 L 50.3,79.5 L 51.9,76.9 L 53.6,77.4 L 55.3,77.6 L 56.9,79.6 L 58.6,80.3 L 60.2,79.6 L 61.9,81.3 L 63.6,79.6 L 65.2,79.9 L 66.9,77.4 L 68.5,76.5 L 70.2,77.1 L 71.8,74.7 L 73.5,74.0 L 75.2,76.6 L 76.8,76.8 L 78.5,79.1 L 80.1,80.1 L 81.8,80.8 L 83.5,81.9 L 85.1,82.0 L 86.8,81.7 L 88.4,81.6 L 90.1,84.4 L 91.7,83.4 L 93.4,83.6 L 95.1,81.9 L 96.7,83.9 L 98.4,84.2 L 100.0,86.0 L 101.7,85.2 L 103.4,83.6 L 105.0,84.8 L 106.7,85.6 L 108.3,84.9 L 110.0,84.7 L 111.6,82.9 L 113.3,80.4 L 115.0,81.2 L 116.6,81.5 L 118.3,78.6 L 119.9,80.2 L 121.6,80.6 L 123.3,80.6 L 124.9,79.4 L 126.6,83.1 L 128.2,82.8 L 129.9,83.0 L 131.5,78.5 L 133.2,78.5 L 134.9,78.8 L 136.5,76.9 L 138.2,74.6 L 139.8,74.1 L 141.5,74.5 L 143.2,75.5 L 144.8,76.1 L 146.5,74.7 L 148.1,72.5 L 149.8,73.6 L 151.4,73.9 L 153.1,72.9 L 154.8,71.9 L 156.4,73.0 L 158.1,71.4 L 159.7,70.7 L 161.4,68.8 L 163.1,68.9 L 164.7,68.4 L 166.4,69.4 L 168.0,67.7 L 169.7,67.6 L 171.3,69.1 L 173.0,68.9 L 174.7,67.8 L 176.3,67.9 L 178.0,68.9 L 179.6,70.9 L 181.3,70.5 L 183.0,71.3 L 184.6,74.2 L 186.3,73.2 L 187.9,73.7 L 189.6,75.1 L 191.2,73.6 L 192.9,73.8 L 194.6,72.6 L 196.2,73.1 L 197.9,71.6 L 199.5,70.1 L 201.2,70.7 L 202.9,69.7 L 204.5,68.6 L 206.2,68.0 L 207.8,67.0 L 209.5,66.4 L 211.1,64.9 L 212.8,64.7 L 214.5,63.7 L 216.1,62.5 L 217.8,62.2 L 219.4,58.9 L 221.1,58.8 L 222.8,57.9 L 224.4,56.4 L 226.1,53.2 L 227.7,53.3 L 229.4,54.0 L 231.0,53.2 L 232.7,54.2 L 234.4,54.8 L 236.0,56.2 L 237.7,57.0 L 239.3,56.4 L 241.0,55.6 L 242.7,52.2 L 244.3,52.5 L 246.0,51.5 L 247.6,52.1 L 249.3,48.9 L 250.9,48.1 L 252.6,44.6 L 254.3,53.7 L 255.9,52.6 L 257.6,52.9 L 259.2,51.5 L 260.9,51.4 L 262.6,49.3 L 264.2,47.1 L 265.9,52.1 L 267.5,53.7 L 269.2,53.0 L 270.8,52.3 L 272.5,52.7 L 274.2,49.7 L 275.8,49.2 L 277.5,49.7 L 279.1,48.9 L 280.8,49.6 L 282.5,47.9 L 284.1,45.6 L 285.8,47.8 L 287.4,46.6 L 289.1,46.0 L 290.7,46.3 L 292.4,47.8 L 294.1,43.7 L 295.7,43.2 L 297.4,44.2 L 299.0,44.1 L 300.7,42.3 L 302.4,35.2 L 304.0,30.4 L 305.7,26.2 L 307.3,26.3 L 309.0,22.3 L 310.6,18.7 L 312.3,20.7 L 314.0,23.0 L 315.6,21.1 L 317.3,17.4 L 318.9,22.5 L 320.6,22.0 L 322.3,20.9 L 323.9,16.7 L 325.6,17.1 L 327.2,12.3 L 328.9,14.8 L 330.5,16.4 L 332.2,17.0 L 333.9,13.8 L 335.5,11.2 L 337.2,13.4 L 338.8,10.0 L 340.5,10.3 L 342.2,10.6 L 343.8,13.5 L 345.5,12.8 L 347.1,20.7 L 348.8,17.8 L 350.4,24.1 L 352.1,25.5 L 353.8,23.5 L 355.4,20.3 L 357.1,19.6 L 358.7,25.6 L 360.4,27.7 L 362.1,24.9 L 363.7,24.2 L 365.4,25.2 L 367.0,24.4 L 368.7,29.6 L 370.3,22.2 L 372.0,22.7" fill="none" stroke="#3b82f6" stroke-width="1.2" stroke-linejoin="round"/><circle cx="372.0" cy="22.7" r="2.5" fill="#3b82f6"/><circle cx="372.0" cy="22.7" r="5" fill="#3b82f6" opacity="0.15"/></svg>
 </div>
-<div class="sb-tks">PETR4</div>
-</div><div class="sb-row">
-<div class="sb-label">Utilities</div>
-<div class="sb-bar-wrap">
-<div class="sb-bar pos" style="width:66%"></div>
-<span class="sb-val pos">+35.8%</span>
-</div>
-<div class="sb-tks">SBSP3, ELET3</div>
-</div><div class="sb-row">
-<div class="sb-label">Industrial</div>
-<div class="sb-bar-wrap">
-<div class="sb-bar pos" style="width:47%"></div>
-<span class="sb-val pos">+25.5%</span>
-</div>
-<div class="sb-tks">WEGE3, RENT3, EMBR3</div>
-</div><div class="sb-row">
-<div class="sb-label">Consumo</div>
-<div class="sb-bar-wrap">
-<div class="sb-bar pos" style="width:27%"></div>
-<span class="sb-val pos">+14.8%</span>
-</div>
-<div class="sb-tks">ABEV3, MGLU3, LREN3, JBSS3</div>
-</div><div class="sb-row">
-<div class="sb-label">Financeiro</div>
-<div class="sb-bar-wrap">
-<div class="sb-bar pos" style="width:22%"></div>
-<span class="sb-val pos">+11.8%</span>
-</div>
-<div class="sb-tks">ITUB4, BBDC4, BBAS3, B3SA3</div>
-</div><div class="sb-row">
-<div class="sb-label">Materiais</div>
-<div class="sb-bar-wrap">
-<div class="sb-bar pos" style="width:14%"></div>
-<span class="sb-val pos">+7.7%</span>
-</div>
-<div class="sb-tks">VALE3</div>
-</div><div class="sb-row">
-<div class="sb-label">Tecnologia</div>
-<div class="sb-bar-wrap">
-<div class="sb-bar pos" style="width:3%"></div>
-<span class="sb-val pos">+1.6%</span>
-</div>
-<div class="sb-tks">TOTS3, LWSA3, INTB3, CASH3</div>
+<div class="mx">
+<div class="mx-top"><span class="mx-lbl">USD/BRL</span><span class="mx-chg neg">+0.3%</span></div>
+<div class="mx-val">R$5.26</div>
+<svg viewBox="0 0 380 100"><line x1="42" y1="86" x2="372" y2="86" stroke="rgba(255,255,255,0.03)"/><text x="38" y="86" text-anchor="end" fill="rgba(255,255,255,0.15)" font-size="6.5" font-family="var(--m)" dy="2.5">5.14</text><line x1="42" y1="67" x2="372" y2="67" stroke="rgba(255,255,255,0.03)"/><text x="38" y="67" text-anchor="end" fill="rgba(255,255,255,0.15)" font-size="6.5" font-family="var(--m)" dy="2.5">5.25</text><line x1="42" y1="48" x2="372" y2="48" stroke="rgba(255,255,255,0.03)"/><text x="38" y="48" text-anchor="end" fill="rgba(255,255,255,0.15)" font-size="6.5" font-family="var(--m)" dy="2.5">5.36</text><line x1="42" y1="29" x2="372" y2="29" stroke="rgba(255,255,255,0.03)"/><text x="38" y="29" text-anchor="end" fill="rgba(255,255,255,0.15)" font-size="6.5" font-family="var(--m)" dy="2.5">5.46</text><line x1="42" y1="10" x2="372" y2="10" stroke="rgba(255,255,255,0.03)"/><text x="38" y="10" text-anchor="end" fill="rgba(255,255,255,0.15)" font-size="6.5" font-family="var(--m)" dy="2.5">5.57</text><defs><linearGradient id="g_a78bfa" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stop-color="#a78bfa" stop-opacity="0.15"/><stop offset="100%" stop-color="#a78bfa" stop-opacity="0"/></linearGradient></defs><path d="M 42.0,50.5 L 45.3,43.0 L 48.7,43.1 L 52.0,49.0 L 55.3,43.0 L 58.7,43.9 L 62.0,49.9 L 65.3,47.9 L 68.7,54.6 L 72.0,62.5 L 75.3,59.8 L 78.7,60.9 L 82.0,58.6 L 85.3,55.9 L 88.7,51.5 L 92.0,51.7 L 95.3,42.0 L 98.7,41.2 L 102.0,43.1 L 105.3,45.7 L 108.7,49.2 L 112.0,51.9 L 115.3,49.6 L 118.7,49.7 L 122.0,55.8 L 125.3,58.6 L 128.7,50.7 L 132.0,36.0 L 135.3,30.4 L 138.7,28.9 L 142.0,36.2 L 145.3,40.1 L 148.7,41.6 L 152.0,31.5 L 155.3,21.3 L 158.7,18.0 L 162.0,20.1 L 165.3,16.1 L 168.7,11.7 L 172.0,16.8 L 175.3,15.7 L 178.7,10.0 L 182.0,22.5 L 185.3,22.5 L 188.7,33.8 L 192.0,34.2 L 195.3,43.9 L 198.7,42.4 L 202.0,42.8 L 205.3,45.4 L 208.7,44.5 L 212.0,44.5 L 215.3,43.9 L 218.7,43.0 L 222.0,43.9 L 225.3,46.4 L 228.7,44.0 L 232.0,51.4 L 235.3,55.7 L 238.7,59.9 L 242.0,62.0 L 245.3,68.4 L 248.7,78.0 L 252.0,76.0 L 255.3,70.0 L 258.7,65.0 L 262.0,71.1 L 265.3,69.0 L 268.7,65.1 L 272.0,69.3 L 275.3,76.2 L 278.7,74.9 L 282.0,78.1 L 285.3,80.9 L 288.7,70.2 L 292.0,69.1 L 295.3,70.7 L 298.7,75.1 L 302.0,81.6 L 305.3,80.8 L 308.7,85.0 L 312.0,86.0 L 315.3,84.0 L 318.7,75.2 L 322.0,60.0 L 325.3,73.6 L 328.7,67.4 L 332.0,59.9 L 335.3,72.8 L 338.7,81.8 L 342.0,82.3 L 345.3,74.3 L 348.7,65.8 L 352.0,63.9 L 355.3,74.8 L 358.7,73.3 L 362.0,65.0 L 365.3,61.3 L 368.7,67.5 L 372.0,64.8 L 372.0,86 L 42.0,86 Z" fill="url(#g_a78bfa)"/><path d="M 42.0,50.5 L 45.3,43.0 L 48.7,43.1 L 52.0,49.0 L 55.3,43.0 L 58.7,43.9 L 62.0,49.9 L 65.3,47.9 L 68.7,54.6 L 72.0,62.5 L 75.3,59.8 L 78.7,60.9 L 82.0,58.6 L 85.3,55.9 L 88.7,51.5 L 92.0,51.7 L 95.3,42.0 L 98.7,41.2 L 102.0,43.1 L 105.3,45.7 L 108.7,49.2 L 112.0,51.9 L 115.3,49.6 L 118.7,49.7 L 122.0,55.8 L 125.3,58.6 L 128.7,50.7 L 132.0,36.0 L 135.3,30.4 L 138.7,28.9 L 142.0,36.2 L 145.3,40.1 L 148.7,41.6 L 152.0,31.5 L 155.3,21.3 L 158.7,18.0 L 162.0,20.1 L 165.3,16.1 L 168.7,11.7 L 172.0,16.8 L 175.3,15.7 L 178.7,10.0 L 182.0,22.5 L 185.3,22.5 L 188.7,33.8 L 192.0,34.2 L 195.3,43.9 L 198.7,42.4 L 202.0,42.8 L 205.3,45.4 L 208.7,44.5 L 212.0,44.5 L 215.3,43.9 L 218.7,43.0 L 222.0,43.9 L 225.3,46.4 L 228.7,44.0 L 232.0,51.4 L 235.3,55.7 L 238.7,59.9 L 242.0,62.0 L 245.3,68.4 L 248.7,78.0 L 252.0,76.0 L 255.3,70.0 L 258.7,65.0 L 262.0,71.1 L 265.3,69.0 L 268.7,65.1 L 272.0,69.3 L 275.3,76.2 L 278.7,74.9 L 282.0,78.1 L 285.3,80.9 L 288.7,70.2 L 292.0,69.1 L 295.3,70.7 L 298.7,75.1 L 302.0,81.6 L 305.3,80.8 L 308.7,85.0 L 312.0,86.0 L 315.3,84.0 L 318.7,75.2 L 322.0,60.0 L 325.3,73.6 L 328.7,67.4 L 332.0,59.9 L 335.3,72.8 L 338.7,81.8 L 342.0,82.3 L 345.3,74.3 L 348.7,65.8 L 352.0,63.9 L 355.3,74.8 L 358.7,73.3 L 362.0,65.0 L 365.3,61.3 L 368.7,67.5 L 372.0,64.8" fill="none" stroke="#a78bfa" stroke-width="1.2" stroke-linejoin="round"/><circle cx="372.0" cy="64.8" r="2.5" fill="#a78bfa"/><circle cx="372.0" cy="64.8" r="5" fill="#a78bfa" opacity="0.15"/></svg>
 </div>
 </div>
 
-<!-- CORRELATION MATRIX -->
-<div class="section">
-<div class="sec-hdr"><div class="sec-t">Correlação Inter-Setorial</div><div class="sec-badge">MATRIX</div></div>
-<div class="corr-wrap"><svg viewBox="0 0 260 260" style="width:100%;max-width:300px;height:auto"><text x="57.5" y="19" text-anchor="middle" fill="var(--t3)" font-size="8" font-family="var(--m)">FIN</text><text x="92.5" y="19" text-anchor="middle" fill="var(--t3)" font-size="8" font-family="var(--m)">ENE</text><text x="127.5" y="19" text-anchor="middle" fill="var(--t3)" font-size="8" font-family="var(--m)">MAT</text><text x="162.5" y="19" text-anchor="middle" fill="var(--t3)" font-size="8" font-family="var(--m)">CON</text><text x="197.5" y="19" text-anchor="middle" fill="var(--t3)" font-size="8" font-family="var(--m)">IND</text><text x="232.5" y="19" text-anchor="middle" fill="var(--t3)" font-size="8" font-family="var(--m)">TEC</text><text x="34" y="45.5" text-anchor="end" fill="var(--t3)" font-size="8" font-family="var(--m)">FIN</text><rect x="40" y="25" width="33" height="33" rx="4" fill="rgba(34,197,94,0.8)"/><text x="56.5" y="44.5" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="7" font-family="var(--m)">1.00</text><rect x="75" y="25" width="33" height="33" rx="4" fill="rgba(59,130,246,0.52)"/><text x="91.5" y="44.5" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="7" font-family="var(--m)">0.65</text><rect x="110" y="25" width="33" height="33" rx="4" fill="rgba(59,130,246,0.36000000000000004)"/><text x="126.5" y="44.5" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="7" font-family="var(--m)">0.45</text><rect x="145" y="25" width="33" height="33" rx="4" fill="rgba(34,197,94,0.576)"/><text x="161.5" y="44.5" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="7" font-family="var(--m)">0.72</text><rect x="180" y="25" width="33" height="33" rx="4" fill="rgba(59,130,246,0.46399999999999997)"/><text x="196.5" y="44.5" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="7" font-family="var(--m)">0.58</text><rect x="215" y="25" width="33" height="33" rx="4" fill="rgba(59,130,246,0.328)"/><text x="231.5" y="44.5" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="7" font-family="var(--m)">0.41</text><text x="34" y="80.5" text-anchor="end" fill="var(--t3)" font-size="8" font-family="var(--m)">ENE</text><rect x="40" y="60" width="33" height="33" rx="4" fill="rgba(59,130,246,0.52)"/><text x="56.5" y="79.5" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="7" font-family="var(--m)">0.65</text><rect x="75" y="60" width="33" height="33" rx="4" fill="rgba(34,197,94,0.8)"/><text x="91.5" y="79.5" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="7" font-family="var(--m)">1.00</text><rect x="110" y="60" width="33" height="33" rx="4" fill="rgba(34,197,94,0.6240000000000001)"/><text x="126.5" y="79.5" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="7" font-family="var(--m)">0.78</text><rect x="145" y="60" width="33" height="33" rx="4" fill="rgba(255,255,255,0.08399999999999999)"/><text x="161.5" y="79.5" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="7" font-family="var(--m)">0.35</text><rect x="180" y="60" width="33" height="33" rx="4" fill="rgba(59,130,246,0.336)"/><text x="196.5" y="79.5" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="7" font-family="var(--m)">0.42</text><rect x="215" y="60" width="33" height="33" rx="4" fill="rgba(255,255,255,0.06720000000000001)"/><text x="231.5" y="79.5" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="7" font-family="var(--m)">0.28</text><text x="34" y="115.5" text-anchor="end" fill="var(--t3)" font-size="8" font-family="var(--m)">MAT</text><rect x="40" y="95" width="33" height="33" rx="4" fill="rgba(59,130,246,0.36000000000000004)"/><text x="56.5" y="114.5" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="7" font-family="var(--m)">0.45</text><rect x="75" y="95" width="33" height="33" rx="4" fill="rgba(34,197,94,0.6240000000000001)"/><text x="91.5" y="114.5" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="7" font-family="var(--m)">0.78</text><rect x="110" y="95" width="33" height="33" rx="4" fill="rgba(34,197,94,0.8)"/><text x="126.5" y="114.5" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="7" font-family="var(--m)">1.00</text><rect x="145" y="95" width="33" height="33" rx="4" fill="rgba(255,255,255,0.072)"/><text x="161.5" y="114.5" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="7" font-family="var(--m)">0.30</text><rect x="180" y="95" width="33" height="33" rx="4" fill="rgba(59,130,246,0.44000000000000006)"/><text x="196.5" y="114.5" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="7" font-family="var(--m)">0.55</text><rect x="215" y="95" width="33" height="33" rx="4" fill="rgba(255,255,255,0.05280000000000001)"/><text x="231.5" y="114.5" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="7" font-family="var(--m)">0.22</text><text x="34" y="150.5" text-anchor="end" fill="var(--t3)" font-size="8" font-family="var(--m)">CON</text><rect x="40" y="130" width="33" height="33" rx="4" fill="rgba(34,197,94,0.576)"/><text x="56.5" y="149.5" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="7" font-family="var(--m)">0.72</text><rect x="75" y="130" width="33" height="33" rx="4" fill="rgba(255,255,255,0.08399999999999999)"/><text x="91.5" y="149.5" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="7" font-family="var(--m)">0.35</text><rect x="110" y="130" width="33" height="33" rx="4" fill="rgba(255,255,255,0.072)"/><text x="126.5" y="149.5" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="7" font-family="var(--m)">0.30</text><rect x="145" y="130" width="33" height="33" rx="4" fill="rgba(34,197,94,0.8)"/><text x="161.5" y="149.5" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="7" font-family="var(--m)">1.00</text><rect x="180" y="130" width="33" height="33" rx="4" fill="rgba(59,130,246,0.384)"/><text x="196.5" y="149.5" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="7" font-family="var(--m)">0.48</text><rect x="215" y="130" width="33" height="33" rx="4" fill="rgba(59,130,246,0.52)"/><text x="231.5" y="149.5" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="7" font-family="var(--m)">0.65</text><text x="34" y="185.5" text-anchor="end" fill="var(--t3)" font-size="8" font-family="var(--m)">IND</text><rect x="40" y="165" width="33" height="33" rx="4" fill="rgba(59,130,246,0.46399999999999997)"/><text x="56.5" y="184.5" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="7" font-family="var(--m)">0.58</text><rect x="75" y="165" width="33" height="33" rx="4" fill="rgba(59,130,246,0.336)"/><text x="91.5" y="184.5" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="7" font-family="var(--m)">0.42</text><rect x="110" y="165" width="33" height="33" rx="4" fill="rgba(59,130,246,0.44000000000000006)"/><text x="126.5" y="184.5" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="7" font-family="var(--m)">0.55</text><rect x="145" y="165" width="33" height="33" rx="4" fill="rgba(59,130,246,0.384)"/><text x="161.5" y="184.5" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="7" font-family="var(--m)">0.48</text><rect x="180" y="165" width="33" height="33" rx="4" fill="rgba(34,197,94,0.8)"/><text x="196.5" y="184.5" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="7" font-family="var(--m)">1.00</text><rect x="215" y="165" width="33" height="33" rx="4" fill="rgba(59,130,246,0.41600000000000004)"/><text x="231.5" y="184.5" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="7" font-family="var(--m)">0.52</text><text x="34" y="220.5" text-anchor="end" fill="var(--t3)" font-size="8" font-family="var(--m)">TEC</text><rect x="40" y="200" width="33" height="33" rx="4" fill="rgba(59,130,246,0.328)"/><text x="56.5" y="219.5" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="7" font-family="var(--m)">0.41</text><rect x="75" y="200" width="33" height="33" rx="4" fill="rgba(255,255,255,0.06720000000000001)"/><text x="91.5" y="219.5" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="7" font-family="var(--m)">0.28</text><rect x="110" y="200" width="33" height="33" rx="4" fill="rgba(255,255,255,0.05280000000000001)"/><text x="126.5" y="219.5" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="7" font-family="var(--m)">0.22</text><rect x="145" y="200" width="33" height="33" rx="4" fill="rgba(59,130,246,0.52)"/><text x="161.5" y="219.5" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="7" font-family="var(--m)">0.65</text><rect x="180" y="200" width="33" height="33" rx="4" fill="rgba(59,130,246,0.41600000000000004)"/><text x="196.5" y="219.5" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="7" font-family="var(--m)">0.52</text><rect x="215" y="200" width="33" height="33" rx="4" fill="rgba(34,197,94,0.8)"/><text x="231.5" y="219.5" text-anchor="middle" fill="rgba(255,255,255,0.7)" font-size="7" font-family="var(--m)">1.00</text></svg></div>
-<div style="text-align:center;font-family:var(--m);font-size:0.5rem;color:var(--t3);margin-top:0.25rem">Correlação de retornos diários entre setores (período: 12 meses)</div>
+<!-- TOP / BOTTOM MOVERS -->
+<div class="sec">
+<div class="sec-h"><div class="sec-t">Destaques do Mercado</div><div class="sec-b">YTD 2026</div></div>
+<div class="movers">
+<div class="mv-col"><div class="mv-title" style="color:var(--ok)">▲ Maiores Altas</div><div class="mv-row"><span class="mv-rank">#1</span><span class="mv-tk">EMBR3</span><span class="mv-nm">Embraer</span><span class="mv-ret pos">+73.6%</span></div><div class="mv-row"><span class="mv-rank">#2</span><span class="mv-tk">ELET3</span><span class="mv-nm">Eletrobras</span><span class="mv-ret pos">+57.3%</span></div><div class="mv-row"><span class="mv-rank">#3</span><span class="mv-tk">PETR4</span><span class="mv-nm">Petrobras</span><span class="mv-ret pos">+54.0%</span></div><div class="mv-row"><span class="mv-rank">#4</span><span class="mv-tk">JBSS3</span><span class="mv-nm">JBS</span><span class="mv-ret pos">+36.6%</span></div><div class="mv-row"><span class="mv-rank">#5</span><span class="mv-tk">B3SA3</span><span class="mv-nm">B3</span><span class="mv-ret pos">+28.1%</span></div></div>
+<div class="mv-col"><div class="mv-title" style="color:var(--ng)">▼ Maiores Quedas</div><div class="mv-row"><span class="mv-rank">#1</span><span class="mv-tk">TOTS3</span><span class="mv-nm">TOTVS</span><span class="mv-ret neg">-15.3%</span></div><div class="mv-row"><span class="mv-rank">#2</span><span class="mv-tk">LWSA3</span><span class="mv-nm">Locaweb</span><span class="mv-ret neg">-6.8%</span></div><div class="mv-row"><span class="mv-rank">#3</span><span class="mv-tk">WEGE3</span><span class="mv-nm">WEG</span><span class="mv-ret neg">-2.9%</span></div><div class="mv-row"><span class="mv-rank">#4</span><span class="mv-tk">MGLU3</span><span class="mv-nm">Magalu</span><span class="mv-ret neg">-1.0%</span></div><div class="mv-row"><span class="mv-rank">#5</span><span class="mv-tk">CASH3</span><span class="mv-nm">Méliuz</span><span class="mv-ret pos">+1.3%</span></div></div>
+</div>
+</div>
+
+<!-- TREEMAP -->
+<div class="sec">
+<div class="sec-h"><div class="sec-t">Mapa de Calor Setorial</div><div class="sec-b">VOLUME × PERFORMANCE</div></div>
+<div class="box" style="padding:0.5rem"><svg viewBox="0 0 380 220"><rect x="0.0" y="0.0" width="122.8" height="61.5" rx="3" fill="#6ee7b7" opacity="0.15"/><rect x="0.0" y="0.0" width="122.8" height="61.5" rx="3" fill="none" stroke="#6ee7b7" stroke-width="0.5" opacity="0.4"/><text x="61" y="29" text-anchor="middle" fill="#6ee7b7" font-size="9" font-weight="700" font-family="var(--m)" opacity="0.9">BBDC4</text><text x="61" y="40" text-anchor="middle" fill="#6ee7b7" font-size="7" font-family="var(--m)" opacity="0.7">+2.8%</text><rect x="0.0" y="63.5" width="122.8" height="60.3" rx="3" fill="#10b981" opacity="0.15"/><rect x="0.0" y="63.5" width="122.8" height="60.3" rx="3" fill="none" stroke="#10b981" stroke-width="0.5" opacity="0.4"/><text x="61" y="92" text-anchor="middle" fill="#10b981" font-size="9" font-weight="700" font-family="var(--m)" opacity="0.9">B3SA3</text><text x="61" y="103" text-anchor="middle" fill="#10b981" font-size="7" font-family="var(--m)" opacity="0.7">+28.1%</text><rect x="0.0" y="125.8" width="122.8" height="46.6" rx="3" fill="#34d399" opacity="0.15"/><rect x="0.0" y="125.8" width="122.8" height="46.6" rx="3" fill="none" stroke="#34d399" stroke-width="0.5" opacity="0.4"/><text x="61" y="147" text-anchor="middle" fill="#34d399" font-size="9" font-weight="700" font-family="var(--m)" opacity="0.9">ITUB4</text><text x="61" y="158" text-anchor="middle" fill="#34d399" font-size="7" font-family="var(--m)" opacity="0.7">+7.8%</text><rect x="0.0" y="174.4" width="122.8" height="43.6" rx="3" fill="#34d399" opacity="0.15"/><rect x="0.0" y="174.4" width="122.8" height="43.6" rx="3" fill="none" stroke="#34d399" stroke-width="0.5" opacity="0.4"/><text x="61" y="194" text-anchor="middle" fill="#34d399" font-size="9" font-weight="700" font-family="var(--m)" opacity="0.9">BBAS3</text><text x="61" y="205" text-anchor="middle" fill="#34d399" font-size="7" font-family="var(--m)" opacity="0.7">+8.3%</text><text x="61" y="-4" text-anchor="middle" fill="#3b82f6" font-size="7" font-family="var(--m)" opacity="0.5">Financeiro</text><rect x="124.8" y="0.0" width="108.3" height="69.4" rx="3" fill="#34d399" opacity="0.15"/><rect x="124.8" y="0.0" width="108.3" height="69.4" rx="3" fill="none" stroke="#34d399" stroke-width="0.5" opacity="0.4"/><text x="179" y="33" text-anchor="middle" fill="#34d399" font-size="9" font-weight="700" font-family="var(--m)" opacity="0.9">ABEV3</text><text x="179" y="44" text-anchor="middle" fill="#34d399" font-size="7" font-family="var(--m)" opacity="0.7">+7.3%</text><rect x="124.8" y="71.4" width="108.3" height="64.9" rx="3" fill="#10b981" opacity="0.15"/><rect x="124.8" y="71.4" width="108.3" height="64.9" rx="3" fill="none" stroke="#10b981" stroke-width="0.5" opacity="0.4"/><text x="179" y="102" text-anchor="middle" fill="#10b981" font-size="9" font-weight="700" font-family="var(--m)" opacity="0.9">JBSS3</text><text x="179" y="113" text-anchor="middle" fill="#10b981" font-size="7" font-family="var(--m)" opacity="0.7">+36.6%</text><rect x="124.8" y="138.3" width="108.3" height="41.0" rx="3" fill="#fca5a5" opacity="0.15"/><rect x="124.8" y="138.3" width="108.3" height="41.0" rx="3" fill="none" stroke="#fca5a5" stroke-width="0.5" opacity="0.4"/><text x="179" y="157" text-anchor="middle" fill="#fca5a5" font-size="9" font-weight="700" font-family="var(--m)" opacity="0.9">MGLU3</text><text x="179" y="168" text-anchor="middle" fill="#fca5a5" font-size="7" font-family="var(--m)" opacity="0.7">-1.0%</text><rect x="124.8" y="181.2" width="108.3" height="36.8" rx="3" fill="#34d399" opacity="0.15"/><rect x="124.8" y="181.2" width="108.3" height="36.8" rx="3" fill="none" stroke="#34d399" stroke-width="0.5" opacity="0.4"/><text x="179" y="198" text-anchor="middle" fill="#34d399" font-size="9" font-weight="700" font-family="var(--m)" opacity="0.9">LREN3</text><text x="179" y="209" text-anchor="middle" fill="#34d399" font-size="7" font-family="var(--m)" opacity="0.7">+16.4%</text><text x="179" y="-4" text-anchor="middle" fill="#ec4899" font-size="7" font-family="var(--m)" opacity="0.5">Consumo</text><rect x="235.1" y="0.0" width="61.7" height="218.0" rx="3" fill="#10b981" opacity="0.15"/><rect x="235.1" y="0.0" width="61.7" height="218.0" rx="3" fill="none" stroke="#10b981" stroke-width="0.5" opacity="0.4"/><text x="266" y="107" text-anchor="middle" fill="#10b981" font-size="9" font-weight="700" font-family="var(--m)" opacity="0.9">PETR4</text><text x="266" y="118" text-anchor="middle" fill="#10b981" font-size="7" font-family="var(--m)" opacity="0.7">+54.0%</text><text x="266" y="-4" text-anchor="middle" fill="#f59e0b" font-size="7" font-family="var(--m)" opacity="0.5">Energia</text><rect x="298.8" y="0.0" width="25.8" height="218.0" rx="3" fill="#34d399" opacity="0.15"/><rect x="298.8" y="0.0" width="25.8" height="218.0" rx="3" fill="none" stroke="#34d399" stroke-width="0.5" opacity="0.4"/><text x="312" y="112" text-anchor="middle" fill="#34d399" font-size="6" font-family="var(--m)" opacity="0.7">VALE3</text><text x="312" y="-4" text-anchor="middle" fill="#8b5cf6" font-size="7" font-family="var(--m)" opacity="0.5">Materiais</text><rect x="326.6" y="0.0" width="22.5" height="117.1" rx="3" fill="#34d399" opacity="0.15"/><rect x="326.6" y="0.0" width="22.5" height="117.1" rx="3" fill="none" stroke="#34d399" stroke-width="0.5" opacity="0.4"/><text x="338" y="62" text-anchor="middle" fill="#34d399" font-size="6" font-family="var(--m)" opacity="0.7">RENT3</text><rect x="326.6" y="119.1" width="22.5" height="57.5" rx="3" fill="#fca5a5" opacity="0.15"/><rect x="326.6" y="119.1" width="22.5" height="57.5" rx="3" fill="none" stroke="#fca5a5" stroke-width="0.5" opacity="0.4"/><text x="338" y="151" text-anchor="middle" fill="#fca5a5" font-size="6" font-family="var(--m)" opacity="0.7">WEGE3</text><rect x="326.6" y="178.6" width="22.5" height="39.4" rx="3" fill="#10b981" opacity="0.15"/><rect x="326.6" y="178.6" width="22.5" height="39.4" rx="3" fill="none" stroke="#10b981" stroke-width="0.5" opacity="0.4"/><text x="338" y="201" text-anchor="middle" fill="#10b981" font-size="6" font-family="var(--m)" opacity="0.7">EMBR3</text><text x="338" y="-4" text-anchor="middle" fill="#06b6d4" font-size="7" font-family="var(--m)" opacity="0.5">Industrial</text><rect x="351.2" y="0.0" width="20.0" height="65.1" rx="3" fill="#f87171" opacity="0.15"/><rect x="351.2" y="0.0" width="20.0" height="65.1" rx="3" fill="none" stroke="#f87171" stroke-width="0.5" opacity="0.4"/><text x="361" y="36" text-anchor="middle" fill="#f87171" font-size="6" font-family="var(--m)" opacity="0.7">TOTS3</text><rect x="351.2" y="67.1" width="20.0" height="56.2" rx="3" fill="#f87171" opacity="0.15"/><rect x="351.2" y="67.1" width="20.0" height="56.2" rx="3" fill="none" stroke="#f87171" stroke-width="0.5" opacity="0.4"/><text x="361" y="98" text-anchor="middle" fill="#f87171" font-size="6" font-family="var(--m)" opacity="0.7">LWSA3</text><rect x="351.2" y="125.3" width="20.0" height="41.2" rx="3" fill="#6ee7b7" opacity="0.15"/><rect x="351.2" y="125.3" width="20.0" height="41.2" rx="3" fill="none" stroke="#6ee7b7" stroke-width="0.5" opacity="0.4"/><text x="361" y="149" text-anchor="middle" fill="#6ee7b7" font-size="6" font-family="var(--m)" opacity="0.7">CASH3</text><rect x="351.2" y="168.6" width="20.0" height="29.6" rx="3" fill="#10b981" opacity="0.15"/><rect x="351.2" y="168.6" width="20.0" height="29.6" rx="3" fill="none" stroke="#10b981" stroke-width="0.5" opacity="0.4"/><text x="361" y="186" text-anchor="middle" fill="#10b981" font-size="6" font-family="var(--m)" opacity="0.7">INTB3</text><rect x="351.2" y="200.2" width="20.0" height="17.8" rx="3" fill="#6ee7b7" opacity="0.15"/><rect x="351.2" y="200.2" width="20.0" height="17.8" rx="3" fill="none" stroke="#6ee7b7" stroke-width="0.5" opacity="0.4"/><text x="361" y="212" text-anchor="middle" fill="#6ee7b7" font-size="6" font-family="var(--m)" opacity="0.7">POSI3</text><text x="361" y="-4" text-anchor="middle" fill="#6366f1" font-size="7" font-family="var(--m)" opacity="0.5">Tecnologia</text><rect x="373.2" y="0.0" width="20.0" height="158.8" rx="3" fill="#10b981" opacity="0.15"/><rect x="373.2" y="0.0" width="20.0" height="158.8" rx="3" fill="none" stroke="#10b981" stroke-width="0.5" opacity="0.4"/><text x="383" y="82" text-anchor="middle" fill="#10b981" font-size="6" font-family="var(--m)" opacity="0.7">ELET3</text><rect x="373.2" y="160.8" width="20.0" height="57.2" rx="3" fill="#34d399" opacity="0.15"/><rect x="373.2" y="160.8" width="20.0" height="57.2" rx="3" fill="none" stroke="#34d399" stroke-width="0.5" opacity="0.4"/><text x="383" y="192" text-anchor="middle" fill="#34d399" font-size="6" font-family="var(--m)" opacity="0.7">SBSP3</text><text x="383" y="-4" text-anchor="middle" fill="#10b981" font-size="7" font-family="var(--m)" opacity="0.5">Utilities</text></svg></div>
+</div>
+
+<!-- SECTOR ROTATION -->
+<div class="sec">
+<div class="sec-h"><div class="sec-t">Rotação Setorial</div><div class="sec-b">YTD MÉDIO</div></div>
+<div class="box" style="padding:0.75rem"><div class="sr-row">
+<div class="sr-label" style="color:#6366f1">Tecnologia</div>
+<div class="sr-bar-area">
+<div class="sr-center"></div>
+<div class="sr-fill pos" style="width:5%;margin-left:50%"></div>
+</div>
+<div class="sr-val pos">+1.6%</div>
+</div><div class="sr-row">
+<div class="sr-label" style="color:#3b82f6">Financeiro</div>
+<div class="sr-bar-area">
+<div class="sr-center"></div>
+<div class="sr-fill pos" style="width:35%;margin-left:50%"></div>
+</div>
+<div class="sr-val pos">+11.8%</div>
+</div><div class="sr-row">
+<div class="sr-label" style="color:#f59e0b">Energia</div>
+<div class="sr-bar-area">
+<div class="sr-center"></div>
+<div class="sr-fill pos" style="width:100%;margin-left:50%"></div>
+</div>
+<div class="sr-val pos">+54.0%</div>
+</div><div class="sr-row">
+<div class="sr-label" style="color:#8b5cf6">Materiais</div>
+<div class="sr-bar-area">
+<div class="sr-center"></div>
+<div class="sr-fill pos" style="width:23%;margin-left:50%"></div>
+</div>
+<div class="sr-val pos">+7.7%</div>
+</div><div class="sr-row">
+<div class="sr-label" style="color:#ec4899">Consumo</div>
+<div class="sr-bar-area">
+<div class="sr-center"></div>
+<div class="sr-fill pos" style="width:44%;margin-left:50%"></div>
+</div>
+<div class="sr-val pos">+14.8%</div>
+</div><div class="sr-row">
+<div class="sr-label" style="color:#06b6d4">Industrial</div>
+<div class="sr-bar-area">
+<div class="sr-center"></div>
+<div class="sr-fill pos" style="width:77%;margin-left:50%"></div>
+</div>
+<div class="sr-val pos">+25.5%</div>
+</div><div class="sr-row">
+<div class="sr-label" style="color:#10b981">Utilities</div>
+<div class="sr-bar-area">
+<div class="sr-center"></div>
+<div class="sr-fill pos" style="width:100%;margin-left:50%"></div>
+</div>
+<div class="sr-val pos">+35.8%</div>
+</div></div>
 </div>
 
 <!-- SCREENER -->
-<div class="section">
-<div class="sec-hdr"><div class="sec-t">Screener Narrativo</div><div class="sec-badge">20 ATIVOS</div></div>
-<div style="display:flex;justify-content:flex-end;gap:0.25rem;margin-bottom:0.5rem;font-family:var(--m);font-size:0.5rem;color:var(--t3)">
-<span style="width:55px;text-align:right">YTD</span><span style="width:10px;text-align:center">|</span><span style="width:55px;text-align:right">12M</span>
-</div>
-<div class="sc-row">
-<div class="sc-left">
-<div class="sc-tk">EMBR3</div>
-<div class="sc-name">Embraer</div>
-<div class="sc-sec">Industrial</div>
-</div>
-<div class="sc-mid"><div class="sc-narr">Acumula <strong>+74%</strong> no ano — momentum forte com fluxo consistente. Em 12 meses: +74%. Ciclo de alta maduro.</div></div>
-<div class="sc-right">
-<div class="sc-price">R$86.99</div>
-<div class="sc-rets">
-<span class="pos">+73.6%</span>
-<span class="sc-sep">|</span>
-<span class="pos">+73.6%</span>
-</div>
-</div>
-</div><div class="sc-row">
-<div class="sc-left">
-<div class="sc-tk">ELET3</div>
-<div class="sc-name">Eletrobras</div>
-<div class="sc-sec">Utilities</div>
-</div>
-<div class="sc-mid"><div class="sc-narr">Acumula <strong>+57%</strong> no ano — momentum forte com fluxo consistente. Em 12 meses: +57%. Ciclo de alta maduro.</div></div>
-<div class="sc-right">
-<div class="sc-price">R$58.68</div>
-<div class="sc-rets">
-<span class="pos">+57.3%</span>
-<span class="sc-sep">|</span>
-<span class="pos">+57.3%</span>
-</div>
-</div>
-</div><div class="sc-row">
-<div class="sc-left">
-<div class="sc-tk">PETR4</div>
-<div class="sc-name">Petrobras</div>
-<div class="sc-sec">Energia</div>
-</div>
-<div class="sc-mid"><div class="sc-narr">Acumula <strong>+54%</strong> no ano — momentum forte com fluxo consistente. Em 12 meses: +55%. Ciclo de alta maduro.</div></div>
-<div class="sc-right">
-<div class="sc-price">R$47.30</div>
-<div class="sc-rets">
-<span class="pos">+54.0%</span>
-<span class="sc-sep">|</span>
-<span class="pos">+55.3%</span>
-</div>
-</div>
-</div><div class="sc-row">
-<div class="sc-left">
-<div class="sc-tk">JBSS3</div>
-<div class="sc-name">JBS</div>
-<div class="sc-sec">Consumo</div>
-</div>
-<div class="sc-mid"><div class="sc-narr">Acumula <strong>+37%</strong> no ano — momentum forte com fluxo consistente.</div></div>
-<div class="sc-right">
-<div class="sc-price">R$39.03</div>
-<div class="sc-rets">
-<span class="pos">+36.6%</span>
-<span class="sc-sep">|</span>
-<span class="pos">+36.6%</span>
-</div>
-</div>
-</div><div class="sc-row">
-<div class="sc-left">
-<div class="sc-tk">B3SA3</div>
-<div class="sc-name">B3</div>
-<div class="sc-sec">Financeiro</div>
-</div>
-<div class="sc-mid"><div class="sc-narr">Acumula <strong>+28%</strong> no ano — momentum forte com fluxo consistente.</div></div>
-<div class="sc-right">
-<div class="sc-price">R$17.21</div>
-<div class="sc-rets">
-<span class="pos">+28.1%</span>
-<span class="sc-sep">|</span>
-<span class="pos">+29.6%</span>
-</div>
-</div>
-</div><div class="sc-row">
-<div class="sc-left">
-<div class="sc-tk">INTB3</div>
-<div class="sc-name">Intelbras</div>
-<div class="sc-sec">Tecnologia</div>
-</div>
-<div class="sc-mid"><div class="sc-narr">Acumula <strong>+27%</strong> no ano — momentum forte com fluxo consistente.</div></div>
-<div class="sc-right">
-<div class="sc-price">R$14.72</div>
-<div class="sc-rets">
-<span class="pos">+26.9%</span>
-<span class="sc-sep">|</span>
-<span class="pos">+19.9%</span>
-</div>
-</div>
-</div><div class="sc-row">
-<div class="sc-left">
-<div class="sc-tk">LREN3</div>
-<div class="sc-name">Renner</div>
-<div class="sc-sec">Consumo</div>
-</div>
-<div class="sc-mid"><div class="sc-narr">Alta de <strong>+16%</strong> YTD — tendência de alta confirmada.</div></div>
-<div class="sc-right">
-<div class="sc-price">R$15.58</div>
-<div class="sc-rets">
-<span class="pos">+16.4%</span>
-<span class="sc-sep">|</span>
-<span class="neg">-5.8%</span>
-</div>
-</div>
-</div><div class="sc-row">
-<div class="sc-left">
-<div class="sc-tk">SBSP3</div>
-<div class="sc-name">Sabesp</div>
-<div class="sc-sec">Utilities</div>
-</div>
-<div class="sc-mid"><div class="sc-narr">Alta de <strong>+14%</strong> YTD — tendência de alta confirmada.</div></div>
-<div class="sc-right">
-<div class="sc-price">R$152.02</div>
-<div class="sc-rets">
-<span class="pos">+14.2%</span>
-<span class="sc-sep">|</span>
-<span class="pos">+24.3%</span>
-</div>
-</div>
-</div><div class="sc-row">
-<div class="sc-left">
-<div class="sc-tk">BBAS3</div>
-<div class="sc-name">Banco do Brasil</div>
-<div class="sc-sec">Financeiro</div>
-</div>
-<div class="sc-mid"><div class="sc-narr">Leve alta de <strong>+8%</strong> — consolidando acima da base.</div></div>
-<div class="sc-right">
-<div class="sc-price">R$23.49</div>
-<div class="sc-rets">
-<span class="pos">+8.3%</span>
-<span class="sc-sep">|</span>
-<span class="pos">+8.0%</span>
-</div>
-</div>
-</div><div class="sc-row">
-<div class="sc-left">
-<div class="sc-tk">ITUB4</div>
-<div class="sc-name">Itaú</div>
-<div class="sc-sec">Financeiro</div>
-</div>
-<div class="sc-mid"><div class="sc-narr">Leve alta de <strong>+8%</strong> — consolidando acima da base.</div></div>
-<div class="sc-right">
-<div class="sc-price">R$42.22</div>
-<div class="sc-rets">
-<span class="pos">+7.8%</span>
-<span class="sc-sep">|</span>
-<span class="pos">+20.7%</span>
-</div>
-</div>
-</div><div class="sc-row">
-<div class="sc-left">
-<div class="sc-tk">VALE3</div>
-<div class="sc-name">Vale</div>
-<div class="sc-sec">Materiais</div>
-</div>
-<div class="sc-mid"><div class="sc-narr">Leve alta de <strong>+8%</strong> — consolidando acima da base.</div></div>
-<div class="sc-right">
-<div class="sc-price">R$77.94</div>
-<div class="sc-rets">
-<span class="pos">+7.7%</span>
-<span class="sc-sep">|</span>
-<span class="pos">+42.2%</span>
-</div>
-</div>
-</div><div class="sc-row">
-<div class="sc-left">
-<div class="sc-tk">ABEV3</div>
-<div class="sc-name">Ambev</div>
-<div class="sc-sec">Consumo</div>
-</div>
-<div class="sc-mid"><div class="sc-narr">Leve alta de <strong>+7%</strong> — consolidando acima da base.</div></div>
-<div class="sc-right">
-<div class="sc-price">R$14.64</div>
-<div class="sc-rets">
-<span class="pos">+7.3%</span>
-<span class="sc-sep">|</span>
-<span class="pos">+30.5%</span>
-</div>
-</div>
-</div><div class="sc-row">
-<div class="sc-left">
-<div class="sc-tk">RENT3</div>
-<div class="sc-name">Localiza</div>
-<div class="sc-sec">Industrial</div>
-</div>
-<div class="sc-mid"><div class="sc-narr">Leve alta de <strong>+6%</strong> — consolidando acima da base.</div></div>
-<div class="sc-right">
-<div class="sc-price">R$46.03</div>
-<div class="sc-rets">
-<span class="pos">+6.0%</span>
-<span class="sc-sep">|</span>
-<span class="pos">+18.3%</span>
-</div>
-</div>
-</div><div class="sc-row">
-<div class="sc-left">
-<div class="sc-tk">BBDC4</div>
-<div class="sc-name">Bradesco</div>
-<div class="sc-sec">Financeiro</div>
-</div>
-<div class="sc-mid"><div class="sc-narr">Leve alta de <strong>+3%</strong> — consolidando acima da base.</div></div>
-<div class="sc-right">
-<div class="sc-price">R$18.73</div>
-<div class="sc-rets">
-<span class="pos">+2.8%</span>
-<span class="sc-sep">|</span>
-<span class="pos">+12.5%</span>
-</div>
-</div>
-</div><div class="sc-row">
-<div class="sc-left">
-<div class="sc-tk">POSI3</div>
-<div class="sc-name">Positivo</div>
-<div class="sc-sec">Tecnologia</div>
-</div>
-<div class="sc-mid"><div class="sc-narr">Leve alta de <strong>+2%</strong> — consolidando acima da base.</div></div>
-<div class="sc-right">
-<div class="sc-price">R$4.20</div>
-<div class="sc-rets">
-<span class="pos">+2.2%</span>
-<span class="sc-sep">|</span>
-<span class="neg">-24.2%</span>
-</div>
-</div>
-</div><div class="sc-row">
-<div class="sc-left">
-<div class="sc-tk">CASH3</div>
-<div class="sc-name">Méliuz</div>
-<div class="sc-sec">Tecnologia</div>
-</div>
-<div class="sc-mid"><div class="sc-narr">Leve alta de <strong>+1%</strong> — consolidando acima da base.</div></div>
-<div class="sc-right">
-<div class="sc-price">R$3.88</div>
-<div class="sc-rets">
-<span class="pos">+1.3%</span>
-<span class="sc-sep">|</span>
-<span class="pos">+3.5%</span>
-</div>
-</div>
-</div><div class="sc-row">
-<div class="sc-left">
-<div class="sc-tk">MGLU3</div>
-<div class="sc-name">Magalu</div>
-<div class="sc-sec">Consumo</div>
-</div>
-<div class="sc-mid"><div class="sc-narr">Queda contida de <strong>-1%</strong> — suporte sendo testado.</div></div>
-<div class="sc-right">
-<div class="sc-price">R$8.74</div>
-<div class="sc-rets">
-<span class="neg">-1.0%</span>
-<span class="sc-sep">|</span>
-<span class="neg">-18.3%</span>
-</div>
-</div>
-</div><div class="sc-row">
-<div class="sc-left">
-<div class="sc-tk">WEGE3</div>
-<div class="sc-name">WEG</div>
-<div class="sc-sec">Industrial</div>
-</div>
-<div class="sc-mid"><div class="sc-narr">Queda contida de <strong>-3%</strong> — suporte sendo testado.</div></div>
-<div class="sc-right">
-<div class="sc-price">R$46.86</div>
-<div class="sc-rets">
-<span class="neg">-2.9%</span>
-<span class="sc-sep">|</span>
-<span class="pos">+32.9%</span>
-</div>
-</div>
-</div><div class="sc-row">
-<div class="sc-left">
-<div class="sc-tk">LWSA3</div>
-<div class="sc-name">Locaweb</div>
-<div class="sc-sec">Tecnologia</div>
-</div>
-<div class="sc-mid"><div class="sc-narr">Queda contida de <strong>-7%</strong> — suporte sendo testado.</div></div>
-<div class="sc-right">
-<div class="sc-price">R$3.84</div>
-<div class="sc-rets">
-<span class="neg">-6.8%</span>
-<span class="sc-sep">|</span>
-<span class="pos">+44.9%</span>
-</div>
-</div>
-</div><div class="sc-row">
-<div class="sc-left">
-<div class="sc-tk">TOTS3</div>
-<div class="sc-name">TOTVS</div>
-<div class="sc-sec">Tecnologia</div>
-</div>
-<div class="sc-mid"><div class="sc-narr">Sell-off de <strong>-15%</strong> — pressão vendedora dominante.</div></div>
-<div class="sc-right">
-<div class="sc-price">R$34.69</div>
-<div class="sc-rets">
-<span class="neg">-15.3%</span>
-<span class="sc-sep">|</span>
-<span class="neg">-22.9%</span>
-</div>
-</div>
-</div>
+<div class="sec">
+<div class="sec-h"><div class="sec-t">Screener</div><div class="sec-b">20 ATIVOS</div></div>
+<div class="sg-grid"><div class="sg-card" style="border-left:3px solid #10b981">
+<div class="sg-top"><span class="sg-tk">EMBR3</span><span class="sg-sec" style="color:#06b6d4">IND</span></div>
+<div class="sg-price">R$86.99</div>
+<div class="sg-rets"><span class="pos">+73.6%</span><span class="sg-lbl">YTD</span></div>
+<div class="sg-rets"><span class="pos">+73.6%</span><span class="sg-lbl">12M</span></div>
+</div><div class="sg-card" style="border-left:3px solid #10b981">
+<div class="sg-top"><span class="sg-tk">ELET3</span><span class="sg-sec" style="color:#10b981">UTL</span></div>
+<div class="sg-price">R$58.68</div>
+<div class="sg-rets"><span class="pos">+57.3%</span><span class="sg-lbl">YTD</span></div>
+<div class="sg-rets"><span class="pos">+57.3%</span><span class="sg-lbl">12M</span></div>
+</div><div class="sg-card" style="border-left:3px solid #10b981">
+<div class="sg-top"><span class="sg-tk">PETR4</span><span class="sg-sec" style="color:#f59e0b">ENE</span></div>
+<div class="sg-price">R$47.30</div>
+<div class="sg-rets"><span class="pos">+54.0%</span><span class="sg-lbl">YTD</span></div>
+<div class="sg-rets"><span class="pos">+55.3%</span><span class="sg-lbl">12M</span></div>
+</div><div class="sg-card" style="border-left:3px solid #10b981">
+<div class="sg-top"><span class="sg-tk">JBSS3</span><span class="sg-sec" style="color:#ec4899">CON</span></div>
+<div class="sg-price">R$39.03</div>
+<div class="sg-rets"><span class="pos">+36.6%</span><span class="sg-lbl">YTD</span></div>
+<div class="sg-rets"><span class="pos">+36.6%</span><span class="sg-lbl">12M</span></div>
+</div><div class="sg-card" style="border-left:3px solid #10b981">
+<div class="sg-top"><span class="sg-tk">B3SA3</span><span class="sg-sec" style="color:#3b82f6">FIN</span></div>
+<div class="sg-price">R$17.21</div>
+<div class="sg-rets"><span class="pos">+28.1%</span><span class="sg-lbl">YTD</span></div>
+<div class="sg-rets"><span class="pos">+29.6%</span><span class="sg-lbl">12M</span></div>
+</div><div class="sg-card" style="border-left:3px solid #10b981">
+<div class="sg-top"><span class="sg-tk">INTB3</span><span class="sg-sec" style="color:#6366f1">TEC</span></div>
+<div class="sg-price">R$14.72</div>
+<div class="sg-rets"><span class="pos">+26.9%</span><span class="sg-lbl">YTD</span></div>
+<div class="sg-rets"><span class="pos">+19.9%</span><span class="sg-lbl">12M</span></div>
+</div><div class="sg-card" style="border-left:3px solid #34d399">
+<div class="sg-top"><span class="sg-tk">LREN3</span><span class="sg-sec" style="color:#ec4899">CON</span></div>
+<div class="sg-price">R$15.58</div>
+<div class="sg-rets"><span class="pos">+16.4%</span><span class="sg-lbl">YTD</span></div>
+<div class="sg-rets"><span class="neg">-5.8%</span><span class="sg-lbl">12M</span></div>
+</div><div class="sg-card" style="border-left:3px solid #34d399">
+<div class="sg-top"><span class="sg-tk">SBSP3</span><span class="sg-sec" style="color:#10b981">UTL</span></div>
+<div class="sg-price">R$152.02</div>
+<div class="sg-rets"><span class="pos">+14.2%</span><span class="sg-lbl">YTD</span></div>
+<div class="sg-rets"><span class="pos">+24.3%</span><span class="sg-lbl">12M</span></div>
+</div><div class="sg-card" style="border-left:3px solid #34d399">
+<div class="sg-top"><span class="sg-tk">BBAS3</span><span class="sg-sec" style="color:#3b82f6">FIN</span></div>
+<div class="sg-price">R$23.49</div>
+<div class="sg-rets"><span class="pos">+8.3%</span><span class="sg-lbl">YTD</span></div>
+<div class="sg-rets"><span class="pos">+8.0%</span><span class="sg-lbl">12M</span></div>
+</div><div class="sg-card" style="border-left:3px solid #34d399">
+<div class="sg-top"><span class="sg-tk">ITUB4</span><span class="sg-sec" style="color:#3b82f6">FIN</span></div>
+<div class="sg-price">R$42.22</div>
+<div class="sg-rets"><span class="pos">+7.8%</span><span class="sg-lbl">YTD</span></div>
+<div class="sg-rets"><span class="pos">+20.7%</span><span class="sg-lbl">12M</span></div>
+</div><div class="sg-card" style="border-left:3px solid #34d399">
+<div class="sg-top"><span class="sg-tk">VALE3</span><span class="sg-sec" style="color:#8b5cf6">MAT</span></div>
+<div class="sg-price">R$77.94</div>
+<div class="sg-rets"><span class="pos">+7.7%</span><span class="sg-lbl">YTD</span></div>
+<div class="sg-rets"><span class="pos">+42.2%</span><span class="sg-lbl">12M</span></div>
+</div><div class="sg-card" style="border-left:3px solid #34d399">
+<div class="sg-top"><span class="sg-tk">ABEV3</span><span class="sg-sec" style="color:#ec4899">CON</span></div>
+<div class="sg-price">R$14.64</div>
+<div class="sg-rets"><span class="pos">+7.3%</span><span class="sg-lbl">YTD</span></div>
+<div class="sg-rets"><span class="pos">+30.5%</span><span class="sg-lbl">12M</span></div>
+</div><div class="sg-card" style="border-left:3px solid #34d399">
+<div class="sg-top"><span class="sg-tk">RENT3</span><span class="sg-sec" style="color:#06b6d4">IND</span></div>
+<div class="sg-price">R$46.03</div>
+<div class="sg-rets"><span class="pos">+6.0%</span><span class="sg-lbl">YTD</span></div>
+<div class="sg-rets"><span class="pos">+18.3%</span><span class="sg-lbl">12M</span></div>
+</div><div class="sg-card" style="border-left:3px solid #6ee7b7">
+<div class="sg-top"><span class="sg-tk">BBDC4</span><span class="sg-sec" style="color:#3b82f6">FIN</span></div>
+<div class="sg-price">R$18.73</div>
+<div class="sg-rets"><span class="pos">+2.8%</span><span class="sg-lbl">YTD</span></div>
+<div class="sg-rets"><span class="pos">+12.5%</span><span class="sg-lbl">12M</span></div>
+</div><div class="sg-card" style="border-left:3px solid #6ee7b7">
+<div class="sg-top"><span class="sg-tk">POSI3</span><span class="sg-sec" style="color:#6366f1">TEC</span></div>
+<div class="sg-price">R$4.20</div>
+<div class="sg-rets"><span class="pos">+2.2%</span><span class="sg-lbl">YTD</span></div>
+<div class="sg-rets"><span class="neg">-24.2%</span><span class="sg-lbl">12M</span></div>
+</div><div class="sg-card" style="border-left:3px solid #6ee7b7">
+<div class="sg-top"><span class="sg-tk">CASH3</span><span class="sg-sec" style="color:#6366f1">TEC</span></div>
+<div class="sg-price">R$3.88</div>
+<div class="sg-rets"><span class="pos">+1.3%</span><span class="sg-lbl">YTD</span></div>
+<div class="sg-rets"><span class="pos">+3.5%</span><span class="sg-lbl">12M</span></div>
+</div><div class="sg-card" style="border-left:3px solid #fca5a5">
+<div class="sg-top"><span class="sg-tk">MGLU3</span><span class="sg-sec" style="color:#ec4899">CON</span></div>
+<div class="sg-price">R$8.74</div>
+<div class="sg-rets"><span class="neg">-1.0%</span><span class="sg-lbl">YTD</span></div>
+<div class="sg-rets"><span class="neg">-18.3%</span><span class="sg-lbl">12M</span></div>
+</div><div class="sg-card" style="border-left:3px solid #fca5a5">
+<div class="sg-top"><span class="sg-tk">WEGE3</span><span class="sg-sec" style="color:#06b6d4">IND</span></div>
+<div class="sg-price">R$46.86</div>
+<div class="sg-rets"><span class="neg">-2.9%</span><span class="sg-lbl">YTD</span></div>
+<div class="sg-rets"><span class="pos">+32.9%</span><span class="sg-lbl">12M</span></div>
+</div><div class="sg-card" style="border-left:3px solid #f87171">
+<div class="sg-top"><span class="sg-tk">LWSA3</span><span class="sg-sec" style="color:#6366f1">TEC</span></div>
+<div class="sg-price">R$3.84</div>
+<div class="sg-rets"><span class="neg">-6.8%</span><span class="sg-lbl">YTD</span></div>
+<div class="sg-rets"><span class="pos">+44.9%</span><span class="sg-lbl">12M</span></div>
+</div><div class="sg-card" style="border-left:3px solid #f87171">
+<div class="sg-top"><span class="sg-tk">TOTS3</span><span class="sg-sec" style="color:#6366f1">TEC</span></div>
+<div class="sg-price">R$34.69</div>
+<div class="sg-rets"><span class="neg">-15.3%</span><span class="sg-lbl">YTD</span></div>
+<div class="sg-rets"><span class="neg">-22.9%</span><span class="sg-lbl">12M</span></div>
+</div></div>
 </div>
 
-<!-- PAGANINI TECH INDEX -->
-<div class="section">
-<div class="sec-hdr"><div class="sec-t">Paganini Tech Index — PTI</div><div class="sec-badge">PROPRIETÁRIO</div></div>
-<div class="idx-card">
-<div style="display:flex;justify-content:space-between;align-items:flex-end">
+<!-- TECH INDEX -->
+<div class="sec">
+<div class="sec-h"><div class="sec-t">Paganini Tech Index</div><div class="sec-b">PTI</div></div>
+<div class="ti-card">
+<div class="ti-hero">
 <div>
-<div style="font-family:var(--m);font-size:0.55rem;color:var(--t3)">ÍNDICE PTI</div>
-<div class="idx-val">101.6</div>
-<div class="idx-sub">Base 100 em Jan/2026 · Equal-Weight · 5 componentes</div>
+<div style="font-family:var(--m);font-size:0.45rem;color:var(--t3);letter-spacing:0.1em">ÍNDICE PTI</div>
+<div class="ti-pts">101.6</div>
+<div style="font-family:var(--m);font-size:0.45rem;color:var(--t3)">Base 100 · Jan/2026 · 5 componentes</div>
 </div>
 <div style="text-align:right">
-<div class="pos" style="font-size:1.1rem;font-weight:700;font-family:var(--m)">+1.6%</div>
-<div style="font-family:var(--m);font-size:0.55rem;color:var(--t3)">YTD</div>
+<div class="pos" style="font-size:1.1rem;font-weight:800;font-family:var(--m)">+1.6%</div>
+<div style="font-family:var(--m);font-size:0.45rem;color:var(--t3)">YTD</div>
 </div>
 </div>
-<div class="idx-grid">
-<div class="idx-metric"><div class="v pos">+4.2%</div><div class="l">12 Meses</div></div>
-<div class="idx-metric"><div class="v">5</div><div class="l">Componentes</div></div>
-<div class="idx-metric"><div class="v">-0.2%</div><div class="l">IBOV (ref)</div></div>
+<div class="ti-row">
+<div class="ti-tk">TOTS3</div>
+<div class="ti-bar-wrap">
+<div class="ti-bar neg" style="width:31%"></div>
 </div>
+<div class="ti-val neg">-15.3%</div>
+</div><div class="ti-row">
+<div class="ti-tk">LWSA3</div>
+<div class="ti-bar-wrap">
+<div class="ti-bar neg" style="width:14%"></div>
 </div>
-<div style="font-family:var(--m);font-size:0.55rem;color:var(--t3);margin-bottom:0.5rem;display:flex;justify-content:flex-end;gap:1rem">
-<span style="width:65px;text-align:right">PREÇO</span><span style="width:55px;text-align:right">YTD</span><span style="width:55px;text-align:right">12M</span>
+<div class="ti-val neg">-6.8%</div>
+</div><div class="ti-row">
+<div class="ti-tk">INTB3</div>
+<div class="ti-bar-wrap">
+<div class="ti-bar pos" style="width:54%"></div>
 </div>
-<div class="idx-row">
-<div class="idx-tk">TOTS3</div>
-<div class="idx-name">TOTVS</div>
-<div class="idx-price">R$34.69</div>
-<div class="idx-ret neg">-15.3%</div>
-<div class="idx-ret neg">-22.9%</div>
-</div><div class="idx-row">
-<div class="idx-tk">LWSA3</div>
-<div class="idx-name">Locaweb</div>
-<div class="idx-price">R$3.84</div>
-<div class="idx-ret neg">-6.8%</div>
-<div class="idx-ret pos">+44.9%</div>
-</div><div class="idx-row">
-<div class="idx-tk">INTB3</div>
-<div class="idx-name">Intelbras</div>
-<div class="idx-price">R$14.72</div>
-<div class="idx-ret pos">+26.9%</div>
-<div class="idx-ret pos">+19.9%</div>
-</div><div class="idx-row">
-<div class="idx-tk">CASH3</div>
-<div class="idx-name">Méliuz</div>
-<div class="idx-price">R$3.88</div>
-<div class="idx-ret pos">+1.3%</div>
-<div class="idx-ret pos">+3.5%</div>
-</div><div class="idx-row">
-<div class="idx-tk">POSI3</div>
-<div class="idx-name">Positivo</div>
-<div class="idx-price">R$4.20</div>
-<div class="idx-ret pos">+2.2%</div>
-<div class="idx-ret neg">-24.2%</div>
+<div class="ti-val pos">+26.9%</div>
+</div><div class="ti-row">
+<div class="ti-tk">CASH3</div>
+<div class="ti-bar-wrap">
+<div class="ti-bar pos" style="width:3%"></div>
+</div>
+<div class="ti-val pos">+1.3%</div>
+</div><div class="ti-row">
+<div class="ti-tk">POSI3</div>
+<div class="ti-bar-wrap">
+<div class="ti-bar pos" style="width:4%"></div>
+</div>
+<div class="ti-val pos">+2.2%</div>
+</div>
 </div>
 </div>
 
-<!-- FOOTER -->
-<div class="footer">
-PAGANINI AIOS — Financial Intelligence Platform<br>
-Data: B3 COTAHIST · BCB SGS · Yahoo Finance · 3.1M registros<br>
-Este material não constitui recomendação de investimento · <a href="https://github.com/juboyy/paganini-aios">GitHub</a>
+<div class="ft">
+PAGANINI AIOS · FINANCIAL INTELLIGENCE PLATFORM<br>
+B3 COTAHIST · BCB SGS · YAHOO FINANCE · 3.1M DATA POINTS<br>
+NÃO CONSTITUI RECOMENDAÇÃO DE INVESTIMENTO
 </div>
 
 </div>
