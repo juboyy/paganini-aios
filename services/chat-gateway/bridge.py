@@ -302,6 +302,72 @@ async def list_sessions(limit: int = 20):
     
     return list(seen.values())[:limit]
 
+# ── Response endpoint — OraCLI writes back to dashboard ──
+
+class RespondMessage(BaseModel):
+    session_id: Optional[str] = None
+    tile_id: Optional[str] = None
+    content: str
+    agent: str = "oracli"
+
+@app.post("/respond", dependencies=[Depends(verify_token)])
+async def respond(msg: RespondMessage):
+    """OraCLI posts a response back to the dashboard chat."""
+    session_id = msg.session_id
+    
+    # If no session_id, find the latest bridge session for this tile
+    if not session_id and msg.tile_id:
+        recent = await supabase_query("chat_messages", {
+            "tile_id": f"eq.{msg.tile_id}",
+            "mode": "eq.bridge",
+            "order": "created_at.desc",
+            "limit": "1",
+        })
+        if recent:
+            session_id = recent[0].get("session_id")
+    
+    if not session_id:
+        # Find the most recent bridge session
+        recent = await supabase_query("chat_messages", {
+            "mode": "eq.bridge",
+            "role": "eq.user",
+            "order": "created_at.desc",
+            "limit": "1",
+        })
+        session_id = recent[0].get("session_id") if recent else "default"
+    
+    result = await supabase_insert("chat_messages", {
+        "session_id": session_id,
+        "tile_id": msg.tile_id or "main-chat",
+        "role": "assistant",
+        "content": msg.content,
+        "mode": "bridge",
+        "status": "delivered",
+        "created_at": datetime.now(timezone.utc).isoformat(),
+    })
+    
+    return {
+        "status": "delivered",
+        "session_id": session_id,
+    }
+
+@app.get("/messages/poll", dependencies=[Depends(verify_token)])
+async def poll_messages(session_id: Optional[str] = None, tile_id: Optional[str] = None, after: Optional[str] = None, limit: int = 20):
+    """Poll for new messages (dashboard calls this to get responses)."""
+    params: dict = {
+        "order": "created_at.asc",
+        "limit": str(limit),
+    }
+    if session_id:
+        params["session_id"] = f"eq.{session_id}"
+    if tile_id:
+        params["tile_id"] = f"eq.{tile_id}"
+    if after:
+        params["created_at"] = f"gt.{after}"
+    
+    messages = await supabase_query("chat_messages", params)
+    return messages
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8100)

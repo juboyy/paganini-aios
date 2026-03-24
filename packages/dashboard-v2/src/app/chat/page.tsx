@@ -223,12 +223,41 @@ function ChatTile({ tile }: { tile: TileData }) {
   ]);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
+  const [mode, setMode] = useState<"ai" | "bridge">("bridge");
+  const [sessionId] = useState(() => `canvas-${tile.id}-${Date.now()}`);
   const bottomRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
+  const lastPollRef = useRef<string>("");
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [msgs]);
+
+  // Poll for bridge responses
+  useEffect(() => {
+    if (mode !== "bridge") return;
+    const interval = setInterval(async () => {
+      try {
+        const params = new URLSearchParams({ sessionId, limit: "50" });
+        if (lastPollRef.current) params.set("after", lastPollRef.current);
+        const res = await fetch(`/api/chat?${params}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (data.length > 0) {
+          const newMsgs = data
+            .filter((m: { role: string; status?: string }) =>
+              m.role === "assistant" && m.status === "delivered"
+            )
+            .map((m: { content: string }) => ({ role: "assistant" as const, content: m.content }));
+          if (newMsgs.length > 0) {
+            setMsgs(prev => [...prev, ...newMsgs]);
+          }
+          lastPollRef.current = data[data.length - 1].created_at;
+        }
+      } catch {}
+    }, 3000);
+    return () => clearInterval(interval);
+  }, [mode, sessionId]);
 
   const send = useCallback(async () => {
     const text = input.trim();
@@ -236,8 +265,42 @@ function ChatTile({ tile }: { tile: TileData }) {
     setInput("");
 
     const userMsg: ChatMsg = { role: "user", content: text };
+    setMsgs((prev) => [...prev, userMsg]);
+
+    if (mode === "bridge") {
+      // Bridge mode — send to OraCLI via Telegram
+      setMsgs(prev => [...prev, { role: "assistant", content: "⏳ Enviando ao OraCLI..." }]);
+      try {
+        const res = await fetch("/api/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            messages: [{ role: "user", content: text }],
+            mode: "bridge",
+            tileId: tile.id,
+            sessionId,
+          }),
+        });
+        if (res.ok) {
+          setMsgs(prev => {
+            const copy = [...prev];
+            copy[copy.length - 1] = { role: "assistant", content: "📡 Mensagem enviada. Aguardando resposta do OraCLI..." };
+            return copy;
+          });
+        }
+      } catch {
+        setMsgs(prev => {
+          const copy = [...prev];
+          copy[copy.length - 1] = { role: "assistant", content: "❌ Erro ao enviar." };
+          return copy;
+        });
+      }
+      return;
+    }
+
+    // AI mode — streaming Gemini response
     const assistantMsg: ChatMsg = { role: "assistant", content: "" };
-    setMsgs((prev) => [...prev, userMsg, assistantMsg]);
+    setMsgs((prev) => [...prev, assistantMsg]);
     setStreaming(true);
 
     const apiMsgs = [...msgs, userMsg].map((m) => ({ role: m.role, content: m.content }));
@@ -247,7 +310,7 @@ function ChatTile({ tile }: { tile: TileData }) {
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: apiMsgs, agent: tile.agent || "auto" }),
+        body: JSON.stringify({ messages: apiMsgs, agent: tile.agent || "auto", mode: "ai", tileId: tile.id, sessionId }),
         signal: abortRef.current.signal,
       });
 
@@ -281,8 +344,8 @@ function ChatTile({ tile }: { tile: TileData }) {
           if (d === "[DONE]") continue;
           try {
             const p = JSON.parse(d);
-            if (p.content) {
-              full += p.content;
+            if (p.content || p.text) {
+              full += p.content || p.text;
               setMsgs((prev) => {
                 const copy = [...prev];
                 copy[copy.length - 1] = { role: "assistant", content: full };
@@ -304,10 +367,40 @@ function ChatTile({ tile }: { tile: TileData }) {
       setStreaming(false);
       abortRef.current = null;
     }
-  }, [input, msgs, streaming, tile.agent]);
+  }, [input, msgs, streaming, tile.agent, tile.id, mode, sessionId]);
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", padding: "0.5rem" }}>
+      {/* Mode toggle */}
+      <div style={{ display: "flex", gap: "4px", marginBottom: "0.4rem" }}>
+        <button
+          onClick={() => setMode("bridge")}
+          style={{
+            flex: 1, padding: "3px 0", border: "1px solid var(--border)", borderRadius: 3,
+            background: mode === "bridge" ? "var(--accent)" : "transparent",
+            color: mode === "bridge" ? "var(--bg)" : "var(--text-4)",
+            fontFamily: "var(--font-mono)", fontSize: "0.6rem", fontWeight: 600, cursor: "pointer",
+            letterSpacing: "0.08em",
+          }}
+          onMouseDown={e => e.stopPropagation()}
+        >
+          ORACLI
+        </button>
+        <button
+          onClick={() => setMode("ai")}
+          style={{
+            flex: 1, padding: "3px 0", border: "1px solid var(--border)", borderRadius: 3,
+            background: mode === "ai" ? "var(--cyan)" : "transparent",
+            color: mode === "ai" ? "var(--bg)" : "var(--text-4)",
+            fontFamily: "var(--font-mono)", fontSize: "0.6rem", fontWeight: 600, cursor: "pointer",
+            letterSpacing: "0.08em",
+          }}
+          onMouseDown={e => e.stopPropagation()}
+        >
+          GEMINI
+        </button>
+      </div>
+
       <div style={{
         flex: 1, overflowY: "auto", marginBottom: "0.5rem",
         scrollbarWidth: "thin", scrollbarColor: "var(--border) transparent",
@@ -339,7 +432,7 @@ function ChatTile({ tile }: { tile: TileData }) {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); send(); } }}
-          placeholder={`→ ${tile.agent || "kernel"}...`}
+          placeholder={mode === "bridge" ? "→ OraCLI..." : `→ ${tile.agent || "gemini"}...`}
           disabled={streaming}
           style={{
             flex: 1, background: "rgba(0,0,0,0.3)", border: "1px solid var(--border)",
@@ -352,7 +445,7 @@ function ChatTile({ tile }: { tile: TileData }) {
           onClick={streaming ? () => { abortRef.current?.abort(); setStreaming(false); } : send}
           style={{
             padding: "0.4rem 0.6rem", border: "1px solid var(--border)", borderRadius: 4,
-            background: streaming ? "var(--red)" : "var(--accent)",
+            background: streaming ? "var(--red)" : mode === "bridge" ? "var(--accent)" : "var(--cyan)",
             color: streaming ? "#fff" : "var(--bg)",
             fontFamily: "var(--font-mono)", fontSize: "0.7rem", fontWeight: 600, cursor: "pointer",
           }}
