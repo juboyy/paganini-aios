@@ -145,8 +145,8 @@ export async function GET() {
       .sort((a, b) => b.loc - a.loc);
 
     // 4. ROI Calculation — uses REAL cost (subscriptions + Google API)
-    // Antigravity: $500/mo | ChatGPT Team: $30/mo | Google API: variable
-    const MONTHLY_SUBS = 530;
+    // Antigravity: R$500/mo (~$88 USD at 5.7 BRL/USD) | ChatGPT Team: $30/mo | Google API: variable
+    const MONTHLY_SUBS = Math.round(500 / 5.7) + 30; // ~$118
     const googleCost7d = (dailyCosts30d ?? []).reduce((s, r) => s + (r.google ?? 0), 0);
     const daysInWindow = Math.max((dailyCosts30d ?? []).length, 1);
     const googleMonthly = (googleCost7d / daysInWindow) * 30;

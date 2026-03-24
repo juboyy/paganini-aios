@@ -21,10 +21,12 @@ export async function GET() {
     const googleCost = (totalCosts || []).reduce((sum, r) => sum + (r.google || 0), 0);
     
     // Real monthly cost = fixed subscriptions + variable API
-    // Antigravity: $500/mo (flat, Claude Opus/Sonnet)
-    // ChatGPT Team: $30/mo (flat, Codex GPT-5.x)
+    // Antigravity: R$500/mo (~$88 USD at 5.7 BRL/USD) — flat, Claude Opus/Sonnet
+    // ChatGPT Team: $30/mo — flat, Codex GPT-5.x
     // Google API: variable (pay-per-use)
-    const MONTHLY_SUBSCRIPTIONS = 530; // $500 Antigravity + $30 ChatGPT Team
+    const ANTIGRAVITY_USD = 500 / 5.7; // R$500 converted
+    const CODEX_USD = 30;
+    const MONTHLY_SUBSCRIPTIONS = Math.round(ANTIGRAVITY_USD + CODEX_USD); // ~$118
     const operatingDays = Math.max((totalCosts || []).length, 1);
     const googleMonthly = (googleCost / operatingDays) * 30;
     const realMonthlyCost = MONTHLY_SUBSCRIPTIONS + googleMonthly;
