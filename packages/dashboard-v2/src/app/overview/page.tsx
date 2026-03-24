@@ -116,10 +116,9 @@ export default function OverviewPage() {
     fetchAll();
   }, []);
 
-  const agents = useCounter(agentCount, 1500);
-  const agentsDomain = useCounter(14, 1500);
+  const agents = useCounter(loading ? 0 : agentCount, 1500);
   const caps = useCounter(52, 1500);
-  const guards = useCounter(guardrailCount, 1500);
+  const guards = useCounter(loading ? 0 : guardrailCount, 1500);
 
   // Parse total lines for the counter (M for millions, k for thousands)
   const formatLines = (val: number | string) => {
@@ -132,24 +131,22 @@ export default function OverviewPage() {
 
   const metrics = [
     { 
-      value: stats ? `${stats.efficiency}×` : "116×", 
+      value: stats ? `${stats.efficiency}×` : "—", 
       label: "Eficiência vs equipe humana", 
-      sub: stats ? `${stats.humanCost} → ${stats.aiCost}/mês` : "R$ 12K → R$ 103/mês" 
+      sub: stats ? `${stats.humanCost} → ${stats.aiCost}/mês` : "calculando..." 
     },
-    { value: "91.2%", label: "Precisão do RAG", sub: "otimizado pelo AutoResearch" },
-    { value: "87.3%", label: "Cobertura de testes", sub: "gerados automaticamente" },
     { 
-      value: stats ? formatLines(stats.totalLines) : "1.97M", 
+      value: stats ? formatLines(stats.totalLines) : "—", 
       label: "Linhas de código geradas", 
       sub: "Revenue-OS + Paganini + Workspace" 
     },
     { 
-      value: stats ? `${stats.successRate}%` : "98.3%", 
+      value: stats ? `${stats.successRate}%` : "—", 
       label: "Taxa de sucesso", 
       sub: "execuções do pipeline" 
     },
     { 
-      value: stats ? `$${stats.costPerLine}` : "$0.003", 
+      value: stats ? `$${stats.costPerLine}` : "—", 
       label: "Custo por linha de código", 
       sub: "gerada pelos agentes" 
     },
@@ -174,7 +171,7 @@ export default function OverviewPage() {
     },
     {
       label: "AGENTES",
-      desc: `${loading ? 12 : agentCount} Dev Team · 14 FIDC Specialists · Codex`,
+      desc: `${loading ? "..." : agentCount} Dev Team · 9 FIDC Specialists · Codex`,
       color: "hsl(270 80% 70%)",
       bg: "hsl(270 80% 10% / 0.35)",
       border: "hsl(270 80% 70% / 0.3)",
@@ -198,7 +195,7 @@ export default function OverviewPage() {
     },
     {
       label: "GUARDRAILS",
-      desc: `${loading ? 6 : guardrailCount} Gates de segurança · Approval humana · Audit trail`,
+      desc: `${loading ? "..." : guardrailCount} Gates de segurança · Approval humana · Audit trail`,
       color: "hsl(0 80% 60%)",
       bg: "hsl(0 80% 8% / 0.4)",
       border: "hsl(0 80% 60% / 0.3)",
@@ -236,7 +233,7 @@ export default function OverviewPage() {
     { text: '  Aging: 0-30d: R$ 200M (0.5%), 31-60d: R$ 30M (1.0%)...', isCmd: false, delay: 1100 },
     { text: "", isCmd: false, delay: 1300 },
     { text: "$ paganini up", isCmd: true, delay: 1500 },
-    { text: `→ ✓ Kernel iniciado (${loading ? 14 : agentCount} agentes, ${loading ? 6 : guardrailCount} guardrails)`, isCmd: false, delay: 2000 },
+    { text: `→ ✓ Kernel iniciado (${loading ? "..." : agentCount} agentes, ${loading ? "..." : guardrailCount} guardrails)`, isCmd: false, delay: 2000 },
     { text: "→ ✓ ChromaDB: 5,640 documentos indexados", isCmd: false, delay: 2200 },
     { text: "→ ✓ RTK: compressão 85% ativa", isCmd: false, delay: 2400 },
     { text: "", isCmd: false, delay: 2600 },
@@ -334,7 +331,6 @@ export default function OverviewPage() {
           >
             {[
               { value: agents, label: "Agentes de Código", suffix: "" },
-              { value: agentsDomain, label: "Agentes de Domínio", suffix: "" },
               { value: caps, label: "Capacidades", suffix: "" },
               { value: guards, label: "Guardrails", suffix: "" },
             ].map((c) => (

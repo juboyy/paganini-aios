@@ -9,12 +9,12 @@ export async function GET(req: NextRequest) {
 
     let query = supabase
       .from("memory_entries")
-      .select("id, content, category, agent_id, created_at")
+      .select("id, content, type, source_agent, tags, confidence, access_count, created_at")
       .order("created_at", { ascending: false })
-      .limit(100);
+      .limit(200);
 
-    if (category) query = query.eq("category", category);
-    if (agent_id) query = query.eq("agent_id", agent_id);
+    if (category) query = query.eq("type", category);
+    if (agent_id) query = query.eq("source_agent", agent_id);
 
     const { data, error } = await query;
     if (error) throw error;

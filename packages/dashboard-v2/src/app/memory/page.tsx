@@ -7,9 +7,11 @@ import { useState, useEffect } from "react";
 interface MemoryEntry {
   id: string;
   content: string;
-  category: string | null;
-  agent_id: string | null;
+  type: string | null;
+  source_agent: string | null;
+  tags?: string[] | null;
   confidence?: number | null;
+  access_count?: number | null;
   created_at: string;
 }
 
@@ -25,9 +27,12 @@ function fmtDate(iso: string) {
 
 function catColor(cat: string | null) {
   const map: Record<string, string> = {
-    decision:   "#f59e0b",
-    context:    "hsl(180,100%,50%)",
-    learning:   "#a78bfa",
+    decision:      "#f59e0b",
+    context:       "hsl(180,100%,50%)",
+    learning:      "#a78bfa",
+    error_pattern: "#ef4444",
+    fact:          "var(--accent)",
+    preference:    "#f472b6",
     preference: "var(--accent)",
     task:       "#34d399",
     error:      "#ef4444",
@@ -38,20 +43,20 @@ function catColor(cat: string | null) {
 // ─── Memory Card ──────────────────────────────────────────────────────────────
 
 function MemCard({ entry }: { entry: MemoryEntry }) {
-  const color = catColor(entry.category);
+  const color = catColor(entry.type);
   const preview = entry.content.length > 300 ? entry.content.slice(0, 300) + "…" : entry.content;
   return (
     <div style={{ padding: "1rem 1.125rem", borderRadius: "var(--radius)", border: `1px solid ${color}25`, background: `${color}05`, display: "flex", flexDirection: "column", gap: "0.5rem" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.5rem", flexWrap: "wrap" }}>
         <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
-          {entry.category && (
+          {entry.type && (
             <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", padding: "2px 8px", borderRadius: "var(--radius)", background: `${color}15`, border: `1px solid ${color}30`, color }}>
-              {entry.category}
+              {entry.type}
             </span>
           )}
-          {entry.agent_id && (
+          {entry.source_agent && (
             <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", padding: "2px 8px", borderRadius: "var(--radius)", background: "rgba(0,255,255,0.08)", border: "1px solid rgba(0,255,255,0.2)", color: "hsl(180,100%,50%)" }}>
-              {entry.agent_id}
+              {entry.source_agent}
             </span>
           )}
           {entry.confidence != null && (
@@ -107,12 +112,12 @@ export default function MemoryPage() {
     return () => clearInterval(interval);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const cats = Array.from(new Set(entries.map((e) => e.category).filter(Boolean))) as string[];
-  const agents = Array.from(new Set(entries.map((e) => e.agent_id).filter(Boolean))) as string[];
+  const cats = Array.from(new Set(entries.map((e) => e.type).filter(Boolean))) as string[];
+  const agents = Array.from(new Set(entries.map((e) => e.source_agent).filter(Boolean))) as string[];
 
   const displayed = entries.filter((e) => {
-    if (filterCat !== "all" && e.category !== filterCat) return false;
-    if (filterAgent !== "all" && e.agent_id !== filterAgent) return false;
+    if (filterCat !== "all" && e.type !== filterCat) return false;
+    if (filterAgent !== "all" && e.source_agent !== filterAgent) return false;
     if (search && !e.content.toLowerCase().includes(search.toLowerCase())) return false;
     return true;
   });

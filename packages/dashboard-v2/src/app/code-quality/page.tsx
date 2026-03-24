@@ -153,7 +153,7 @@ export default function CodeQualityPage() {
         <StatCard 
           label="Quality Score" 
           value={`${score}%`} 
-          sub="% de traces sem erro" 
+          sub={data ? `${data.totalTraces.toLocaleString()} traces · ${data.errorTraces} erros · ${data.gateRuns?.length || 0} gates` : "calculando..."} 
           color={scoreColor(score)} 
         />
         <StatCard 

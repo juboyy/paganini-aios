@@ -847,15 +847,23 @@ interface ApiAgent {
 export default function AgentsPage() {
   const [apiAgents, setApiAgents] = useState<ApiAgent[]>([]);
   const [loading, setLoading] = useState(true);
+  const [statsData, setStatsData] = useState<any>(null);
 
   const fetchAgents = async () => {
     try {
-      const res = await fetch("/api/agents");
-      if (res.ok) {
-        const data = await res.json();
+      const [agentRes, statsRes] = await Promise.all([
+        fetch("/api/agents"),
+        fetch("/api/stats"),
+      ]);
+      if (agentRes.ok) {
+        const data = await agentRes.json();
         if (Array.isArray(data) && data.length > 0) {
           setApiAgents(data);
         }
+      }
+      if (statsRes.ok) {
+        const sd = await statsRes.json();
+        setStatsData(sd);
       }
     } catch {
       // keep last known data
@@ -936,16 +944,16 @@ export default function AgentsPage() {
         <div className="mono-label" style={{ marginBottom: "0.75rem" }}>MÉTRICAS DA FÁBRICA</div>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "1rem" }}>
           {[
-            { label: "LOC Geradas (3 semanas)", value: "1.97M", color: "var(--accent)", icon: "📦" },
-            { label: "Commits Gerados", value: "470+", color: "hsl(190 100% 60%)", icon: "🔀" },
+            { label: "LOC Geradas", value: loading ? "..." : (statsData?.totalLines > 0 ? (statsData.totalLines >= 1000000 ? (statsData.totalLines/1000000).toFixed(2)+"M" : statsData.totalLines >= 1000 ? (statsData.totalLines/1000).toFixed(1)+"K" : String(statsData.totalLines)) : "—"), color: "var(--accent)", icon: "📦" },
+            { label: "Tasks Completadas", value: loading ? "..." : (totalTasksCompleted > 0 ? totalTasksCompleted.toLocaleString() : "—"), color: "hsl(190 100% 60%)", icon: "🔀" },
             {
-              label: "Tarefas Completadas",
-              value: loading ? "..." : (totalTasksCompleted > 0 ? totalTasksCompleted.toLocaleString() : "2.847"),
+              label: "Agentes Ativos",
+              value: loading ? "..." : `${apiAgents.filter(a => ["active","online"].includes(a.status)).length}/${totalAgents}`,
               color: "hsl(270 80% 70%)", icon: "🚀",
             },
             {
-              label: "Agentes Ativos",
-              value: loading ? "..." : (totalAgents > 0 ? `${activeAgents}/${totalAgents}` : "12/12"),
+              label: "Error Rate",
+              value: loading ? "..." : `${avgErrorRate.toFixed(1)}%`,
               color: "hsl(150 100% 55%)", icon: "✅",
             },
           ].map((s) => (

@@ -3,7 +3,7 @@ import { supabase } from "../../../lib/supabase";
 
 export async function GET() {
   try {
-    const [dailyCostsRes, agentsRes, tasksRes] = await Promise.all([
+    const [dailyCostsRes, agentsRes, tasksRes, deliverablesRes] = await Promise.all([
       supabase
         .from("daily_costs")
         .select("date, total, openai, anthropic, google")
@@ -19,13 +19,20 @@ export async function GET() {
         .not("cost", "is", null)
         .order("created_at", { ascending: false })
         .limit(200),
+      supabase
+        .from("deliverables")
+        .select("id, name, type, status, agent_id, lines_changed, category, created_at")
+        .order("created_at", { ascending: false })
+        .limit(50),
     ]);
 
     const dailyCosts = dailyCostsRes.data || [];
     const agents = agentsRes.data || [];
     const tasks = tasksRes.data || [];
+    const deliverables = deliverablesRes.data || [];
 
     const totalCost = dailyCosts.reduce((s, d) => s + (d.total || 0), 0);
+    const totalLoc = deliverables.reduce((s, d) => s + (d.lines_changed || 0), 0);
 
     // Cost per agent from tasks
     const costPerAgent: Record<string, number> = {};
@@ -53,6 +60,9 @@ export async function GET() {
 
     return NextResponse.json({
       ...fundStats,
+      deliverables: deliverables.slice(0, 20),
+      totalLoc,
+      totalDeliverables: deliverables.length,
       aiCosts: {
         total: totalCost,
         projectedMonthly,

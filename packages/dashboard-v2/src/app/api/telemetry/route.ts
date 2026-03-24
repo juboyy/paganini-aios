@@ -67,11 +67,11 @@ export async function GET() {
       { count: taskCount30d },
       { data: dailyCosts30d },
     ] = await Promise.all([
-      // 'LOC / HORA' histogram
+      // 'LOC / HORA' histogram — last 7 days to show meaningful data
       supabase
         .from("deliverables")
         .select("created_at, lines_changed")
-        .gte("created_at", since24hTs),
+        .gte("created_at", since7d),
       // 'TOKENS PROCESSADOS' sum 7d
       supabase
         .from("daily_token_usage")

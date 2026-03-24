@@ -17,12 +17,12 @@ export async function GET() {
     const totalCost = (totalCosts || []).reduce((sum, r) => sum + (r.total || 0), 0) || 1; // avoid div by zero
     const efficiency = (taskCount * 50) / totalCost;
 
-    // 2. Lines of Code Generated: Sum(deliverables.lines_count)
+    // 2. Lines of Code Generated: Sum(deliverables.lines_changed)
     const { data: deliverables } = await supabase
       .from("deliverables")
-      .select("lines_count");
+      .select("lines_changed");
     
-    const totalLines = (deliverables || []).reduce((sum, r) => sum + (r.lines_count || 0), 0) || 0;
+    const totalLines = (deliverables || []).reduce((sum, r) => sum + (r.lines_changed || 0), 0) || 0;
 
     // 3. Success Rate: pipeline_runs(status=done) / total_runs
     const { count: doneRuns } = await supabase
