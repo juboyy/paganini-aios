@@ -203,8 +203,13 @@ export default function OverviewPage() {
     return () => clearInterval(t);
   }, []);
 
-  const now = new Date();
-  const timeStr = now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+  const [timeStr, setTimeStr] = useState("--:--:--");
+  useEffect(() => {
+    const update = () => setTimeStr(new Date().toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
+    update();
+    const t = setInterval(update, 1000);
+    return () => clearInterval(t);
+  }, []);
 
   // Build STATS from apiStats + sparklines
   const agentsCard = apiStats.find(s => s.label === "AGENTS ACTIVE");

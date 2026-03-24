@@ -63,8 +63,7 @@ function formatDate(d: Date): string {
 }
 
 export default function ExtratoPage() {
-  const today = new Date();
-  const [selectedDate, setSelectedDate] = useState(formatDate(today));
+  const [selectedDate, setSelectedDate] = useState(() => new Date().toISOString().slice(0, 10));
   const [filterType, setFilterType] = useState<string>("all");
   const [filterAgent, setFilterAgent] = useState<string>("all");
 
@@ -93,7 +92,7 @@ export default function ExtratoPage() {
     setSelectedDate(formatDate(d));
   };
 
-  const isToday = selectedDate === formatDate(today);
+  const isToday = selectedDate === new Date().toISOString().slice(0, 10);
   const dateLabel = new Date(selectedDate + "T12:00:00").toLocaleDateString("pt-BR", {
     weekday: "long", day: "numeric", month: "long", year: "numeric",
   });

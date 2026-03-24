@@ -396,7 +396,7 @@ export default function FundPage() {
             ✓ Todos os covenants dentro dos limites — calculados por risk.py + compliance.py
           </span>
           <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-3)" }}>
-            Última execução: {new Date().toLocaleTimeString("pt-BR")}
+            Última execução: --:--:--
           </span>
         </div>
       </div>
