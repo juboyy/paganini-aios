@@ -994,7 +994,17 @@ export default function CanvasPage() {
   const [liveTimeline, setLiveTimeline] = useState<TimelineEvent[]>([]);
   const [liveCosts, setLiveCosts] = useState<DailyCost[]>([]);
   const [livePipelineRuns, setLivePipelineRuns] = useState<PipelineRun[]>([]);
+  const [isMobile, setIsMobile] = useState(false);
+  const [mobileTab, setMobileTab] = useState<"agents" | "chat" | "data" | "actions">("chat");
   const containerRef = useRef<HTMLDivElement>(null);
+
+  // Detect mobile
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   // Fetch live data from Supabase
   useEffect(() => {
@@ -1188,6 +1198,154 @@ export default function CanvasPage() {
     ]);
   }, [tiles, maxZ]);
 
+  // ── Mobile Layout ──
+  if (isMobile) {
+    const mobileTabs = [
+      { key: "chat" as const, label: "CHAT", emoji: "💬" },
+      { key: "agents" as const, label: "AGENTS", emoji: "🤖" },
+      { key: "data" as const, label: "DADOS", emoji: "📊" },
+      { key: "actions" as const, label: "AÇÕES", emoji: "⚡" },
+    ];
+
+    const chatTiles = tiles.filter(t => t.type === "chat");
+    const agentTiles = tiles.filter(t => t.type === "agent");
+    const dataTiles = tiles.filter(t => ["data", "metric", "guardrail"].includes(t.type) || ["timeline-live", "costs-7d", "hyperagent-evo", "system-metrics"].includes(t.id));
+    const actionTiles = tiles.filter(t => t.type === "action" || t.id === "active-tasks" || t.id === "new-task");
+
+    const visibleTiles = mobileTab === "chat" ? chatTiles
+      : mobileTab === "agents" ? agentTiles
+      : mobileTab === "data" ? dataTiles
+      : actionTiles;
+
+    return (
+      <div style={{
+        position: "fixed", inset: 0, left: 0,
+        display: "flex", flexDirection: "column",
+        background: "var(--bg)",
+        overflow: "hidden",
+      }}>
+        {/* Mobile header */}
+        <div style={{
+          display: "flex", alignItems: "center", justifyContent: "space-between",
+          padding: "0.6rem 0.8rem",
+          borderBottom: "1px solid var(--border)",
+          background: "var(--bg-card)",
+        }}>
+          <div style={{ fontFamily: "var(--font-display)", fontWeight: 700, fontSize: "0.9rem", color: "var(--accent)" }}>
+            PAGANINI
+          </div>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6rem", color: "var(--text-4)" }}>
+            {agentTiles.length} AGENTS · {tiles.length} TILES
+          </div>
+        </div>
+
+        {/* Tab bar */}
+        <div style={{
+          display: "flex", borderBottom: "1px solid var(--border)",
+          background: "var(--bg-card)",
+        }}>
+          {mobileTabs.map(tab => (
+            <button
+              key={tab.key}
+              onClick={() => setMobileTab(tab.key)}
+              style={{
+                flex: 1, padding: "0.5rem 0", border: "none",
+                background: mobileTab === tab.key ? "rgba(0,255,136,0.08)" : "transparent",
+                borderBottom: mobileTab === tab.key ? "2px solid var(--accent)" : "2px solid transparent",
+                color: mobileTab === tab.key ? "var(--accent)" : "var(--text-4)",
+                fontFamily: "var(--font-mono)", fontSize: "0.6rem", fontWeight: 600,
+                letterSpacing: "0.08em", cursor: "pointer",
+                display: "flex", flexDirection: "column", alignItems: "center", gap: "2px",
+              }}
+            >
+              <span style={{ fontSize: "1rem" }}>{tab.emoji}</span>
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Scrollable tile list */}
+        <div style={{
+          flex: 1, overflowY: "auto", padding: "0.6rem",
+          display: "flex", flexDirection: "column", gap: "0.6rem",
+          scrollbarWidth: "thin", scrollbarColor: "var(--border) transparent",
+        }}>
+          {visibleTiles.length === 0 && (
+            <div style={{
+              textAlign: "center", padding: "2rem",
+              fontFamily: "var(--font-mono)", fontSize: "0.7rem",
+              color: "var(--text-4)", letterSpacing: "0.1em",
+            }}>
+              {mobileTab === "chat" ? "TOQUE EM UM AGENTE PARA ABRIR CHAT" : "NENHUM TILE NESTA CATEGORIA"}
+            </div>
+          )}
+
+          {visibleTiles.map(tile => (
+            <div key={tile.id} className="glass-card" style={{
+              width: "100%",
+              minHeight: tile.type === "chat" ? "50vh" : tile.type === "agent" ? "auto" : 200,
+              maxHeight: tile.type === "chat" ? "70vh" : 400,
+              display: "flex", flexDirection: "column",
+              overflow: "hidden",
+              border: tile.type === "chat"
+                ? "1px solid var(--accent)"
+                : tile.type === "agent"
+                  ? `1px solid ${tile.status === "active" ? "rgba(0,255,136,0.3)" : "var(--border)"}`
+                  : "1px solid var(--border)",
+            }}>
+              {/* Title bar */}
+              <div style={{
+                display: "flex", alignItems: "center", justifyContent: "space-between",
+                padding: "0.4rem 0.6rem",
+                borderBottom: "1px solid var(--border-subtle, rgba(255,255,255,0.06))",
+                background: "rgba(0,0,0,0.2)",
+              }}>
+                <div style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
+                  <span style={{ fontSize: "0.85rem" }}>{tile.emoji}</span>
+                  <span style={{
+                    fontFamily: "var(--font-mono)", fontSize: "0.65rem", fontWeight: 600,
+                    color: "var(--text-2)", letterSpacing: "0.06em",
+                  }}>
+                    {tile.title}
+                  </span>
+                </div>
+                {tile.type === "agent" && (
+                  <button
+                    onClick={() => { openAgentChat(tile.agent || ""); setMobileTab("chat"); }}
+                    style={{
+                      padding: "2px 8px", border: "1px solid var(--accent)", borderRadius: 3,
+                      background: "transparent", color: "var(--accent)",
+                      fontFamily: "var(--font-mono)", fontSize: "0.55rem", cursor: "pointer",
+                    }}
+                  >
+                    CHAT
+                  </button>
+                )}
+              </div>
+
+              {/* Content */}
+              <div style={{ flex: 1, overflow: "hidden" }} onWheel={(e) => e.stopPropagation()}>
+                {tile.type === "agent" && <AgentTile tile={tile} onChat={(a) => { openAgentChat(a); setMobileTab("chat"); }} liveData={liveAgents[tile.agent || ""] || {}} />}
+                {tile.type === "chat" && <ChatTile tile={tile} />}
+                {tile.type === "action" && tile.id === "new-task" && <NewTaskTile />}
+                {tile.id === "active-tasks" && <ActiveTasksTile />}
+                {(tile.type === "guardrail" || tile.type === "data" || tile.type === "metric") && (
+                  <DataTile
+                    tile={tile}
+                    liveTimeline={liveTimeline}
+                    liveCosts={liveCosts}
+                    livePipelineRuns={livePipelineRuns}
+                  />
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  // ── Desktop Canvas Layout ──
   return (
     <div
       ref={containerRef}
