@@ -20,7 +20,8 @@ export async function GET(req: NextRequest) {
   const agentFilter = searchParams.get("agent") || "";
   const typeFilter = searchParams.get("type") || "";
   const statusFilter = searchParams.get("status") || "";
-  const limit = Math.min(parseInt(searchParams.get("limit") || "200"), 200);
+  const limit = Math.min(parseInt(searchParams.get("limit") || "200"), 500);
+  const fetchLimit = 1000; // Fetch more per table for accurate stats
 
   const dayStart = `${date}T00:00:00.000Z`;
   const dayEnd = `${date}T23:59:59.999Z`;
@@ -34,7 +35,7 @@ export async function GET(req: NextRequest) {
         .gte("created_at", dayStart)
         .lte("created_at", dayEnd)
         .order("created_at", { ascending: false })
-        .limit(limit),
+        .limit(fetchLimit),
 
       supabase
         .from("interactions")
@@ -42,7 +43,7 @@ export async function GET(req: NextRequest) {
         .gte("created_at", dayStart)
         .lte("created_at", dayEnd)
         .order("created_at", { ascending: false })
-        .limit(limit),
+        .limit(fetchLimit),
 
       supabase
         .from("timeline_events")
@@ -50,7 +51,7 @@ export async function GET(req: NextRequest) {
         .gte("created_at", dayStart)
         .lte("created_at", dayEnd)
         .order("created_at", { ascending: false })
-        .limit(limit),
+        .limit(fetchLimit),
 
       supabase
         .from("traces")
@@ -58,7 +59,7 @@ export async function GET(req: NextRequest) {
         .gte("created_at", dayStart)
         .lte("created_at", dayEnd)
         .order("created_at", { ascending: false })
-        .limit(limit),
+        .limit(fetchLimit),
     ]);
 
     const tasks = tasksRes.data || [];
