@@ -169,11 +169,10 @@ export async function GET(req: NextRequest) {
     if (typeFilter) filtered = filtered.filter((e) => e.type === typeFilter);
     if (statusFilter) filtered = filtered.filter((e) => e.status === statusFilter);
 
-    // Sort by timestamp desc and limit
+    // Sort by timestamp desc
     filtered.sort((a, b) => b.timestamp.localeCompare(a.timestamp));
-    filtered = filtered.slice(0, limit);
 
-    // Compute daily stats
+    // Compute stats from ALL filtered entries (before limit)
     const stats = {
       total: filtered.length,
       tasks: filtered.filter((e) => e.type === "task").length,
@@ -185,7 +184,10 @@ export async function GET(req: NextRequest) {
       agents: [...new Set(filtered.map((e) => e.agent_id))],
     };
 
-    return NextResponse.json({ entries: filtered, stats, date });
+    // Apply limit AFTER stats
+    const entries = filtered.slice(0, limit);
+
+    return NextResponse.json({ entries, stats, date });
   } catch (err) {
     console.error("[extrato] error:", err);
     return NextResponse.json({ entries: [], stats: null, date, error: String(err) }, { status: 500 });

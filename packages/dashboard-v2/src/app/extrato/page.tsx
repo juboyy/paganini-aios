@@ -101,8 +101,10 @@ function formatTime(iso: string): string {
 }
 
 function formatTokens(n?: number): string {
-  if (!n) return "";
-  return n >= 1000 ? `${(n / 1000).toFixed(1)}K` : String(n);
+  if (!n) return "0";
+  if (n >= 1_000_000) return `${(n / 1_000_000).toFixed(2)}M`;
+  if (n >= 1000) return `${(n / 1000).toFixed(1)}K`;
+  return String(n);
 }
 
 function formatDuration(d?: number | string | null): string {
@@ -416,7 +418,7 @@ export default function ExtratoPage() {
     },
     {
       label: "CUSTO",
-      value: loading ? "..." : (stats?.totalCost ? `$${stats.totalCost.toFixed(3)}` : "$0.000"),
+      value: loading ? "..." : (stats?.totalCost ? `$${stats.totalCost >= 1 ? stats.totalCost.toFixed(2) : stats.totalCost.toFixed(4)}` : "$0.00"),
       color: "var(--amber)",
     },
   ];
