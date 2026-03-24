@@ -16,9 +16,36 @@ export async function GET(req: NextRequest) {
     if (category && category !== "all") query = query.eq("type", category);
     if (agent_id && agent_id !== "all") query = query.eq("source_agent", agent_id);
     
-    // By default, exclude heartbeat spam (context entries that start with "Read HEARTBEAT")
+    // By default, exclude heartbeat spam AND low-value "context" entries 
+    // Show decisions, facts, error_patterns, preferences first
     if (!category || category === "all") {
       query = query.not("content", "like", "Read HEARTBEAT.md%");
+      // Prioritize non-context entries by fetching them separately
+      const { data: priorityEntries } = await supabase
+        .from("memory_entries")
+        .select("id, content, type, source_agent, tags, confidence, access_count, created_at")
+        .in("type", ["decision", "fact", "error_pattern", "preference", "learning", "task", "error"])
+        .order("created_at", { ascending: false })
+        .limit(100);
+      
+      const { data: contextEntries } = await query.limit(200);
+      
+      // Merge: priority entries first, then context, deduplicated
+      const seenIds = new Set<string>();
+      const merged: typeof priorityEntries = [];
+      for (const e of [...(priorityEntries ?? []), ...(contextEntries ?? [])]) {
+        if (!seenIds.has(e.id)) {
+          seenIds.add(e.id);
+          merged.push(e);
+        }
+      }
+
+      return NextResponse.json({
+        entries: merged,
+        total: totalCount ?? merged.length,
+        categories,
+        agents,
+      });
     }
 
     const { data, error } = await query;
