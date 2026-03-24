@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Paganini AIOS — Financial BI</title>
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0e14; --s1: rgba(255,255,255,0.04); --s2: rgba(255,255,255,0.07);
+            --bd: rgba(255,255,255,0.08); --t1: #e8e6e3; --t2: rgba(255,255,255,0.6);
+            --t3: rgba(255,255,255,0.35); --ok: #22c55e; --danger: #ef4444; --accent: #0ea5e9;
+        }
+        * { margin:0; padding:0; box-sizing:border-box; }
+        body { background: var(--bg); color: var(--t1); font-family: 'Space Grotesk', sans-serif; padding: 1rem; }
+        
+        .hdr { margin-bottom: 1.5rem; }
+        .hdr h1 { font-size: 1.4rem; font-weight: 700; color: var(--accent); }
+        .hdr .sub { font-family: 'IBM Plex Mono', monospace; font-size: 0.65rem; color: var(--t3); margin-top: 0.25rem; }
+
+        /* Macro Cards */
+        .macro-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 0.75rem; margin-bottom: 1.5rem; }
+        @media (min-width: 768px) { .macro-grid { grid-template-columns: repeat(4, 1fr); } }
+        .m-card { background: var(--s1); border: 1px solid var(--bd); border-radius: 12px; padding: 1rem; }
+        .m-card .lbl { font-family: 'IBM Plex Mono', monospace; font-size: 0.6rem; color: var(--t3); text-transform: uppercase; }
+        .m-card .val { font-size: 1.25rem; font-weight: 700; margin: 0.25rem 0; font-family: 'IBM Plex Mono'; }
+        
+        /* Treemap (Grid based for simplicity on mobile) */
+        .sec-t { font-family: 'IBM Plex Mono', monospace; font-size: 0.65rem; color: var(--t3); margin-bottom: 0.75rem; text-transform: uppercase; border-bottom: 1px solid var(--bd); padding-bottom: 0.4rem; }
+        .treemap { display: grid; grid-template-columns: repeat(2, 1fr); gap: 4px; margin-bottom: 1.5rem; }
+        @media (min-width: 768px) { .treemap { grid-template-columns: repeat(6, 1fr); } }
+        .tm-node { padding: 0.75rem; border-radius: 6px; font-size: 0.75rem; font-weight: 600; position: relative; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center; }
+        
+        /* Tabs System */
+        .tabs { display: flex; gap: 4px; overflow-x: auto; margin-bottom: 1rem; border-bottom: 1px solid var(--bd); padding-bottom: 0.5rem; }
+        .tab { font-family: 'IBM Plex Mono', monospace; font-size: 0.65rem; padding: 8px 16px; background: var(--s1); border: 1px solid var(--bd); border-radius: 6px; cursor: pointer; color: var(--t3); transition: 0.2s; white-space: nowrap; }
+        .tab.active { background: var(--accent); color: #fff; border-color: var(--accent); }
+
+        /* Screener / List */
+        .list-row { display: flex; justify-content: space-between; padding: 1rem; border-bottom: 1px solid var(--bd); background: var(--s1); margin-bottom: 4px; border-radius: 8px; align-items: center; }
+        .list-row .tk { font-weight: 700; color: var(--accent); font-family: 'IBM Plex Mono'; }
+        .list-row .narrative { font-size: 0.7rem; color: var(--t2); max-width: 60%; line-height: 1.3; }
+        .list-row .ret { font-family: 'IBM Plex Mono'; font-size: 0.8rem; font-weight: 600; }
+
+        .pos { color: var(--ok); }
+        .neg { color: var(--danger); }
+        
+        .footer { text-align: center; padding: 2rem 0; font-size: 0.6rem; color: var(--t3); font-family: 'IBM Plex Mono'; }
+        #tab-content { min-height: 300px; }
+    </style>
+</head>
+<body>
+    <div class="hdr">
+        <h1>Paganini BI — Unified</h1>
+        <div class="sub">MARKET INTELLIGENCE • UPDATED: 21:34:41</div>
+    </div>
+
+    <!-- ── MACRO GRID ── -->
+    <div class="macro-grid">
+        <div class="m-card"><div class="lbl">SELIC</div><div class="val">0.00%</div></div>
+        <div class="m-card"><div class="lbl">USD/BRL</div><div class="val">R$5.26</div></div>
+        <div class="m-card"><div class="lbl">IPCA 12M</div><div class="val">8.70%</div></div>
+        <div class="m-card"><div class="lbl">IBOVESPA</div><div class="val">181,558</div></div>
+    </div>
+
+    <div class="tabs">
+        <div class="tab active" onclick="showTab('market')">🗺 MAPA SETORIAL</div>
+        <div class="tab" onclick="showTab('screener')">🔍 SCREENER NARRATIVO</div>
+        <div class="tab" onclick="showTab('backtest')">📈 BACKTESTER</div>
+        <div class="tab" onclick="showTab('index')">🏛 TECH INDEX</div>
+    </div>
+
+    <div id="tab-content"></div>
+
+    <div class="footer">
+        PAGANINI AIOS • POWERED BY OPENCLAW • DATA: B3 + BCB
+    </div>
+
+    <script>
+        const STOCKS = {"ITUB4": {"price": 42.22, "y1": 20.74034248847505, "ytd": 7.841634738186465, "vol": 28460620.0}, "PETR4": {"price": 47.3, "y1": 55.34478002128189, "ytd": 54.02149137088894, "vol": 65851500.0}, "VALE3": {"price": 77.94, "y1": 42.17412956196724, "ytd": 7.681680022105564, "vol": 28750320.0}, "BBDC4": {"price": 18.73, "y1": 12.466824388427877, "ytd": 2.799121844127339, "vol": 37221980.0}, "BBAS3": {"price": 23.49, "y1": 8.017878821322144, "ytd": 8.348708487084867, "vol": 26724560.0}, "ABEV3": {"price": 14.64, "y1": 30.53130879035637, "ytd": 7.252747252747249, "vol": 36997000.0}, "WEGE3": {"price": 46.86, "y1": 32.85965812595868, "ytd": -2.8808290155440397, "vol": 6860220.0}, "RENT3": {"price": 46.03, "y1": 18.2576078718512, "ytd": 5.962246777163904, "vol": 13727120.0}, "B3SA3": {"price": 17.21, "y1": 29.637301796542516, "ytd": 28.145941921072225, "vol": 36516900.0}, "SBSP3": {"price": 152.02, "y1": 24.250406825680827, "ytd": 14.240625234838822, "vol": 3796960.0}, "ELET3": {"price": 58.68, "y1": 57.27686947199142, "ytd": 57.27686947199142, "vol": 10307420.0}, "TOTS3": {"price": 34.69, "y1": -22.88609193204907, "ytd": -15.34895070766228, "vol": 4786380.0}, "EMBR3": {"price": 86.99, "y1": 73.56344772545891, "ytd": 73.56344772545891, "vol": 4768160.0}, "LWSA3": {"price": 3.84, "y1": 44.90566037735848, "ytd": -6.796116504854377, "vol": 4149240.0}, "INTB3": {"price": 14.72, "y1": 19.86970684039089, "ytd": 26.89655172413794, "vol": 2256320.0}, "CASH3": {"price": 3.88, "y1": 3.4666666666666623, "ytd": 1.305483028720622, "vol": 3081340.0}, "POSI3": {"price": 4.2, "y1": -24.187725631768952, "ytd": 2.1897810218977964, "vol": 1410880.0}, "MGLU3": {"price": 8.74, "y1": -18.28109806268232, "ytd": -1.0192525481313663, "vol": 22261260.0}, "LREN3": {"price": 15.58, "y1": -5.819485331898666, "ytd": 16.44245142002989, "vol": 20076160.0}, "JBSS3": {"price": 39.03, "y1": 36.61183059152957, "ytd": 36.61183059152957, "vol": 34640900.0}};
+        const SECTORS = {"Financeiro": ["ITUB4", "BBDC4", "BBAS3", "B3SA3"], "Energia": ["PETR4", "ELET3"], "Materiais": ["VALE3"], "Consumo": ["ABEV3", "LREN3", "MGLU3", "JBSS3"], "Industrial": ["WEGE3", "RENT3", "EMBR3", "SBSP3"], "Tecnologia": ["TOTS3", "LWSA3", "INTB3", "CASH3", "POSI3"]};
+        
+        function getIntensity(val) {
+            const i = Math.min(Math.abs(val) / 5, 1);
+            if (val >= 0) return `rgba(34, 197, 94, ${0.1 + i * 0.8})`;
+            return `rgba(239, 68, 68, ${0.1 + i * 0.8})`;
+        }
+
+        function showTab(id) {
+            const content = document.getElementById('tab-content');
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            event.target.classList.add('active');
+
+            if (id === 'market') {
+                let html = '<div class="sec-t">Performance Setorial 1 Ano</div><div class="treemap">';
+                for (const [sec, tks] of Object.entries(SECTORS)) {
+                    tks.forEach(tk => {
+                        if (STOCKS[tk]) {
+                            const s = STOCKS[tk];
+                            html += `<div class="tm-node" style="background:${getIntensity(s.y1)}">
+                                <span style="font-size:0.5rem;opacity:0.6">${sec}</span>
+                                <span>${tk}</span>
+                                <span style="font-size:0.6rem;opacity:0.8">${s.y1.toFixed(1)}%</span>
+                            </div>`;
+                        }
+                    });
+                }
+                content.innerHTML = html + '</div>';
+            } else if (id === 'screener') {
+                let html = '<div class="sec-t">Insights de Movimentação</div>';
+                Object.entries(STOCKS).sort((a,b) => b[1].ytd - a[1].ytd).forEach(([tk, s]) => {
+                    let msg = s.ytd > 10 ? "Rally sustentado por fluxo institucional." : 
+                              s.ytd < -10 ? "Sell-off agressivo — valuation descontado." : 
+                              "Consolidação lateral — aguardando gatilho.";
+                    html += `<div class="list-row">
+                        <div><div class="tk">${tk}</div><div style="font-size:0.6rem;color:var(--t3)">R$ ${s.price.toFixed(2)}</div></div>
+                        <div class="narrative">${msg}</div>
+                        <div class="ret ${s.ytd >= 0 ? 'pos' : 'neg'}">${s.ytd >= 0 ? '+' : ''}${s.ytd.toFixed(1)}%</div>
+                    </div>`;
+                });
+                content.innerHTML = html;
+            } else if (id === 'backtest') {
+                content.innerHTML = `<div class="m-card" style="text-align:center;padding:3rem;">
+                    <h3 style="margin-bottom:1rem">Portfolio Backtester</h3>
+                    <p style="color:var(--t3);font-size:0.8rem">Selecione seus ativos para simular retorno histórico vs CDI.</p>
+                    <div style="margin:2rem 0;display:flex;gap:1rem;justify-content:center;flex-wrap:wrap">
+                        <input type="text" placeholder="PETR4" style="background:var(--s2);border:1px solid var(--bd);color:#fff;padding:8px;border-radius:6px;width:100px">
+                        <input type="text" placeholder="50%" style="background:var(--s2);border:1px solid var(--bd);color:#fff;padding:8px;border-radius:6px;width:60px">
+                        <button style="background:var(--accent);color:#fff;border:none;padding:8px 24px;border-radius:6px;font-weight:700">SIMULAR</button>
+                    </div>
+                </div>`;
+            } else if (id === 'index') {
+                content.innerHTML = `<div class="m-card" style="border-left:4px solid var(--accent)">
+                    <div class="lbl">Paganini Tech Index (PTI)</div>
+                    <div class="val" style="color:var(--accent)">114.50 pts</div>
+                    <p style="font-size:0.7rem;color:var(--t2);margin-top:0.5rem">Benchmark proprietário composto por: TOTS3, LWSA3, INTB3, CASH3, POSI3. Base 100 em Fev/2021.</p>
+                </div>`;
+            }
+        }
+
+        // Init
+        document.addEventListener('DOMContentLoaded', () => {
+            showTab('market');
+        });
+    </script>
+</body>
+</html>
