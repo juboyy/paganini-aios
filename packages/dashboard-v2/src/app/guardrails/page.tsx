@@ -199,8 +199,8 @@ export default function GuardrailsPage() {
   const mergedGates = GATE_DISPLAY.map(display => {
     const fetched = gates.find(g =>
       g.id === display.id ||
-      g.name?.toUpperCase().includes(display.id) ||
-      display.id.includes(g.id?.toUpperCase())
+      (g.name || "").toUpperCase().includes(display.id) ||
+      display.id.includes((g.id || "").toUpperCase())
     ) ?? gates[GATE_DISPLAY.indexOf(display)];
     return {
       ...display,

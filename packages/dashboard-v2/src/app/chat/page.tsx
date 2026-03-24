@@ -391,10 +391,11 @@ function DataTile({ tile, liveTimeline, liveCosts }: {
 
   if (tile.id === "timeline-live") {
     const events = liveTimeline || [];
-    const typeColor = (t: string) => {
-      if (t.includes("error") || t.includes("fail")) return "#ff4444";
-      if (t.includes("warn")) return "#ffaa00";
-      if (t.includes("complete") || t.includes("success")) return "var(--accent)";
+    const typeColor = (t: string | undefined) => {
+      const s = (t || "").toLowerCase();
+      if (s.includes("error") || s.includes("fail")) return "#ff4444";
+      if (s.includes("warn")) return "#ffaa00";
+      if (s.includes("complete") || s.includes("success")) return "var(--accent)";
       return "var(--cyan)";
     };
     return (
