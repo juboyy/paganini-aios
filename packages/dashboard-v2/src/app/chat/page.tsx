@@ -268,32 +268,71 @@ function AgentTile({ tile, onChat, liveData }: { tile: TileData; onChat: (agent:
 
 /* ── Chat Tile ── */
 function ChatTile({ tile }: { tile: TileData }) {
-  const [msgs, setMsgs] = useState<ChatMsg[]>([
-    { role: "assistant", content: `${tile.emoji} ${tile.agent} online. Pronto para comandos.` },
-  ]);
+  const [msgs, setMsgs] = useState<ChatMsg[]>([]);
   const [input, setInput] = useState("");
   const [streaming, setStreaming] = useState(false);
-  const [mode, setMode] = useState<"ai" | "bridge">("bridge");
-  const [sessionId] = useState(() => `canvas-${tile.id}-${Date.now()}`);
+  const [agents, setAgents] = useState<{ id: string; name: string; emoji: string }[]>([]);
+  const [selectedAgent, setSelectedAgent] = useState(tile.agent || "oracli");
+  // Stable session ID per tile (persists across refreshes)
+  const tileSessionId = `canvas-${tile.id}`;
+  const [sessionId] = useState(tileSessionId);
   const bottomRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const lastPollRef = useRef<string>("");
+  const loadedRef = useRef(false);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [msgs]);
 
-  // Poll for bridge responses
+  // Fetch agents for selector
   useEffect(() => {
-    if (mode !== "bridge") return;
+    fetch("/api/agents").then(r => r.json()).then(data => {
+      const list = (data.agents || data || []).map((a: { id: string; name: string; emoji?: string }) => ({
+        id: a.id, name: a.name, emoji: a.emoji || "🤖",
+      }));
+      setAgents(list);
+    }).catch(() => {});
+  }, []);
+
+  // Load history from Supabase on mount
+  useEffect(() => {
+    if (loadedRef.current) return;
+    loadedRef.current = true;
+    (async () => {
+      try {
+        const res = await fetch(`/api/chat?tileId=${encodeURIComponent(tile.id)}&limit=100`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (Array.isArray(data) && data.length > 0) {
+          const history = data
+            .filter((m: { role: string; content: string }) => m.role !== "system" && m.content)
+            .map((m: { role: string; content: string }) => ({
+              role: m.role as "user" | "assistant",
+              content: m.content,
+            }));
+          if (history.length > 0) {
+            setMsgs(history);
+            const lastTs = data[data.length - 1]?.created_at;
+            if (lastTs) lastPollRef.current = lastTs;
+            return;
+          }
+        }
+      } catch {}
+      setMsgs([{ role: "assistant", content: `${tile.emoji} ${tile.agent} online. Pronto para comandos.` }]);
+    })();
+  }, [tile.id, tile.emoji, tile.agent]);
+
+  // Poll for new responses
+  useEffect(() => {
     const interval = setInterval(async () => {
       try {
-        const params = new URLSearchParams({ sessionId, limit: "50" });
+        const params = new URLSearchParams({ tileId: tile.id, limit: "50" });
         if (lastPollRef.current) params.set("after", lastPollRef.current);
         const res = await fetch(`/api/chat?${params}`);
         if (!res.ok) return;
         const data = await res.json();
-        if (data.length > 0) {
+        if (Array.isArray(data) && data.length > 0) {
           const newMsgs = data
             .filter((m: { role: string; status?: string }) =>
               m.role === "assistant" && m.status === "delivered"
@@ -307,7 +346,7 @@ function ChatTile({ tile }: { tile: TileData }) {
       } catch {}
     }, 3000);
     return () => clearInterval(interval);
-  }, [mode, sessionId]);
+  }, [tile.id]);
 
   const send = useCallback(async () => {
     const text = input.trim();
@@ -317,137 +356,68 @@ function ChatTile({ tile }: { tile: TileData }) {
     const userMsg: ChatMsg = { role: "user", content: text };
     setMsgs((prev) => [...prev, userMsg]);
 
-    if (mode === "bridge") {
-      setMsgs(prev => [...prev, { role: "assistant", content: "⏳ Enviando ao OraCLI..." }]);
-      try {
-        const res = await fetch("/api/chat", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            messages: [{ role: "user", content: text }],
-            mode: "bridge",
-            tileId: tile.id,
-            sessionId,
-          }),
-        });
-        if (res.ok) {
-          setMsgs(prev => {
-            const copy = [...prev];
-            copy[copy.length - 1] = { role: "assistant", content: "📡 Mensagem enviada. Aguardando resposta do OraCLI..." };
-            return copy;
-          });
-        }
-      } catch {
-        setMsgs(prev => {
-          const copy = [...prev];
-          copy[copy.length - 1] = { role: "assistant", content: "❌ Erro ao enviar." };
-          return copy;
-        });
-      }
-      return;
-    }
-
-    // AI mode — streaming Gemini response
-    const assistantMsg: ChatMsg = { role: "assistant", content: "" };
-    setMsgs((prev) => [...prev, assistantMsg]);
-    setStreaming(true);
-
-    const apiMsgs = [...msgs, userMsg].map((m) => ({ role: m.role, content: m.content }));
-
+    // All messages go through bridge — agent context is embedded in the message
+    const agentLabel = agents.find(a => a.id === selectedAgent)?.name || selectedAgent;
+    setMsgs(prev => [...prev, { role: "assistant", content: "⏳ ..." }]);
     try {
-      abortRef.current = new AbortController();
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: apiMsgs, agent: tile.agent || "auto", mode: "ai", tileId: tile.id, sessionId }),
-        signal: abortRef.current.signal,
+        body: JSON.stringify({
+          messages: [{ role: "user", content: text }],
+          mode: "bridge",
+          agent: selectedAgent,
+          tileId: tile.id,
+          sessionId,
+        }),
       });
-
-      if (!res.ok) {
-        setMsgs((prev) => {
+      if (res.ok) {
+        setMsgs(prev => {
           const copy = [...prev];
-          copy[copy.length - 1] = { role: "assistant", content: `Erro ${res.status}` };
-          return copy;
-        });
-        setStreaming(false);
-        return;
-      }
-
-      const reader = res.body?.getReader();
-      const decoder = new TextDecoder();
-      if (!reader) { setStreaming(false); return; }
-
-      let buffer = "";
-      let full = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
-        for (const line of lines) {
-          const t = line.trim();
-          if (!t || !t.startsWith("data: ")) continue;
-          const d = t.slice(6);
-          if (d === "[DONE]") continue;
-          try {
-            const p = JSON.parse(d);
-            if (p.content || p.text) {
-              full += p.content || p.text;
-              setMsgs((prev) => {
-                const copy = [...prev];
-                copy[copy.length - 1] = { role: "assistant", content: full };
-                return copy;
-              });
-            }
-          } catch {}
-        }
-      }
-    } catch (err: unknown) {
-      if (!(err instanceof Error && err.name === "AbortError")) {
-        setMsgs((prev) => {
-          const copy = [...prev];
-          copy[copy.length - 1] = { role: "assistant", content: "Erro de conexão." };
+          copy[copy.length - 1] = { role: "assistant", content: `📡 → ${agentLabel}. Aguardando...` };
           return copy;
         });
       }
-    } finally {
-      setStreaming(false);
-      abortRef.current = null;
+    } catch {
+      setMsgs(prev => {
+        const copy = [...prev];
+        copy[copy.length - 1] = { role: "assistant", content: "❌ Erro ao enviar." };
+        return copy;
+      });
     }
-  }, [input, msgs, streaming, tile.agent, tile.id, mode, sessionId]);
+  }, [input, streaming, tile.id, sessionId, selectedAgent, agents]);
+
+  const currentAgentEmoji = agents.find(a => a.id === selectedAgent)?.emoji || tile.emoji;
 
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", padding: "0.5rem" }}>
-      {/* Mode toggle */}
-      <div style={{ display: "flex", gap: "4px", marginBottom: "0.4rem" }}>
-        <button
-          onClick={() => setMode("bridge")}
+      {/* Agent selector */}
+      <div style={{ marginBottom: "0.4rem" }}>
+        <select
+          value={selectedAgent}
+          onChange={(e) => setSelectedAgent(e.target.value)}
+          onMouseDown={(e) => e.stopPropagation()}
           style={{
-            flex: 1, padding: "3px 0", border: "1px solid var(--border)", borderRadius: 3,
-            background: mode === "bridge" ? "var(--accent)" : "transparent",
-            color: mode === "bridge" ? "var(--bg)" : "var(--text-4)",
-            fontFamily: "var(--font-mono)", fontSize: "0.6rem", fontWeight: 600, cursor: "pointer",
-            letterSpacing: "0.08em",
+            width: "100%", padding: "4px 6px",
+            background: "rgba(0,0,0,0.4)", border: "1px solid var(--border)",
+            borderRadius: 3, color: "var(--accent)",
+            fontFamily: "var(--font-mono)", fontSize: "0.65rem", fontWeight: 600,
+            letterSpacing: "0.06em", cursor: "pointer", outline: "none",
+            appearance: "none", WebkitAppearance: "none",
+            backgroundImage: "url(\"data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='8' height='5' viewBox='0 0 8 5'%3E%3Cpath fill='%2300ff88' d='M0 0l4 5 4-5z'/%3E%3C/svg%3E\")",
+            backgroundRepeat: "no-repeat",
+            backgroundPosition: "right 8px center",
+            paddingRight: "20px",
           }}
-          onMouseDown={e => e.stopPropagation()}
         >
-          ORACLI
-        </button>
-        <button
-          onClick={() => setMode("ai")}
-          style={{
-            flex: 1, padding: "3px 0", border: "1px solid var(--border)", borderRadius: 3,
-            background: mode === "ai" ? "var(--cyan)" : "transparent",
-            color: mode === "ai" ? "var(--bg)" : "var(--text-4)",
-            fontFamily: "var(--font-mono)", fontSize: "0.6rem", fontWeight: 600, cursor: "pointer",
-            letterSpacing: "0.08em",
-          }}
-          onMouseDown={e => e.stopPropagation()}
-        >
-          GEMINI
-        </button>
+          {agents.length > 0 ? agents.map(a => (
+            <option key={a.id} value={a.id}>
+              {a.emoji} {a.name.toUpperCase()}
+            </option>
+          )) : (
+            <option value={selectedAgent}>{currentAgentEmoji} {selectedAgent.toUpperCase()}</option>
+          )}
+        </select>
       </div>
 
       <div style={{
@@ -481,7 +451,7 @@ function ChatTile({ tile }: { tile: TileData }) {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); send(); } }}
-          placeholder={mode === "bridge" ? "→ OraCLI..." : `→ ${tile.agent || "gemini"}...`}
+          placeholder={`→ ${agents.find(a => a.id === selectedAgent)?.name || selectedAgent}...`}
           disabled={streaming}
           style={{
             flex: 1, background: "rgba(0,0,0,0.3)", border: "1px solid var(--border)",
@@ -494,7 +464,7 @@ function ChatTile({ tile }: { tile: TileData }) {
           onClick={streaming ? () => { abortRef.current?.abort(); setStreaming(false); } : send}
           style={{
             padding: "0.4rem 0.6rem", border: "1px solid var(--border)", borderRadius: 4,
-            background: streaming ? "var(--red)" : mode === "bridge" ? "var(--accent)" : "var(--cyan)",
+            background: streaming ? "var(--red)" : "var(--accent)",
             color: streaming ? "#fff" : "var(--bg)",
             fontFamily: "var(--font-mono)", fontSize: "0.7rem", fontWeight: 600, cursor: "pointer",
           }}
