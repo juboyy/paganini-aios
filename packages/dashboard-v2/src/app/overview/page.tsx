@@ -81,44 +81,30 @@ interface ActivityItem {
 
 export default function OverviewPage() {
   // ── API state ────────────────────────────────────────────────────────────────
-  const [apiStats, setApiStats] = useState<StatCard[]>([]);
+  const [stats, setStats] = useState<any>(null);
   const [activity, setActivity] = useState<ActivityItem[]>([]);
   const [agentCount, setAgentCount] = useState(12);
-  const [activeAgentCount, setActiveAgentCount] = useState(12);
   const [guardrailCount, setGuardrailCount] = useState(6);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const fetchAll = async () => {
       try {
-        const [statsRes, activityRes, agentsRes] = await Promise.all([
+        const [statsRes, activityRes] = await Promise.all([
           fetch("/api/stats"),
           fetch("/api/activity"),
-          fetch("/api/agents"),
         ]);
 
         if (statsRes.ok) {
-          const stats: StatCard[] = await statsRes.json();
-          setApiStats(stats);
-          // Extract guardrail count from stats
-          const guardrailStat = stats.find(s => s.label === "GUARDRAILS");
-          if (guardrailStat) {
-            const match = guardrailStat.value.match(/^(\d+)/);
-            if (match) setGuardrailCount(parseInt(match[1]));
-          }
+          const data = await statsRes.json();
+          setStats(data);
+          setAgentCount(data.totalAgents || 12);
+          setGuardrailCount(data.guardrails || 6);
         }
 
         if (activityRes.ok) {
           const data = await activityRes.json();
           setActivity(data);
-        }
-
-        if (agentsRes.ok) {
-          const agents = await agentsRes.json();
-          if (Array.isArray(agents) && agents.length > 0) {
-            setAgentCount(agents.length);
-            setActiveAgentCount(agents.filter((a: { status: string }) => a.status === "active").length);
-          }
         }
       } catch {
         // keep defaults
@@ -135,13 +121,38 @@ export default function OverviewPage() {
   const caps = useCounter(52, 1500);
   const guards = useCounter(guardrailCount, 1500);
 
+  // Parse total lines for the counter (M for millions, k for thousands)
+  const formatLines = (val: number | string) => {
+    const num = typeof val === 'string' ? parseFloat(val) : val;
+    if (isNaN(num)) return "0";
+    if (num >= 1000000) return (num / 1000000).toFixed(2) + "M";
+    if (num >= 1000) return (num / 1000).toFixed(1) + "K";
+    return num.toString();
+  };
+
   const metrics = [
-    { value: "116×", label: "Eficiência vs equipe humana", sub: "R$ 12K → R$ 103/mês" },
+    { 
+      value: stats ? `${stats.efficiency}×` : "116×", 
+      label: "Eficiência vs equipe humana", 
+      sub: stats ? `${stats.humanCost} → ${stats.aiCost}/mês` : "R$ 12K → R$ 103/mês" 
+    },
     { value: "91.2%", label: "Precisão do RAG", sub: "otimizado pelo AutoResearch" },
     { value: "87.3%", label: "Cobertura de testes", sub: "gerados automaticamente" },
-    { value: "1.97M", label: "Linhas de código geradas", sub: "Revenue-OS + Paganini + Workspace" },
-    { value: "98.3%", label: "Taxa de sucesso", sub: "execuções do pipeline" },
-    { value: "$0.003", label: "Custo por linha de código", sub: "gerada pelos agentes" },
+    { 
+      value: stats ? formatLines(stats.totalLines) : "1.97M", 
+      label: "Linhas de código geradas", 
+      sub: "Revenue-OS + Paganini + Workspace" 
+    },
+    { 
+      value: stats ? `${stats.successRate}%` : "98.3%", 
+      label: "Taxa de sucesso", 
+      sub: "execuções do pipeline" 
+    },
+    { 
+      value: stats ? `$${stats.costPerLine}` : "$0.003", 
+      label: "Custo por linha de código", 
+      sub: "gerada pelos agentes" 
+    },
   ];
 
   const layers = [

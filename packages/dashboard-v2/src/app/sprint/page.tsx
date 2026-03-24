@@ -57,97 +57,50 @@ function fmtDate(iso: string) {
   catch { return iso; }
 }
 
-// ─── Progress bar ─────────────────────────────────────────────────────────────
-
-function ProgressBar({ pct, color = "var(--accent)" }: { pct: number; color?: string }) {
-  return (
-    <div style={{ height: 3, background: "rgba(255,255,255,0.07)", borderRadius: 2, overflow: "hidden" }}>
-      <div style={{ width: `${Math.min(100, pct)}%`, height: "100%", background: color, boxShadow: `0 0 6px ${color}55`, transition: "width 0.6s ease" }} />
-    </div>
-  );
+function formatCost(cost: number | null) {
+  if (cost == null || cost === 0) return "$0.00";
+  if (cost >= 1) return `$${cost.toFixed(2)}`;
+  return `$${cost.toFixed(4)}`;
 }
 
-// ─── Burndown Chart ───────────────────────────────────────────────────────────
-
-function BurndownChart({ daily }: { daily: DailyEntry[] }) {
-  if (!daily || daily.length === 0) return null;
-
-  const W = 560, H = 180, PAD = { top: 16, right: 20, bottom: 36, left: 44 };
-  const iW = W - PAD.left - PAD.right;
-  const iH = H - PAD.top - PAD.bottom;
-
-  const maxTotal = Math.max(...daily.map((d) => d.total), 1);
-  const xScale = (i: number) => PAD.left + (i / Math.max(daily.length - 1, 1)) * iW;
-  const yScale = (v: number) => PAD.top + iH - (v / maxTotal) * iH;
-
-  const completedPts = daily.map((d, i) => ({ x: xScale(i), y: yScale(d.completed) }));
-  const totalPts = daily.map((d, i) => ({ x: xScale(i), y: yScale(d.total) }));
-
-  const cPath = completedPts.map((p, i) => `${i === 0 ? "M" : "L"}${p.x},${p.y}`).join(" ");
-  const tPath = totalPts.map((p, i) => `${i === 0 ? "M" : "L"}${p.x},${p.y}`).join(" ");
-  const aFill = cPath + ` L${completedPts[completedPts.length - 1].x},${yScale(0)} L${xScale(0)},${yScale(0)} Z`;
-
-  return (
-    <svg width={W} height={H} viewBox={`0 0 ${W} ${H}`} style={{ display: "block", maxWidth: "100%", overflow: "visible" }}>
-      <defs>
-        <linearGradient id="bdFill2" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="hsl(150 100% 50%)" stopOpacity="0.2" />
-          <stop offset="100%" stopColor="hsl(150 100% 50%)" stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      {[0, 0.5, 1].map((f) => (
-        <g key={f}>
-          <line x1={PAD.left} y1={PAD.top + iH * (1 - f)} x2={W - PAD.right} y2={PAD.top + iH * (1 - f)} stroke="rgba(255,255,255,0.05)" strokeWidth={1} />
-          <text x={PAD.left - 6} y={PAD.top + iH * (1 - f) + 4} textAnchor="end" style={{ fontFamily: "var(--font-mono)", fontSize: "0.7rem", fill: "var(--text-4)" }}>
-            {Math.round(maxTotal * f)}
-          </text>
-        </g>
-      ))}
-      {daily.filter((_, i) => i % 3 === 0 || i === daily.length - 1).map((d, _, arr) => {
-        const origIndex = daily.findIndex((x) => x.date === d.date);
-        return (
-          <text key={d.date} x={xScale(origIndex)} y={H - PAD.bottom + 14} textAnchor="middle" style={{ fontFamily: "var(--font-mono)", fontSize: "0.65rem", fill: "var(--text-4)" }}>
-            {d.date.slice(5)}
-          </text>
-        );
-      })}
-      <path d={tPath} fill="none" stroke="rgba(0,255,255,0.3)" strokeWidth={1.5} strokeDasharray="4 3" />
-      <path d={aFill} fill="url(#bdFill2)" />
-      <path d={cPath} fill="none" stroke="var(--accent)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-      {completedPts.length > 0 && (
-        <circle cx={completedPts[completedPts.length - 1].x} cy={completedPts[completedPts.length - 1].y} r={4} fill="var(--accent)" stroke="rgba(0,0,0,0.5)" strokeWidth={1} />
-      )}
-    </svg>
-  );
+function formatTokens(tokens: number | null) {
+  if (tokens == null || tokens === 0) return "0";
+  if (tokens >= 1000000) return (tokens / 1000000).toFixed(1) + "M";
+  if (tokens >= 1000) return (tokens / 1000).toFixed(1) + "K";
+  return tokens.toString();
 }
 
 // ─── Task Card ────────────────────────────────────────────────────────────────
 
 function TaskCard({ task, color }: { task: Task; color: string }) {
+  const truncatedName = task.name.length > 60 ? task.name.slice(0, 57) + "..." : task.name;
   return (
     <div style={{ padding: "0.75rem", borderRadius: "var(--radius)", background: `${color}04`, border: `1px solid ${color}15`, display: "flex", flexDirection: "column", gap: "0.5rem" }}>
-      <div style={{ fontSize: "0.8125rem", color: "var(--text-2)", lineHeight: 1.4 }}>
-        {task.name}
+      <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: "var(--text-1)", lineHeight: 1.4, fontWeight: 500 }}>
+        {truncatedName}
       </div>
-      <div style={{ display: "flex", gap: "0.375rem", flexWrap: "wrap" }}>
+      <div style={{ display: "flex", gap: "0.375rem", flexWrap: "wrap", alignItems: "center" }}>
         {task.agent_id && (
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--cyan)", background: "rgba(0,255,255,0.08)", border: "1px solid rgba(0,255,255,0.18)", padding: "1px 5px", borderRadius: "var(--radius)", whiteSpace: "nowrap" }}>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "hsl(180,100%,50%)", background: "rgba(0,255,255,0.08)", border: "1px solid rgba(0,255,255,0.18)", padding: "1px 5px", borderRadius: "var(--radius)", whiteSpace: "nowrap" }}>
             {task.agent_id}
           </span>
         )}
         {task.priority && (
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: priorityColor(task.priority), background: `${priorityColor(task.priority)}15`, border: `1px solid ${priorityColor(task.priority)}30`, padding: "1px 5px", borderRadius: "var(--radius)", whiteSpace: "nowrap" }}>
-            {task.priority}
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: priorityColor(task.priority), background: `${priorityColor(task.priority)}15`, border: `1px solid ${priorityColor(task.priority)}30`, padding: "1px 5px", borderRadius: "var(--radius)", whiteSpace: "nowrap", fontWeight: 700 }}>
+            {task.priority.toUpperCase()}
           </span>
         )}
       </div>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-        {task.cost != null && task.cost > 0 ? (
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-4)" }}>
-            ${task.cost.toFixed(4)}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "4px", borderTop: "1px solid rgba(255,255,255,0.03)", paddingTop: "4px" }}>
+        <div style={{ display: "flex", gap: 8 }}>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--accent)", fontWeight: 700 }}>
+            {formatCost(task.cost)}
           </span>
-        ) : <span />}
-        <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.7rem", color: "var(--text-4)" }}>
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.6875rem", color: "var(--text-4)" }}>
+            {formatTokens(task.tokens)}
+          </span>
+        </div>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.65rem", color: "var(--text-4)" }}>
           {fmtDate(task.created_at)}
         </span>
       </div>
@@ -161,16 +114,17 @@ function KanbanCol({ title, tasks, color, limit = 20 }: { title: string; tasks: 
   const [expanded, setExpanded] = useState(false);
   const shown = expanded ? tasks : tasks.slice(0, limit);
   return (
-    <div>
-      <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", letterSpacing: "0.12em", color, padding: "4px 10px", border: `1px solid ${color}25`, borderRadius: "var(--radius)", background: `${color}07`, marginBottom: "0.75rem", display: "inline-block" }}>
-        {title} ({tasks.length})
+    <div style={{ minWidth: 280, flex: 1 }}>
+      <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", letterSpacing: "0.12em", color, padding: "6px 12px", border: `1px solid ${color}25`, borderRadius: "var(--radius)", background: `${color}07`, marginBottom: "1rem", display: "flex", justifyContent: "space-between", fontWeight: 700 }}>
+        <span>{title}</span>
+        <span>{tasks.length}</span>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: "0.625rem" }}>
         {shown.map((t) => <TaskCard key={t.id} task={t} color={color} />)}
       </div>
       {!expanded && tasks.length > limit && (
-        <button onClick={() => setExpanded(true)} style={{ marginTop: "0.5rem", padding: "4px", fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-4)", background: "transparent", border: "1px solid var(--border)", borderRadius: "var(--radius)", cursor: "pointer", letterSpacing: "0.08em", width: "100%" }}>
-          + {tasks.length - limit} MAIS
+        <button onClick={() => setExpanded(true)} style={{ marginTop: "1rem", padding: "8px", fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-4)", background: "rgba(255,255,255,0.02)", border: "1px solid rgba(255,255,255,0.05)", borderRadius: "var(--radius)", cursor: "pointer", width: "100%", transition: "all 0.2s" }}>
+          + {tasks.length - limit} MAIS TAREFAS
         </button>
       )}
     </div>
@@ -184,11 +138,28 @@ export default function SprintPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
+  function fetchData() {
     fetch("/api/sprint")
-      .then((r) => r.json())
-      .then((d) => { setData(d); setLoading(false); })
-      .catch(() => { setError("Erro ao carregar sprint"); setLoading(false); });
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then((d) => {
+        setData(d);
+        setError(null);
+        setLoading(false);
+      })
+      .catch((e) => {
+        console.error("fetch sprint error:", e);
+        setError("Erro ao carregar sprint");
+        setLoading(false);
+      });
+  }
+
+  useEffect(() => {
+    fetchData();
+    const interval = setInterval(fetchData, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const stats = data?.stats ?? { total: 0, pending: 0, in_progress: 0, done: 0, total_cost: 0, total_tokens: 0 };
@@ -196,102 +167,73 @@ export default function SprintPage() {
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
-
-      {/* ── Header ── */}
-      <div>
-        <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "0.25rem" }}>
-          PAGANINI AIOS · GESTÃO DE TAREFAS
+      {/* Header */}
+      <div className="glass-card" style={{ padding: "1.5rem", borderTop: "2px solid var(--accent)" }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", flexWrap: "wrap", gap: 16 }}>
+          <div>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "0.25rem" }}>
+              PAGANINI AIOS · GESTÃO DE TAREFAS
+            </div>
+            <h1 style={{ fontFamily: "var(--font-display)", fontSize: "1.75rem", fontWeight: 700, color: "var(--text-1)", margin: 0 }}>
+              Sprint Board
+            </h1>
+          </div>
+          <div style={{ display: "flex", gap: 12 }}>
+            <div style={{ textAlign: "right" }}>
+              <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-4)" }}>COMPLETION</div>
+              <div style={{ fontFamily: "var(--font-display)", fontSize: "1.25rem", fontWeight: 900, color: "var(--accent)" }}>{donePct}%</div>
+            </div>
+            {!loading && <div style={{ height: 40, width: 2, background: "rgba(255,255,255,0.08)" }} />}
+            {!loading && (
+              <div style={{ textAlign: "right" }}>
+                <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-4)" }}>TOTAL COST</div>
+                <div style={{ fontFamily: "var(--font-display)", fontSize: "1.25rem", fontWeight: 900, color: "#a78bfa" }}>{formatCost(stats.total_cost)}</div>
+              </div>
+            )}
+          </div>
         </div>
-        <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
-          <h1 style={{ fontSize: "1.5rem", fontWeight: 700, color: "var(--text-1)", margin: 0 }}>
-            Sprint Board
-          </h1>
-          <span className="tag-badge">TASKS SUPABASE</span>
-          {!loading && <span className="tag-badge" style={{ color: "var(--accent)", background: "rgba(0,255,128,0.08)" }}>🟢 LIVE</span>}
-        </div>
-        <p style={{ color: "var(--text-3)", fontSize: 13, marginTop: 4, marginBottom: 0 }}>
-          Kanban com dados reais de tasks — pendentes, em andamento, concluídas
-        </p>
       </div>
 
-      {/* ── Stats Cards ── */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "0.875rem" }}>
+      {/* Stats Summary */}
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(160px, 1fr))", gap: "1rem" }}>
         {[
-          { label: "TOTAL TASKS",    value: loading ? "—" : stats.total.toString(),              color: "var(--text-1)", sub: `${stats.pending} pendentes` },
-          { label: "CONCLUÍDAS",     value: loading ? "—" : stats.done.toString(),              color: "var(--accent)", sub: `${donePct}% completo` },
-          { label: "EM ANDAMENTO",   value: loading ? "—" : stats.in_progress.toString(),       color: "var(--cyan)",   sub: "em progresso" },
-          { label: "PENDENTES",      value: loading ? "—" : stats.pending.toString(),           color: "#f59e0b",       sub: "aguardando" },
-          { label: "CUSTO TOTAL",    value: loading ? "—" : `$${stats.total_cost.toFixed(2)}`, color: "#a78bfa",       sub: "todas as tasks" },
-          { label: "TOKENS TOTAL",   value: loading ? "—" : `${(stats.total_tokens / 1000).toFixed(1)}K`, color: "hsl(180,100%,50%)", sub: "tokens consumidos" },
+          { label: "TOTAL TASKS",    value: stats.total.toString(),              color: "var(--text-1)" },
+          { label: "PENDENTE",       value: stats.pending.toString(),           color: "#f59e0b" },
+          { label: "EM ANDAMENTO",   value: stats.in_progress.toString(),       color: "hsl(180,100%,50%)" },
+          { label: "CONCLUÍDO",      value: stats.done.toString(),              color: "var(--accent)" },
         ].map((s) => (
-          <div key={s.label} className="glass-card" style={{ padding: "1rem 1.25rem" }}>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "0.25rem" }}>
+          <div key={s.label} className="glass-card" style={{ padding: "1.25rem", textAlign: "center" }}>
+            <div style={{ fontFamily: "var(--font-display)", fontSize: "1.75rem", fontWeight: 900, color: s.color, lineHeight: 1, marginBottom: 4 }}>
+              {loading && !data ? "—" : s.value}
+            </div>
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-4)", letterSpacing: "0.1em" }}>
               {s.label}
             </div>
-            <div style={{ fontSize: "1.5rem", fontWeight: 700, color: s.color, fontFamily: "var(--font-mono)", lineHeight: 1.1 }}>
-              {s.value}
-            </div>
-            <div style={{ fontSize: "0.8125rem", color: "var(--text-4)", marginTop: "2px" }}>{s.sub}</div>
           </div>
         ))}
       </div>
 
-      {/* ── Overall Progress ── */}
-      {!loading && stats.total > 0 && (
-        <div className="glass-card" style={{ padding: "1.25rem" }}>
-          <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "0.5rem" }}>
-            <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-4)", letterSpacing: "0.1em" }}>PROGRESSO GERAL</span>
-            <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--accent)", fontWeight: 700 }}>{donePct}%</span>
-          </div>
-          <ProgressBar pct={donePct} />
-        </div>
-      )}
-
-      {/* ── Burndown ── */}
-      {!loading && data?.daily && data.daily.length > 0 && (
-        <div className="glass-card" style={{ padding: "1.25rem" }}>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "0.75rem" }}>
-            ATIVIDADE DIÁRIA (ÚLTIMOS 14 DIAS)
-          </div>
-          <div style={{ overflowX: "auto" }}>
-            <BurndownChart daily={data.daily} />
-          </div>
-          <div style={{ display: "flex", gap: "1.25rem", marginTop: "0.75rem", flexWrap: "wrap" }}>
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <div style={{ width: 18, height: 2, background: "var(--accent)" }} />
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-4)" }}>CONCLUÍDAS</span>
-            </div>
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <div style={{ width: 18, height: 2, borderTop: "2px dashed rgba(0,255,255,0.4)" }} />
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-4)" }}>TOTAL CRIADAS</span>
-            </div>
+      {/* Loading & Error States */}
+      {loading && !data && (
+        <div className="glass-card" style={{ padding: "4rem", textAlign: "center" }}>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.875rem", color: "var(--accent)" }}>
+            CARREGANDO TASKS...
           </div>
         </div>
       )}
 
-      {/* ── Loading / Error ── */}
-      {loading && (
-        <div className="glass-card" style={{ padding: "3rem", textAlign: "center" }}>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.875rem", color: "var(--text-4)" }}>Carregando tasks do Supabase...</div>
-        </div>
-      )}
-      {error && (
-        <div className="glass-card" style={{ padding: "2rem", textAlign: "center", border: "1px solid rgba(239,68,68,0.3)" }}>
+      {error && !data && (
+        <div className="glass-card" style={{ padding: "3rem", textAlign: "center", border: "1px solid #ef444430" }}>
           <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.875rem", color: "#ef4444" }}>{error}</div>
         </div>
       )}
 
-      {/* ── Kanban Board ── */}
-      {!loading && data && (
-        <div className="glass-card" style={{ padding: "1.25rem" }}>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", letterSpacing: "0.12em", color: "var(--text-4)", marginBottom: "1rem" }}>
-            KANBAN · TASKS REAIS
-          </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: "1rem", alignItems: "start" }}>
-            <KanbanCol title="PENDENTES" tasks={data.pending} color="#f59e0b" />
-            <KanbanCol title="EM ANDAMENTO" tasks={data.in_progress} color="var(--cyan)" />
-            <KanbanCol title="CONCLUÍDAS" tasks={data.done} color="var(--accent)" limit={15} />
-          </div>
+      {/* Kanban Board */}
+      {data && (
+        <div style={{ display: "flex", gap: "1.5rem", overflowX: "auto", paddingBottom: "1rem", alignItems: "flex-start" }}>
+          <KanbanCol title="PENDENTE" tasks={data.pending} color="#f59e0b" />
+          <KanbanCol title="EM ANDAMENTO" tasks={data.in_progress} color="hsl(180,100%,50%)" />
+          <KanbanCol title="CONCLUÍDO" tasks={data.done} color="var(--accent)" limit={15} />
         </div>
       )}
     </div>

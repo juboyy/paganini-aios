@@ -94,11 +94,27 @@ export default function CapabilitiesPage() {
   const [error, setError] = useState<string | null>(null);
   const [selectedKind, setSelectedKind] = useState<string>("all");
 
-  useEffect(() => {
+  function fetchData() {
     fetch("/api/capabilities")
-      .then((r) => r.json())
-      .then((data) => { setCaps(data); setLoading(false); })
-      .catch(() => { setError("Erro ao carregar capacidades"); setLoading(false); });
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then((data: Capability[]) => {
+        setCaps(Array.isArray(data) ? data : []);
+        setError(null);
+        setLoading(false);
+      })
+      .catch(() => {
+        setError("Erro ao carregar capacidades");
+        setLoading(false);
+      });
+  }
+
+  useEffect(() => {
+    fetchData();
+    const interval = setInterval(fetchData, 30000);
+    return () => clearInterval(interval);
   }, []);
 
   const groups: Record<string, Capability[]> = {};
@@ -166,8 +182,24 @@ export default function CapabilitiesPage() {
         ))}
       </div>
 
+      {/* ── Loading ── */}
+      {loading && (
+        <div className="glass-card" style={{ padding: "3rem", textAlign: "center" }}>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.875rem", color: "var(--text-4)" }}>
+            Carregando capacidades do Supabase...
+          </div>
+        </div>
+      )}
+
+      {/* ── Error ── */}
+      {!loading && error && (
+        <div className="glass-card" style={{ padding: "2rem", textAlign: "center", border: "1px solid rgba(239,68,68,0.3)" }}>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.875rem", color: "#ef4444" }}>{error}</div>
+        </div>
+      )}
+
       {/* ── Bar Chart ── */}
-      {!loading && Object.keys(groups).length > 0 && (
+      {!loading && !error && Object.keys(groups).length > 0 && (
         <div className="glass-card" style={{ padding: "1.5rem" }}>
           <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", letterSpacing: "0.15em", color: "var(--text-4)", marginBottom: "0.25rem" }}>
             DISTRIBUIÇÃO POR TIPO
@@ -179,22 +211,8 @@ export default function CapabilitiesPage() {
         </div>
       )}
 
-      {/* ── Loading / Error ── */}
-      {loading && (
-        <div className="glass-card" style={{ padding: "3rem", textAlign: "center" }}>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.875rem", color: "var(--text-4)" }}>
-            Carregando capacidades do Supabase...
-          </div>
-        </div>
-      )}
-      {error && (
-        <div className="glass-card" style={{ padding: "2rem", textAlign: "center", border: "1px solid rgba(239,68,68,0.3)" }}>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.875rem", color: "#ef4444" }}>{error}</div>
-        </div>
-      )}
-
       {/* ── Filter ── */}
-      {!loading && kinds.length > 0 && (
+      {!loading && !error && kinds.length > 0 && (
         <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap", alignItems: "center" }}>
           <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-4)", letterSpacing: "0.1em" }}>FILTRAR:</span>
           {["all", ...kinds].map((k) => {
@@ -220,8 +238,18 @@ export default function CapabilitiesPage() {
         </div>
       )}
 
+      {/* ── Empty state ── */}
+      {!loading && !error && caps.length === 0 && (
+        <div className="glass-card" style={{ padding: "3rem", textAlign: "center" }}>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "2rem", marginBottom: "1rem" }}>⚡</div>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.875rem", color: "var(--text-4)" }}>
+            Nenhuma capacidade registrada
+          </div>
+        </div>
+      )}
+
       {/* ── Capability Cards ── */}
-      {!loading && displayed.length > 0 && (
+      {!loading && !error && displayed.length > 0 && (
         <div className="glass-card" style={{ padding: "1.25rem" }}>
           <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", letterSpacing: "0.15em", color: "var(--text-4)", marginBottom: "1rem" }}>
             {selectedKind === "all" ? "TODAS AS CAPACIDADES" : selectedKind.toUpperCase()} — {displayed.length} ENTRADAS

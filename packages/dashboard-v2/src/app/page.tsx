@@ -158,7 +158,12 @@ export default function OverviewPage() {
       ]);
       if (statsRes.ok) {
         const data = await statsRes.json();
-        setApiStats(data);
+        // API now returns { cards: [...], ...kpis } — extract cards array
+        if (Array.isArray(data)) {
+          setApiStats(data);
+        } else if (data?.cards && Array.isArray(data.cards)) {
+          setApiStats(data.cards);
+        }
       }
       if (activityRes.ok) {
         const data = await activityRes.json();
@@ -213,8 +218,8 @@ export default function OverviewPage() {
 
   // Build STATS from apiStats + sparklines
   const agentsCard = apiStats.find(s => s.label === "AGENTS ACTIVE");
-  const tasksCard = apiStats.find(s => s.label === "TASKS / 30D");
-  const costCard = apiStats.find(s => s.label === "COST / 30D");
+  const tasksCard = apiStats.find(s => s.label === "TASKS TOTAL" || s.label === "TASKS / 30D");
+  const costCard = apiStats.find(s => s.label === "TOTAL COST" || s.label === "COST / 30D");
   const guardrailsCard = apiStats.find(s => s.label === "GUARDRAILS");
 
   const STATS = [

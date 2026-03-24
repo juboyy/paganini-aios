@@ -9,6 +9,7 @@ interface MemoryEntry {
   content: string;
   category: string | null;
   agent_id: string | null;
+  confidence?: number | null;
   created_at: string;
 }
 
@@ -38,6 +39,7 @@ function catColor(cat: string | null) {
 
 function MemCard({ entry }: { entry: MemoryEntry }) {
   const color = catColor(entry.category);
+  const preview = entry.content.length > 300 ? entry.content.slice(0, 300) + "…" : entry.content;
   return (
     <div style={{ padding: "1rem 1.125rem", borderRadius: "var(--radius)", border: `1px solid ${color}25`, background: `${color}05`, display: "flex", flexDirection: "column", gap: "0.5rem" }}>
       <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: "0.5rem", flexWrap: "wrap" }}>
@@ -48,8 +50,13 @@ function MemCard({ entry }: { entry: MemoryEntry }) {
             </span>
           )}
           {entry.agent_id && (
-            <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", padding: "2px 8px", borderRadius: "var(--radius)", background: "rgba(0,255,255,0.08)", border: "1px solid rgba(0,255,255,0.2)", color: "var(--cyan)" }}>
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", padding: "2px 8px", borderRadius: "var(--radius)", background: "rgba(0,255,255,0.08)", border: "1px solid rgba(0,255,255,0.2)", color: "hsl(180,100%,50%)" }}>
               {entry.agent_id}
+            </span>
+          )}
+          {entry.confidence != null && (
+            <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-4)" }}>
+              {(entry.confidence * 100).toFixed(0)}%
             </span>
           )}
         </div>
@@ -58,7 +65,7 @@ function MemCard({ entry }: { entry: MemoryEntry }) {
         </span>
       </div>
       <p style={{ fontFamily: "var(--font-mono)", fontSize: "0.875rem", color: "var(--text-2)", margin: 0, lineHeight: 1.6, whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
-        {entry.content}
+        {preview}
       </p>
     </div>
   );
@@ -74,18 +81,31 @@ export default function MemoryPage() {
   const [filterAgent, setFilterAgent] = useState<string>("all");
   const [search, setSearch] = useState<string>("");
 
-  function load(cat?: string, agent?: string) {
-    setLoading(true);
+  function fetchData(cat?: string, agent?: string) {
     const params = new URLSearchParams();
     if (cat && cat !== "all") params.set("category", cat);
     if (agent && agent !== "all") params.set("agent_id", agent);
     fetch(`/api/memory${params.toString() ? "?" + params.toString() : ""}`)
-      .then((r) => r.json())
-      .then((data) => { setEntries(data); setLoading(false); })
-      .catch(() => { setError("Erro ao carregar memória"); setLoading(false); });
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then((data) => {
+        setEntries(Array.isArray(data) ? data : []);
+        setError(null);
+        setLoading(false);
+      })
+      .catch(() => {
+        setError("Erro ao carregar memória");
+        setLoading(false);
+      });
   }
 
-  useEffect(() => { load(); }, []);
+  useEffect(() => {
+    fetchData();
+    const interval = setInterval(() => fetchData(filterCat, filterAgent), 30000);
+    return () => clearInterval(interval);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const cats = Array.from(new Set(entries.map((e) => e.category).filter(Boolean))) as string[];
   const agents = Array.from(new Set(entries.map((e) => e.agent_id).filter(Boolean))) as string[];
@@ -99,11 +119,13 @@ export default function MemoryPage() {
 
   function handleCatFilter(c: string) {
     setFilterCat(c);
-    load(c, filterAgent);
+    setLoading(true);
+    fetchData(c, filterAgent);
   }
   function handleAgentFilter(a: string) {
     setFilterAgent(a);
-    load(filterCat, a);
+    setLoading(true);
+    fetchData(filterCat, a);
   }
 
   return (
@@ -154,26 +176,54 @@ export default function MemoryPage() {
         ))}
       </div>
 
-      {/* ── Filters ── */}
-      {!loading && (
+      {/* ── Loading ── */}
+      {loading && (
+        <div className="glass-card" style={{ padding: "3rem", textAlign: "center" }}>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.875rem", color: "var(--text-4)" }}>
+            Carregando memória do Supabase...
+          </div>
+        </div>
+      )}
+
+      {/* ── Error ── */}
+      {!loading && error && (
+        <div className="glass-card" style={{ padding: "2rem", textAlign: "center", border: "1px solid rgba(239,68,68,0.3)" }}>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.875rem", color: "#ef4444" }}>{error}</div>
+        </div>
+      )}
+
+      {/* ── Empty state ── */}
+      {!loading && !error && entries.length === 0 && (
+        <div className="glass-card" style={{ padding: "4rem", textAlign: "center" }}>
+          <div style={{ fontSize: "3rem", marginBottom: "1rem" }}>🧠</div>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: "1.125rem", fontWeight: 700, color: "var(--text-2)", marginBottom: "0.5rem" }}>
+            Nenhuma memória armazenada
+          </div>
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: "var(--text-4)", lineHeight: 1.6 }}>
+            A tabela <span style={{ color: "hsl(180,100%,50%)" }}>memory_entries</span> está vazia.
+            <br />As memórias aparecerão aqui conforme os agentes aprenderem.
+          </div>
+        </div>
+      )}
+
+      {/* ── Filters (only when there is data) ── */}
+      {!loading && !error && entries.length > 0 && (
         <div style={{ display: "flex", flexDirection: "column", gap: "0.75rem" }}>
           {/* Search */}
-          <div style={{ position: "relative" }}>
-            <input
-              type="text"
-              placeholder="Buscar por conteúdo..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              style={{
-                width: "100%", boxSizing: "border-box",
-                fontFamily: "var(--font-mono)", fontSize: "0.875rem",
-                padding: "0.625rem 1rem", borderRadius: "var(--radius)",
-                border: "1px solid rgba(255,255,255,0.12)",
-                background: "rgba(255,255,255,0.04)", color: "var(--text-1)",
-                outline: "none",
-              }}
-            />
-          </div>
+          <input
+            type="text"
+            placeholder="Buscar por conteúdo..."
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            style={{
+              width: "100%", boxSizing: "border-box",
+              fontFamily: "var(--font-mono)", fontSize: "0.875rem",
+              padding: "0.625rem 1rem", borderRadius: "var(--radius)",
+              border: "1px solid rgba(255,255,255,0.12)",
+              background: "rgba(255,255,255,0.04)", color: "var(--text-1)",
+              outline: "none",
+            }}
+          />
 
           {/* Category filter */}
           {cats.length > 0 && (
@@ -198,7 +248,7 @@ export default function MemoryPage() {
               {["all", ...agents.slice(0, 10)].map((a) => {
                 const active = filterAgent === a;
                 return (
-                  <button key={a} onClick={() => handleAgentFilter(a)} style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", padding: "3px 10px", borderRadius: "var(--radius)", border: active ? "1px solid var(--cyan)" : "1px solid rgba(255,255,255,0.1)", background: active ? "rgba(0,255,255,0.1)" : "transparent", color: active ? "var(--cyan)" : "var(--text-3)", cursor: "pointer" }}>
+                  <button key={a} onClick={() => handleAgentFilter(a)} style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", padding: "3px 10px", borderRadius: "var(--radius)", border: active ? "1px solid hsl(180,100%,50%)" : "1px solid rgba(255,255,255,0.1)", background: active ? "rgba(0,255,255,0.1)" : "transparent", color: active ? "hsl(180,100%,50%)" : "var(--text-3)", cursor: "pointer" }}>
                     {a === "all" ? "TODOS" : a}
                   </button>
                 );
@@ -208,30 +258,16 @@ export default function MemoryPage() {
         </div>
       )}
 
-      {/* ── Loading / Error ── */}
-      {loading && (
-        <div className="glass-card" style={{ padding: "3rem", textAlign: "center" }}>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.875rem", color: "var(--text-4)" }}>
-            Carregando memória do Supabase...
-          </div>
-        </div>
-      )}
-      {error && (
-        <div className="glass-card" style={{ padding: "2rem", textAlign: "center", border: "1px solid rgba(239,68,68,0.3)" }}>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.875rem", color: "#ef4444" }}>{error}</div>
-        </div>
-      )}
-
       {/* ── Entries ── */}
-      {!loading && displayed.length === 0 && (
+      {!loading && !error && displayed.length === 0 && entries.length > 0 && (
         <div className="glass-card" style={{ padding: "3rem", textAlign: "center" }}>
           <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.875rem", color: "var(--text-4)" }}>
-            Nenhuma entrada encontrada. A tabela memory_entries pode estar vazia.
+            Nenhuma entrada encontrada para os filtros selecionados.
           </div>
         </div>
       )}
 
-      {!loading && displayed.length > 0 && (
+      {!loading && !error && displayed.length > 0 && (
         <div className="glass-card" style={{ padding: "1.25rem" }}>
           <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", letterSpacing: "0.15em", color: "var(--text-4)", marginBottom: "1rem" }}>
             ENTRADAS DE MEMÓRIA — {displayed.length} RESULTADOS

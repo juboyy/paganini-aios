@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "../../../lib/supabase";
 
 const GATEWAY_URL = process.env.CHAT_GATEWAY_URL || "";
 const GATEWAY_TOKEN = process.env.CHAT_GATEWAY_TOKEN || "";

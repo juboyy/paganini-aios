@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { supabase } from "../../../lib/supabase";
 
 const STATIC_GUARDRAILS = [
   { id: "eligibility", name: "ELIGIBILITY", status: "pass", checks: 1847, pass_rate: 98.2, last_check: "2 min ago" },

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { Space_Grotesk, IBM_Plex_Mono } from "next/font/google";
-import { Sidebar } from "@/components/layout/sidebar";
-import { Topbar } from "@/components/layout/topbar";
+import { Sidebar } from "../components/layout/sidebar";
+import { Topbar } from "../components/layout/topbar";
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-display" });

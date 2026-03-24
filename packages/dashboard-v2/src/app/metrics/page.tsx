@@ -43,13 +43,26 @@ interface MetricsData {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function StatCard({ label, value, sub }: { label: string; value: string; sub?: string }) {
+function formatNumber(num: number) {
+  if (num >= 1000000) return (num / 1000000).toFixed(1) + "M";
+  if (num >= 1000) return (num / 1000).toFixed(1) + "K";
+  return num.toString();
+}
+
+function formatCost(cost: number) {
+  if (cost >= 1) return cost.toFixed(2);
+  return cost.toFixed(4);
+}
+
+function StatCard({ label, value, sub, color }: { label: string; value: string; sub?: string; color?: string }) {
   return (
-    <div className="glass-card p-4" style={{ flex: 1, minWidth: 160 }}>
+    <div className="glass-card" style={{ flex: 1, minWidth: 160, padding: "1rem" }}>
       <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", letterSpacing: "0.1em", color: "var(--text-4)", textTransform: "uppercase", marginBottom: 8 }}>
         {label}
       </div>
-      <div className="stat-value">{value}</div>
+      <div style={{ fontFamily: "var(--font-display)", fontSize: "1.75rem", fontWeight: 900, color: color || "var(--text-1)", lineHeight: 1.1 }}>
+        {value}
+      </div>
       {sub && <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-3)", marginTop: 4 }}>{sub}</div>}
     </div>
   );
@@ -57,14 +70,14 @@ function StatCard({ label, value, sub }: { label: string; value: string; sub?: s
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
   return (
-    <h2 style={{ fontFamily: "var(--font-display)", fontSize: "1.5rem", fontWeight: 700, color: "var(--text-1)", margin: "2rem 0 1rem" }}>
+    <h2 style={{ fontFamily: "var(--font-display)", fontSize: "1.25rem", fontWeight: 700, color: "var(--text-1)", margin: "2rem 0 1rem" }}>
       {children}
     </h2>
   );
 }
 
 function SuccessBar({ rate }: { rate: number }) {
-  const color = rate >= 97 ? "var(--accent)" : rate >= 90 ? "var(--cyan)" : "#f59e0b";
+  const color = rate >= 90 ? "var(--accent)" : rate >= 70 ? "#f59e0b" : "#ef4444";
   return (
     <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 140 }}>
       <div style={{ flex: 1, height: 6, background: "rgba(255,255,255,0.08)", borderRadius: 3, overflow: "hidden" }}>
@@ -77,235 +90,34 @@ function SuccessBar({ rate }: { rate: number }) {
   );
 }
 
-// ─── Cost Line Chart ──────────────────────────────────────────────────────────
+// ─── Cost Bar Chart ───────────────────────────────────────────────────────────
 
-function CostChart({ costs }: { costs: DailyCost[] }) {
-  if (!costs || costs.length === 0) {
-    return (
-      <div style={{ padding: "2rem", textAlign: "center", fontFamily: "var(--font-mono)", fontSize: "0.875rem", color: "var(--text-4)" }}>
-        Sem dados de custo diário nos últimos 30 dias.
-      </div>
-    );
-  }
-
-  const W = 600, H = 200, pad = 48;
-  const maxCost = Math.max(...costs.map((c) => c.total), 0.001);
-  const iW = W - pad * 2;
-  const iH = H - pad * 2;
-
-  const pts = costs.map((c, i) => ({
-    x: pad + (i / Math.max(costs.length - 1, 1)) * iW,
-    y: pad + iH - (c.total / maxCost) * iH,
-    c,
-  }));
-
-  const line = pts.map((p, i) => `${i === 0 ? "M" : "L"}${p.x},${p.y}`).join(" ");
-  const area = line + ` L${pts[pts.length - 1].x},${pad + iH} L${pts[0].x},${pad + iH} Z`;
-
-  // Provider stacked at each x
-  const prov = ["openai", "anthropic", "google"] as const;
-  const provColors = { openai: "var(--accent)", anthropic: "hsl(180,100%,50%)", google: "#a78bfa" };
+function CostBarChart({ costs }: { costs: DailyCost[] }) {
+  const last7 = costs.slice(-7);
+  if (last7.length === 0) return null;
+  const max = Math.max(...last7.map(c => c.total), 0.01);
 
   return (
-    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", display: "block" }}>
-      <defs>
-        <linearGradient id="costFill" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.25" />
-          <stop offset="100%" stopColor="var(--accent)" stopOpacity="0.02" />
-        </linearGradient>
-      </defs>
-
-      {/* Grid */}
-      {[0, 0.25, 0.5, 0.75, 1].map((t) => (
-        <g key={t}>
-          <line x1={pad} y1={pad + iH * t} x2={W - pad} y2={pad + iH * t} stroke="rgba(255,255,255,0.05)" strokeWidth={1} />
-          <text x={pad - 6} y={pad + iH * t + 4} textAnchor="end" fill="rgba(255,255,255,0.25)" fontSize={9} fontFamily="var(--font-mono)">
-            ${(maxCost * (1 - t)).toFixed(2)}
-          </text>
-        </g>
-      ))}
-
-      {/* X labels */}
-      {pts.filter((_, i) => i % Math.ceil(pts.length / 6) === 0 || i === pts.length - 1).map((p) => (
-        <text key={p.c.date} x={p.x} y={H - 4} textAnchor="middle" fill="rgba(255,255,255,0.3)" fontSize={9} fontFamily="var(--font-mono)">
-          {p.c.date.slice(5)}
-        </text>
-      ))}
-
-      {/* Area + line */}
-      <path d={area} fill="url(#costFill)" />
-      <path d={line} fill="none" stroke="var(--accent)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-
-      {/* Dots for last point */}
-      {pts.length > 0 && (
-        <circle cx={pts[pts.length - 1].x} cy={pts[pts.length - 1].y} r={3} fill="var(--accent)" stroke="rgba(0,0,0,0.5)" strokeWidth={1} />
-      )}
-    </svg>
-  );
-}
-
-// ─── Tasks per day chart ──────────────────────────────────────────────────────
-
-function TasksPerDayChart({ tasksByDay, tokensByDay }: { tasksByDay: Record<string, number>; tokensByDay: Record<string, number> }) {
-  const days = Object.keys(tasksByDay).sort();
-  if (days.length === 0) return (
-    <div style={{ padding: "2rem", textAlign: "center", fontFamily: "var(--font-mono)", fontSize: "0.875rem", color: "var(--text-4)" }}>
-      Sem dados de tasks por dia.
-    </div>
-  );
-
-  const W = 600, H = 180, pad = 44;
-  const iW = W - pad * 2;
-  const iH = H - pad * 2;
-  const taskVals = days.map((d) => tasksByDay[d] ?? 0);
-  const maxT = Math.max(...taskVals, 1);
-
-  const pts = days.map((d, i) => ({
-    x: pad + (i / Math.max(days.length - 1, 1)) * iW,
-    y: pad + iH - (tasksByDay[d] / maxT) * iH,
-    d,
-  }));
-
-  const line = pts.map((p, i) => `${i === 0 ? "M" : "L"}${p.x},${p.y}`).join(" ");
-  const area = line + ` L${pts[pts.length - 1].x},${pad + iH} L${pts[0].x},${pad + iH} Z`;
-
-  return (
-    <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", display: "block" }}>
-      <defs>
-        <linearGradient id="tasksGrad" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0%" stopColor="hsl(180,100%,50%)" stopOpacity="0.2" />
-          <stop offset="100%" stopColor="hsl(180,100%,50%)" stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      {[0, 0.5, 1].map((f) => (
-        <g key={f}>
-          <line x1={pad} y1={pad + iH * f} x2={W - pad} y2={pad + iH * f} stroke="rgba(255,255,255,0.05)" strokeWidth={1} />
-          <text x={pad - 6} y={pad + iH * f + 4} textAnchor="end" fill="rgba(255,255,255,0.25)" fontSize={9} fontFamily="var(--font-mono)">
-            {Math.round(maxT * (1 - f))}
-          </text>
-        </g>
-      ))}
-      {pts.filter((_, i) => i % Math.ceil(pts.length / 6) === 0 || i === pts.length - 1).map((p) => (
-        <text key={p.d} x={p.x} y={H - 4} textAnchor="middle" fill="rgba(255,255,255,0.3)" fontSize={9} fontFamily="var(--font-mono)">
-          {p.d.slice(5)}
-        </text>
-      ))}
-      <path d={area} fill="url(#tasksGrad)" />
-      <path d={line} fill="none" stroke="hsl(180,100%,50%)" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  );
-}
-
-// ─── Tab: Overview ────────────────────────────────────────────────────────────
-
-function TabOverview({ data }: { data: MetricsData }) {
-  const ts = data.task_stats;
-  const tr = data.trace_stats;
-  return (
-    <div>
-      <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginBottom: "2rem" }}>
-        <StatCard label="TASKS EXECUTADAS"  value={ts.total.toLocaleString()}            sub={`${ts.done} concluídas`} />
-        <StatCard label="TAXA DE SUCESSO"   value={`${ts.success_rate.toFixed(1)}%`}     sub="tasks concluídas" />
-        <StatCard label="CUSTO TOTAL"       value={`$${ts.total_cost.toFixed(2)}`}       sub="USD compute" />
-        <StatCard label="TOKENS TOTAL"      value={`${(ts.total_tokens / 1_000_000).toFixed(2)}M`} sub="processados" />
-      </div>
-
-      <div style={{ display: "flex", gap: 16, flexWrap: "wrap", marginBottom: "2rem" }}>
-        <StatCard label="TRACES (30D)"      value={tr.total.toLocaleString()}             sub={`${tr.done} ok`} />
-        <StatCard label="TAXA TRACES"       value={`${tr.success_rate.toFixed(1)}%`}      sub="traces ok" />
-        <StatCard label="ERROS TRACES"      value={tr.errors.toLocaleString()}            sub="falhas registradas" />
-        <StatCard label="DIAS COM DADOS"    value={data.daily_costs.length.toString()}    sub="dias com custos" />
-      </div>
-
-      <SectionTitle>Custo Diário — Últimos 30 Dias</SectionTitle>
-      <p className="section-help">Custo total de compute por dia (USD)</p>
-      <div className="glass-card" style={{ padding: "1.5rem", marginBottom: "2rem" }}>
-        <CostChart costs={data.daily_costs} />
-        {data.daily_costs.length > 0 && (
-          <div style={{ display: "flex", gap: "1.5rem", marginTop: 12, flexWrap: "wrap" }}>
-            {[
-              { color: "var(--accent)", label: "Total" },
-              { color: "hsl(180,100%,50%)", label: "Anthropic" },
-              { color: "#a78bfa", label: "Google" },
-            ].map((l) => (
-              <div key={l.label} style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                <div style={{ width: 12, height: 12, borderRadius: 2, background: l.color, opacity: 0.8 }} />
-                <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-3)" }}>{l.label}</span>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* Cost table */}
-      {data.daily_costs.length > 0 && (
-        <>
-          <SectionTitle>Detalhamento por Provedor</SectionTitle>
-          <div className="glass-card" style={{ overflow: "hidden" }}>
-            <div style={{ display: "grid", gridTemplateColumns: "140px 1fr 1fr 1fr 1fr", gap: 12, padding: "10px 20px", borderBottom: "1px solid rgba(255,255,255,0.08)", fontFamily: "var(--font-mono)", fontSize: "0.75rem", letterSpacing: "0.1em", color: "var(--text-4)" }}>
-              <div>DATA</div><div style={{ textAlign: "right" }}>TOTAL</div><div style={{ textAlign: "right" }}>OPENAI</div><div style={{ textAlign: "right" }}>ANTHROPIC</div><div style={{ textAlign: "right" }}>GOOGLE</div>
+    <div style={{ display: "flex", alignItems: "flex-end", gap: "1rem", height: 160, padding: "1rem 0" }}>
+      {last7.map((c) => {
+        const h = (c.total / max) * 100;
+        return (
+          <div key={c.date} style={{ flex: 1, display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}>
+            <div style={{ width: "100%", height: 120, background: "rgba(255,255,255,0.02)", borderRadius: 4, position: "relative", overflow: "hidden" }}>
+              <div 
+                style={{ 
+                  position: "absolute", bottom: 0, left: 0, width: "100%", height: `${h}%`, 
+                  background: "linear-gradient(0deg, var(--accent)20, var(--accent))",
+                  boxShadow: "0 0 15px var(--accent)30"
+                }} 
+              />
             </div>
-            {[...data.daily_costs].reverse().slice(0, 14).map((c) => (
-              <div key={c.date} style={{ display: "grid", gridTemplateColumns: "140px 1fr 1fr 1fr 1fr", gap: 12, padding: "10px 20px", borderBottom: "1px solid rgba(255,255,255,0.03)", fontFamily: "var(--font-mono)", fontSize: "0.8125rem", alignItems: "center" }}
-                onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.02)")}
-                onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
-                <div style={{ color: "var(--text-3)" }}>{c.date}</div>
-                <div style={{ color: "var(--accent)", textAlign: "right" }}>${c.total?.toFixed(2) ?? "—"}</div>
-                <div style={{ color: "var(--text-2)", textAlign: "right" }}>${c.openai?.toFixed(2) ?? "—"}</div>
-                <div style={{ color: "hsl(180,100%,50%)", textAlign: "right" }}>${c.anthropic?.toFixed(2) ?? "—"}</div>
-                <div style={{ color: "#a78bfa", textAlign: "right" }}>${c.google?.toFixed(2) ?? "—"}</div>
-              </div>
-            ))}
-          </div>
-        </>
-      )}
-    </div>
-  );
-}
-
-// ─── Tab: Throughput ──────────────────────────────────────────────────────────
-
-function TabThroughput({ data }: { data: MetricsData }) {
-  return (
-    <div>
-      <SectionTitle>Tasks por Dia</SectionTitle>
-      <p className="section-help">Número de tasks criadas por dia — dados reais do Supabase</p>
-      <div className="glass-card" style={{ padding: "1.5rem", marginBottom: "2rem" }}>
-        <TasksPerDayChart tasksByDay={data.tasks_by_day} tokensByDay={data.tokens_by_day} />
-      </div>
-
-      <SectionTitle>Eficiência por Agente</SectionTitle>
-      <p className="section-help">Taxa de sucesso e custo por agente — top 15 por volume</p>
-      <div className="glass-card" style={{ overflow: "hidden" }}>
-        <div style={{ display: "grid", gridTemplateColumns: "2fr 80px 1fr 100px 100px", gap: 12, padding: "10px 20px", borderBottom: "1px solid rgba(255,255,255,0.08)", fontFamily: "var(--font-mono)", fontSize: "0.75rem", letterSpacing: "0.1em", color: "var(--text-4)" }}>
-          <div>AGENTE</div><div style={{ textAlign: "right" }}>TASKS</div><div>SUCESSO</div><div style={{ textAlign: "right" }}>CUSTO</div><div style={{ textAlign: "right" }}>TOKENS</div>
-        </div>
-        {data.agent_efficiency.length === 0 ? (
-          <div style={{ padding: "2rem", textAlign: "center", fontFamily: "var(--font-mono)", fontSize: "0.875rem", color: "var(--text-4)" }}>
-            Sem dados de agentes.
-          </div>
-        ) : data.agent_efficiency.map((a) => (
-          <div key={a.agent_id} style={{ display: "grid", gridTemplateColumns: "2fr 80px 1fr 100px 100px", gap: 12, padding: "10px 20px", borderBottom: "1px solid rgba(255,255,255,0.03)", alignItems: "center" }}
-            onMouseEnter={(e) => (e.currentTarget.style.background = "rgba(255,255,255,0.02)")}
-            onMouseLeave={(e) => (e.currentTarget.style.background = "transparent")}>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.875rem", color: "var(--text-1)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
-              {a.agent_id}
-            </div>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.875rem", color: "var(--text-2)", textAlign: "right" }}>
-              {a.tasks.toLocaleString()}
-            </div>
-            <div>
-              <SuccessBar rate={a.success_rate} />
-            </div>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.875rem", color: "var(--cyan)", textAlign: "right" }}>
-              ${a.total_cost.toFixed(2)}
-            </div>
-            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: "var(--text-3)", textAlign: "right" }}>
-              {(a.total_tokens / 1000).toFixed(1)}K
+            <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.65rem", color: "var(--text-4)" }}>
+              {c.date.split("-").slice(1).join("/") || c.date}
             </div>
           </div>
-        ))}
-      </div>
+        );
+      })}
     </div>
   );
 }
@@ -324,73 +136,165 @@ export default function MetricsPage() {
   const [data, setData] = useState<MetricsData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [mounted, setMounted] = useState(false);
 
-  useEffect(() => { setMounted(true); }, []);
-  useEffect(() => {
-    if (!mounted) return;
+  function fetchData() {
     fetch("/api/metrics")
-      .then((r) => r.json())
-      .then((d) => { setData(d); setLoading(false); })
-      .catch(() => { setError("Erro ao carregar métricas"); setLoading(false); });
-  }, [mounted]);
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
+      .then((d) => {
+        setData(d);
+        setError(null);
+        setLoading(false);
+      })
+      .catch((e) => {
+        console.error("fetch metrics error:", e);
+        setError("Erro ao carregar métricas");
+        setLoading(false);
+      });
+  }
 
-  if (!mounted) return null;
+  useEffect(() => {
+    fetchData();
+    const interval = setInterval(fetchData, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
-  const tabBtnStyle = (active: boolean): React.CSSProperties => ({
-    fontFamily: "var(--font-mono)", fontSize: "0.8125rem", letterSpacing: "0.08em",
-    padding: "10px 20px", borderRadius: "var(--radius)",
-    border: active ? "1px solid var(--accent)" : "1px solid transparent",
-    background: active ? "rgba(0,255,128,0.1)" : "transparent",
-    color: active ? "var(--accent)" : "var(--text-3)",
-    cursor: "pointer", transition: "all 0.2s", whiteSpace: "nowrap",
-  });
+  if (loading && !data) {
+    return (
+      <div className="glass-card" style={{ padding: "4rem", textAlign: "center", margin: "2rem auto", maxWidth: 600 }}>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.875rem", color: "var(--accent)" }}>
+          CARREGANDO MÉTRICAS...
+        </div>
+      </div>
+    );
+  }
+
+  if (error && !data) {
+    return (
+      <div className="glass-card" style={{ padding: "3rem", textAlign: "center", margin: "2rem auto", maxWidth: 600, border: "1px solid #ef444430" }}>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.875rem", color: "#ef4444" }}>{error}</div>
+      </div>
+    );
+  }
+
+  const ts = data?.task_stats || { total: 0, done: 0, success_rate: 0, total_cost: 0, total_tokens: 0 };
+  const last7Days = data?.daily_costs.slice(-7) || [];
+  const totalCostLast7 = last7Days.reduce((acc, curr) => acc + curr.total, 0);
 
   return (
-    <div style={{ padding: "2rem", maxWidth: 1100, margin: "0 auto" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "1.5rem" }}>
       {/* Header */}
-      <div style={{ marginBottom: "2rem" }}>
-        <h1 style={{ fontFamily: "var(--font-display)", fontSize: "2rem", fontWeight: 700, color: "var(--text-1)", margin: 0 }}>
+      <div className="glass-card" style={{ padding: "1.5rem", borderTop: "2px solid var(--accent)" }}>
+        <h1 style={{ fontFamily: "var(--font-display)", fontSize: "1.75rem", fontWeight: 700, color: "var(--text-1)", margin: 0 }}>
           Métricas & Contabilidade
         </h1>
-        <p className="section-help" style={{ marginTop: 6 }}>
+        <p style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: "var(--text-4)", marginTop: 6, marginBottom: 0 }}>
           Custo diário, throughput e eficiência por agente — dados em tempo real do Supabase
         </p>
-        {!loading && (
-          <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", padding: "4px 12px", borderRadius: "var(--radius)", background: "rgba(0,255,128,0.08)", border: "1px solid rgba(0,255,128,0.15)", color: "var(--accent)", display: "inline-block", marginTop: 8 }}>
-            🟢 SUPABASE LIVE
-          </span>
-        )}
       </div>
 
-      {/* Tab Bar */}
-      <div style={{ display: "flex", gap: 4, borderBottom: "1px solid rgba(255,255,255,0.08)", marginBottom: "1.5rem", flexWrap: "wrap" }}>
+      {/* Tabs */}
+      <div style={{ display: "flex", gap: 4, borderBottom: "1px solid rgba(255,255,255,0.08)" }}>
         {TABS.map((tab) => (
-          <button key={tab.id} style={tabBtnStyle(activeTab === tab.id)} onClick={() => setActiveTab(tab.id)}>
+          <button 
+            key={tab.id} 
+            onClick={() => setActiveTab(tab.id)}
+            style={{
+              fontFamily: "var(--font-mono)", fontSize: "0.8125rem", padding: "10px 20px",
+              background: "transparent", border: "none", cursor: "pointer",
+              color: activeTab === tab.id ? "var(--accent)" : "var(--text-4)",
+              borderBottom: activeTab === tab.id ? "2px solid var(--accent)" : "2px solid transparent",
+              transition: "all 0.2s"
+            }}
+          >
             {tab.label}
           </button>
         ))}
       </div>
 
-      {/* Loading */}
-      {loading && (
-        <div className="glass-card" style={{ padding: "3rem", textAlign: "center" }}>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.875rem", color: "var(--text-4)" }}>
-            Carregando métricas do Supabase...
+      {activeTab === "overview" && data && (
+        <>
+          <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
+            <StatCard label="Custo Total" value={`$${formatCost(ts.total_cost)}`} sub="USD compute" color="var(--accent)" />
+            <StatCard label="Tokens Total" value={formatNumber(ts.total_tokens)} sub="Tokens processados" color="hsl(180,100%,50%)" />
+            <StatCard label="Success Rate" value={`${ts.success_rate.toFixed(1)}%`} sub="Tasks concluídas" color="#a78bfa" />
+            <StatCard label="Total Tasks" value={formatNumber(ts.total)} sub="Tasks executadas" />
           </div>
-        </div>
+
+          <SectionTitle>Custo Diário — Últimos 7 Dias</SectionTitle>
+          <div className="glass-card" style={{ padding: "1.5rem" }}>
+            <CostBarChart costs={data.daily_costs} />
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginTop: "1rem", paddingTop: "1rem", borderTop: "1px solid rgba(255,255,255,0.05)" }}>
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.8125rem", color: "var(--text-4)" }}>TOTAL SEMANA</span>
+              <span style={{ fontFamily: "var(--font-display)", fontSize: "1.25rem", fontWeight: 700, color: "var(--accent)" }}>${formatCost(totalCostLast7)}</span>
+            </div>
+          </div>
+
+          <SectionTitle>Detalhamento por Provedor</SectionTitle>
+          <div className="glass-card" style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "var(--font-mono)", fontSize: "0.8125rem" }}>
+              <thead>
+                <tr style={{ textAlign: "left", color: "var(--text-4)", borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
+                  <th style={{ padding: "12px 16px" }}>DATA</th>
+                  <th style={{ padding: "12px 16px", textAlign: "right" }}>TOTAL</th>
+                  <th style={{ padding: "12px 16px", textAlign: "right" }}>OPENAI</th>
+                  <th style={{ padding: "12px 16px", textAlign: "right" }}>ANTHROPIC</th>
+                  <th style={{ padding: "12px 16px", textAlign: "right" }}>GOOGLE</th>
+                </tr>
+              </thead>
+              <tbody>
+                {[...data.daily_costs].reverse().slice(0, 14).map((c) => (
+                  <tr key={c.date} style={{ borderBottom: "1px solid rgba(255,255,255,0.03)" }}>
+                    <td style={{ padding: "10px 16px", color: "var(--text-3)" }}>{c.date}</td>
+                    <td style={{ padding: "10px 16px", textAlign: "right", color: "var(--accent)", fontWeight: 700 }}>${formatCost(c.total)}</td>
+                    <td style={{ padding: "10px 16px", textAlign: "right", color: "var(--text-2)" }}>${formatCost(c.openai)}</td>
+                    <td style={{ padding: "10px 16px", textAlign: "right", color: "hsl(180,100%,50%)" }}>${formatCost(c.anthropic)}</td>
+                    <td style={{ padding: "10px 16px", textAlign: "right", color: "#a78bfa" }}>${formatCost(c.google)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
       )}
 
-      {/* Error */}
-      {error && (
-        <div className="glass-card" style={{ padding: "2rem", textAlign: "center", border: "1px solid rgba(239,68,68,0.3)" }}>
-          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.875rem", color: "#ef4444" }}>{error}</div>
-        </div>
-      )}
+      {activeTab === "throughput" && data && (
+        <>
+          <div style={{ display: "flex", gap: "1rem", flexWrap: "wrap" }}>
+            <StatCard label="Traces (30D)" value={formatNumber(data.trace_stats.total)} sub="Execuções totais" />
+            <StatCard label="Erros Traces" value={formatNumber(data.trace_stats.errors)} sub="Falhas detectadas" color="#ef4444" />
+            <StatCard label="Success Rate" value={`${data.trace_stats.success_rate.toFixed(1)}%`} sub="Traces bem-sucedidas" color="var(--accent)" />
+          </div>
 
-      {/* Tab Content */}
-      {!loading && data && activeTab === "overview" && <TabOverview data={data} />}
-      {!loading && data && activeTab === "throughput" && <TabThroughput data={data} />}
+          <SectionTitle>Eficiência por Agente</SectionTitle>
+          <div className="glass-card" style={{ overflowX: "auto" }}>
+            <table style={{ width: "100%", borderCollapse: "collapse", fontFamily: "var(--font-mono)", fontSize: "0.8125rem" }}>
+              <thead>
+                <tr style={{ textAlign: "left", color: "var(--text-4)", borderBottom: "1px solid rgba(255,255,255,0.1)" }}>
+                  <th style={{ padding: "12px 16px" }}>AGENTE</th>
+                  <th style={{ padding: "12px 16px", textAlign: "right" }}>TASKS</th>
+                  <th style={{ padding: "12px 16px" }}>SUCESSO</th>
+                  <th style={{ padding: "12px 16px", textAlign: "right" }}>CUSTO</th>
+                  <th style={{ padding: "12px 16px", textAlign: "right" }}>TOKENS</th>
+                </tr>
+              </thead>
+              <tbody>
+                {data.agent_efficiency.map((a) => (
+                  <tr key={a.agent_id} style={{ borderBottom: "1px solid rgba(255,255,255,0.03)" }}>
+                    <td style={{ padding: "10px 16px", color: "var(--text-1)", fontWeight: 700 }}>{a.agent_id}</td>
+                    <td style={{ padding: "10px 16px", textAlign: "right", color: "var(--text-2)" }}>{a.tasks}</td>
+                    <td style={{ padding: "10px 16px" }}><SuccessBar rate={a.success_rate} /></td>
+                    <td style={{ padding: "10px 16px", textAlign: "right", color: "var(--accent)" }}>${formatCost(a.total_cost)}</td>
+                    <td style={{ padding: "10px 16px", textAlign: "right", color: "var(--text-4)" }}>{formatNumber(a.total_tokens)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
     </div>
   );
 }
