@@ -120,8 +120,8 @@ export default function TelemetryPage() {
     : totalTokens7d.toString();
 
   const roiMultiplier = roi ? `${roi.savingsMultiplier.toFixed(1)}×` : "—";
-  const costAI = roi ? (roi.costAI30d < 1 ? `$${roi.costAI30d.toFixed(4)}` : `$${roi.costAI30d.toFixed(2)}`) : "—";
-  const costHuman = roi ? `R$ ${roi.costEquivalentHeadcount.toLocaleString()}` : "—";
+  const costAI = roi ? `$${roi.costAI30d.toFixed(0)}/mês` : "—";
+  const costHuman = roi ? `$${roi.costEquivalentHeadcount.toLocaleString()}` : "—";
 
   const totalLoc = agentPerformance.reduce((s, a) => s + a.loc, 0);
   const totalCost = agentPerformance.reduce((s, a) => s + a.cost, 0);

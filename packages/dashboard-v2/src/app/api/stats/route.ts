@@ -18,12 +18,21 @@ export async function GET() {
       .select("total, google");
     
     const taskCount = completedTasks?.length || 0;
-    const theoreticalCost = (totalCosts || []).reduce((sum, r) => sum + (r.total || 0), 0);
-    const realCost = (totalCosts || []).reduce((sum, r) => sum + (r.google || 0), 0);
-    const effectiveCost = Math.max(realCost, 0.01); // avoid div by zero
+    const googleCost = (totalCosts || []).reduce((sum, r) => sum + (r.google || 0), 0);
     
-    // Efficiency uses REAL cost (not theoretical)
-    const efficiency = (taskCount * 50) / effectiveCost;
+    // Real monthly cost = fixed subscriptions + variable API
+    // Antigravity: $500/mo (flat, Claude Opus/Sonnet)
+    // ChatGPT Team: $30/mo (flat, Codex GPT-5.x)
+    // Google API: variable (pay-per-use)
+    const MONTHLY_SUBSCRIPTIONS = 530; // $500 Antigravity + $30 ChatGPT Team
+    const operatingDays = Math.max((totalCosts || []).length, 1);
+    const googleMonthly = (googleCost / operatingDays) * 30;
+    const realMonthlyCost = MONTHLY_SUBSCRIPTIONS + googleMonthly;
+    const effectiveCost = Math.max(realMonthlyCost, 1); // avoid div by zero
+    
+    // Efficiency = human equivalent / real monthly cost
+    const humanEquivalentMonthly = taskCount * 50; // $50/task
+    const efficiency = humanEquivalentMonthly / effectiveCost;
 
     // 3. Lines of Code Generated: Sum(deliverables.lines_changed)
     const { data: deliverables } = await supabase
@@ -44,8 +53,8 @@ export async function GET() {
     
     const successRate = totalRuns && totalRuns > 0 ? (doneRuns || 0) / totalRuns : 0;
 
-    // 5. Cost per Line uses REAL cost
-    const costPerLine = totalLines > 0 ? effectiveCost / totalLines : 0;
+    // 5. Cost per Line uses REAL monthly cost
+    const costPerLine = totalLines > 0 ? realMonthlyCost / totalLines : 0;
 
     // Legacy / Other stats
     const { count: activeAgents } = await supabase
@@ -63,19 +72,20 @@ export async function GET() {
       .eq("status", "pass");
 
     // Format cost display
-    const fmtCost = (v: number) => v >= 1 ? `$${v.toFixed(2)}` : `$${v.toFixed(4)}`;
+    const fmtCost = (v: number) => v >= 1 ? `$${v.toFixed(0)}` : `$${v.toFixed(2)}`;
 
     const stats = {
       efficiency: efficiency.toFixed(1),
       totalLines: totalLines,
       successRate: (successRate * 100).toFixed(1),
       costPerLine: costPerLine.toFixed(6),
-      // Show REAL cost model
-      humanCost: `R$ ${(taskCount * 50).toLocaleString()}`,
-      aiCost: fmtCost(realCost),
-      theoreticalCost: fmtCost(theoreticalCost),
-      realCost: fmtCost(realCost),
-      costModel: "Antigravity (flat) + Codex (flat) + Google API (pay-per-use)",
+      // Real cost model
+      humanCost: `$${humanEquivalentMonthly.toLocaleString()}`,
+      aiCost: fmtCost(realMonthlyCost),
+      realMonthlyCost: realMonthlyCost.toFixed(0),
+      subscriptions: MONTHLY_SUBSCRIPTIONS,
+      googleApi: googleMonthly.toFixed(2),
+      costModel: `Subs $${MONTHLY_SUBSCRIPTIONS}/mo + Google API ~$${googleMonthly.toFixed(0)}/mo`,
       
       activeAgents: activeAgents || 0,
       totalAgents: totalAgents || 0,
@@ -101,9 +111,9 @@ export async function GET() {
           color: "var(--cyan)",
         },
         {
-          label: "CUSTO REAL",
-          value: fmtCost(realCost),
-          delta: `teórico: ${fmtCost(theoreticalCost)}`,
+          label: "CUSTO MENSAL",
+          value: fmtCost(realMonthlyCost),
+          delta: `subs $${MONTHLY_SUBSCRIPTIONS} + API ~$${googleMonthly.toFixed(0)}`,
           color: "var(--accent)",
         },
       ]

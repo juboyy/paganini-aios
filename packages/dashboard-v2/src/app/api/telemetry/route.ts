@@ -144,20 +144,24 @@ export async function GET() {
     const agentPerformance = Array.from(agentPerfMap.values())
       .sort((a, b) => b.loc - a.loc);
 
-    // 4. ROI Calculation — uses REAL cost (Google API only)
-    const theoreticalCost30d = (dailyCosts30d ?? []).reduce((s, r) => s + (r.total ?? 0), 0);
-    const realCost30d = (dailyCosts30d ?? []).reduce((s, r) => s + (r.google ?? 0), 0);
-    const effectiveCost = Math.max(realCost30d, 0.01); // avoid div by zero
-    const tasks30d = taskCount30d ?? 142;
+    // 4. ROI Calculation — uses REAL cost (subscriptions + Google API)
+    // Antigravity: $500/mo | ChatGPT Team: $30/mo | Google API: variable
+    const MONTHLY_SUBS = 530;
+    const googleCost7d = (dailyCosts30d ?? []).reduce((s, r) => s + (r.google ?? 0), 0);
+    const daysInWindow = Math.max((dailyCosts30d ?? []).length, 1);
+    const googleMonthly = (googleCost7d / daysInWindow) * 30;
+    const realMonthlyCost = MONTHLY_SUBS + googleMonthly;
+
+    const tasks30d = taskCount30d ?? 0;
     const avgTaskMin = 4.2;
     const hoursAutomated = parseFloat(((tasks30d * avgTaskMin) / 60).toFixed(1));
-    const humanCostPerHour = 85; 
-    const headcountEquivalent = hoursAutomated * humanCostPerHour;
-    const multiplier = effectiveCost > 0 ? parseFloat((headcountEquivalent / effectiveCost).toFixed(1)) : 0;
+    const humanCostPerHour = 50; 
+    const headcountEquivalent = tasks30d * humanCostPerHour; // $50 per task
+    const multiplier = realMonthlyCost > 0 ? parseFloat((headcountEquivalent / realMonthlyCost).toFixed(1)) : 0;
 
     const roi: RoiStats = {
       hoursAutomated,
-      costAI30d: realCost30d,
+      costAI30d: realMonthlyCost,
       costEquivalentHeadcount: headcountEquivalent,
       savingsMultiplier: multiplier,
       tasksCompleted30d: tasks30d,

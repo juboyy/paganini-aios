@@ -133,7 +133,7 @@ export default function OverviewPage() {
     { 
       value: stats ? `${stats.efficiency}×` : "—", 
       label: "ROI vs equipe humana", 
-      sub: stats ? `Custo real: ${stats.realCost} (flat subs) · Equivalente humano: ${stats.humanCost}` : "calculando..." 
+      sub: stats ? `$${stats.realMonthlyCost}/mês real → $${stats.humanCost} equivalente humano` : "calculando..." 
     },
     { 
       value: stats ? formatLines(stats.totalLines) : "—", 
