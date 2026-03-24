@@ -194,6 +194,26 @@ function createInitialTiles(): TileData[] {
     emoji: "🔴",
   });
 
+  tiles.push({
+    id: "workspace-browser",
+    type: "data" as const,
+    x: 2920, y: 80,
+    width: 400, height: 500,
+    zIndex: 24,
+    title: "Workspace",
+    emoji: "📂",
+  });
+
+  tiles.push({
+    id: "session-tree",
+    type: "data" as const,
+    x: 2920, y: 620,
+    width: 400, height: 380,
+    zIndex: 25,
+    title: "Session Tree",
+    emoji: "🌳",
+  });
+
   return tiles;
 }
 
@@ -283,10 +303,12 @@ function ChatTile({ tile }: { tile: TileData }) {
   const [streaming, setStreaming] = useState(false);
   const [agents, setAgents] = useState<{ id: string; name: string; emoji: string }[]>([]);
   const [selectedAgent, setSelectedAgent] = useState(tile.agent || "oracli");
+  const [recording, setRecording] = useState(false);
   const sessionId = `canvas-${tile.id}`;
   const bottomRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
   const loadedRef = useRef(false);
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -411,6 +433,86 @@ function ChatTile({ tile }: { tile: TileData }) {
 
   const currentAgentEmoji = agents.find(a => a.id === selectedAgent)?.emoji || tile.emoji;
 
+  // Voice recording
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mediaRecorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
+      mediaRecorderRef.current = mediaRecorder;
+      const chunks: Blob[] = [];
+
+      mediaRecorder.ondataavailable = (e) => { if (e.data.size > 0) chunks.push(e.data); };
+      mediaRecorder.onstop = async () => {
+        stream.getTracks().forEach(t => t.stop());
+        const blob = new Blob(chunks, { type: "audio/webm" });
+        setRecording(false);
+
+        // Transcribe via Web Speech API (browser-native)
+        if ("webkitSpeechRecognition" in window || "SpeechRecognition" in window) return;
+
+        // Fallback: send blob as base64 for server-side transcription
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const base64 = (reader.result as string).split(",")[1];
+          setInput(prev => prev + " [áudio transcrevendo...]");
+          // In future: POST to /api/transcribe with base64
+          void base64;
+        };
+        reader.readAsDataURL(blob);
+      };
+
+      mediaRecorder.start();
+      setRecording(true);
+
+      // Also use Web Speech API if available
+      const SpeechRecognition = (window as unknown as { webkitSpeechRecognition?: new () => SpeechRecognition; SpeechRecognition?: new () => SpeechRecognition }).webkitSpeechRecognition || (window as unknown as { SpeechRecognition?: new () => SpeechRecognition }).SpeechRecognition;
+      if (SpeechRecognition) {
+        const recognition = new SpeechRecognition();
+        recognition.lang = "pt-BR";
+        recognition.interimResults = true;
+        recognition.continuous = true;
+
+        let finalTranscript = "";
+        recognition.onresult = (event: SpeechRecognitionEvent) => {
+          let interim = "";
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            if (event.results[i].isFinal) {
+              finalTranscript += event.results[i][0].transcript + " ";
+            } else {
+              interim += event.results[i][0].transcript;
+            }
+          }
+          setInput(finalTranscript + interim);
+        };
+
+        recognition.onerror = () => { setRecording(false); };
+        recognition.onend = () => {
+          if (finalTranscript.trim()) setInput(finalTranscript.trim());
+          mediaRecorder.stop();
+        };
+
+        recognition.start();
+
+        // Store recognition ref for stopping
+        (mediaRecorderRef.current as unknown as { recognition: SpeechRecognition }).recognition = recognition;
+      }
+    } catch {
+      setRecording(false);
+    }
+  };
+
+  const stopRecording = () => {
+    if (mediaRecorderRef.current) {
+      const rec = mediaRecorderRef.current as unknown as { recognition?: SpeechRecognition };
+      if (rec.recognition) {
+        rec.recognition.stop();
+      } else {
+        mediaRecorderRef.current.stop();
+      }
+    }
+    setRecording(false);
+  };
+
   return (
     <div style={{ display: "flex", flexDirection: "column", height: "100%", padding: "0.5rem" }}>
       {/* Agent selector */}
@@ -482,6 +584,21 @@ function ChatTile({ tile }: { tile: TileData }) {
           }}
           onMouseDown={(e) => e.stopPropagation()}
         />
+        <button
+          onClick={recording ? stopRecording : startRecording}
+          onMouseDown={(e) => e.stopPropagation()}
+          style={{
+            padding: "0.4rem", border: `1px solid ${recording ? "var(--red, #ef4444)" : "var(--border)"}`,
+            borderRadius: 4,
+            background: recording ? "rgba(239,68,68,0.15)" : "transparent",
+            color: recording ? "var(--red, #ef4444)" : "var(--text-3)",
+            fontSize: "0.8rem", cursor: "pointer",
+            animation: recording ? "pulse 1s infinite" : "none",
+          }}
+          title={recording ? "Parar gravação" : "Gravar voz"}
+        >
+          {recording ? "⏹" : "🎙"}
+        </button>
         <button
           onClick={streaming ? () => { abortRef.current?.abort(); setStreaming(false); } : send}
           style={{
@@ -926,6 +1043,341 @@ function ActiveTasksTile() {
   );
 }
 
+/* ── Workspace File Browser Tile ── */
+function WorkspaceTile() {
+  const [currentPath, setCurrentPath] = useState("/home/node/.openclaw/workspace");
+  const [entries, setEntries] = useState<{ name: string; isDir: boolean; size: number; perms: string }[]>([]);
+  const [fileContent, setFileContent] = useState<string | null>(null);
+  const [viewingFile, setViewingFile] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [pathHistory, setPathHistory] = useState<string[]>([]);
+
+  useEffect(() => {
+    const fetchDir = async () => {
+      setLoading(true);
+      setFileContent(null);
+      setViewingFile(null);
+      try {
+        const res = await fetch(`/api/workspace?path=${encodeURIComponent(currentPath)}&action=list`);
+        if (res.ok) {
+          const data = await res.json();
+          setEntries(data.entries || []);
+        }
+      } catch {} finally { setLoading(false); }
+    };
+    fetchDir();
+  }, [currentPath]);
+
+  const navigate = (name: string, isDir: boolean) => {
+    if (isDir) {
+      setPathHistory(prev => [...prev, currentPath]);
+      setCurrentPath(currentPath + "/" + name);
+    } else {
+      readFile(currentPath + "/" + name);
+    }
+  };
+
+  const goBack = () => {
+    if (pathHistory.length > 0) {
+      setCurrentPath(pathHistory[pathHistory.length - 1]);
+      setPathHistory(prev => prev.slice(0, -1));
+    }
+  };
+
+  const readFile = async (path: string) => {
+    setViewingFile(path.split("/").pop() || path);
+    setFileContent("carregando...");
+    try {
+      const res = await fetch(`/api/workspace?path=${encodeURIComponent(path)}&action=read`);
+      if (res.ok) {
+        const data = await res.json();
+        setFileContent(data.content || "(vazio)");
+      }
+    } catch { setFileContent("erro ao ler arquivo"); }
+  };
+
+  const dirName = currentPath.split("/").pop() || "/";
+  const shortPath = currentPath.replace("/home/node/.openclaw/workspace", "~");
+
+  return (
+    <div style={{ padding: "0.4rem", height: "100%", display: "flex", flexDirection: "column" }}>
+      {/* Path bar */}
+      <div style={{ display: "flex", alignItems: "center", gap: "0.3rem", marginBottom: "0.4rem" }}>
+        <button
+          onClick={goBack}
+          disabled={pathHistory.length === 0}
+          onMouseDown={(e) => e.stopPropagation()}
+          style={{
+            padding: "2px 6px", border: "1px solid var(--border)", borderRadius: 3,
+            background: "transparent", color: pathHistory.length > 0 ? "var(--accent)" : "var(--text-4)",
+            fontFamily: "var(--font-mono)", fontSize: "0.7rem", cursor: pathHistory.length > 0 ? "pointer" : "default",
+          }}
+        >
+          ←
+        </button>
+        {viewingFile && (
+          <button
+            onClick={() => { setFileContent(null); setViewingFile(null); }}
+            onMouseDown={(e) => e.stopPropagation()}
+            style={{
+              padding: "2px 6px", border: "1px solid var(--border)", borderRadius: 3,
+              background: "transparent", color: "var(--accent)",
+              fontFamily: "var(--font-mono)", fontSize: "0.6rem", cursor: "pointer",
+            }}
+          >
+            ✕
+          </button>
+        )}
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.55rem", color: "var(--text-3)", flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+          {viewingFile ? `📄 ${viewingFile}` : `📁 ${shortPath}`}
+        </span>
+      </div>
+
+      {/* Content */}
+      <div
+        style={{ flex: 1, overflowY: "auto", scrollbarWidth: "thin", scrollbarColor: "var(--border) transparent" }}
+        onWheel={(e) => e.stopPropagation()}
+      >
+        {viewingFile && fileContent !== null ? (
+          <pre style={{
+            fontFamily: "var(--font-mono)", fontSize: "0.55rem", color: "var(--text-2)",
+            whiteSpace: "pre-wrap", wordBreak: "break-all", margin: 0,
+            lineHeight: "1.5", padding: "0.3rem",
+            background: "rgba(0,0,0,0.2)", borderRadius: 3,
+          }}>
+            {fileContent}
+          </pre>
+        ) : loading ? (
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6rem", color: "var(--text-4)", textAlign: "center", padding: "1rem" }}>
+            CARREGANDO...
+          </div>
+        ) : (
+          entries.map((e, i) => (
+            <div
+              key={i}
+              onClick={() => navigate(e.name, e.isDir)}
+              onMouseDown={(ev) => ev.stopPropagation()}
+              style={{
+                display: "flex", alignItems: "center", gap: "0.3rem",
+                padding: "0.25rem 0.4rem", cursor: "pointer",
+                borderRadius: 3,
+                background: "transparent",
+                transition: "background 0.1s",
+              }}
+              onMouseEnter={(ev) => { (ev.currentTarget as HTMLDivElement).style.background = "rgba(0,255,136,0.05)"; }}
+              onMouseLeave={(ev) => { (ev.currentTarget as HTMLDivElement).style.background = "transparent"; }}
+            >
+              <span style={{ fontSize: "0.7rem", width: "1.2em" }}>
+                {e.isDir ? "📁" : e.name.endsWith(".ts") || e.name.endsWith(".tsx") ? "📘" : e.name.endsWith(".py") ? "🐍" : e.name.endsWith(".md") ? "📝" : "📄"}
+              </span>
+              <span style={{
+                fontFamily: "var(--font-mono)", fontSize: "0.6rem",
+                color: e.isDir ? "var(--accent)" : "var(--text-2)",
+                flex: 1, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+              }}>
+                {e.name}
+              </span>
+              {!e.isDir && (
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", color: "var(--text-4)" }}>
+                  {e.size >= 1024 ? `${(e.size / 1024).toFixed(0)}K` : `${e.size}B`}
+                </span>
+              )}
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Footer */}
+      <div style={{
+        fontFamily: "var(--font-mono)", fontSize: "0.5rem", color: "var(--text-4)",
+        textAlign: "center", marginTop: "0.2rem", letterSpacing: "0.06em",
+      }}>
+        {entries.length} ITEMS · {dirName}
+      </div>
+    </div>
+  );
+}
+
+/* ── Session Tree Tile ── */
+function SessionTreeTile() {
+  const [sessions, setSessions] = useState<{
+    key: string; label: string; model: string;
+    totalTokens: number; contextTokens: number; contextPercent: number;
+    channel: string; updatedAt: number; sessionId: string;
+  }[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState<Set<string>>(new Set(["agent:main:main"]));
+
+  useEffect(() => {
+    const fetchSessions = async () => {
+      try {
+        const res = await fetch("/api/sessions?minutes=1440&limit=30");
+        if (res.ok) {
+          const data = await res.json();
+          setSessions(data.sessions || []);
+        }
+      } catch {} finally { setLoading(false); }
+    };
+    fetchSessions();
+    const interval = setInterval(fetchSessions, 15000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // Build tree
+  const roots = sessions.filter(s => s.key.match(/^agent:[^:]+:main$/));
+  const children = sessions.filter(s => s.key.includes(":subagent:"));
+
+  const toggle = (key: string) => {
+    setExpanded(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key); else next.add(key);
+      return next;
+    });
+  };
+
+  const getParent = (childKey: string) => {
+    // agent:main:subagent:xxx → parent is agent:main:main
+    const parts = childKey.split(":subagent:")[0];
+    return parts + ":main";
+  };
+
+  const timeSince = (ts: number) => {
+    const mins = Math.floor((Date.now() - ts) / 60000);
+    if (mins < 1) return "agora";
+    if (mins < 60) return `${mins}m`;
+    return `${Math.floor(mins / 60)}h${mins % 60}m`;
+  };
+
+  const renderSession = (s: typeof sessions[0], depth: number) => {
+    const isRoot = depth === 0;
+    const hasChildren = children.some(c => getParent(c.key) === s.key);
+    const isExpanded = expanded.has(s.key);
+    const myChildren = children.filter(c => getParent(c.key) === s.key);
+    const pressureColor = s.contextPercent > 80 ? "var(--red, #ef4444)" : s.contextPercent > 50 ? "var(--amber)" : "var(--accent)";
+
+    return (
+      <div key={s.key}>
+        <div
+          onClick={() => hasChildren ? toggle(s.key) : null}
+          onMouseDown={(e) => e.stopPropagation()}
+          style={{
+            display: "flex", alignItems: "center", gap: "0.3rem",
+            padding: "0.3rem 0.4rem",
+            paddingLeft: `${0.4 + depth * 1}rem`,
+            cursor: hasChildren ? "pointer" : "default",
+            background: isRoot ? "rgba(0,255,136,0.04)" : "transparent",
+            borderLeft: depth > 0 ? "2px solid rgba(0,255,136,0.15)" : "none",
+            marginLeft: depth > 0 ? `${depth * 0.5}rem` : 0,
+          }}
+        >
+          {/* Expand indicator */}
+          <span style={{ fontSize: "0.6rem", width: "0.8rem", color: "var(--text-4)" }}>
+            {hasChildren ? (isExpanded ? "▼" : "▶") : "·"}
+          </span>
+
+          {/* Status dot */}
+          <span style={{
+            width: 6, height: 6, borderRadius: "50%",
+            background: s.contextPercent > 0 ? pressureColor : "var(--text-4)",
+            display: "inline-block", flexShrink: 0,
+          }} />
+
+          {/* Label */}
+          <span style={{
+            fontFamily: "var(--font-mono)", fontSize: "0.6rem", fontWeight: isRoot ? 700 : 400,
+            color: isRoot ? "var(--accent)" : "var(--text-2)", flex: 1,
+            overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+          }}>
+            {s.label.replace("telegram:g-agent-main-main", "🏠 Main Session").replace("agent:main:main", "🏠 Main")}
+          </span>
+
+          {/* Context bar */}
+          <div style={{
+            width: 40, height: 4, background: "rgba(255,255,255,0.06)",
+            borderRadius: 2, overflow: "hidden", flexShrink: 0,
+          }}>
+            <div style={{
+              width: `${Math.min(s.contextPercent, 100)}%`, height: "100%",
+              background: pressureColor, borderRadius: 2,
+            }} />
+          </div>
+
+          {/* Tokens */}
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", color: "var(--text-4)", flexShrink: 0 }}>
+            {s.totalTokens >= 1000 ? `${(s.totalTokens / 1000).toFixed(0)}K` : s.totalTokens}
+          </span>
+
+          {/* Time */}
+          <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.45rem", color: "var(--text-4)", flexShrink: 0 }}>
+            {timeSince(s.updatedAt)}
+          </span>
+        </div>
+
+        {/* Children */}
+        {isExpanded && myChildren.map(c => renderSession(c, depth + 1))}
+      </div>
+    );
+  };
+
+  return (
+    <div style={{ padding: "0.4rem", height: "100%", display: "flex", flexDirection: "column" }}>
+      {/* Header */}
+      <div style={{
+        display: "flex", justifyContent: "space-between", alignItems: "center",
+        marginBottom: "0.4rem", padding: "0 0.2rem",
+      }}>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.55rem", color: "var(--text-3)", letterSpacing: "0.06em" }}>
+          SESSION TREE
+        </span>
+        <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", color: "var(--text-4)" }}>
+          {sessions.length} total · {roots.length} root
+        </span>
+      </div>
+
+      {/* Tree */}
+      <div
+        style={{ flex: 1, overflowY: "auto", scrollbarWidth: "thin", scrollbarColor: "var(--border) transparent" }}
+        onWheel={(e) => e.stopPropagation()}
+      >
+        {loading ? (
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6rem", color: "var(--text-4)", textAlign: "center", padding: "1rem" }}>
+            CARREGANDO...
+          </div>
+        ) : roots.length === 0 ? (
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6rem", color: "var(--text-4)", textAlign: "center", padding: "1rem" }}>
+            NENHUMA SESSÃO
+          </div>
+        ) : (
+          <>
+            {roots.map(r => renderSession(r, 0))}
+            {/* Orphans (sessions without a clear parent) */}
+            {children.filter(c => !roots.some(r => r.key === getParent(c.key))).length > 0 && (
+              <div style={{ marginTop: "0.5rem", borderTop: "1px solid var(--border)", paddingTop: "0.3rem" }}>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.5rem", color: "var(--text-4)", padding: "0 0.4rem" }}>
+                  DETACHED
+                </span>
+                {children.filter(c => !roots.some(r => r.key === getParent(c.key))).map(c => renderSession(c, 1))}
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Legend */}
+      <div style={{
+        display: "flex", gap: "0.6rem", justifyContent: "center",
+        fontFamily: "var(--font-mono)", fontSize: "0.45rem", color: "var(--text-4)",
+        marginTop: "0.2rem", letterSpacing: "0.06em",
+      }}>
+        <span>● LOW</span>
+        <span style={{ color: "var(--amber)" }}>● MED</span>
+        <span style={{ color: "var(--red, #ef4444)" }}>● HIGH</span>
+        <span>= CONTEXT PRESSURE</span>
+      </div>
+    </div>
+  );
+}
+
 /* ── Data Tile ── */
 function DataTile({ tile, liveTimeline, liveCosts, livePipelineRuns }: {
   tile: TileData;
@@ -1116,6 +1568,18 @@ function DataTile({ tile, liveTimeline, liveCosts, livePipelineRuns }: {
 
   if (tile.id === "active-tasks") {
     return <ActiveTasksTile />;
+  }
+
+  if (tile.id === "live-sessions") {
+    return <LiveSessionsTile />;
+  }
+
+  if (tile.id === "workspace-browser") {
+    return <WorkspaceTile />;
+  }
+
+  if (tile.id === "session-tree") {
+    return <SessionTreeTile />;
   }
 
   // Default
@@ -1409,7 +1873,7 @@ export default function CanvasPage() {
     const chatTiles = tiles.filter(t => t.type === "chat");
     const agentTiles = tiles.filter(t => t.type === "agent");
     const dataTiles = tiles.filter(t => ["data", "metric", "guardrail"].includes(t.type) || ["timeline-live", "costs-7d", "hyperagent-evo", "system-metrics"].includes(t.id));
-    const actionTiles = tiles.filter(t => t.type === "action" || t.id === "active-tasks" || t.id === "new-task" || t.id === "live-sessions");
+    const actionTiles = tiles.filter(t => t.type === "action" || t.id === "active-tasks" || t.id === "new-task" || t.id === "live-sessions" || t.id === "workspace-browser" || t.id === "session-tree");
 
     const visibleTiles = mobileTab === "chat" ? chatTiles
       : mobileTab === "agents" ? agentTiles
@@ -1529,6 +1993,8 @@ export default function CanvasPage() {
                 {tile.type === "action" && tile.id === "new-task" && <NewTaskTile />}
                 {tile.id === "active-tasks" && <ActiveTasksTile />}
                 {tile.id === "live-sessions" && <LiveSessionsTile />}
+                {tile.id === "workspace-browser" && <WorkspaceTile />}
+                {tile.id === "session-tree" && <SessionTreeTile />}
                 {(tile.type === "guardrail" || tile.type === "data" || tile.type === "metric") && (
                   <DataTile
                     tile={tile}
