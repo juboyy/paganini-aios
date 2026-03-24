@@ -273,12 +273,9 @@ function ChatTile({ tile }: { tile: TileData }) {
   const [streaming, setStreaming] = useState(false);
   const [agents, setAgents] = useState<{ id: string; name: string; emoji: string }[]>([]);
   const [selectedAgent, setSelectedAgent] = useState(tile.agent || "oracli");
-  // Stable session ID per tile (persists across refreshes)
-  const tileSessionId = `canvas-${tile.id}`;
-  const [sessionId] = useState(tileSessionId);
+  const sessionId = `canvas-${tile.id}`;
   const bottomRef = useRef<HTMLDivElement>(null);
   const abortRef = useRef<AbortController | null>(null);
-  const lastPollRef = useRef<string>("");
   const loadedRef = useRef(false);
 
   useEffect(() => {
@@ -313,40 +310,13 @@ function ChatTile({ tile }: { tile: TileData }) {
             }));
           if (history.length > 0) {
             setMsgs(history);
-            const lastTs = data[data.length - 1]?.created_at;
-            if (lastTs) lastPollRef.current = lastTs;
             return;
           }
         }
       } catch {}
-      setMsgs([{ role: "assistant", content: `${tile.emoji} ${tile.agent} online. Pronto para comandos.` }]);
+      setMsgs([{ role: "assistant", content: `${tile.emoji} Sistema online. Selecione um agente e envie comandos.` }]);
     })();
-  }, [tile.id, tile.emoji, tile.agent]);
-
-  // Poll for new responses
-  useEffect(() => {
-    const interval = setInterval(async () => {
-      try {
-        const params = new URLSearchParams({ tileId: tile.id, limit: "50" });
-        if (lastPollRef.current) params.set("after", lastPollRef.current);
-        const res = await fetch(`/api/chat?${params}`);
-        if (!res.ok) return;
-        const data = await res.json();
-        if (Array.isArray(data) && data.length > 0) {
-          const newMsgs = data
-            .filter((m: { role: string; status?: string }) =>
-              m.role === "assistant" && m.status === "delivered"
-            )
-            .map((m: { content: string }) => ({ role: "assistant" as const, content: m.content }));
-          if (newMsgs.length > 0) {
-            setMsgs(prev => [...prev, ...newMsgs]);
-          }
-          lastPollRef.current = data[data.length - 1].created_at;
-        }
-      } catch {}
-    }, 3000);
-    return () => clearInterval(interval);
-  }, [tile.id]);
+  }, [tile.id, tile.emoji]);
 
   const send = useCallback(async () => {
     const text = input.trim();
@@ -354,38 +324,80 @@ function ChatTile({ tile }: { tile: TileData }) {
     setInput("");
 
     const userMsg: ChatMsg = { role: "user", content: text };
-    setMsgs((prev) => [...prev, userMsg]);
+    const assistantMsg: ChatMsg = { role: "assistant", content: "" };
+    setMsgs(prev => [...prev, userMsg, assistantMsg]);
+    setStreaming(true);
 
-    // All messages go through bridge — agent context is embedded in the message
-    const agentLabel = agents.find(a => a.id === selectedAgent)?.name || selectedAgent;
-    setMsgs(prev => [...prev, { role: "assistant", content: "⏳ ..." }]);
+    const apiMsgs = [...msgs, userMsg].map(m => ({ role: m.role, content: m.content }));
+
     try {
+      abortRef.current = new AbortController();
       const res = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          messages: [{ role: "user", content: text }],
-          mode: "bridge",
+          messages: apiMsgs,
           agent: selectedAgent,
           tileId: tile.id,
           sessionId,
         }),
+        signal: abortRef.current.signal,
       });
-      if (res.ok) {
+
+      if (!res.ok) {
         setMsgs(prev => {
           const copy = [...prev];
-          copy[copy.length - 1] = { role: "assistant", content: `📡 → ${agentLabel}. Aguardando...` };
+          copy[copy.length - 1] = { role: "assistant", content: `Erro ${res.status}` };
+          return copy;
+        });
+        setStreaming(false);
+        return;
+      }
+
+      const reader = res.body?.getReader();
+      const decoder = new TextDecoder();
+      if (!reader) { setStreaming(false); return; }
+
+      let buffer = "";
+      let full = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+        for (const line of lines) {
+          const t = line.trim();
+          if (!t || !t.startsWith("data: ")) continue;
+          const d = t.slice(6);
+          if (d === "[DONE]") continue;
+          try {
+            const p = JSON.parse(d);
+            if (p.text || p.content) {
+              full += p.text || p.content;
+              setMsgs(prev => {
+                const copy = [...prev];
+                copy[copy.length - 1] = { role: "assistant", content: full };
+                return copy;
+              });
+            }
+          } catch {}
+        }
+      }
+    } catch (err: unknown) {
+      if (!(err instanceof Error && err.name === "AbortError")) {
+        setMsgs(prev => {
+          const copy = [...prev];
+          copy[copy.length - 1] = { role: "assistant", content: "Erro de conexão." };
           return copy;
         });
       }
-    } catch {
-      setMsgs(prev => {
-        const copy = [...prev];
-        copy[copy.length - 1] = { role: "assistant", content: "❌ Erro ao enviar." };
-        return copy;
-      });
+    } finally {
+      setStreaming(false);
+      abortRef.current = null;
     }
-  }, [input, streaming, tile.id, sessionId, selectedAgent, agents]);
+  }, [input, msgs, streaming, selectedAgent, tile.id, sessionId]);
 
   const currentAgentEmoji = agents.find(a => a.id === selectedAgent)?.emoji || tile.emoji;
 
