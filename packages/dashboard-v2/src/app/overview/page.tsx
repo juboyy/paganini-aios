@@ -195,7 +195,7 @@ export default function OverviewPage() {
     },
     {
       label: "GUARDRAILS",
-      desc: `${loading ? "..." : guardrailCount} Gates de segurança · Approval humana · Audit trail`,
+      desc: `${loading ? "..." : guardrailCount} Guardrails de segurança · Approval humana · Audit trail`,
       color: "hsl(0 80% 60%)",
       bg: "hsl(0 80% 8% / 0.4)",
       border: "hsl(0 80% 60% / 0.3)",
