@@ -1,17 +1,48 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
-// ─── DATA ───────────────────────────────────────────────────────────────────
+// ─── Types ───────────────────────────────────────────────────────────────────
 
-const QUALITY_TREND = [
-  { label: "Jan", score: 7.2 },
-  { label: "Fev 1", score: 7.8 },
-  { label: "Fev 15", score: 8.1 },
-  { label: "Mar 1", score: 8.3 },
-  { label: "Mar 15", score: 8.5 },
-  { label: "Mar 23", score: 8.7 },
-];
+interface TraceError {
+  id?: string;
+  name: string;
+  agent_id: string;
+  status: string;
+  error?: string;
+  duration?: string;
+  created_at: string;
+}
+
+interface GateRun {
+  id?: string;
+  name?: string;
+  status?: string;
+  passed?: boolean;
+  score?: number;
+  created_at: string;
+  [key: string]: unknown;
+}
+
+interface ReviewTask {
+  id?: string;
+  name: string;
+  status: string;
+  agent_id: string;
+  bmad_stage?: number;
+  created_at: string;
+}
+
+interface QualityData {
+  qualityScore: number;
+  totalTraces: number;
+  errorTraces: number;
+  recentErrors: TraceError[];
+  gateRuns: GateRun[];
+  reviewTasks: ReviewTask[];
+}
+
+// ─── Static mock data (kept for tabs 2/3/4) ──────────────────────────────────
 
 const CODE_ISSUES = [
   { label: "Unused imports", count: 89 },
@@ -81,7 +112,7 @@ const RECENT_LEARNINGS = [
   { date: "2026-03-18", type: "accepted", agent: "QA Agent", pattern: "Testes de guardrail devem incluir adversarial prompts", impact: "+23 test cases de prompt injection adicionados" },
 ];
 
-// ─── HELPERS ─────────────────────────────────────────────────────────────────
+// ─── Helpers ─────────────────────────────────────────────────────────────────
 
 function scoreColor(score: number): string {
   if (score > 8.5) return "var(--accent)";
@@ -89,7 +120,11 @@ function scoreColor(score: number): string {
   return "#f97316";
 }
 
-// ─── SUB-COMPONENTS ───────────────────────────────────────────────────────────
+function fmtDate(iso: string) {
+  return new Date(iso).toLocaleString("pt-BR", { dateStyle: "short", timeStyle: "short" });
+}
+
+// ─── Sub-components ───────────────────────────────────────────────────────────
 
 function StatCard({ label, value, sub }: { label: string; value: string; sub: string }) {
   return (
@@ -101,67 +136,6 @@ function StatCard({ label, value, sub }: { label: string; value: string; sub: st
       <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", color: "var(--text-3)", marginTop: "0.25rem" }}>
         {sub}
       </div>
-    </div>
-  );
-}
-
-function QualityTrendChart() {
-  const W = 600, H = 180, padX = 48, padY = 20;
-  const minScore = 6.5, maxScore = 10;
-  const chartW = W - padX * 2;
-  const chartH = H - padY * 2;
-
-  const pts = QUALITY_TREND.map((d, i) => ({
-    x: padX + (i / (QUALITY_TREND.length - 1)) * chartW,
-    y: padY + chartH - ((d.score - minScore) / (maxScore - minScore)) * chartH,
-    ...d,
-  }));
-
-  const linePath = pts.map((p, i) => `${i === 0 ? "M" : "L"} ${p.x} ${p.y}`).join(" ");
-  const areaPath = `${linePath} L ${pts[pts.length - 1].x} ${padY + chartH} L ${pts[0].x} ${padY + chartH} Z`;
-
-  const gridScores = [7, 7.5, 8, 8.5, 9, 9.5];
-
-  return (
-    <div className="glass-card p-4" style={{ marginBottom: "1.5rem" }}>
-      <div style={{ fontFamily: "var(--font-display)", fontSize: "1rem", fontWeight: 700, color: "var(--text-1)", marginBottom: "1rem" }}>
-        Evolução do Score de Qualidade
-      </div>
-      <svg viewBox={`0 0 ${W} ${H}`} style={{ width: "100%", height: "auto" }}>
-        <defs>
-          <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-            <stop offset="0%" stopColor="var(--accent)" stopOpacity="0.25" />
-            <stop offset="100%" stopColor="var(--accent)" stopOpacity="0.02" />
-          </linearGradient>
-        </defs>
-
-        {/* Grid lines */}
-        {gridScores.map((s) => {
-          const y = padY + chartH - ((s - minScore) / (maxScore - minScore)) * chartH;
-          return (
-            <g key={s}>
-              <line x1={padX} y1={y} x2={W - padX} y2={y} stroke="rgba(255,255,255,0.06)" strokeWidth="1" />
-              <text x={padX - 6} y={y + 4} fontSize="10" fill="var(--text-4)" textAnchor="end" fontFamily="var(--font-mono)">{s}</text>
-            </g>
-          );
-        })}
-
-        {/* Area fill */}
-        <path d={areaPath} fill="url(#areaGrad)" />
-
-        {/* Line */}
-        <path d={linePath} fill="none" stroke="var(--accent)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
-
-        {/* Data points */}
-        {pts.map((p) => (
-          <g key={p.label}>
-            <circle cx={p.x} cy={p.y} r="4" fill="var(--accent)" />
-            <circle cx={p.x} cy={p.y} r="7" fill="none" stroke="var(--accent)" strokeWidth="1" strokeOpacity="0.4" />
-            <text x={p.x} y={p.y - 12} fontSize="10" fill="var(--accent)" textAnchor="middle" fontFamily="var(--font-mono)" fontWeight="bold">{p.score}</text>
-            <text x={p.x} y={H - 4} fontSize="10" fill="var(--text-4)" textAnchor="middle" fontFamily="var(--font-mono)">{p.label}</text>
-          </g>
-        ))}
-      </svg>
     </div>
   );
 }
@@ -185,7 +159,6 @@ function AgentRow({ agent, domain }: { agent: typeof CODE_AGENTS_QUALITY[0]; dom
   const color = scoreColor(agent.score);
   const fixRate = Math.round((agent.fixed / agent.issues) * 100);
   const domainColor = domain === "code" ? "var(--accent)" : "var(--cyan)";
-
   return (
     <div className="glass-card p-4" style={{ display: "flex", alignItems: "center", gap: "1rem", marginBottom: "0.5rem" }}>
       <span style={{ fontSize: "1.25rem", flexShrink: 0 }}>{agent.emoji}</span>
@@ -277,7 +250,6 @@ function LearningCard({ learning }: { learning: typeof RECENT_LEARNINGS[0] }) {
   const isAccepted = learning.type === "accepted";
   const borderColor = isAccepted ? "var(--accent)" : "#ef4444";
   const typeColor = isAccepted ? "var(--accent)" : "#ef4444";
-
   return (
     <div className="glass-card p-4" style={{ borderLeft: `3px solid ${borderColor}`, marginBottom: "0.75rem" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "0.5rem" }}>
@@ -299,28 +271,131 @@ function LearningCard({ learning }: { learning: typeof RECENT_LEARNINGS[0] }) {
   );
 }
 
-// ─── TABS ─────────────────────────────────────────────────────────────────────
+// ─── Real-data overview tab ───────────────────────────────────────────────────
 
-function TabOverview() {
+function TabOverview({ data, loading, error }: { data: QualityData | null; loading: boolean; error: string | null }) {
   const maxCode = Math.max(...CODE_ISSUES.map((i) => i.count));
   const maxFidc = Math.max(...FIDC_ISSUES.map((i) => i.count));
 
+  if (loading) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "4rem", fontFamily: "var(--font-mono)", color: "var(--accent)", letterSpacing: "0.1em" }}>
+        CARREGANDO...
+      </div>
+    );
+  }
+
+  const scoreDisplay = data ? `${data.qualityScore}%` : "—";
+  const totalTracesDisplay = data ? String(data.totalTraces) : "—";
+  const errorCount = data ? String(data.errorTraces) : "—";
+
   return (
     <div>
+      {error && (
+        <div style={{ padding: "0.75rem 1rem", marginBottom: "1rem", background: "rgba(239,68,68,0.08)", border: "1px solid rgba(239,68,68,0.3)", borderRadius: "var(--radius)", fontFamily: "var(--font-mono)", fontSize: "0.8rem", color: "#ef4444" }}>
+          ⚠ {error} — mostrando dados históricos
+        </div>
+      )}
+
       {/* Stats row */}
       <div style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
-        <StatCard label="ISSUES DETECTADAS" value="847" sub="Desde o início do projeto" />
-        <StatCard label="TAXA DE AUTOFIX" value="73.2%" sub="621 de 847 corrigidas automaticamente" />
-        <StatCard label="COBERTURA DE REVIEW" value="94.8%" sub="PRs com review automatizado" />
-        <StatCard label="SCORE MÉDIO" value="8.7/10" sub="+0.4 vs mês anterior" />
+        <StatCard label="QUALITY SCORE" value={scoreDisplay} sub="% traces sem erro" />
+        <StatCard label="TOTAL TRACES" value={totalTracesDisplay} sub="Registradas no Supabase" />
+        <StatCard label="ERROS ATIVOS" value={errorCount} sub="Traces com status=error" />
+        <StatCard label="GATES EXECUTADOS" value={data ? String(data.gateRuns.length) : "—"} sub="quality_gate_runs" />
       </div>
 
-      {/* Trend chart */}
-      <QualityTrendChart />
+      {/* Recent Errors */}
+      {data && data.recentErrors.length > 0 && (
+        <div className="glass-card p-4" style={{ marginBottom: "1.5rem" }}>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: "1rem", fontWeight: 700, color: "var(--text-1)", marginBottom: "1rem" }}>
+            ⚠ Issues Recentes — Traces com Erro
+          </div>
+          <div>
+            {data.recentErrors.slice(0, 8).map((trace, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "flex-start", gap: "1rem", padding: "0.625rem 0", borderBottom: i < data.recentErrors.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none" }}>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.7rem", padding: "2px 6px", borderRadius: "var(--radius)", background: "rgba(239,68,68,0.12)", color: "#ef4444", border: "1px solid rgba(239,68,68,0.3)", whiteSpace: "nowrap" }}>
+                  ERROR
+                </span>
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.8rem", color: "var(--text-1)", marginBottom: "0.2rem" }}>{trace.name}</div>
+                  {trace.error && (
+                    <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.72rem", color: "#ef4444", opacity: 0.8, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {trace.error}
+                    </div>
+                  )}
+                </div>
+                <div style={{ textAlign: "right", flexShrink: 0 }}>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.7rem", color: "var(--text-4)" }}>{trace.agent_id}</div>
+                  <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.68rem", color: "var(--text-4)" }}>{fmtDate(trace.created_at)}</div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
-      {/* Dual-domain breakdown */}
+      {/* Gate Runs */}
+      {data && data.gateRuns.length > 0 && (
+        <div className="glass-card p-4" style={{ marginBottom: "1.5rem" }}>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: "1rem", fontWeight: 700, color: "var(--text-1)", marginBottom: "1rem" }}>
+            ✓ Quality Gate Runs
+          </div>
+          <div>
+            {data.gateRuns.slice(0, 6).map((run, i) => {
+              const passed = run.passed ?? run.status === "passed" ?? run.status === "ok";
+              return (
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: "1rem", padding: "0.5rem 0", borderBottom: i < data.gateRuns.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none" }}>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.7rem", padding: "2px 6px", borderRadius: "var(--radius)", background: passed ? "rgba(0,255,136,0.12)" : "rgba(239,68,68,0.12)", color: passed ? "var(--accent)" : "#ef4444", border: `1px solid ${passed ? "rgba(0,255,136,0.3)" : "rgba(239,68,68,0.3)"}` }}>
+                    {passed ? "✓ PASSED" : "✗ FAILED"}
+                  </span>
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.8rem", color: "var(--text-1)", flex: 1 }}>
+                    {run.name || run.id || "Gate Run"}
+                  </span>
+                  {run.score != null && (
+                    <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.8rem", color: "var(--accent)", fontWeight: 700 }}>
+                      {run.score}
+                    </span>
+                  )}
+                  <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.68rem", color: "var(--text-4)" }}>
+                    {fmtDate(run.created_at)}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {/* Review Tasks */}
+      {data && data.reviewTasks.length > 0 && (
+        <div className="glass-card p-4" style={{ marginBottom: "1.5rem" }}>
+          <div style={{ fontFamily: "var(--font-display)", fontSize: "1rem", fontWeight: 700, color: "var(--text-1)", marginBottom: "1rem" }}>
+            🔍 Tasks em Review / QA (stages 12–13)
+          </div>
+          <div>
+            {data.reviewTasks.slice(0, 8).map((task, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: "1rem", padding: "0.5rem 0", borderBottom: i < data.reviewTasks.length - 1 ? "1px solid rgba(255,255,255,0.05)" : "none" }}>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.7rem", padding: "2px 6px", borderRadius: "var(--radius)", background: "rgba(0,229,255,0.1)", color: "var(--cyan)", border: "1px solid rgba(0,229,255,0.25)", whiteSpace: "nowrap" }}>
+                  STAGE {task.bmad_stage}
+                </span>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.8rem", color: "var(--text-1)", flex: 1 }}>{task.name}</span>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.7rem", color: "var(--text-3)" }}>{task.agent_id}</span>
+                <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.68rem", color: "var(--text-4)" }}>{fmtDate(task.created_at)}</span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {data && data.recentErrors.length === 0 && data.gateRuns.length === 0 && data.reviewTasks.length === 0 && (
+        <div style={{ padding: "2rem", textAlign: "center", fontFamily: "var(--font-mono)", fontSize: "0.8rem", color: "var(--text-4)" }}>
+          Nenhum dado de qualidade encontrado. Tabelas podem estar vazias.
+        </div>
+      )}
+
+      {/* Domain breakdown (static) */}
       <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "1rem" }}>
-        {/* Code domain */}
         <div className="glass-card p-4">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
             <span style={{ fontFamily: "var(--font-display)", fontSize: "1rem", fontWeight: 700, color: "var(--accent)" }}>⌨️ CODE DOMAIN</span>
@@ -335,8 +410,6 @@ function TabOverview() {
             <IssueBar key={issue.label} label={issue.label} count={issue.count} max={maxCode} color="var(--accent)" />
           ))}
         </div>
-
-        {/* FIDC domain */}
         <div className="glass-card p-4">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "1rem" }}>
             <span style={{ fontFamily: "var(--font-display)", fontSize: "1rem", fontWeight: 700, color: "var(--cyan)" }}>🏦 FIDC DOMAIN</span>
@@ -356,20 +429,18 @@ function TabOverview() {
   );
 }
 
+// ─── Tabs 2/3/4 (static) ─────────────────────────────────────────────────────
+
 function TabPerAgent() {
   return (
     <div>
-      {/* Code agents */}
       <div style={{ marginBottom: "2rem" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "1rem" }}>
-          <h2 style={{ fontFamily: "var(--font-display)", fontSize: "1.25rem", fontWeight: 700, color: "var(--text-1)", margin: 0 }}>
-            Code Agents
-          </h2>
+          <h2 style={{ fontFamily: "var(--font-display)", fontSize: "1.25rem", fontWeight: 700, color: "var(--text-1)", margin: 0 }}>Code Agents</h2>
           <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", padding: "2px 8px", borderRadius: "var(--radius)", background: "rgba(0,255,136,0.1)", color: "var(--accent)", border: "1px solid rgba(0,255,136,0.25)" }}>
             12 agentes
           </span>
         </div>
-        {/* Table header */}
         <div style={{ display: "flex", alignItems: "center", gap: "1rem", padding: "0 1rem 0.5rem", borderBottom: "1px solid rgba(255,255,255,0.07)" }}>
           <div style={{ flex: 1 }}><span style={{ fontFamily: "var(--font-mono)", fontSize: "0.68rem", letterSpacing: "0.1em", color: "var(--text-4)" }}>AGENTE</span></div>
           <div style={{ minWidth: "56px", textAlign: "center" }}><span style={{ fontFamily: "var(--font-mono)", fontSize: "0.68rem", letterSpacing: "0.1em", color: "var(--text-4)" }}>REVIEWS</span></div>
@@ -384,13 +455,9 @@ function TabPerAgent() {
           ))}
         </div>
       </div>
-
-      {/* FIDC agents */}
       <div>
         <div style={{ display: "flex", alignItems: "center", gap: "0.75rem", marginBottom: "1rem" }}>
-          <h2 style={{ fontFamily: "var(--font-display)", fontSize: "1.25rem", fontWeight: 700, color: "var(--text-1)", margin: 0 }}>
-            FIDC Agents
-          </h2>
+          <h2 style={{ fontFamily: "var(--font-display)", fontSize: "1.25rem", fontWeight: 700, color: "var(--text-1)", margin: 0 }}>FIDC Agents</h2>
           <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.75rem", padding: "2px 8px", borderRadius: "var(--radius)", background: "rgba(0,229,255,0.1)", color: "var(--cyan)", border: "1px solid rgba(0,229,255,0.25)" }}>
             9 agentes
           </span>
@@ -409,8 +476,6 @@ function TabPerAgent() {
           ))}
         </div>
       </div>
-
-      {/* Score legend */}
       <div className="section-help" style={{ display: "flex", gap: "1.5rem", marginTop: "1.25rem" }}>
         <span><span style={{ color: "var(--accent)", marginRight: "0.375rem" }}>●</span>Score &gt; 8.5 — Excelente</span>
         <span><span style={{ color: "var(--cyan)", marginRight: "0.375rem" }}>●</span>Score 7–8.5 — Bom</span>
@@ -429,14 +494,11 @@ function TabAutofix() {
       <p className="section-help" style={{ marginBottom: "1.5rem" }}>
         Ações pós-review executadas automaticamente para elevar a qualidade do código antes do merge.
       </p>
-
       <div style={{ marginBottom: "2rem" }}>
         {FINISHING_TOUCHES.map((ft) => (
           <FinishingTouchCard key={ft.name} ft={ft} />
         ))}
       </div>
-
-      {/* Custom recipes */}
       <div>
         <h2 style={{ fontFamily: "var(--font-display)", fontSize: "1.25rem", fontWeight: 700, color: "var(--text-1)", marginBottom: "0.375rem" }}>
           Recipes Customizadas
@@ -457,14 +519,11 @@ function TabAutofix() {
 function TabFeedbackLoop() {
   return (
     <div>
-      {/* Stats */}
       <div style={{ display: "flex", gap: "1rem", marginBottom: "1.5rem", flexWrap: "wrap" }}>
         <StatCard label="FEEDBACKS PROCESSADOS" value="1.247" sub="Aceitos + rejeitados pelos agentes" />
         <StatCard label="PADRÕES APRENDIDOS" value="89" sub="Novos patterns incorporados" />
         <StatCard label="FALSOS POSITIVOS ELIMINADOS" value="156" sub="Issues que não eram issues" />
       </div>
-
-      {/* Learning diagram */}
       <div className="glass-card p-4" style={{ marginBottom: "1.5rem" }}>
         <div style={{ fontFamily: "var(--font-display)", fontSize: "1rem", fontWeight: 700, color: "var(--text-1)", marginBottom: "1rem" }}>
           Como o Sistema Aprende
@@ -491,8 +550,6 @@ function TabFeedbackLoop() {
           )}
         </div>
       </div>
-
-      {/* Timeline */}
       <h2 style={{ fontFamily: "var(--font-display)", fontSize: "1.25rem", fontWeight: 700, color: "var(--text-1)", marginBottom: "0.375rem" }}>
         Aprendizados Recentes
       </h2>
@@ -508,7 +565,7 @@ function TabFeedbackLoop() {
   );
 }
 
-// ─── PAGE ─────────────────────────────────────────────────────────────────────
+// ─── Tabs config ──────────────────────────────────────────────────────────────
 
 const TABS = [
   { id: "overview", label: "📊 VISÃO GERAL" },
@@ -517,12 +574,27 @@ const TABS = [
   { id: "feedback", label: "🧠 FEEDBACK LOOP" },
 ];
 
+// ─── Page ─────────────────────────────────────────────────────────────────────
+
 export default function CodeQualityPage() {
   const [activeTab, setActiveTab] = useState("overview");
+  const [data, setData] = useState<QualityData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/code-quality")
+      .then((r) => r.json())
+      .then((d) => {
+        if (d.error) setError(d.error);
+        else setData(d);
+      })
+      .catch(() => setError("Falha ao conectar com a API"))
+      .finally(() => setLoading(false));
+  }, []);
 
   return (
     <div style={{ padding: "2rem", maxWidth: "1200px", margin: "0 auto" }}>
-      {/* Page header */}
       <div style={{ marginBottom: "2rem" }}>
         <h1 style={{ fontFamily: "var(--font-display)", fontSize: "1.5rem", fontWeight: 700, color: "var(--text-1)", margin: "0 0 0.375rem" }}>
           Code Quality Analytics
@@ -533,7 +605,6 @@ export default function CodeQualityPage() {
         </p>
       </div>
 
-      {/* Tab bar */}
       <div style={{ display: "flex", gap: "0.25rem", marginBottom: "2rem", borderBottom: "1px solid rgba(255,255,255,0.08)", paddingBottom: "0" }}>
         {TABS.map((tab) => {
           const isActive = activeTab === tab.id;
@@ -562,8 +633,7 @@ export default function CodeQualityPage() {
         })}
       </div>
 
-      {/* Tab content */}
-      {activeTab === "overview" && <TabOverview />}
+      {activeTab === "overview" && <TabOverview data={data} loading={loading} error={error} />}
       {activeTab === "per-agent" && <TabPerAgent />}
       {activeTab === "autofix" && <TabAutofix />}
       {activeTab === "feedback" && <TabFeedbackLoop />}
