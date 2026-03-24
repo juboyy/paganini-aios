@@ -134,6 +134,7 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
   const sessionId = req.nextUrl.searchParams.get("sessionId");
   const tileId = req.nextUrl.searchParams.get("tileId");
+  const after = req.nextUrl.searchParams.get("after");
   const limit = parseInt(req.nextUrl.searchParams.get("limit") || "50");
 
   try {
@@ -145,6 +146,7 @@ export async function GET(req: NextRequest) {
 
     if (sessionId) query = query.eq("session_id", sessionId);
     if (tileId) query = query.eq("tile_id", tileId);
+    if (after) query = query.gt("created_at", after);
 
     const { data, error } = await query;
     if (error) throw error;

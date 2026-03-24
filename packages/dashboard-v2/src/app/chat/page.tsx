@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useRef, useEffect, useCallback, useMemo } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 
 /* ── Types ── */
 interface Vec { x: number; y: number }
 interface TileData {
   id: string;
-  type: "agent" | "chat" | "data" | "guardrail" | "metric";
+  type: "agent" | "chat" | "data" | "guardrail" | "metric" | "action";
   x: number;
   y: number;
   width: number;
@@ -36,6 +36,34 @@ interface TimelineEvent {
 interface DailyCost {
   date: string;
   total: number;
+  openai?: number;
+  anthropic?: number;
+  google?: number;
+}
+
+interface ActiveTask {
+  id: string;
+  name: string;
+  status: string;
+  agent_id?: string;
+  priority?: string;
+  created_at: string;
+}
+
+interface PipelineRun {
+  id: string;
+  title?: string;
+  status: string;
+  current_stage?: string;
+  total_tokens?: number;
+  total_cost?: number;
+  created_at: string;
+}
+
+interface Agent {
+  id: string;
+  name: string;
+  emoji?: string;
 }
 
 /* ── Constants ── */
@@ -82,7 +110,7 @@ function createInitialTiles(): TileData[] {
     emoji: "🧠",
   });
 
-  // Data tiles
+  // Static data tiles
   tiles.push({
     id: "guardrails",
     type: "guardrail" as const,
@@ -103,7 +131,7 @@ function createInitialTiles(): TileData[] {
     content: "21 agentes online | 99.7% uptime\n47s/operação | 6.993 chunks RAG\nModelo: Qwen3.5-27B (SFT+GRPO)",
   });
 
-  // New data tiles
+  // Live data tiles
   tiles.push({
     id: "timeline-live",
     type: "data" as const,
@@ -132,6 +160,28 @@ function createInitialTiles(): TileData[] {
     zIndex: 19,
     title: "HyperAgent Evolution",
     emoji: "🧬",
+  });
+
+  // New: Nova Tarefa action tile
+  tiles.push({
+    id: "new-task",
+    type: "action" as const,
+    x: 2000, y: 1180,
+    width: 450, height: 280,
+    zIndex: 21,
+    title: "Nova Tarefa",
+    emoji: "➕",
+  });
+
+  // New: Tasks Ativas data tile
+  tiles.push({
+    id: "active-tasks",
+    type: "data" as const,
+    x: 2460, y: 80,
+    width: 400, height: 400,
+    zIndex: 22,
+    title: "Tasks Ativas",
+    emoji: "⚡",
   });
 
   return tiles;
@@ -268,7 +318,6 @@ function ChatTile({ tile }: { tile: TileData }) {
     setMsgs((prev) => [...prev, userMsg]);
 
     if (mode === "bridge") {
-      // Bridge mode — send to OraCLI via Telegram
       setMsgs(prev => [...prev, { role: "assistant", content: "⏳ Enviando ao OraCLI..." }]);
       try {
         const res = await fetch("/api/chat", {
@@ -458,11 +507,250 @@ function ChatTile({ tile }: { tile: TileData }) {
   );
 }
 
+/* ── New Task Tile ── */
+function NewTaskTile() {
+  const [taskName, setTaskName] = useState("");
+  const [agentId, setAgentId] = useState("");
+  const [priority, setPriority] = useState("medium");
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [status, setStatus] = useState<"idle" | "loading" | "success" | "error">("idle");
+  const [lastTaskId, setLastTaskId] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState("");
+
+  useEffect(() => {
+    fetch("/api/agents")
+      .then((r) => r.json())
+      .then((data: Agent[]) => setAgents(Array.isArray(data) ? data : []))
+      .catch(() => {});
+  }, []);
+
+  const dispatch = useCallback(async () => {
+    if (!taskName.trim() || status === "loading") return;
+    setStatus("loading");
+    setErrorMsg("");
+    try {
+      const res = await fetch("/api/tasks", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: taskName.trim(), agent_id: agentId || null, priority }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error(err.error || `HTTP ${res.status}`);
+      }
+      const task = await res.json();
+      setLastTaskId(task.id);
+      setStatus("success");
+      setTaskName("");
+      setTimeout(() => setStatus("idle"), 4000);
+    } catch (e) {
+      setErrorMsg(e instanceof Error ? e.message : "Erro desconhecido");
+      setStatus("error");
+      setTimeout(() => setStatus("idle"), 4000);
+    }
+  }, [taskName, agentId, priority, status]);
+
+  const inputStyle: React.CSSProperties = {
+    width: "100%", background: "rgba(0,0,0,0.35)", border: "1px solid var(--border)",
+    borderRadius: 4, color: "var(--text-1)", padding: "0.35rem 0.5rem",
+    fontFamily: "var(--font-mono)", fontSize: "0.7rem", outline: "none",
+    boxSizing: "border-box",
+  };
+
+  const selectStyle: React.CSSProperties = {
+    ...inputStyle,
+    cursor: "pointer",
+  };
+
+  return (
+    <div style={{ padding: "0.75rem", height: "100%", display: "flex", flexDirection: "column", gap: "0.5rem" }}>
+      <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.58rem", color: "var(--text-4)", letterSpacing: "0.1em" }}>
+        DESPACHAR TAREFA → SUPABASE
+      </div>
+
+      <input
+        value={taskName}
+        onChange={(e) => setTaskName(e.target.value)}
+        onKeyDown={(e) => { if (e.key === "Enter") dispatch(); }}
+        placeholder="Descrição da tarefa..."
+        style={inputStyle}
+        onMouseDown={(e) => e.stopPropagation()}
+      />
+
+      <select
+        value={agentId}
+        onChange={(e) => setAgentId(e.target.value)}
+        style={selectStyle}
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        <option value="">— Selecionar agente —</option>
+        {agents.map((a) => (
+          <option key={a.id} value={a.id}>
+            {a.emoji ? `${a.emoji} ` : ""}{a.name}
+          </option>
+        ))}
+      </select>
+
+      <select
+        value={priority}
+        onChange={(e) => setPriority(e.target.value)}
+        style={selectStyle}
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        <option value="low">🟢 Low</option>
+        <option value="medium">🟡 Medium</option>
+        <option value="high">🟠 High</option>
+        <option value="critical">🔴 Critical</option>
+      </select>
+
+      <button
+        onClick={dispatch}
+        disabled={!taskName.trim() || status === "loading"}
+        style={{
+          padding: "0.45rem", border: "1px solid var(--accent)", borderRadius: 4,
+          background: status === "loading" ? "rgba(0,255,136,0.1)" : status === "success" ? "var(--accent)" : "transparent",
+          color: status === "success" ? "var(--bg)" : "var(--accent)",
+          fontFamily: "var(--font-mono)", fontSize: "0.68rem", fontWeight: 700,
+          cursor: status === "loading" || !taskName.trim() ? "not-allowed" : "pointer",
+          letterSpacing: "0.1em", transition: "all 0.2s",
+          opacity: !taskName.trim() ? 0.5 : 1,
+        }}
+        onMouseDown={(e) => e.stopPropagation()}
+      >
+        {status === "loading" ? "DESPACHANDO..." : status === "success" ? "✓ DESPACHADO" : "DESPACHAR ▶"}
+      </button>
+
+      {status === "success" && lastTaskId && (
+        <div style={{
+          fontFamily: "var(--font-mono)", fontSize: "0.6rem", color: "var(--accent)",
+          background: "rgba(0,255,136,0.05)", border: "1px solid rgba(0,255,136,0.2)",
+          borderRadius: 4, padding: "0.35rem 0.5rem",
+        }}>
+          ✓ Task criada: <span style={{ color: "var(--cyan)" }}>{lastTaskId.slice(0, 12)}...</span>
+        </div>
+      )}
+
+      {status === "error" && (
+        <div style={{
+          fontFamily: "var(--font-mono)", fontSize: "0.6rem", color: "#ff4444",
+          background: "rgba(255,68,68,0.05)", border: "1px solid rgba(255,68,68,0.2)",
+          borderRadius: 4, padding: "0.35rem 0.5rem",
+        }}>
+          ❌ {errorMsg}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── Active Tasks Tile ── */
+function ActiveTasksTile() {
+  const [tasks, setTasks] = useState<ActiveTask[]>([]);
+  const [lastFetch, setLastFetch] = useState<Date | null>(null);
+
+  const fetchTasks = useCallback(async () => {
+    try {
+      const res = await fetch("/api/tasks?status=pending,in_progress");
+      if (!res.ok) return;
+      const data = await res.json();
+      setTasks(Array.isArray(data) ? data : []);
+      setLastFetch(new Date());
+    } catch {}
+  }, []);
+
+  useEffect(() => {
+    fetchTasks();
+    const iv = setInterval(fetchTasks, 10000);
+    return () => clearInterval(iv);
+  }, [fetchTasks]);
+
+  const elapsed = (createdAt: string) => {
+    const diff = Date.now() - new Date(createdAt).getTime();
+    const mins = Math.floor(diff / 60000);
+    const hrs = Math.floor(mins / 60);
+    if (hrs > 0) return `${hrs}h${mins % 60}m`;
+    if (mins > 0) return `${mins}m`;
+    return "agora";
+  };
+
+  const statusBadge = (s: string) => {
+    const colors: Record<string, { bg: string; color: string }> = {
+      pending:     { bg: "rgba(255,170,0,0.15)", color: "#ffaa00" },
+      in_progress: { bg: "rgba(0,255,136,0.15)", color: "var(--accent)" },
+      done:        { bg: "rgba(0,229,204,0.15)", color: "var(--cyan)" },
+    };
+    const c = colors[s] || { bg: "rgba(255,255,255,0.1)", color: "var(--text-4)" };
+    return (
+      <span style={{
+        background: c.bg, color: c.color,
+        borderRadius: 3, padding: "1px 5px",
+        fontFamily: "var(--font-mono)", fontSize: "0.52rem", fontWeight: 700,
+        letterSpacing: "0.08em", whiteSpace: "nowrap",
+      }}>
+        {s.toUpperCase().replace("_", " ")}
+      </span>
+    );
+  };
+
+  return (
+    <div style={{ padding: "0.6rem", height: "100%", display: "flex", flexDirection: "column" }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "0.4rem" }}>
+        <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.58rem", color: "var(--text-4)", letterSpacing: "0.08em" }}>
+          PENDING + IN PROGRESS · {tasks.length} TASKS
+        </div>
+        {lastFetch && (
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.52rem", color: "var(--text-4)" }}>
+            {lastFetch.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit", second: "2-digit" })}
+          </div>
+        )}
+      </div>
+
+      <div style={{
+        flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: "0.3rem",
+        scrollbarWidth: "thin", scrollbarColor: "var(--border) transparent",
+      }}>
+        {tasks.length === 0 && (
+          <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.65rem", color: "var(--text-4)", textAlign: "center", marginTop: "2rem" }}>
+            nenhuma task ativa
+          </div>
+        )}
+        {tasks.map((t) => (
+          <div key={t.id} style={{
+            background: "rgba(0,0,0,0.3)", borderRadius: 4, padding: "0.4rem 0.5rem",
+            border: "1px solid var(--border-subtle)",
+            display: "flex", flexDirection: "column", gap: "0.2rem",
+          }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "0.4rem" }}>
+              {statusBadge(t.status)}
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.55rem", color: "var(--text-4)" }}>
+                {elapsed(t.created_at)}
+              </span>
+            </div>
+            <div style={{
+              fontFamily: "var(--font-mono)", fontSize: "0.65rem", color: "var(--text-1)",
+              overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+            }}>
+              {t.name}
+            </div>
+            {(t.agent_id || t.priority) && (
+              <div style={{ display: "flex", gap: "0.5rem", fontFamily: "var(--font-mono)", fontSize: "0.55rem", color: "var(--text-4)" }}>
+                {t.agent_id && <span style={{ color: "var(--cyan)" }}>{t.agent_id.slice(0, 14)}</span>}
+                {t.priority && <span>· {t.priority}</span>}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 /* ── Data Tile ── */
-function DataTile({ tile, liveTimeline, liveCosts }: {
+function DataTile({ tile, liveTimeline, liveCosts, livePipelineRuns }: {
   tile: TileData;
   liveTimeline?: TimelineEvent[];
   liveCosts?: DailyCost[];
+  livePipelineRuns?: PipelineRun[];
 }) {
   const listRef = useRef<HTMLDivElement>(null);
 
@@ -472,15 +760,6 @@ function DataTile({ tile, liveTimeline, liveCosts }: {
       listRef.current.scrollTop = listRef.current.scrollHeight;
     }
   }, [liveTimeline, tile.id]);
-
-  // HyperAgent evolution demo data
-  const hyperAgentGens = [
-    { gen: 0, target: "baseline/fidc-elig", score: 0.52, delta: null },
-    { gen: 1, target: "task/covenant-check", score: 0.61, delta: +0.09 },
-    { gen: 2, target: "meta/risk-scoring", score: 0.67, delta: +0.06 },
-    { gen: 3, target: "task/pld-aml-screen", score: 0.73, delta: +0.06 },
-    { gen: 4, target: "meta/compliance-gate", score: 0.78, delta: +0.05 },
-  ];
 
   if (tile.id === "timeline-live") {
     const events = liveTimeline || [];
@@ -535,13 +814,13 @@ function DataTile({ tile, liveTimeline, liveCosts }: {
   }
 
   if (tile.id === "costs-7d") {
-    const costs = liveCosts || [];
+    const costs = (liveCosts || []).slice().reverse(); // oldest → newest for display
     const max = Math.max(...costs.map((c) => c.total), 0.01);
     const total = costs.reduce((s, c) => s + c.total, 0);
     return (
       <div style={{ padding: "0.75rem", height: "100%", display: "flex", flexDirection: "column" }}>
         <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6rem", color: "var(--text-4)", marginBottom: "0.3rem", letterSpacing: "0.08em" }}>
-          ÚLTIMOS 7 DIAS
+          ÚLTIMOS 7 DIAS · REAL DATA
         </div>
         <div style={{ fontFamily: "var(--font-display)", fontSize: "1.1rem", fontWeight: 700, color: "var(--accent)", marginBottom: "0.75rem" }}>
           ${total.toFixed(4)} total
@@ -577,22 +856,57 @@ function DataTile({ tile, liveTimeline, liveCosts }: {
   }
 
   if (tile.id === "hyperagent-evo") {
+    const runs = livePipelineRuns || [];
+    // Group by day and compute a "score" (success proxy)
+    const byDay: Record<string, { total: number; ok: number; tokens: number }> = {};
+    for (const r of runs) {
+      const day = r.created_at?.slice(0, 10) || "?";
+      if (!byDay[day]) byDay[day] = { total: 0, ok: 0, tokens: 0 };
+      byDay[day].total += 1;
+      if (r.status === "done" || r.status === "completed" || r.status === "success") byDay[day].ok += 1;
+      byDay[day].tokens += r.total_tokens || 0;
+    }
+
+    const gens = Object.entries(byDay)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .slice(-5)
+      .map(([day, d], i) => ({
+        gen: i,
+        target: day,
+        score: d.total > 0 ? +(d.ok / d.total).toFixed(2) : 0,
+        tokens: d.tokens,
+        delta: i > 0 ? null : null, // computed below
+      }));
+
+    // Compute deltas
+    for (let i = 1; i < gens.length; i++) {
+      (gens[i] as typeof gens[0] & { delta: number | null }).delta = +(gens[i].score - gens[i - 1].score).toFixed(2);
+    }
+
+    const hasData = gens.length > 0;
+    const totalDelta = gens.length > 1 ? gens[gens.length - 1].score - gens[0].score : 0;
+
+    // Fallback to demo if no pipeline runs
+    const displayGens = hasData ? gens : [
+      { gen: 0, target: "sem dados", score: 0, tokens: 0, delta: null },
+    ];
+
     return (
       <div style={{ padding: "0.75rem", height: "100%", display: "flex", flexDirection: "column" }}>
         <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.6rem", color: "var(--text-4)", marginBottom: "0.2rem", letterSpacing: "0.08em" }}>
-          DGM-H · FIDC COMPLIANCE DOMAIN
+          PIPELINE RUNS · {hasData ? "REAL DATA" : "AGUARDANDO DADOS"}
         </div>
         <div style={{ fontFamily: "var(--font-display)", fontSize: "0.75rem", fontWeight: 600, color: "var(--accent)", marginBottom: "0.6rem" }}>
-          Evolutionary Self-Improvement Loop
+          {hasData ? "Evolutionary Self-Improvement Loop" : "Aguardando pipeline_runs..."}
         </div>
         <div style={{ flex: 1, display: "flex", flexDirection: "column", gap: "0.4rem" }}>
-          {hyperAgentGens.map((g) => (
+          {displayGens.map((g) => (
             <div key={g.gen} style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
               <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.6rem", color: "var(--text-4)", width: 32, flexShrink: 0 }}>
-                Gen{g.gen}
+                {hasData ? g.target.slice(5) : "Gen0"}
               </span>
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.58rem", color: "var(--cyan)", width: 110, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flexShrink: 0 }}>
-                {g.target}
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.58rem", color: "var(--cyan)", width: 80, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", flexShrink: 0 }}>
+                {g.tokens > 0 ? `${(g.tokens / 1000).toFixed(1)}k tok` : "—"}
               </span>
               <div style={{ flex: 1, background: "rgba(0,0,0,0.3)", borderRadius: 2, height: 12, overflow: "hidden" }}>
                 <div style={{
@@ -604,17 +918,23 @@ function DataTile({ tile, liveTimeline, liveCosts }: {
               <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.62rem", color: "var(--text-1)", width: 36, textAlign: "right", flexShrink: 0 }}>
                 {g.score.toFixed(2)}
               </span>
-              <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.58rem", width: 36, textAlign: "right", flexShrink: 0, color: g.delta !== null ? "var(--accent)" : "var(--text-4)" }}>
-                {g.delta !== null ? `+${g.delta.toFixed(2)}` : "base"}
+              <span style={{ fontFamily: "var(--font-mono)", fontSize: "0.58rem", width: 40, textAlign: "right", flexShrink: 0, color: (g.delta ?? 0) > 0 ? "var(--accent)" : (g.delta ?? 0) < 0 ? "#ff4444" : "var(--text-4)" }}>
+                {g.delta !== null && g.delta !== undefined ? (g.delta > 0 ? `+${g.delta.toFixed(2)}` : g.delta.toFixed(2)) : "base"}
               </span>
             </div>
           ))}
         </div>
         <div style={{ fontFamily: "var(--font-mono)", fontSize: "0.58rem", color: "var(--text-4)", marginTop: "0.5rem", borderTop: "1px solid var(--border-subtle)", paddingTop: "0.35rem" }}>
-          4 ciclos evolucionários · Δ score: +0.26 · Status: CONVERGING
+          {hasData
+            ? `${gens.length} dias · Δ score: ${totalDelta > 0 ? "+" : ""}${totalDelta.toFixed(2)} · ${runs.length} runs`
+            : "Aguardando pipeline_runs no Supabase..."}
         </div>
       </div>
     );
+  }
+
+  if (tile.id === "active-tasks") {
+    return <ActiveTasksTile />;
   }
 
   // Default
@@ -636,7 +956,7 @@ function ConnectionLines({ tiles, pan, zoom }: { tiles: TileData[]; pan: Vec; zo
   if (!oracli) return null;
 
   const agents = tiles.filter((t) => t.type === "agent");
-  const dataTiles = tiles.filter((t) => ["timeline-live", "costs-7d", "hyperagent-evo"].includes(t.id));
+  const dataTiles = tiles.filter((t) => ["timeline-live", "costs-7d", "hyperagent-evo", "new-task", "active-tasks"].includes(t.id));
   const cx = (t: TileData) => (t.x + t.width / 2) * zoom + pan.x;
   const cy = (t: TileData) => (t.y + t.height / 2) * zoom + pan.y;
 
@@ -691,6 +1011,7 @@ export default function CanvasPage() {
   const [liveAgents, setLiveAgents] = useState<Record<string, Record<string, unknown>>>({});
   const [liveTimeline, setLiveTimeline] = useState<TimelineEvent[]>([]);
   const [liveCosts, setLiveCosts] = useState<DailyCost[]>([]);
+  const [livePipelineRuns, setLivePipelineRuns] = useState<PipelineRun[]>([]);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Fetch live data from Supabase
@@ -702,11 +1023,9 @@ export default function CanvasPage() {
         const data = await res.json();
         const agentMap: Record<string, Record<string, unknown>> = {};
         for (const a of (data.agents || [])) {
-          // Index by id, name (lowercase), and common aliases
           agentMap[a.id] = a;
           if (a.name) {
             agentMap[a.name.toLowerCase()] = a;
-            // Map FIDC agent names to Supabase agents
             const n = a.name.toLowerCase();
             if (n.includes("compliance") || n.includes("security")) agentMap["compliance"] = a;
             if (n.includes("risk") || n.includes("qa")) agentMap["risk"] = a;
@@ -721,26 +1040,31 @@ export default function CanvasPage() {
         }
         setLiveAgents(agentMap);
 
-        // Timeline events — take last 10
+        // Timeline events
         const timeline: TimelineEvent[] = (data.timeline || []).slice(-10);
         setLiveTimeline(timeline);
 
-        // Daily costs — build from tasks if no direct cost endpoint
-        if (data.daily_costs && Array.isArray(data.daily_costs)) {
-          setLiveCosts(data.daily_costs.slice(-7));
+        // Daily costs — real data first, synthetic fallback
+        if (data.daily_costs && Array.isArray(data.daily_costs) && data.daily_costs.length > 0) {
+          setLiveCosts(data.daily_costs.slice(0, 7)); // already ordered desc, we reverse in render
         } else {
-          // Generate synthetic cost data from tasks grouped by day
+          // Synthetic fallback from tasks
           const tasksByDay: Record<string, number> = {};
           for (const task of (data.tasks || [])) {
-            const day = (task.created_at || task.date || "").slice(0, 10);
+            const day = (task.created_at || "").slice(0, 10);
             if (!day) continue;
-            tasksByDay[day] = (tasksByDay[day] || 0) + (task.cost || Math.random() * 0.002);
+            tasksByDay[day] = (tasksByDay[day] || 0) + (task.cost || 0);
           }
           const sorted = Object.entries(tasksByDay)
-            .sort(([a], [b]) => a.localeCompare(b))
-            .slice(-7)
+            .sort(([a], [b]) => b.localeCompare(a)) // desc like daily_costs
+            .slice(0, 7)
             .map(([date, total]) => ({ date, total: +total.toFixed(6) }));
           if (sorted.length > 0) setLiveCosts(sorted);
+        }
+
+        // Pipeline runs for HyperAgent Evolution
+        if (data.pipeline_runs && Array.isArray(data.pipeline_runs)) {
+          setLivePipelineRuns(data.pipeline_runs);
         }
       } catch {}
     }
@@ -792,7 +1116,6 @@ export default function CanvasPage() {
     const delta = e.deltaY > 0 ? 0.92 : 1.08;
     const newZoom = Math.min(MAX_ZOOM, Math.max(MIN_ZOOM, zoom * delta));
 
-    // Zoom toward cursor
     const scale = newZoom / zoom;
     setPan({
       x: mx - (mx - pan.x) * scale,
@@ -931,7 +1254,9 @@ export default function CanvasPage() {
                 ? "1px solid var(--accent)"
                 : tile.type === "agent"
                   ? `1px solid ${tile.status === "active" ? "rgba(0,255,136,0.3)" : "var(--border)"}`
-                  : "1px solid var(--border)",
+                  : tile.type === "action"
+                    ? "1px solid rgba(0,229,204,0.4)"
+                    : "1px solid var(--border)",
             }}
           >
             {/* Title bar */}
@@ -940,7 +1265,7 @@ export default function CanvasPage() {
               style={{
                 display: "flex", alignItems: "center", justifyContent: "space-between",
                 padding: "0.3rem 0.5rem",
-                background: "rgba(0,0,0,0.3)",
+                background: tile.type === "action" ? "rgba(0,229,204,0.08)" : "rgba(0,0,0,0.3)",
                 borderBottom: "1px solid var(--border-subtle)",
                 cursor: "grab", flexShrink: 0,
               }}
@@ -948,7 +1273,7 @@ export default function CanvasPage() {
               <div style={{
                 display: "flex", alignItems: "center", gap: "0.4rem",
                 fontFamily: "var(--font-mono)", fontSize: "0.6rem",
-                letterSpacing: "0.12em", color: "var(--text-3)",
+                letterSpacing: "0.12em", color: tile.type === "action" ? "var(--cyan)" : "var(--text-3)",
               }}>
                 <span style={{ fontSize: "0.85rem" }}>{tile.emoji || "◇"}</span>
                 {tile.title}
@@ -989,7 +1314,15 @@ export default function CanvasPage() {
               <div style={{ flex: 1, overflow: "hidden" }}>
                 {tile.type === "agent" && <AgentTile tile={tile} onChat={openAgentChat} liveData={liveAgents[tile.agent || ""] || {}} />}
                 {tile.type === "chat" && <ChatTile tile={tile} />}
-                {(tile.type === "guardrail" || tile.type === "data" || tile.type === "metric") && <DataTile tile={tile} liveTimeline={liveTimeline} liveCosts={liveCosts} />}
+                {tile.type === "action" && tile.id === "new-task" && <NewTaskTile />}
+                {(tile.type === "guardrail" || tile.type === "data" || tile.type === "metric") && (
+                  <DataTile
+                    tile={tile}
+                    liveTimeline={liveTimeline}
+                    liveCosts={liveCosts}
+                    livePipelineRuns={livePipelineRuns}
+                  />
+                )}
               </div>
             )}
           </div>
