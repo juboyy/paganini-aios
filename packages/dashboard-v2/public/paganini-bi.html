@@ -269,7 +269,7 @@ function initMarket(){if(mktInit)return;mktInit=true;
   const ct=document.getElementById('p2');
   ct.innerHTML=`
   <div class="pulse"><div class="pc"><div class="pc-l">SELIC</div><div class="pc-v">${D.ms[D.ms.length-1][1].toFixed(1)}%</div><div class="pc-s neg">Ciclo Alta</div></div>
-  <div class="pc"><div class="pc-l">IBOV</div><div class="pc-v">${Math.round(D.mac.ibov).toLocaleString()}</div><div class="pc-s ${cl(${ibov_ytd})}">+52.8% YTD</div></div>
+  <div class="pc"><div class="pc-l">IBOV</div><div class="pc-v">${Math.round(D.mac.ibov).toLocaleString()}</div><div class="pc-s ${cl(52.8)}">+52.8% YTD</div></div>
   <div class="pc"><div class="pc-l">USD</div><div class="pc-v">R$${D.mac.usd.toFixed(2)}</div></div>
   <div class="pc"><div class="pc-l">IPCA</div><div class="pc-v">${D.mac.ipca_12m.toFixed(1)}%</div></div></div>
   <div class="sec"><div class="sec-t">IBOV</div><div class="sec-sub">${D.ibov.length} pregões · hover com data</div>
@@ -452,7 +452,7 @@ function initCycles(){if(cycInit)return;cycInit=true;
     h+=`<div class="cy-card"><div class="cy-head"><div class="cy-dir" style="color:${dc}">${ar} ${c.dir}</div><div class="cy-period">${c.start} → ${c.end} · ${c.months}m</div></div>
     <div class="cy-rates"><span>${c.rate_start.toFixed(1)}%</span><span>→</span><span style="color:${dc}">${c.rate_end.toFixed(1)}%</span><span style="color:${dc};font-weight:700">${c.delta>=0?'+':''}${c.delta.toFixed(1)}pp</span></div>`;
     if(Object.keys(c.secs).length){h+='<div class="cy-secs">';Object.entries(c.secs).sort((a,b)=>b[1]-a[1]).forEach(([s,v])=>{
-      h+=`<div class="cy-sec"><span style="color:${SC[s]||'#888'}">${SF[s]||s}</span> <span style="color:${v>=0?'var(--ok)':'var(--ng)'">${v>=0?'+':''}${v.toFixed(0)}%</span></div>`});h+='</div>'}
+      h+=`<div class="cy-sec"><span style="color:${SC[s]||'#888'}">${SF[s]||s}</span> <span style="color:${v>=0?'var(--ok)':'var(--ng)'}">${v>=0?'+':''}${v.toFixed(0)}%</span></div>`});h+='</div>'}
     h+='</div>'});
   h+='</div>';ct.innerHTML=h}
 
