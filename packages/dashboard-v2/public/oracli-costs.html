@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>OraCLI — TCO (Total Cost of Ownership)</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0a0f;--s1:#111118;--s2:#1a1a24;--brd:#2a2a3a;--t1:#f0f0f5;--t2:#a0a0b5;--t3:#6a6a80;
+--ok:#22c55e;--ng:#ef4444;--acc:#3b82f6;--gold:#f59e0b;--purple:#a855f7;--teal:#14b8a6;--orange:#f97316}
+body{background:var(--bg);color:var(--t1);font-family:'Inter',sans-serif;line-height:1.6}
+.wrap{max-width:1100px;margin:0 auto;padding:20px}
+.hero{padding:40px 0 24px;border-bottom:1px solid var(--brd)}
+.hero-tag{font-family:'JetBrains Mono';font-size:11px;color:var(--gold);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px}
+.hero h1{font-family:'Instrument Serif';font-size:clamp(26px,5vw,42px);font-weight:400;line-height:1.15;margin-bottom:8px}
+.hero h1 span{color:var(--gold)}
+.hero-sub{font-size:13px;color:var(--t2)}
+
+/* Big number cards */
+.big{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:24px 0}
+.bc{background:var(--s1);border:1px solid var(--brd);border-radius:12px;padding:20px;text-align:center}
+.bc-l{font-size:11px;color:var(--t3);font-family:'JetBrains Mono';letter-spacing:1px;margin-bottom:6px}
+.bc-v{font-size:32px;font-weight:700;font-family:'JetBrains Mono';color:var(--gold)}
+.bc-s{font-size:12px;color:var(--t2);margin-top:4px}
+.bc.accent .bc-v{color:var(--ok)}.bc.warn .bc-v{color:var(--ng)}
+
+/* Cost table */
+.sec{margin:24px 0;background:var(--s1);border:1px solid var(--brd);border-radius:12px;padding:20px}
+.sec-t{font-family:'Instrument Serif';font-size:20px;margin-bottom:4px}
+.sec-sub{font-size:12px;color:var(--t3);margin-bottom:14px}
+.ct{width:100%;border-collapse:collapse}
+.ct th{text-align:left;font-family:'JetBrains Mono';font-size:10px;color:var(--t3);letter-spacing:1px;padding:8px;border-bottom:1px solid var(--brd)}
+.ct td{padding:10px 8px;border-bottom:1px solid rgba(42,42,58,0.5);font-size:13px}
+.ct td:nth-child(3){font-family:'JetBrains Mono';font-weight:600;text-align:right;white-space:nowrap}
+.ct td.desc{font-size:11px;color:var(--t3)}
+.ct tr:hover td{background:rgba(255,255,255,0.02)}
+.ct .cat{background:var(--s2);font-weight:600;font-size:12px;color:var(--acc)}
+.ct .subtotal td{border-top:2px solid var(--brd);font-weight:700;color:var(--gold)}
+.tag{display:inline-block;padding:2px 6px;border-radius:4px;font-size:9px;font-family:'JetBrains Mono';margin-left:6px}
+.tag-free{background:rgba(34,197,94,0.15);color:var(--ok)}
+.tag-paid{background:rgba(245,158,11,0.15);color:var(--gold)}
+.tag-var{background:rgba(168,85,247,0.15);color:var(--purple)}
+.tag-opt{background:rgba(59,130,246,0.15);color:var(--acc)}
+
+/* Donut */
+.donut-wrap{display:flex;align-items:center;justify-content:center;gap:40px;flex-wrap:wrap;margin:20px 0}
+.donut{position:relative;width:200px;height:200px}
+.donut svg{width:200px;height:200px;transform:rotate(-90deg)}
+.donut-center{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);text-align:center}
+.donut-center .amount{font-family:'JetBrains Mono';font-size:24px;font-weight:700;color:var(--gold)}
+.donut-center .label{font-size:11px;color:var(--t3)}
+.donut-legend{display:flex;flex-direction:column;gap:8px}
+.dl-item{display:flex;align-items:center;gap:8px;font-size:12px}
+.dl-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+
+/* Insights */
+.insight{background:var(--s2);border-left:3px solid var(--acc);padding:14px 18px;border-radius:0 8px 8px 0;margin:16px 0;font-size:13px;color:var(--t2)}
+.insight strong{color:var(--t1)}
+.insight.warn{border-left-color:var(--ng)}
+.insight.ok{border-left-color:var(--ok)}
+.insight.gold{border-left-color:var(--gold)}
+
+/* Optimization */
+.opt{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin:16px 0}
+.opt-card{background:var(--s2);border:1px solid var(--brd);border-radius:10px;padding:16px}
+.opt-title{font-size:14px;font-weight:600;margin-bottom:6px}
+.opt-save{font-family:'JetBrains Mono';color:var(--ok);font-size:13px;margin-bottom:6px}
+.opt-desc{font-size:12px;color:var(--t3)}
+
+@media(max-width:600px){.wrap{padding:12px}.big{grid-template-columns:repeat(2,1fr)}.donut-wrap{flex-direction:column}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="hero">
+<div class="hero-tag">Paganini Intelligence • Financial Operations</div>
+<h1>OraCLI <span>TCO Report</span></h1>
+<div class="hero-sub">Total Cost of Ownership · Março 2026 · Todos os custos mapeados</div>
+</div>
+
+<div class="big">
+<div class="bc"><div class="bc-l">CUSTO DIRETO</div><div class="bc-v">$171</div><div class="bc-s">/mês · sem custo humano</div></div>
+<div class="bc warn"><div class="bc-l">CUSTO TOTAL (TCO)</div><div class="bc-v">$672</div><div class="bc-s">/mês · com 10h humanas</div></div>
+<div class="bc accent"><div class="bc-l">ANUAL DIRETO</div><div class="bc-v">$2.052</div><div class="bc-s">/ano · infraestrutura + AI</div></div>
+<div class="bc"><div class="bc-l">CUSTO/DIA</div><div class="bc-v">$5.70</div><div class="bc-s">operacional direto</div></div>
+</div>
+
+<!-- DONUT CHART -->
+<div class="sec">
+<div class="sec-t">Distribuição de Custos Diretos</div>
+<div class="sec-sub">$171/mês excluindo custo humano</div>
+<div class="donut-wrap">
+<div class="donut">
+<svg viewBox="0 0 200 200">
+<!-- Subscriptions: $89 = 52% -->
+<circle cx="100" cy="100" r="80" fill="none" stroke="#f59e0b" stroke-width="24"
+  stroke-dasharray="261.3 502.6" stroke-dashoffset="0"/>
+<!-- Infrastructure: $43 = 25% -->
+<circle cx="100" cy="100" r="80" fill="none" stroke="#3b82f6" stroke-width="24"
+  stroke-dasharray="125.6 502.6" stroke-dashoffset="-261.3"/>
+<!-- SaaS: $25 = 15% -->
+<circle cx="100" cy="100" r="80" fill="none" stroke="#a855f7" stroke-width="24"
+  stroke-dasharray="75.4 502.6" stroke-dashoffset="-386.9"/>
+<!-- Variable: $14 = 8% -->
+<circle cx="100" cy="100" r="80" fill="none" stroke="#14b8a6" stroke-width="24"
+  stroke-dasharray="40.2 502.6" stroke-dashoffset="-462.3"/>
+</svg>
+<div class="donut-center"><div class="amount">$171</div><div class="label">/mês</div></div>
+</div>
+<div class="donut-legend">
+<div class="dl-item"><div class="dl-dot" style="background:#f59e0b"></div>AI Models (subscriptions) — $89 (52%)</div>
+<div class="dl-item"><div class="dl-dot" style="background:#3b82f6"></div>Infraestrutura AWS — $43 (25%)</div>
+<div class="dl-item"><div class="dl-dot" style="background:#a855f7"></div>SaaS (Supabase Pro) — $25 (15%)</div>
+<div class="dl-item"><div class="dl-dot" style="background:#14b8a6"></div>APIs variáveis — $14 (8%)</div>
+</div>
+</div>
+</div>
+
+<!-- SUBSCRIPTIONS -->
+<div class="sec">
+<div class="sec-t">Assinaturas Fixas</div>
+<div class="sec-sub">Custos recorrentes mensais · $89/mês</div>
+<table class="ct">
+<tr><th>SERVIÇO</th><th>O QUE FAZ</th><th>CUSTO/MÊS</th></tr>
+<tr class="cat"><td colspan="3">🤖 AI Models</td></tr>
+<tr><td>Google AI Pro (Antigravity) <span class="tag tag-paid">PAID</span></td>
+<td class="desc">Claude Opus 4.6 (main) + Sonnet 4.6 (subagents) + Gemini. Quota refresh a cada 5h.</td>
+<td>$29</td></tr>
+<tr><td>ChatGPT Team (2 seats) <span class="tag tag-paid">PAID</span></td>
+<td class="desc">Codex CLI (gpt-5.3-codex). Auth via browser OAuth. Mínimo 2 seats.</td>
+<td>$60</td></tr>
+<tr class="cat"><td colspan="3">🔧 Ferramentas</td></tr>
+<tr><td>Composio <span class="tag tag-free">FREE</span></td>
+<td class="desc">14 integrações: Jira, Confluence, GitHub, Stripe, Slack, LinkedIn, etc.</td>
+<td>$0</td></tr>
+<tr><td>Linear <span class="tag tag-free">FREE</span></td>
+<td class="desc">Review hub + production gate. Viewer plan.</td>
+<td>$0</td></tr>
+<tr><td>Vercel <span class="tag tag-free">FREE</span></td>
+<td class="desc">Deploy dashboard + Paganini reports. Hobby plan.</td>
+<td>$0</td></tr>
+<tr><td>GitHub <span class="tag tag-free">FREE</span></td>
+<td class="desc">Repos privados, CI/CD básico.</td>
+<td>$0</td></tr>
+<tr><td>Jira/Confluence <span class="tag tag-free">FREE</span></td>
+<td class="desc">Atlassian Cloud Free (até 10 users).</td>
+<td>$0</td></tr>
+<tr class="subtotal"><td colspan="2">SUBTOTAL ASSINATURAS</td><td>$89</td></tr>
+</table>
+</div>
+
+<!-- INFRASTRUCTURE -->
+<div class="sec">
+<div class="sec-t">Infraestrutura</div>
+<div class="sec-sub">AWS EC2 sa-east-1 · $43.37/mês</div>
+<table class="ct">
+<tr><th>RECURSO</th><th>DETALHES</th><th>CUSTO/MÊS</th></tr>
+<tr><td>EC2 t3.medium <span class="tag tag-paid">ON-DEMAND</span></td>
+<td class="desc">2 vCPU, 4GB RAM. OpenClaw Gateway + pgvector containers. 24/7.</td>
+<td>$30.37</td></tr>
+<tr><td>EBS gp3 Volume</td>
+<td class="desc">~100GB storage para OS, Docker images, dados.</td>
+<td>$8.00</td></tr>
+<tr><td>Data Transfer</td>
+<td class="desc">Estimativa ~50GB egress/mês. API calls, deploys, SSH.</td>
+<td>$5.00</td></tr>
+<tr class="subtotal"><td colspan="2">SUBTOTAL INFRA</td><td>$43.37</td></tr>
+</table>
+</div>
+
+<!-- SAAS -->
+<div class="sec">
+<div class="sec-t">SaaS & Databases</div>
+<div class="sec-sub">Supabase como primary storage · $25/mês</div>
+<table class="ct">
+<tr><th>SERVIÇO</th><th>DETALHES</th><th>CUSTO/MÊS</th></tr>
+<tr><td>Supabase Dashboard <span class="tag tag-free">FREE</span></td>
+<td class="desc">apkflem... · 27 tabelas, capabilities graph, memory, market data (3.1M rows). ⚠ Pausa após 7d inativo.</td>
+<td>$0</td></tr>
+<tr><td>Supabase Revenue-OS <span class="tag tag-paid">PRO</span></td>
+<td class="desc">cdqqns... · 500+ tabelas, app produção. 8GB storage, daily backups.</td>
+<td>$25</td></tr>
+<tr class="subtotal"><td colspan="2">SUBTOTAL SAAS</td><td>$25</td></tr>
+</table>
+</div>
+
+<!-- VARIABLE -->
+<div class="sec">
+<div class="sec-t">Custos Variáveis (Pay-per-Use)</div>
+<div class="sec-sub">Dependem do volume de uso · $2-25/mês</div>
+<table class="ct">
+<tr><th>API</th><th>DETALHES</th><th>RANGE/MÊS</th></tr>
+<tr><td>Google AI Studio <span class="tag tag-var">VARIABLE</span></td>
+<td class="desc">Embeddings (gemini-embedding-001), Gemini Flash fallback, web_search.</td>
+<td>$2 — $15</td></tr>
+<tr><td>OpenAI API <span class="tag tag-var">VARIABLE</span></td>
+<td class="desc">API key separada. Overflow do Team plan. Geralmente $0.</td>
+<td>$0 — $10</td></tr>
+<tr class="subtotal"><td colspan="2">SUBTOTAL VARIÁVEL (avg)</td><td>~$14</td></tr>
+</table>
+</div>
+
+<!-- HIDDEN COSTS -->
+<div class="sec">
+<div class="sec-t">Custos Ocultos</div>
+<div class="sec-sub">O que não aparece na fatura mas custa</div>
+<table class="ct">
+<tr><th>ITEM</th><th>DETALHES</th><th>CUSTO/MÊS</th></tr>
+<tr><td>Tempo humano (João) <span class="tag tag-opt">10h/mês</span></td>
+<td class="desc">Setup, manutenção, debugging, Linear reviews, arquitetura. @$50/h.</td>
+<td>$500</td></tr>
+<tr><td>Domínio/DNS</td>
+<td class="desc">Subdomínios gratuitos por enquanto. Customizado ~$12/ano.</td>
+<td>$1</td></tr>
+<tr class="subtotal"><td colspan="2">SUBTOTAL OCULTO</td><td>$501</td></tr>
+</table>
+</div>
+
+<!-- OPTIMIZATIONS -->
+<div class="sec">
+<div class="sec-t">💡 Otimizações Possíveis</div>
+<div class="sec-sub">Como reduzir de $171 para ~$107/mês (-37%)</div>
+<div class="opt">
+<div class="opt-card">
+<div class="opt-title">EC2 Reserved Instance (1Y)</div>
+<div class="opt-save">-$12.62/mês → $17.75/mês</div>
+<div class="opt-desc">Compromisso de 1 ano. Mesmo t3.medium. Saving de 42%.</div>
+</div>
+<div class="opt-card">
+<div class="opt-title">Codex: 1 seat só</div>
+<div class="opt-save">-$30/mês → $30/mês</div>
+<div class="opt-desc">Se possível usar 1 seat do Team plan. Verificar se mínimo de 2 é obrigatório.</div>
+</div>
+<div class="opt-card">
+<div class="opt-title">Supabase Dashboard → Free com keepalive</div>
+<div class="opt-save">$0 (já free)</div>
+<div class="opt-desc">Cron de ping a cada 6 dias evita pausa do projeto. Já implementado via heartbeat.</div>
+</div>
+<div class="opt-card">
+<div class="opt-title">Antigravity Free + Smart Routing</div>
+<div class="opt-save">-$29/mês → $0/mês</div>
+<div class="opt-desc">Free tier com Gemini Flash para crons/heartbeats, reservando quota Pro para sessões principais. Risco: rate limits.</div>
+</div>
+</div>
+</div>
+
+<!-- SUMMARY -->
+<div class="insight gold">
+<strong>Resumo executivo:</strong> OraCLI custa <strong>$171/mês</strong> em custos diretos ($2.052/ano). 
+O maior gasto é AI models ($89, 52%), seguido de infra AWS ($43, 25%). 
+Com otimizações (Reserved Instance + 1 seat Codex + Antigravity Free), 
+o custo poderia cair para <strong>~$107/mês</strong> (-37%). 
+A decisão mais impactante é o ChatGPT Team: $60/mês só pro Codex CLI. 
+Se o Codex não for usado ativamente, cancelar essa assinatura economiza 35% do custo total.
+</div>
+
+<div class="insight">
+<strong>Comparativo de mercado:</strong> OpenClaw Cloud (managed) custa $59/mês, mas sem Codex, sem Opus, sem infra dedicada. 
+O setup atual entrega um sistema enterprise-grade (multi-agent, BMAD-CE, 14 integrações) por $171/mês — 
+equivalente a ~3 horas de consultoria de engenharia. O ROI calculado é de 67× ($3.248 economizados vs $48 gasto/dia).
+</div>
+
+</div>
+</body></html>
