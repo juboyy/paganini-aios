@@ -1,0 +1,518 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Paganini Intelligence Platform — Análise Competitiva & Product</title>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,300;0,500;0,700;1,400&family=DM+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+--bg:#faf9f7;--s1:#fff;--s2:#f5f3ef;--brd:#e2dfd9;
+--t1:#1a1815;--t2:#5c574e;--t3:#8a847a;
+--brand:#b8390e;--brand2:#d94f1e;--brandL:#fef0ec;
+--navy:#0c2340;--navyL:#e8edf3;
+--ok:#2d6a2e;--okL:#ecf5ec;--warn:#a65300;--warnL:#fff4e6;--ng:#b8390e;--ngL:#fef0ec;
+--gold:#8b6914;--goldL:#fdf6e3
+}
+body{background:var(--bg);color:var(--t1);font-family:'DM Sans',sans-serif;line-height:1.7;font-size:15px}
+.wrap{max-width:1280px;margin:0 auto;padding:clamp(16px,4vw,40px)}
+
+/* Hero */
+.hero{padding:clamp(40px,8vw,80px) 0 clamp(24px,4vw,48px);border-bottom:2px solid var(--t1)}
+.hero-eyebrow{font-family:'IBM Plex Mono';font-size:12px;letter-spacing:3px;text-transform:uppercase;color:var(--brand);margin-bottom:12px}
+.hero h1{font-family:'Source Serif 4';font-size:clamp(28px,5vw,52px);font-weight:700;line-height:1.1;max-width:900px}
+.hero h1 em{font-style:italic;color:var(--brand)}
+.hero-sub{font-size:16px;color:var(--t2);margin-top:12px;max-width:600px}
+
+/* Section */
+h2{font-family:'Source Serif 4';font-size:clamp(20px,3vw,30px);font-weight:700;margin:clamp(32px,6vw,60px) 0 8px;padding-top:clamp(24px,4vw,40px);border-top:2px solid var(--t1)}
+h2 em{font-style:italic;color:var(--brand)}
+.section-sub{font-size:13px;color:var(--t3);margin-bottom:clamp(16px,3vw,28px)}
+
+/* Competitive Table */
+.comp{width:100%;border-collapse:collapse;font-size:13px;margin:20px 0}
+.comp th{background:var(--navy);color:#fff;font-family:'IBM Plex Mono';font-size:10px;letter-spacing:1.5px;text-transform:uppercase;padding:10px 8px;text-align:left;position:sticky;top:0}
+.comp th:first-child{border-radius:4px 0 0 0}
+.comp th:last-child{border-radius:0 4px 0 0}
+.comp td{padding:8px;border-bottom:1px solid var(--brd);vertical-align:top}
+.comp tr:hover td{background:var(--s2)}
+.comp .cat td{background:var(--navyL);font-weight:700;font-size:11px;color:var(--navy);letter-spacing:0.5px}
+.comp .win{background:var(--okL);font-weight:600;color:var(--ok)}
+.comp .lose{color:var(--t3)}
+.comp .par{color:var(--t2)}
+.comp .us{background:var(--brandL);border-left:3px solid var(--brand)}
+.comp .brand-col{background:var(--brandL)}
+
+/* Product Grid */
+.pgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:2px;margin:20px 0}
+.pcard{background:var(--s1);padding:clamp(16px,3vw,28px);border:1px solid var(--brd);position:relative;overflow:hidden}
+.pcard::before{content:'';position:absolute;top:0;left:0;width:100%;height:3px;background:var(--brand)}
+.pcard-num{font-family:'IBM Plex Mono';font-size:11px;color:var(--brand);margin-bottom:4px}
+.pcard h3{font-family:'Source Serif 4';font-size:18px;font-weight:700;margin-bottom:6px}
+.pcard p{font-size:13px;color:var(--t2);margin-bottom:10px}
+.pcard ul{padding-left:16px;font-size:12px;color:var(--t2)}
+.pcard ul li{margin-bottom:3px}
+.pcard .vs{font-family:'IBM Plex Mono';font-size:10px;color:var(--brand);padding:4px 8px;background:var(--brandL);display:inline-block;margin-top:8px}
+
+/* Callout */
+.callout{padding:clamp(16px,3vw,24px);margin:20px 0;border-left:4px solid var(--brand)}
+.callout.ok{border-left-color:var(--ok);background:var(--okL)}
+.callout.warn{border-left-color:var(--warn);background:var(--warnL)}
+.callout.gold{border-left-color:var(--gold);background:var(--goldL)}
+.callout strong{display:block;font-size:14px;margin-bottom:4px}
+.callout p{font-size:13px;color:var(--t2)}
+
+/* Pricing comparison */
+.price-row{display:grid;grid-template-columns:1fr 1fr 1fr;gap:2px;margin:16px 0}
+.price-box{background:var(--s1);padding:20px;text-align:center;border:1px solid var(--brd)}
+.price-box.ours{background:var(--brandL);border:2px solid var(--brand)}
+.price-box .name{font-family:'IBM Plex Mono';font-size:11px;letter-spacing:1px;text-transform:uppercase;margin-bottom:8px}
+.price-box .amount{font-family:'Source Serif 4';font-size:clamp(24px,3vw,36px);font-weight:700}
+.price-box .unit{font-size:12px;color:var(--t3);margin-top:2px}
+.price-box .detail{font-size:11px;color:var(--t2);margin-top:8px}
+.price-box.ours .name{color:var(--brand)}
+
+/* Features list */
+.feat-cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin:20px 0}
+.feat-item{padding:16px 0;border-bottom:1px solid var(--brd)}
+.feat-label{font-family:'IBM Plex Mono';font-size:10px;color:var(--brand);letter-spacing:1.5px;text-transform:uppercase}
+.feat-val{font-family:'Source Serif 4';font-size:20px;font-weight:700;margin:4px 0}
+.feat-desc{font-size:12px;color:var(--t2)}
+
+@media(max-width:700px){
+.price-row{grid-template-columns:1fr}
+.comp{font-size:11px}.comp td,.comp th{padding:5px 4px}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="hero">
+<div class="hero-eyebrow">Competitive Intelligence Report • Março 2026</div>
+<h1>Paganini <em>vs. Broadcast</em></h1>
+<div class="hero-sub">Mapeamento completo do portfolio Broadcast (Grupo Estado) e posicionamento do Paganini Intelligence Platform como alternativa AI-native para o mercado financeiro brasileiro.</div>
+</div>
+
+<!-- ============================================================ -->
+<h2>O que é o <em>Broadcast</em></h2>
+<div class="section-sub">Grupo Estado / Agência Estado — fundada em 1991. ~1.000 funcionários. Maior agência de notícias financeiras do Brasil.</div>
+
+<div class="pgrid">
+<div class="pcard">
+<div class="pcard-num">Plataforma 01</div>
+<h3>Broadcast+</h3>
+<p>Terminal financeiro principal. Concorre com Bloomberg/Refinitiv no mercado brasileiro.</p>
+<ul>
+<li>Notícias em tempo real (redação própria ~200 jornalistas)</li>
+<li>Cotações B3, internacionais, câmbio, commodities</li>
+<li>Análise técnica com gráficos intraday</li>
+<li>Link Excel (add-in) para dados em streaming</li>
+<li>Módulo de negociação eletrônica (PQO B3)</li>
+<li>Precificação de opções, multi-leg</li>
+<li>Indicadores macroeconômicos + séries históricas</li>
+<li>App mobile para assinantes</li>
+</ul>
+<div class="vs">Preço: ~R$500-2.000/mês (estimativa por consulta)</div>
+</div>
+
+<div class="pcard">
+<div class="pcard-num">Plataforma 02</div>
+<h3>Broadcast Fundos</h3>
+<p>Análise de fundos de investimento. 3 versões: Light, Investidor, AA&AI.</p>
+<ul>
+<li>Screener de fundos (dezenas de milhares ativos/inativos)</li>
+<li>Fronteira eficiente, Sharpe, VaR, tracking error</li>
+<li>Gráficos e matrizes customizáveis</li>
+<li>Relatórios PDF/Excel com marca do cliente</li>
+<li>Composição de carteiras comparativa</li>
+<li>Aderente CVM 175</li>
+</ul>
+<div class="vs">Preço: R$200-800/mês (estimativa)</div>
+</div>
+
+<div class="pcard">
+<div class="pcard-num">Solução 03</div>
+<h3>Broadcast Datafeed</h3>
+<p>API de dados em tempo real para integração em sistemas próprios.</p>
+<ul>
+<li>Dados B3 em baixa latência</li>
+<li>Cotações, book, negócios, índices</li>
+<li>Formato FIX/JSON/WebSocket</li>
+</ul>
+<div class="vs">Preço: R$2.000-10.000/mês (por volume)</div>
+</div>
+
+<div class="pcard">
+<div class="pcard-num">Solução 04</div>
+<h3>Broadcast Quant</h3>
+<p>Dados quantitativos para modelos e backtesting.</p>
+<ul>
+<li>Séries históricas limpas</li>
+<li>Eventos corporativos ajustados</li>
+<li>API para consumo programático</li>
+</ul>
+<div class="vs">Preço: sob consulta</div>
+</div>
+
+<div class="pcard">
+<div class="pcard-num">Solução 05</div>
+<h3>Broadcast Radar</h3>
+<p>Monitoramento de notícias e menções por empresa/setor.</p>
+<ul>
+<li>Alertas customizados</li>
+<li>Clipping automatizado</li>
+<li>Análise de sentimento (básica)</li>
+</ul>
+<div class="vs">Preço: R$200-500/mês</div>
+</div>
+
+<div class="pcard">
+<div class="pcard-num">Solução 06</div>
+<h3>Broadcast IA</h3>
+<p>Módulo de inteligência artificial integrado ao Broadcast+.</p>
+<ul>
+<li>Análise de ativos globais</li>
+<li>Resumos automatizados</li>
+<li>Chatbot para consultas de mercado</li>
+</ul>
+<div class="vs">Lançamento recente. Funcionalidade limitada.</div>
+</div>
+
+<div class="pcard">
+<div class="pcard-num">Verticals</div>
+<h3>Broadcast Agro / Político / Energia</h3>
+<p>Terminais setoriais especializados.</p>
+<ul>
+<li>Agro: commodities agrícolas, câmbio rural</li>
+<li>Político: legislação, lobby tracking</li>
+<li>Energia: mercado livre, PLD, contratos</li>
+</ul>
+<div class="vs">White-label disponível para parceiros</div>
+</div>
+
+<div class="pcard">
+<div class="pcard-num">Embeddable</div>
+<h3>Widgets / Ticker / Wallboard / OTC</h3>
+<p>Componentes para embed em sites e aplicações de terceiros.</p>
+<ul>
+<li>Ticker de cotações para portais</li>
+<li>Wallboard para trading desks</li>
+<li>Widgets customizáveis (iframe/JS)</li>
+<li>OTC: balcão organizado</li>
+</ul>
+<div class="vs">Modelo de licenciamento por site/instância</div>
+</div>
+</div>
+
+<!-- ============================================================ -->
+<h2>Análise <em>Competitiva</em></h2>
+<div class="section-sub">Broadcast vs Bloomberg vs Refinitiv vs Paganini — feature por feature.</div>
+
+<table class="comp">
+<tr>
+<th style="width:22%">Critério</th>
+<th style="width:18%">Bloomberg</th>
+<th style="width:18%">Refinitiv / LSEG</th>
+<th style="width:18%">Broadcast</th>
+<th style="width:24%">Paganini AIOS</th>
+</tr>
+
+<tr class="cat"><td colspan="5">💰 PREÇO</td></tr>
+<tr>
+<td>Custo/usuário/mês</td>
+<td>$2.000-2.700</td>
+<td>$300-1.800</td>
+<td>R$200-2.000</td>
+<td class="us win">R$150-500 (10× mais barato que Bloomberg)</td>
+</tr>
+<tr>
+<td>Contrato mínimo</td>
+<td>2 anos</td>
+<td>1 ano</td>
+<td>1 ano</td>
+<td class="us win">Mensal. Sem lock-in.</td>
+</tr>
+<tr>
+<td>Pay-per-use</td>
+<td class="lose">Não</td>
+<td class="lose">Não</td>
+<td class="lose">Não</td>
+<td class="us win">Sim — R$0.25-5.00/task</td>
+</tr>
+
+<tr class="cat"><td colspan="5">🤖 INTELIGÊNCIA ARTIFICIAL</td></tr>
+<tr>
+<td>AI nativo</td>
+<td class="par">BloombergGPT (limitado)</td>
+<td class="lose">Básico</td>
+<td class="lose">Módulo IA recente, básico</td>
+<td class="us win">AI-first. 9 agentes especializados. Smart routing multi-LLM.</td>
+</tr>
+<tr>
+<td>Análise autônoma</td>
+<td class="lose">Não</td>
+<td class="lose">Não</td>
+<td class="lose">Não</td>
+<td class="us win">Pipeline completo: ingestão → guardrails → DD → relatório</td>
+</tr>
+<tr>
+<td>Guardrails compliance</td>
+<td class="lose">Manual</td>
+<td class="lose">Manual</td>
+<td class="lose">Manual</td>
+<td class="us win">6 gates automáticos (Eligibility, Concentration, Covenant, PLD/AML, Compliance, Risk)</td>
+</tr>
+<tr>
+<td>Modelo fine-tuned</td>
+<td class="par">BloombergGPT (proprietário)</td>
+<td class="lose">Não</td>
+<td class="lose">Não</td>
+<td class="us win">Qwen 27B SFT em FIDC (87.75% accuracy). Deployable on-prem.</td>
+</tr>
+<tr>
+<td>RAG sobre docs do cliente</td>
+<td class="lose">Não</td>
+<td class="lose">Não</td>
+<td class="lose">Não</td>
+<td class="us win">Hybrid RAG (dense+sparse+graph→RRF) sobre corpus próprio do fundo</td>
+</tr>
+
+<tr class="cat"><td colspan="5">📊 DADOS & ANÁLISE</td></tr>
+<tr>
+<td>Cobertura Brasil</td>
+<td class="win">Excelente</td>
+<td class="par">Boa</td>
+<td class="win">Excelente (foco BR)</td>
+<td class="us par">Boa (B3 + BCB + CVM). Crescendo.</td>
+</tr>
+<tr>
+<td>Cobertura global</td>
+<td class="win">Best-in-class</td>
+<td class="win">Excelente</td>
+<td class="lose">Limitada</td>
+<td class="us lose">Limitada (foco FIDC BR)</td>
+</tr>
+<tr>
+<td>Dados real-time</td>
+<td class="win">Sub-ms</td>
+<td class="win">Sub-ms</td>
+<td class="par">Baixa latência</td>
+<td class="us par">Dependente de data feeds (B3/BCB API)</td>
+</tr>
+<tr>
+<td>Análise de fundos</td>
+<td class="par">Módulo básico</td>
+<td class="par">Módulo básico</td>
+<td class="win">Broadcast Fundos (completo)</td>
+<td class="us win">AI-driven. Automático. CVM 175 nativo.</td>
+</tr>
+<tr>
+<td>Notícias proprietárias</td>
+<td class="win">Bloomberg News (4.500 jornalistas)</td>
+<td class="win">Reuters News</td>
+<td class="win">Redação Broadcast (~200 jornalistas)</td>
+<td class="us lose">Sem redação própria (usa fontes abertas + NLP)</td>
+</tr>
+
+<tr class="cat"><td colspan="5">🏗 ARQUITETURA & DEPLOY</td></tr>
+<tr>
+<td>On-premise</td>
+<td class="par">Terminal dedicado</td>
+<td class="par">Sim</td>
+<td class="lose">Cloud only</td>
+<td class="us win">Cloud, on-prem (Mac Mini/server), ou híbrido</td>
+</tr>
+<tr>
+<td>API / SDK</td>
+<td class="par">Bloomberg API (BLPAPI)</td>
+<td class="par">Refinitiv Data Library</td>
+<td class="par">Datafeed API</td>
+<td class="us win">REST + Python SDK + CLI + MCP. OSS-ready.</td>
+</tr>
+<tr>
+<td>White-label</td>
+<td class="lose">Não</td>
+<td class="lose">Não</td>
+<td class="par">Broadcast White Label</td>
+<td class="us win">Totalmente white-label. BYOK.</td>
+</tr>
+<tr>
+<td>Customização por cliente</td>
+<td class="lose">Mínima</td>
+<td class="par">Moderada</td>
+<td class="par">Moderada</td>
+<td class="us win">Agentes custom por fundo. Regras por cedente. Corpus isolado.</td>
+</tr>
+
+<tr class="cat"><td colspan="5">🔒 COMPLIANCE & SEGURANÇA</td></tr>
+<tr>
+<td>CVM 175</td>
+<td class="lose">Não específico</td>
+<td class="lose">Não específico</td>
+<td class="par">Broadcast Fundos aderente</td>
+<td class="us win">Nativo. 6 guardrails automáticos.</td>
+</tr>
+<tr>
+<td>LGPD / Data residency</td>
+<td class="par">Global</td>
+<td class="par">Global</td>
+<td class="win">Brasil</td>
+<td class="us win">Brasil (AWS sa-east-1). On-prem disponível.</td>
+</tr>
+<tr>
+<td>Audit trail</td>
+<td class="par">Básico</td>
+<td class="par">Básico</td>
+<td class="lose">Limitado</td>
+<td class="us win">Cada decisão AI com trace completo, modelo, tokens, custo, raciocínio.</td>
+</tr>
+</table>
+
+<!-- ============================================================ -->
+<h2>Fraquezas do <em>Broadcast</em></h2>
+<div class="section-sub">Onde Paganini ataca.</div>
+
+<div class="feat-cols">
+<div class="feat-item">
+<div class="feat-label">Fraqueza #1</div>
+<div class="feat-val">AI é bolt-on</div>
+<div class="feat-desc">O módulo IA do Broadcast é um add-on recente sobre uma plataforma de 30+ anos. Não é AI-native. Paganini foi construído de AI para fora — cada decisão passa por LLM, cada output tem trace.</div>
+</div>
+<div class="feat-item">
+<div class="feat-label">Fraqueza #2</div>
+<div class="feat-val">Sem automação FIDC</div>
+<div class="feat-desc">Broadcast Fundos analisa fundos de forma passiva (screener, gráficos). Não executa guardrails, não classifica risco automaticamente, não faz DD. Tudo é manual.</div>
+</div>
+<div class="feat-item">
+<div class="feat-label">Fraqueza #3</div>
+<div class="feat-val">Preço legacy</div>
+<div class="feat-desc">Modelo de assinatura mensal fixa, contrato anual, preço por consulta. Zero pay-per-use. Zero BYOK. Cliente paga pelo terminal inteiro mesmo se usa 10% das features.</div>
+</div>
+<div class="feat-item">
+<div class="feat-label">Fraqueza #4</div>
+<div class="feat-val">Cloud-only</div>
+<div class="feat-desc">Sem opção on-premise. Dados do fundo passam pelos servidores do Broadcast. Para FIDCs com dados sensíveis de cedentes (PLD/AML, CPF/CNPJ), isso é um blocker de compliance.</div>
+</div>
+<div class="feat-item">
+<div class="feat-label">Fraqueza #5</div>
+<div class="feat-val">Sem customização profunda</div>
+<div class="feat-desc">Broadcast é one-size-fits-all. Mesmo regras de negócio, mesmos relatórios. Paganini permite agentes custom por fundo, regras por cedente, corpus isolado por cliente.</div>
+</div>
+<div class="feat-item">
+<div class="feat-label">Fraqueza #6</div>
+<div class="feat-val">Legacy tech stack</div>
+<div class="feat-desc">30+ anos de código legado. Interface Desktop-era. Sem API moderna (REST/GraphQL). Integrações via FIX protocol e add-in Excel — não cloud-native.</div>
+</div>
+</div>
+
+<!-- ============================================================ -->
+<h2>Posicionamento de <em>Preço</em></h2>
+<div class="section-sub">Custo por usuário por mês — comparativo direto.</div>
+
+<div class="price-row">
+<div class="price-box">
+<div class="name">Bloomberg Terminal</div>
+<div class="amount" style="color:var(--t3)">$2.000</div>
+<div class="unit">/usuário/mês</div>
+<div class="detail">Contrato 2 anos. ~R$10.520/mês.</div>
+</div>
+<div class="price-box">
+<div class="name">Broadcast+</div>
+<div class="amount" style="color:var(--navy)">~R$1.000</div>
+<div class="unit">/usuário/mês (estimativa)</div>
+<div class="detail">Contrato 1 ano. Preço por consulta.</div>
+</div>
+<div class="price-box ours">
+<div class="name">Paganini AIOS</div>
+<div class="amount" style="color:var(--brand)">R$300</div>
+<div class="unit">/usuário/mês (SaaS) ou R$0.25/task</div>
+<div class="detail">Sem contrato. Pay-per-use disponível. BYOK. On-prem.</div>
+</div>
+</div>
+
+<div class="callout ok">
+<strong>3× mais barato que Broadcast, 30× mais barato que Bloomberg.</strong>
+<p>E com AI que nenhum deles tem: 9 agentes autônomos, 6 guardrails automáticos, RAG sobre documentos do fundo, modelo fine-tuned para FIDC, deploy on-prem ou cloud.</p>
+</div>
+
+<!-- ============================================================ -->
+<h2>Produto: Paganini <em>Intelligence Platform</em></h2>
+<div class="section-sub">O que entregamos — mapeado contra cada produto Broadcast.</div>
+
+<table class="comp">
+<tr>
+<th>Broadcast tem</th>
+<th>Paganini equivalente</th>
+<th>Diferencial Paganini</th>
+</tr>
+<tr>
+<td>Broadcast+ (terminal)</td>
+<td>Paganini Dashboard</td>
+<td class="us">AI-first. Insights autônomos. Alertas inteligentes. Mobile-first.</td>
+</tr>
+<tr>
+<td>Broadcast Fundos</td>
+<td>Paganini Fund Analyzer</td>
+<td class="us">AI faz a análise, não o humano. Due Diligence automática. CVM 175 nativo.</td>
+</tr>
+<tr>
+<td>Broadcast Datafeed</td>
+<td>Paganini API</td>
+<td class="us">REST + Python SDK + CLI. Dados B3/BCB/CVM + output de agentes AI.</td>
+</tr>
+<tr>
+<td>Broadcast Quant</td>
+<td>Paganini Quant Engine</td>
+<td class="us">3.1M data points. Correlações, heatmaps, ciclos SELIC. API quantitativa.</td>
+</tr>
+<tr>
+<td>Broadcast Radar</td>
+<td>Paganini Intelligence Graph</td>
+<td class="us">Grafo visual de conexões (366 nós, 697 edges). NLP sobre fontes abertas.</td>
+</tr>
+<tr>
+<td>Broadcast IA</td>
+<td>MetaClaw (Cognitive Router)</td>
+<td class="us">Multi-LLM smart routing. 9 agentes especializados. Não é chatbot — é pipeline.</td>
+</tr>
+<tr>
+<td>Broadcast Agro/Político/Energia</td>
+<td>Paganini Verticals (roadmap)</td>
+<td class="us">Mesma engine, agentes diferentes. Deploy vertical = config, não código.</td>
+</tr>
+<tr>
+<td>Broadcast White Label</td>
+<td>Paganini White Label</td>
+<td class="us">100% customizável. BYOK. On-prem. O cliente é dono de tudo.</td>
+</tr>
+<tr>
+<td>Widgets/Ticker/Wallboard</td>
+<td>Paganini Embeds (roadmap)</td>
+<td class="us">React components. npm install. Mais moderno que iframe/JS legacy.</td>
+</tr>
+<tr>
+<td>❌ Não tem</td>
+<td>Paganini Guardrails</td>
+<td class="us">6 gates automáticos para compliance FIDC. Exclusivo.</td>
+</tr>
+<tr>
+<td>❌ Não tem</td>
+<td>Paganini SFT Model</td>
+<td class="us">Modelo fine-tuned em FIDC. Deploy local. Sem dependência de API.</td>
+</tr>
+<tr>
+<td>❌ Não tem</td>
+<td>Paganini On-Prem</td>
+<td class="us">Mac Mini com AI local. Dados nunca saem do ambiente do cliente.</td>
+</tr>
+</table>
+
+<div class="callout gold">
+<strong>Broadcast precisa de 1.000 funcionários e 30 anos de história para entregar o que temos.</strong>
+<p>Paganini entrega o equivalente com 9 agentes AI, 7.2K LOC, e um custo operacional de R$4.500/mês. O moat do Broadcast é a redação de notícias. Fora isso, tudo que eles fazem, Paganini faz melhor, mais barato, e com AI nativa.</p>
+</div>
+
+</div>
+</body>
+</html>
