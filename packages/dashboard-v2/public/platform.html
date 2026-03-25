@@ -1,0 +1,587 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Paganini Intelligence Platform</title>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,300;0,500;0,700;1,400&family=DM+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+--bg:#0f0e0d;--s1:#181614;--s2:#1e1c19;--s3:#262320;--brd:#332f2a;
+--t1:#e8e4de;--t2:#a09888;--t3:#6b6358;
+--gold:#c9a84c;--goldD:#8b6914;--goldL:rgba(201,168,76,0.12);
+--red:#c45141;--redL:rgba(196,81,65,0.12);
+--green:#5a9e5c;--greenL:rgba(90,158,92,0.12);
+--blue:#5b8ec9;--blueL:rgba(91,142,201,0.12);
+--orange:#c98a3d;--orangeL:rgba(201,138,61,0.12);
+}
+body{background:var(--bg);color:var(--t1);font-family:'DM Sans',sans-serif;font-size:14px;line-height:1.5;overflow-x:hidden}
+
+/* NAV */
+.topbar{position:sticky;top:0;z-index:100;background:var(--s1);border-bottom:1px solid var(--brd);display:flex;align-items:center;padding:0 clamp(12px,2vw,24px);height:48px;gap:8px}
+.logo{font-family:'Source Serif 4';font-size:18px;font-weight:700;color:var(--gold);flex-shrink:0;letter-spacing:-0.5px}
+.logo span{color:var(--t3);font-weight:300;font-size:13px;margin-left:6px}
+.tabs{display:flex;gap:2px;margin-left:24px;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tab{padding:12px 14px;font-size:12px;font-family:'IBM Plex Mono';letter-spacing:0.5px;color:var(--t3);cursor:pointer;white-space:nowrap;border-bottom:2px solid transparent;transition:all 0.2s}
+.tab:hover{color:var(--t2)}
+.tab.active{color:var(--gold);border-bottom-color:var(--gold)}
+.status-dot{width:6px;height:6px;border-radius:50%;background:var(--green);margin-left:auto;flex-shrink:0}
+
+/* PANELS */
+.panel{display:none;padding:clamp(12px,2vw,24px);min-height:calc(100vh - 48px)}
+.panel.active{display:block}
+
+/* GRID UTILS */
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.g23{display:grid;grid-template-columns:2fr 1fr;gap:12px}
+.g32{display:grid;grid-template-columns:3fr 2fr;gap:12px}
+
+/* CARD */
+.card{background:var(--s1);border:1px solid var(--brd);border-radius:8px;padding:clamp(12px,2vw,20px);position:relative}
+.card-t{font-family:'IBM Plex Mono';font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--t3);margin-bottom:8px}
+.card-v{font-family:'Source Serif 4';font-size:clamp(20px,3vw,32px);font-weight:700}
+.card-sub{font-size:12px;color:var(--t3);margin-top:2px}
+
+/* METRIC */
+.metric{text-align:left;padding:12px 0}
+.metric-l{font-family:'IBM Plex Mono';font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--t3)}
+.metric-v{font-family:'IBM Plex Mono';font-size:18px;font-weight:600;margin:2px 0}
+.metric-d{font-size:11px}
+.up{color:var(--green)}.dn{color:var(--red)}.nt{color:var(--gold)}
+
+/* TABLE */
+.tbl{width:100%;border-collapse:collapse;font-size:12px}
+.tbl th{text-align:left;font-family:'IBM Plex Mono';font-size:9px;letter-spacing:1px;color:var(--t3);padding:6px 8px;border-bottom:1px solid var(--brd)}
+.tbl td{padding:6px 8px;border-bottom:1px solid rgba(51,47,42,0.4)}
+.tbl tr:hover td{background:rgba(255,255,255,0.02)}
+.tbl .mono{font-family:'IBM Plex Mono';font-weight:500}
+
+/* BADGE */
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-family:'IBM Plex Mono';font-weight:600}
+.badge-ok{background:var(--greenL);color:var(--green)}
+.badge-warn{background:var(--orangeL);color:var(--orange)}
+.badge-ng{background:var(--redL);color:var(--red)}
+.badge-info{background:var(--blueL);color:var(--blue)}
+.badge-gold{background:var(--goldL);color:var(--gold)}
+
+/* GAUGE */
+.gauge{width:80px;height:80px;position:relative;margin:0 auto}
+.gauge svg{transform:rotate(-90deg)}
+.gauge-val{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:'IBM Plex Mono';font-size:18px;font-weight:700}
+
+/* TICKER */
+.ticker{display:flex;gap:16px;padding:8px 0;overflow-x:auto;-webkit-overflow-scrolling:touch;scrollbar-width:none;margin-bottom:12px}
+.ticker::-webkit-scrollbar{display:none}
+.tick-item{flex-shrink:0;padding:8px 12px;background:var(--s2);border:1px solid var(--brd);border-radius:6px;min-width:120px}
+.tick-sym{font-family:'IBM Plex Mono';font-size:10px;color:var(--t3)}
+.tick-price{font-family:'IBM Plex Mono';font-size:15px;font-weight:600;margin:2px 0}
+.tick-chg{font-size:11px;font-family:'IBM Plex Mono'}
+
+/* PIPELINE */
+.pipe{display:flex;gap:4px;align-items:center;flex-wrap:wrap;margin:8px 0}
+.pipe-step{padding:6px 12px;border-radius:4px;font-size:11px;font-family:'IBM Plex Mono';border:1px solid var(--brd);position:relative}
+.pipe-step.ok{background:var(--greenL);border-color:var(--green);color:var(--green)}
+.pipe-step.warn{background:var(--orangeL);border-color:var(--orange);color:var(--orange)}
+.pipe-step.run{background:var(--blueL);border-color:var(--blue);color:var(--blue);animation:pulse 1.5s infinite}
+.pipe-step.wait{color:var(--t3)}
+.pipe-arrow{color:var(--t3);font-size:10px}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:0.5}}
+
+/* GRAPH */
+#graph-container{width:100%;height:450px;border:1px solid var(--brd);border-radius:8px;background:var(--s1);overflow:hidden}
+
+/* HEATMAP */
+.hm-cell{stroke:var(--bg);stroke-width:1px}
+.hm-label{font-family:'IBM Plex Mono';font-size:9px;fill:var(--t3)}
+
+/* CHAT */
+.chat{max-height:400px;overflow-y:auto;padding:8px}
+.chat-msg{margin:8px 0;padding:10px 14px;border-radius:8px;font-size:13px;max-width:85%}
+.chat-user{background:var(--s3);margin-left:auto;text-align:right;border-radius:8px 8px 2px 8px}
+.chat-ai{background:var(--goldL);border-left:3px solid var(--gold);border-radius:2px 8px 8px 8px}
+.chat-agent{font-family:'IBM Plex Mono';font-size:9px;color:var(--gold);margin-bottom:4px}
+
+/* NEWS */
+.news-item{padding:10px 0;border-bottom:1px solid var(--brd)}
+.news-time{font-family:'IBM Plex Mono';font-size:9px;color:var(--gold)}
+.news-text{font-size:12px;margin-top:2px;color:var(--t2)}
+.news-tag{font-size:9px;color:var(--t3);font-family:'IBM Plex Mono'}
+
+/* REPORT */
+.report-card{background:var(--s2);border:1px solid var(--brd);border-radius:8px;padding:16px;cursor:pointer;transition:border 0.2s}
+.report-card:hover{border-color:var(--gold)}
+.report-icon{font-size:24px;margin-bottom:8px}
+.report-title{font-family:'Source Serif 4';font-size:16px;font-weight:700}
+.report-desc{font-size:11px;color:var(--t3);margin-top:4px}
+
+/* RESPONSIVE */
+@media(max-width:768px){
+.g2,.g3,.g4,.g23,.g32{grid-template-columns:1fr}
+.tabs{margin-left:8px}
+.tab{padding:10px 8px;font-size:10px}
+.logo span{display:none}
+#graph-container{height:300px}
+}
+@media(max-width:480px){
+.topbar{height:42px}
+.tab{padding:8px 6px;font-size:9px}
+}
+</style>
+</head>
+<body>
+
+<div class="topbar">
+<div class="logo">Paganini<span>Intelligence Platform</span></div>
+<div class="tabs" id="tabs">
+<div class="tab active" data-tab="market">Market</div>
+<div class="tab" data-tab="funds">Fund Analyzer</div>
+<div class="tab" data-tab="guardrails">Guardrails</div>
+<div class="tab" data-tab="graph">Intelligence Graph</div>
+<div class="tab" data-tab="quant">Quant Engine</div>
+<div class="tab" data-tab="ai">AI Console</div>
+<div class="tab" data-tab="reports">Reports</div>
+</div>
+<div class="status-dot" title="System Online"></div>
+</div>
+
+<!-- ========== TAB 1: MARKET ========== -->
+<div class="panel active" id="p-market">
+<div class="ticker" id="ticker"></div>
+<div class="g32">
+<div>
+<div class="card" style="margin-bottom:12px">
+<div class="card-t">Sector Heatmap — B3 Intraday</div>
+<div id="treemap" style="height:320px"></div>
+</div>
+<div class="g4" id="macro-metrics"></div>
+</div>
+<div>
+<div class="card">
+<div class="card-t">Breaking News</div>
+<div id="news-feed"></div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- ========== TAB 2: FUNDS ========== -->
+<div class="panel" id="p-funds">
+<div class="g23">
+<div>
+<div class="card" style="margin-bottom:12px">
+<div class="card-t">Fund Screener</div>
+<div style="display:flex;gap:8px;margin-bottom:12px">
+<input type="text" placeholder="Buscar fundo..." style="flex:1;padding:8px 12px;background:var(--s2);border:1px solid var(--brd);border-radius:6px;color:var(--t1);font-size:13px;outline:none">
+<select style="padding:8px;background:var(--s2);border:1px solid var(--brd);border-radius:6px;color:var(--t2);font-size:12px;outline:none">
+<option>Todos</option><option>FIDC</option><option>FIM</option><option>FIA</option><option>RF</option>
+</select>
+</div>
+<table class="tbl" id="fund-table">
+<tr><th>Fundo</th><th>Tipo</th><th>AUM (M)</th><th>12M</th><th>Sharpe</th><th>AI Score</th></tr>
+</table>
+</div>
+<div class="card">
+<div class="card-t">Performance vs CDI</div>
+<div id="fund-chart" style="height:250px"></div>
+</div>
+</div>
+<div>
+<div class="card" style="margin-bottom:12px">
+<div class="card-t">Fund Detail — FIDC Mercantis III</div>
+<div class="g2" style="gap:4px">
+<div class="metric"><div class="metric-l">NAV</div><div class="metric-v">R$847.2M</div></div>
+<div class="metric"><div class="metric-l">AUM</div><div class="metric-v">R$1.23B</div></div>
+<div class="metric"><div class="metric-l">12M Return</div><div class="metric-v up">+18.4%</div></div>
+<div class="metric"><div class="metric-l">vs CDI</div><div class="metric-v up">+3.5pp</div></div>
+<div class="metric"><div class="metric-l">Sharpe</div><div class="metric-v">1.42</div></div>
+<div class="metric"><div class="metric-l">VaR 95%</div><div class="metric-v">2.1%</div></div>
+<div class="metric"><div class="metric-l">Max DD</div><div class="metric-v dn">-4.8%</div></div>
+<div class="metric"><div class="metric-l">Beta</div><div class="metric-v">0.32</div></div>
+</div>
+<div style="margin-top:12px">
+<div class="card-t">AI Risk Score</div>
+<div class="gauge"><svg viewBox="0 0 80 80"><circle cx="40" cy="40" r="34" fill="none" stroke="var(--brd)" stroke-width="6"/><circle cx="40" cy="40" r="34" fill="none" stroke="var(--green)" stroke-width="6" stroke-dasharray="171 214" stroke-linecap="round"/></svg><div class="gauge-val" style="color:var(--green)">82</div></div>
+<div style="text-align:center;font-size:11px;color:var(--t3);margin-top:4px">Risco Baixo</div>
+</div>
+</div>
+<div class="card" style="margin-bottom:12px">
+<div class="card-t">CVM 175 Status</div>
+<div style="display:flex;flex-direction:column;gap:6px;margin-top:8px">
+<div style="display:flex;justify-content:space-between"><span style="font-size:12px">Registro CVM</span><span class="badge badge-ok">Ativo</span></div>
+<div style="display:flex;justify-content:space-between"><span style="font-size:12px">Enquadramento</span><span class="badge badge-ok">Conforme</span></div>
+<div style="display:flex;justify-content:space-between"><span style="font-size:12px">Concentração</span><span class="badge badge-warn">5.2% acima</span></div>
+<div style="display:flex;justify-content:space-between"><span style="font-size:12px">PLD/AML</span><span class="badge badge-ok">Limpo</span></div>
+<div style="display:flex;justify-content:space-between"><span style="font-size:12px">Rating Cedente</span><span class="badge badge-info">AA-</span></div>
+</div>
+</div>
+<div class="card">
+<div class="card-t">Composição da Carteira</div>
+<div id="donut-chart" style="height:200px"></div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- ========== TAB 3: GUARDRAILS ========== -->
+<div class="panel" id="p-guardrails">
+<div class="card" style="margin-bottom:12px">
+<div class="card-t">Pipeline de Compliance — FIDC Mercantis III</div>
+<div class="pipe">
+<div class="pipe-step ok">① Eligibility ✓</div><span class="pipe-arrow">→</span>
+<div class="pipe-step ok">② Concentration ✓</div><span class="pipe-arrow">→</span>
+<div class="pipe-step ok">③ Covenant ✓</div><span class="pipe-arrow">→</span>
+<div class="pipe-step run">④ PLD/AML 🔄</div><span class="pipe-arrow">→</span>
+<div class="pipe-step wait">⑤ Compliance</div><span class="pipe-arrow">→</span>
+<div class="pipe-step wait">⑥ Risk</div>
+</div>
+</div>
+<div class="g2">
+<div class="card">
+<div class="card-t">Gate Status</div>
+<table class="tbl">
+<tr><th>Gate</th><th>Status</th><th>Tempo</th><th>Regras</th><th>Alertas</th></tr>
+<tr><td>Eligibility</td><td><span class="badge badge-ok">Pass</span></td><td class="mono">0.8s</td><td>12/12</td><td>0</td></tr>
+<tr><td>Concentration</td><td><span class="badge badge-ok">Pass</span></td><td class="mono">1.2s</td><td>8/8</td><td>0</td></tr>
+<tr><td>Covenant</td><td><span class="badge badge-ok">Pass</span></td><td class="mono">2.1s</td><td>15/15</td><td>0</td></tr>
+<tr><td>PLD/AML</td><td><span class="badge badge-info">Running</span></td><td class="mono">3.4s...</td><td>6/23</td><td>1</td></tr>
+<tr><td>Compliance</td><td><span class="badge badge-gold">Waiting</span></td><td class="mono">—</td><td>—</td><td>—</td></tr>
+<tr><td>Risk</td><td><span class="badge badge-gold">Waiting</span></td><td class="mono">—</td><td>—</td><td>—</td></tr>
+</table>
+</div>
+<div class="card">
+<div class="card-t">Alert Log</div>
+<table class="tbl">
+<tr><th>Hora</th><th>Gate</th><th>Severidade</th><th>Descrição</th></tr>
+<tr><td class="mono" style="font-size:10px">18:11:02</td><td>PLD/AML</td><td><span class="badge badge-warn">Medium</span></td><td style="font-size:11px">Devedor #847 — match parcial em lista restritiva OFAC</td></tr>
+<tr><td class="mono" style="font-size:10px">18:10:58</td><td>Concentration</td><td><span class="badge badge-info">Info</span></td><td style="font-size:11px">Exposição cedente principal: 18.2% (limite: 20%)</td></tr>
+<tr><td class="mono" style="font-size:10px">18:10:45</td><td>Eligibility</td><td><span class="badge badge-ok">Low</span></td><td style="font-size:11px">3 títulos vencidos reclassificados (< 0.1% do PL)</td></tr>
+<tr><td class="mono" style="font-size:10px">18:10:30</td><td>Covenant</td><td><span class="badge badge-info">Info</span></td><td style="font-size:11px">Índice de subordinação: 28.4% (mínimo: 25%)</td></tr>
+<tr><td class="mono" style="font-size:10px">18:10:12</td><td>Eligibility</td><td><span class="badge badge-ok">Low</span></td><td style="font-size:11px">Prazo médio ponderado: 142 dias (máximo: 180)</td></tr>
+</table>
+</div>
+</div>
+</div>
+
+<!-- ========== TAB 4: GRAPH ========== -->
+<div class="panel" id="p-graph">
+<div class="card" style="margin-bottom:12px">
+<div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px">
+<div class="card-t" style="margin:0">Intelligence Graph — Entidades & Conexões</div>
+<div style="display:flex;gap:6px">
+<span class="badge badge-ok">Fundos</span>
+<span class="badge badge-info">Cedentes</span>
+<span class="badge badge-warn">Devedores</span>
+<span class="badge badge-gold">Setores</span>
+<span class="badge badge-ng">Risco Alto</span>
+</div>
+</div>
+</div>
+<div id="graph-container"></div>
+<div class="g3" style="margin-top:12px">
+<div class="card"><div class="metric"><div class="metric-l">Nós</div><div class="metric-v">247</div></div></div>
+<div class="card"><div class="metric"><div class="metric-l">Conexões</div><div class="metric-v">583</div></div></div>
+<div class="card"><div class="metric"><div class="metric-l">Bridges</div><div class="metric-v nt">18</div></div></div>
+</div>
+</div>
+
+<!-- ========== TAB 5: QUANT ========== -->
+<div class="panel" id="p-quant">
+<div class="g2">
+<div class="card">
+<div class="card-t">Correlation Matrix — Top 15 Ativos</div>
+<div id="heatmap" style="height:380px"></div>
+</div>
+<div class="card">
+<div class="card-t">Risk / Return Scatter</div>
+<div id="scatter" style="height:380px"></div>
+</div>
+</div>
+<div class="card" style="margin-top:12px">
+<div class="card-t">Multi-Asset Comparison + SELIC Overlay</div>
+<div id="multi-chart" style="height:300px"></div>
+</div>
+</div>
+
+<!-- ========== TAB 6: AI CONSOLE ========== -->
+<div class="panel" id="p-ai">
+<div class="g23">
+<div>
+<div class="card" style="margin-bottom:12px">
+<div class="card-t">MetaClaw — Smart Routing</div>
+<div class="g3" style="margin-bottom:12px">
+<div class="metric"><div class="metric-l">Flash (triagem)</div><div class="metric-v" style="color:var(--blue)">62%</div><div class="metric-d" style="color:var(--t3)">$0.004/task</div></div>
+<div class="metric"><div class="metric-l">Sonnet (análise)</div><div class="metric-v" style="color:var(--gold)">33%</div><div class="metric-d" style="color:var(--t3)">$0.038/task</div></div>
+<div class="metric"><div class="metric-l">Opus (decisão)</div><div class="metric-v" style="color:var(--red)">5%</div><div class="metric-d" style="color:var(--t3)">$0.065/task</div></div>
+</div>
+<div class="card-t">Agent Activity Feed</div>
+<table class="tbl">
+<tr><th>Agente</th><th>Task</th><th>Modelo</th><th>Status</th><th>Custo</th></tr>
+<tr><td>🛡 Compliance</td><td style="font-size:11px">PLD/AML scan — Lote #2847</td><td class="mono">Sonnet</td><td><span class="badge badge-info">Running</span></td><td class="mono">$0.04</td></tr>
+<tr><td>📊 Pricing</td><td style="font-size:11px">Mark-to-market 342 títulos</td><td class="mono">Flash</td><td><span class="badge badge-ok">Done</span></td><td class="mono">$0.01</td></tr>
+<tr><td>🔍 Due Diligence</td><td style="font-size:11px">Cedente Alfa Corp — análise</td><td class="mono">Opus</td><td><span class="badge badge-ok">Done</span></td><td class="mono">$0.19</td></tr>
+<tr><td>⚖️ Risk</td><td style="font-size:11px">VaR recalculation daily</td><td class="mono">Flash</td><td><span class="badge badge-ok">Done</span></td><td class="mono">$0.003</td></tr>
+<tr><td>📋 Reporting</td><td style="font-size:11px">Relatório mensal FIDC III</td><td class="mono">Sonnet</td><td><span class="badge badge-gold">Queue</span></td><td class="mono">—</td></tr>
+</table>
+</div>
+<div class="card">
+<div class="card-t">Token Usage — Hoje</div>
+<div class="g3">
+<div class="metric"><div class="metric-l">Input Tokens</div><div class="metric-v">847K</div></div>
+<div class="metric"><div class="metric-l">Output Tokens</div><div class="metric-v">234K</div></div>
+<div class="metric"><div class="metric-l">Custo Total</div><div class="metric-v nt">$2.14</div></div>
+</div>
+<div style="margin-top:12px">
+<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:4px"><span>Cache hit rate</span><span class="mono">38.2%</span></div>
+<div style="height:6px;background:var(--brd);border-radius:3px;overflow:hidden"><div style="width:38%;height:100%;background:var(--green);border-radius:3px"></div></div>
+<div style="display:flex;justify-content:space-between;font-size:11px;margin:8px 0 4px"><span>Budget mensal</span><span class="mono">$64 / $200</span></div>
+<div style="height:6px;background:var(--brd);border-radius:3px;overflow:hidden"><div style="width:32%;height:100%;background:var(--gold);border-radius:3px"></div></div>
+</div>
+</div>
+</div>
+<div>
+<div class="card" style="height:100%">
+<div class="card-t">AI Chat — FIDC Analysis</div>
+<div class="chat">
+<div class="chat-msg chat-user">Analise o risco de concentração do FIDC Mercantis III</div>
+<div class="chat-msg chat-ai"><div class="chat-agent">🛡 Compliance Agent • Sonnet 4.6</div>O FIDC Mercantis III apresenta exposição de <strong>18.2%</strong> ao cedente principal (Alfa Corp), próximo ao limite de 20% do regulamento. Breakdown:<br><br>• Alfa Corp: 18.2% (⚠ atenção)<br>• Beta Ind: 14.7%<br>• Gama Serv: 11.3%<br>• Delta Com: 8.9%<br>• Demais (47 cedentes): 46.9%<br><br>Índice HHI: 892 (concentração moderada). Recomendo monitoramento diário até Alfa Corp cair abaixo de 15%.</div>
+<div class="chat-msg chat-user">E a qualidade dos recebíveis?</div>
+<div class="chat-msg chat-ai"><div class="chat-agent">📊 Pricing Agent • Flash 2.5</div>Carteira: 4.287 títulos, prazo médio 142 dias.<br><br>• Adimplência: 96.8% (meta: 95%+) ✅<br>• Atraso 1-30d: 2.1%<br>• Atraso 31-60d: 0.7%<br>• Default (>60d): 0.4%<br>• Provisão: 1.2% do PL (adequada)<br><br>Qualidade <strong>acima da média</strong> para o segmento.</div>
+<div class="chat-msg chat-user">Gere o relatório de Due Diligence</div>
+<div class="chat-msg chat-ai"><div class="chat-agent">🔍 DD Agent • Opus 4.6</div>Relatório de Due Diligence iniciado. Escopo:<br>• Análise de cedentes (5 maiores)<br>• Qualidade da carteira de crédito<br>• Estrutura legal e regulatória<br>• Stress test (cenários SELIC +2pp, +4pp)<br>• Verificação PLD/AML<br><br>⏱ Tempo estimado: 45 segundos<br>💰 Custo estimado: $0.19<br><br>Processando...</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+
+<!-- ========== TAB 7: REPORTS ========== -->
+<div class="panel" id="p-reports">
+<div class="card" style="margin-bottom:12px">
+<div class="card-t">Gerador de Relatórios</div>
+<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px">
+<select style="padding:8px 12px;background:var(--s2);border:1px solid var(--brd);border-radius:6px;color:var(--t2);font-size:12px;outline:none;min-width:200px">
+<option>FIDC Mercantis III</option><option>FIDC Agro Capital I</option><option>FIDC Credit Premium</option><option>FIDC Industrial Plus</option>
+</select>
+<select style="padding:8px 12px;background:var(--s2);border:1px solid var(--brd);border-radius:6px;color:var(--t2);font-size:12px;outline:none">
+<option>Março 2026</option><option>Fevereiro 2026</option><option>Janeiro 2026</option>
+</select>
+<button style="padding:8px 16px;background:var(--gold);color:var(--bg);border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;font-family:'DM Sans'">Gerar Relatório</button>
+</div>
+</div>
+<div class="g4">
+<div class="report-card">
+<div class="report-icon">🔍</div>
+<div class="report-title">Due Diligence</div>
+<div class="report-desc">Análise completa do fundo: cedentes, carteira, legal, stress test, PLD/AML</div>
+<div style="margin-top:8px"><span class="badge badge-info">~45s</span> <span class="badge badge-gold">$0.19</span></div>
+</div>
+<div class="report-card">
+<div class="report-icon">⚖️</div>
+<div class="report-title">Risk Assessment</div>
+<div class="report-desc">VaR, stress scenarios, concentração, correlação, sensibilidade a SELIC</div>
+<div style="margin-top:8px"><span class="badge badge-info">~30s</span> <span class="badge badge-gold">$0.04</span></div>
+</div>
+<div class="report-card">
+<div class="report-icon">🛡</div>
+<div class="report-title">Compliance Audit</div>
+<div class="report-desc">6 guardrails, CVM 175, PLD/AML, enquadramento, limites operacionais</div>
+<div style="margin-top:8px"><span class="badge badge-info">~20s</span> <span class="badge badge-gold">$0.03</span></div>
+</div>
+<div class="report-card">
+<div class="report-icon">📊</div>
+<div class="report-title">Portfolio Review</div>
+<div class="report-desc">Performance, attribution, composição, benchmarks, projeções</div>
+<div style="margin-top:8px"><span class="badge badge-info">~25s</span> <span class="badge badge-gold">$0.05</span></div>
+</div>
+</div>
+</div>
+
+<script>
+// ===== TAB SWITCHING =====
+document.querySelectorAll('.tab').forEach(t=>{
+t.addEventListener('click',()=>{
+document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+document.querySelectorAll('.panel').forEach(x=>x.classList.remove('active'));
+t.classList.add('active');
+document.getElementById('p-'+t.dataset.tab).classList.add('active');
+if(t.dataset.tab==='graph'&&!window._graphDone)buildGraph();
+if(t.dataset.tab==='quant'&&!window._quantDone)buildQuant();
+})});
+
+// ===== TICKER =====
+const tickers=[
+{s:'IBOV',p:128742,c:1.23},{s:'IFIX',p:3284,c:0.41},{s:'USD/BRL',p:5.26,c:-0.38},
+{s:'EUR/BRL',p:5.71,c:-0.22},{s:'PETR4',p:38.42,c:2.14},{s:'VALE3',p:58.90,c:-0.87},
+{s:'ITUB4',p:34.15,c:0.65},{s:'BBDC4',p:14.28,c:-0.33},{s:'BRENT',p:73.80,c:1.47},
+{s:'SOJA',p:128.40,c:0.89},{s:'SMALL',p:2187,c:-0.52},{s:'WEGE3',p:52.10,c:1.08}
+];
+const tf=document.getElementById('ticker');
+tickers.forEach(t=>{
+const d=document.createElement('div');d.className='tick-item';
+const cls=t.c>=0?'up':'dn';const sign=t.c>=0?'+':'';
+d.innerHTML=`<div class="tick-sym">${t.s}</div><div class="tick-price">${typeof t.p==='number'&&t.p>1000?t.p.toLocaleString('pt-BR'):t.p.toLocaleString('pt-BR',{minimumFractionDigits:2})}</div><div class="tick-chg ${cls}">${sign}${t.c}%</div>`;
+tf.appendChild(d)});
+
+// ===== TREEMAP =====
+const sectors=[
+{n:'Financeiro',v:28,c:1.2},{n:'Petróleo',v:18,c:2.1},{n:'Mineração',v:15,c:-0.9},
+{n:'Varejo',v:12,c:-1.4},{n:'Utilities',v:10,c:0.6},{n:'Saúde',v:8,c:0.3},
+{n:'Tech',v:5,c:3.2},{n:'Imobiliário',v:4,c:-0.5}
+];
+const tmEl=document.getElementById('treemap');
+const tmW=tmEl.clientWidth||600,tmH=320;
+const tmSvg=d3.select('#treemap').append('svg').attr('viewBox',`0 0 ${tmW} ${tmH}`).style('width','100%');
+const root=d3.hierarchy({children:sectors}).sum(d=>d.v);
+d3.treemap().size([tmW,tmH]).padding(2)(root);
+const clr=d=>d.data.c>=2?'#5a9e5c':d.data.c>=0?'#4a7a4c':d.data.c>=-1?'#8b5a3a':'#c45141';
+const g=tmSvg.selectAll('g').data(root.leaves()).join('g').attr('transform',d=>`translate(${d.x0},${d.y0})`);
+g.append('rect').attr('width',d=>d.x1-d.x0).attr('height',d=>d.y1-d.y0).attr('fill',clr).attr('rx',3).style('opacity',0.85);
+g.append('text').attr('x',6).attr('y',16).text(d=>d.data.n).style('font-size','11px').style('fill','#e8e4de').style('font-family','DM Sans');
+g.append('text').attr('x',6).attr('y',30).text(d=>(d.data.c>=0?'+':'')+d.data.c+'%').style('font-size','10px').style('fill','rgba(232,228,222,0.7)').style('font-family','IBM Plex Mono');
+
+// ===== MACRO METRICS =====
+const macros=[{l:'SELIC',v:'14.25%',d:'Ciclo alta',c:'nt'},{l:'IPCA 12M',v:'5.06%',d:'Acima meta',c:'dn'},{l:'PIB 2025',v:'+3.2%',d:'Revisão ↑',c:'up'},{l:'Risco País',v:'187 bps',d:'Estável',c:'nt'}];
+const mm=document.getElementById('macro-metrics');
+macros.forEach(m=>{mm.innerHTML+=`<div class="card"><div class="metric"><div class="metric-l">${m.l}</div><div class="metric-v ${m.c}">${m.v}</div><div class="metric-d" style="color:var(--t3)">${m.d}</div></div></div>`});
+
+// ===== NEWS =====
+const news=[
+{t:'18:08',txt:'BC mantém Selic em 14.25% e sinaliza mais uma alta de 50bps em maio',tag:'POLÍTICA MONETÁRIA'},
+{t:'18:02',txt:'CVM publica ofício circular sobre nova regulamentação de FIDCs — prazo de adequação 90 dias',tag:'REGULATÓRIO'},
+{t:'17:55',txt:'FIDC Agro Capital I supera R$500M em AUM — 3º maior do segmento',tag:'FUNDOS'},
+{t:'17:48',txt:'Petrobras anuncia reajuste de +4.2% no diesel — impacto em transportadoras cedentes',tag:'CORPORATIVO'},
+{t:'17:41',txt:'S&P eleva rating de 3 FIDCs do segmento imobiliário para brAA+',tag:'RATING'},
+{t:'17:35',txt:'Volume de emissões de FIDC atinge R$42B no trimestre — alta de 28% YoY',tag:'MERCADO'},
+{t:'17:28',txt:'Dólar fecha a R$5.26 com fluxo estrangeiro positivo — 5ª sessão consecutiva',tag:'CÂMBIO'},
+{t:'17:20',txt:'Inadimplência de recebíveis comerciais cai para 3.2% em fevereiro — mínima em 18 meses',tag:'CRÉDITO'},
+];
+const nf=document.getElementById('news-feed');
+news.forEach(n=>{nf.innerHTML+=`<div class="news-item"><div class="news-time">${n.t}</div><div class="news-text">${n.txt}</div><div class="news-tag">${n.tag}</div></div>`});
+
+// ===== FUND TABLE =====
+const funds=[
+{n:'FIDC Mercantis III',t:'FIDC',a:'1.230',r:'+18.4%',s:'1.42',sc:82,cls:'up'},
+{n:'FIDC Agro Capital I',t:'FIDC',a:'502',r:'+16.8%',s:'1.28',sc:78,cls:'up'},
+{n:'FIDC Credit Premium',t:'FIDC',a:'347',r:'+15.2%',s:'0.95',sc:65,cls:'up'},
+{n:'FIM Alpha Quant',t:'FIM',a:'890',r:'+22.1%',s:'1.67',sc:88,cls:'up'},
+{n:'FIDC Industrial Plus',t:'FIDC',a:'215',r:'+14.1%',s:'0.82',sc:58,cls:'up'},
+{n:'FIA Tech Growth',t:'FIA',a:'1.450',r:'-3.2%',s:'-0.21',sc:42,cls:'dn'},
+{n:'FIDC Consig Federal',t:'FIDC',a:'3.200',r:'+13.9%',s:'1.89',sc:91,cls:'up'},
+{n:'RF Tesouro Select',t:'RF',a:'780',r:'+12.8%',s:'2.10',sc:95,cls:'up'},
+];
+const ftb=document.getElementById('fund-table');
+funds.forEach(f=>{
+const badge=f.sc>=80?'badge-ok':f.sc>=60?'badge-warn':'badge-ng';
+ftb.innerHTML+=`<tr><td style="font-weight:500">${f.n}</td><td><span class="badge badge-gold">${f.t}</span></td><td class="mono">${f.a}</td><td class="mono ${f.cls}">${f.r}</td><td class="mono">${f.s}</td><td><span class="badge ${badge}">${f.sc}</span></td></tr>`});
+
+// ===== FUND CHART =====
+(()=>{const w=document.getElementById('fund-chart').clientWidth||500,h=250;
+const svg=d3.select('#fund-chart').append('svg').attr('viewBox',`0 0 ${w} ${h}`).style('width','100%');
+const pts=24;const fund=[];const cdi=[];let fv=100,cv=100;
+for(let i=0;i<pts;i++){fv*=1+(Math.random()*0.03-0.005);cv*=1.012;fund.push(fv);cdi.push(cv)}
+const x=d3.scaleLinear().domain([0,pts-1]).range([40,w-10]);
+const y=d3.scaleLinear().domain([95,d3.max(fund)*1.02]).range([h-20,10]);
+svg.append('path').datum(cdi).attr('d',d3.line().x((_,i)=>x(i)).y(d=>y(d)).curve(d3.curveMonotoneX)).attr('fill','none').attr('stroke','#6b6358').attr('stroke-width',1.5).attr('stroke-dasharray','4,4');
+svg.append('path').datum(fund).attr('d',d3.line().x((_,i)=>x(i)).y(d=>y(d)).curve(d3.curveMonotoneX)).attr('fill','none').attr('stroke','#c9a84c').attr('stroke-width',2);
+svg.append('text').attr('x',w-50).attr('y',y(fund[pts-1])-8).text('Fundo').style('fill','#c9a84c').style('font-size','10px').style('font-family','IBM Plex Mono');
+svg.append('text').attr('x',w-40).attr('y',y(cdi[pts-1])-8).text('CDI').style('fill','#6b6358').style('font-size','10px').style('font-family','IBM Plex Mono')})();
+
+// ===== DONUT =====
+(()=>{const w=200,h=200,r=70;
+const svg=d3.select('#donut-chart').append('svg').attr('viewBox',`0 0 ${w} ${h}`).style('width','100%');
+const data=[{l:'Comercial',v:35},{l:'Industrial',v:25},{l:'Consignado',v:20},{l:'Imobiliário',v:12},{l:'Outros',v:8}];
+const color=['#c9a84c','#5b8ec9','#5a9e5c','#c98a3d','#6b6358'];
+const pie=d3.pie().value(d=>d.v).sort(null);
+const arc=d3.arc().innerRadius(r*0.6).outerRadius(r);
+const g=svg.append('g').attr('transform',`translate(${w/2},${h/2})`);
+g.selectAll('path').data(pie(data)).join('path').attr('d',arc).attr('fill',(_,i)=>color[i]).attr('stroke',getComputedStyle(document.body).getPropertyValue('--s1')).attr('stroke-width',2);
+data.forEach((d,i)=>{const a=pie(data)[i];const[cx,cy]=d3.arc().innerRadius(r*0.85).outerRadius(r*0.85).centroid(a);
+g.append('text').attr('x',cx).attr('y',cy).text(d.v+'%').style('fill','#e8e4de').style('font-size','9px').style('font-family','IBM Plex Mono').style('text-anchor','middle')})})();
+
+// ===== GRAPH (lazy) =====
+function buildGraph(){
+window._graphDone=true;
+const w=document.getElementById('graph-container').clientWidth,h=450;
+const svg=d3.select('#graph-container').append('svg').attr('width',w).attr('height',h);
+const types={fund:'#5a9e5c',cedente:'#5b8ec9',devedor:'#c98a3d',setor:'#c9a84c',risco:'#c45141'};
+const nodes=[];const links=[];
+['FIDC Mercantis III','FIDC Agro Cap','FIDC Credit Prem','FIDC Industrial','FIDC Consig'].forEach((n,i)=>nodes.push({id:n,type:'fund',r:12}));
+['Alfa Corp','Beta Ind','Gama Serv','Delta Com','Epsilon Log','Zeta Agro','Eta Tech','Theta Fin'].forEach(n=>nodes.push({id:n,type:'cedente',r:8}));
+['Varejo','Industrial','Agro','Serviços','Logística','Tech'].forEach(n=>nodes.push({id:n,type:'setor',r:10}));
+['Risco PLD #847','Concentração Alta'].forEach(n=>nodes.push({id:n,type:'risco',r:7}));
+// Links
+[['FIDC Mercantis III','Alfa Corp'],['FIDC Mercantis III','Beta Ind'],['FIDC Mercantis III','Gama Serv'],
+['FIDC Agro Cap','Zeta Agro'],['FIDC Agro Cap','Delta Com'],['FIDC Credit Prem','Epsilon Log'],
+['FIDC Industrial','Beta Ind'],['FIDC Industrial','Eta Tech'],['FIDC Consig','Theta Fin'],
+['Alfa Corp','Varejo'],['Beta Ind','Industrial'],['Zeta Agro','Agro'],['Gama Serv','Serviços'],
+['Epsilon Log','Logística'],['Eta Tech','Tech'],['Delta Com','Varejo'],
+['Alfa Corp','Risco PLD #847'],['FIDC Mercantis III','Concentração Alta'],
+['Beta Ind','FIDC Mercantis III']].forEach(([s,t])=>links.push({source:s,target:t}));
+
+const sim=d3.forceSimulation(nodes)
+.force('link',d3.forceLink(links).id(d=>d.id).distance(80))
+.force('charge',d3.forceManyBody().strength(-200))
+.force('center',d3.forceCenter(w/2,h/2))
+.force('collision',d3.forceCollide().radius(d=>d.r+5));
+
+const link=svg.append('g').selectAll('line').data(links).join('line')
+.attr('stroke','#332f2a').attr('stroke-width',1.5).attr('stroke-opacity',0.6);
+const node=svg.append('g').selectAll('circle').data(nodes).join('circle')
+.attr('r',d=>d.r).attr('fill',d=>types[d.type]).attr('stroke','#0f0e0d').attr('stroke-width',1.5)
+.call(d3.drag().on('start',(e,d)=>{if(!e.active)sim.alphaTarget(0.3).restart();d.fx=d.x;d.fy=d.y})
+.on('drag',(e,d)=>{d.fx=e.x;d.fy=e.y}).on('end',(e,d)=>{if(!e.active)sim.alphaTarget(0);d.fx=null;d.fy=null}));
+const label=svg.append('g').selectAll('text').data(nodes).join('text')
+.text(d=>d.id).attr('font-size',9).attr('fill','#a09888').attr('font-family','IBM Plex Mono')
+.attr('dx',d=>d.r+4).attr('dy',3);
+sim.on('tick',()=>{link.attr('x1',d=>d.source.x).attr('y1',d=>d.source.y).attr('x2',d=>d.target.x).attr('y2',d=>d.target.y);
+node.attr('cx',d=>d.x).attr('cy',d=>d.y);label.attr('x',d=>d.x).attr('y',d=>d.y)})}
+
+// ===== QUANT (lazy) =====
+function buildQuant(){
+window._quantDone=true;
+// Heatmap
+const assets=['IBOV','PETR4','VALE3','ITUB4','BBDC4','WEGE3','RENT3','JBSS3','ABEV3','B3SA3','SUZB3','RAIL3','ELET3','CSAN3','PRIO3'];
+const n=assets.length;const hmEl=document.getElementById('heatmap');
+const sz=Math.min(hmEl.clientWidth||380,380);const cell=sz/(n+2);
+const svg=d3.select('#heatmap').append('svg').attr('viewBox',`0 0 ${sz} ${sz}`).style('width','100%');
+const clr=d3.scaleSequential(d3.interpolateRdYlGn).domain([-1,1]);
+for(let i=0;i<n;i++)for(let j=0;j<n;j++){
+const v=i===j?1:Math.round((Math.random()*2-1)*100)/100*(i===j?1:Math.abs(i-j)<3?0.7:0.3);
+svg.append('rect').attr('x',(j+1.5)*cell).attr('y',(i+1.5)*cell).attr('width',cell-1).attr('height',cell-1).attr('fill',clr(v)).attr('rx',1).style('opacity',0.85)}
+assets.forEach((a,i)=>{
+svg.append('text').attr('x',(i+2)*cell).attr('y',1.3*cell).text(a).attr('text-anchor','middle').style('font-size','7px').style('fill','#6b6358').style('font-family','IBM Plex Mono').attr('transform',`rotate(-45,${(i+2)*cell},${1.3*cell})`);
+svg.append('text').attr('x',1.3*cell).attr('y',(i+2.1)*cell).text(a).attr('text-anchor','end').style('font-size','7px').style('fill','#6b6358').style('font-family','IBM Plex Mono')});
+
+// Scatter
+const scEl=document.getElementById('scatter');const sw=scEl.clientWidth||400,sh=380;
+const ssvg=d3.select('#scatter').append('svg').attr('viewBox',`0 0 ${sw} ${sh}`).style('width','100%');
+const scData=assets.map(a=>({name:a,risk:Math.random()*30+5,ret:Math.random()*40-5}));
+const sx=d3.scaleLinear().domain([0,40]).range([50,sw-20]);
+const sy=d3.scaleLinear().domain([-10,40]).range([sh-30,20]);
+ssvg.append('g').attr('transform',`translate(0,${sh-30})`).call(d3.axisBottom(sx).ticks(5)).selectAll('text,line,path').style('stroke','#332f2a').style('fill','#6b6358').style('font-size','9px');
+ssvg.append('g').attr('transform','translate(50,0)').call(d3.axisLeft(sy).ticks(5)).selectAll('text,line,path').style('stroke','#332f2a').style('fill','#6b6358').style('font-size','9px');
+ssvg.selectAll('circle').data(scData).join('circle').attr('cx',d=>sx(d.risk)).attr('cy',d=>sy(d.ret)).attr('r',5).attr('fill','#c9a84c').attr('fill-opacity',0.7).attr('stroke','#c9a84c').attr('stroke-width',1);
+ssvg.selectAll('.lbl').data(scData).join('text').attr('x',d=>sx(d.risk)+8).attr('y',d=>sy(d.ret)+3).text(d=>d.name).style('font-size','8px').style('fill','#a09888').style('font-family','IBM Plex Mono');
+ssvg.append('text').attr('x',sw/2).attr('y',sh-5).text('Risco (σ %)').style('fill','#6b6358').style('font-size','10px').style('text-anchor','middle').style('font-family','IBM Plex Mono');
+ssvg.append('text').attr('x',12).attr('y',sh/2).text('Retorno (%)').style('fill','#6b6358').style('font-size','10px').style('text-anchor','middle').style('font-family','IBM Plex Mono').attr('transform',`rotate(-90,12,${sh/2})`);
+
+// Multi chart
+const mcEl=document.getElementById('multi-chart');const mw=mcEl.clientWidth||800,mh=300;
+const msvg=d3.select('#multi-chart').append('svg').attr('viewBox',`0 0 ${mw} ${mh}`).style('width','100%');
+const pts=48;const mx=d3.scaleLinear().domain([0,pts-1]).range([50,mw-20]);
+const series=[{n:'IBOV',c:'#c9a84c'},{n:'PETR4',c:'#5a9e5c'},{n:'VALE3',c:'#5b8ec9'}];
+const my=d3.scaleLinear().domain([60,160]).range([mh-30,20]);
+series.forEach(s=>{const d=[];let v=100;for(let i=0;i<pts;i++){v*=1+(Math.random()*0.06-0.025);d.push(v)}
+msvg.append('path').datum(d).attr('d',d3.line().x((_,i)=>mx(i)).y(d=>my(d)).curve(d3.curveMonotoneX)).attr('fill','none').attr('stroke',s.c).attr('stroke-width',1.8);
+msvg.append('text').attr('x',mw-15).attr('y',my(d[pts-1])).text(s.n).style('fill',s.c).style('font-size','9px').style('font-family','IBM Plex Mono').style('text-anchor','end')});
+// SELIC overlay
+[{x:12,r:'11.75%'},{x:24,r:'13.25%'},{x:36,r:'14.25%'}].forEach(s=>{
+msvg.append('line').attr('x1',mx(s.x)).attr('x2',mx(s.x)).attr('y1',20).attr('y2',mh-30).attr('stroke','#c45141').attr('stroke-width',1).attr('stroke-dasharray','3,3').attr('opacity',0.5);
+msvg.append('text').attr('x',mx(s.x)+4).attr('y',16).text('SELIC '+s.r).style('fill','#c45141').style('font-size','8px').style('font-family','IBM Plex Mono')})}
+</script>
+</body>
+</html>
