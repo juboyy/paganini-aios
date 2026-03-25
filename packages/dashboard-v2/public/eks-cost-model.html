@@ -1,0 +1,326 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Paganini AIOS — EKS Architecture & Cost Model</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0a0a0f;--s1:#111118;--s2:#1a1a24;--s3:#222233;--brd:#2a2a3a;--t1:#f0f0f5;--t2:#a0a0b5;--t3:#6a6a80;
+--ok:#22c55e;--ng:#ef4444;--acc:#3b82f6;--gold:#f59e0b;--purple:#a855f7;--teal:#14b8a6;--orange:#f97316;--cyan:#06b6d4}
+body{background:var(--bg);color:var(--t1);font-family:'Inter',sans-serif;line-height:1.6;font-size:14px}
+.wrap{max-width:1200px;margin:0 auto;padding:20px}
+.hero{padding:40px 0 24px;border-bottom:1px solid var(--brd)}
+.hero-tag{font-family:'JetBrains Mono';font-size:11px;color:var(--gold);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px}
+.hero h1{font-family:'Instrument Serif';font-size:clamp(24px,4.5vw,40px);font-weight:400;line-height:1.15;margin-bottom:8px}
+.hero h1 span{color:var(--gold)}
+.hero-sub{font-size:13px;color:var(--t2)}
+.big{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin:20px 0}
+.bc{background:var(--s1);border:1px solid var(--brd);border-radius:12px;padding:16px;text-align:center}
+.bc-l{font-size:10px;color:var(--t3);font-family:'JetBrains Mono';letter-spacing:1px;margin-bottom:4px}
+.bc-v{font-size:24px;font-weight:700;font-family:'JetBrains Mono';color:var(--gold)}
+.bc-s{font-size:11px;color:var(--t2);margin-top:2px}
+.bc.accent .bc-v{color:var(--ok)}.bc.warn .bc-v{color:var(--ng)}.bc.info .bc-v{color:var(--acc)}
+.sec{margin:20px 0;background:var(--s1);border:1px solid var(--brd);border-radius:12px;padding:20px}
+.sec-t{font-family:'Instrument Serif';font-size:20px;margin-bottom:4px}
+.sec-sub{font-size:12px;color:var(--t3);margin-bottom:14px}
+.ct{width:100%;border-collapse:collapse;font-size:13px}
+.ct th{text-align:left;font-family:'JetBrains Mono';font-size:10px;color:var(--t3);letter-spacing:1px;padding:8px;border-bottom:1px solid var(--brd)}
+.ct td{padding:8px;border-bottom:1px solid rgba(42,42,58,0.4)}
+.ct td:last-child,.ct td.num{font-family:'JetBrains Mono';font-weight:600;text-align:right;white-space:nowrap}
+.ct td.desc{font-size:11px;color:var(--t3)}
+.ct tr:hover td{background:rgba(255,255,255,0.015)}
+.ct .cat{background:var(--s2);font-weight:600;font-size:11px;color:var(--acc)}
+.ct .subtotal td{border-top:2px solid var(--brd);font-weight:700;color:var(--gold)}
+.ct .grand td{border-top:3px solid var(--gold);font-weight:800;color:var(--gold);font-size:15px}
+.arch{background:var(--s2);border:1px solid var(--brd);border-radius:8px;padding:16px;font-family:'JetBrains Mono';font-size:11px;line-height:1.8;white-space:pre;overflow-x:auto;color:var(--t2);margin:12px 0}
+.arch .h{color:var(--gold)}.arch .c{color:var(--acc)}.arch .g{color:var(--ok)}.arch .r{color:var(--ng)}.arch .p{color:var(--purple)}.arch .t{color:var(--teal)}.arch .o{color:var(--orange)}
+.insight{background:var(--s2);border-left:3px solid var(--acc);padding:12px 16px;border-radius:0 8px 8px 0;margin:14px 0;font-size:13px;color:var(--t2)}
+.insight strong{color:var(--t1)}
+.insight.warn{border-left-color:var(--ng)}.insight.ok{border-left-color:var(--ok)}.insight.gold{border-left-color:var(--gold)}
+.tag{display:inline-block;padding:2px 6px;border-radius:4px;font-size:9px;font-family:'JetBrains Mono';margin-left:4px}
+.tag-fix{background:rgba(59,130,246,0.15);color:var(--acc)}
+.tag-var{background:rgba(168,85,247,0.15);color:var(--purple)}
+.tag-opt{background:rgba(34,197,94,0.15);color:var(--ok)}
+.tier-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:12px;margin:14px 0}
+.tier{background:var(--s2);border:1px solid var(--brd);border-radius:10px;padding:16px;position:relative}
+.tier.recommended{border-color:var(--gold)}
+.tier.recommended::before{content:'RECOMENDADO';position:absolute;top:-8px;right:12px;background:var(--gold);color:var(--bg);font-family:'JetBrains Mono';font-size:9px;padding:2px 8px;border-radius:4px;letter-spacing:1px}
+.tier-name{font-size:16px;font-weight:700;margin-bottom:2px}
+.tier-price{font-family:'JetBrains Mono';font-size:22px;color:var(--gold);margin-bottom:8px}
+.tier-items{font-size:12px;color:var(--t2);line-height:1.8}
+.tier-items li{list-style:none;padding-left:16px;position:relative}
+.tier-items li::before{content:'→';position:absolute;left:0;color:var(--t3)}
+h2{font-family:'Instrument Serif';font-size:22px;margin:28px 0 12px;padding-top:20px;border-top:1px solid var(--brd)}
+h3{font-size:14px;font-weight:600;margin:16px 0 8px;color:var(--acc)}
+@media(max-width:600px){.wrap{padding:12px}.big{grid-template-columns:repeat(2,1fr)}.tier-grid{grid-template-columns:1fr}.arch{font-size:9px}}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="hero">
+<div class="hero-tag">Paganini AIOS • Enterprise Deployment Plan</div>
+<h1>EKS Architecture <span>& Cost Model</span></h1>
+<div class="hero-sub">Plano de infraestrutura para POC no ambiente do cliente · Março 2026 · sa-east-1</div>
+</div>
+
+<div class="big">
+<div class="bc info"><div class="bc-l">INFRA BASE</div><div class="bc-v">$487</div><div class="bc-s">/mês · EKS + RDS + ALB</div></div>
+<div class="bc"><div class="bc-l">LLM / 1K TASKS</div><div class="bc-v">$38</div><div class="bc-s">Gemini Flash routing</div></div>
+<div class="bc accent"><div class="bc-l">CUSTO POR TAREFA</div><div class="bc-v">$0.038</div><div class="bc-s">avg 5K tokens/task</div></div>
+<div class="bc warn"><div class="bc-l">POC MENSAL</div><div class="bc-v">$625</div><div class="bc-s">infra + 5K tasks/mês</div></div>
+<div class="bc"><div class="bc-l">PROD MENSAL</div><div class="bc-v">$1.250</div><div class="bc-s">HA + 50K tasks/mês</div></div>
+</div>
+
+<!-- ARCHITECTURE -->
+<h2>1. Arquitetura EKS</h2>
+
+<div class="arch"><span class="h">┌──────────────────────────────────────────────────────────────────┐</span>
+<span class="h">│                        AWS EKS CLUSTER                          │</span>
+<span class="h">│                      (sa-east-1, K8s 1.31)                      │</span>
+<span class="h">└──────────────────────────────────────────────────────────────────┘</span>
+
+<span class="c">    ┌─────────┐     ┌──────────────────────────────────────────┐</span>
+<span class="c">    │   ALB   │────▶│           INGRESS CONTROLLER              │</span>
+<span class="c">    │ (HTTPS) │     │         (nginx / AWS LB Controller)       │</span>
+<span class="c">    └─────────┘     └──────────────────────────────────────────┘</span>
+                              │              │             │
+<span class="g">         ┌────────────────────┼──────────────┼─────────────┼─────────────┐</span>
+<span class="g">         │              NODE GROUP (t3.medium × 2, multi-AZ)           │</span>
+<span class="g">         │                                                             │</span>
+<span class="g">         │  ┌──────────────┐ ┌──────────────┐ ┌──────────────────────┐ │</span>
+<span class="g">         │  │</span><span class="o"> paganini-api </span><span class="g">│ │</span><span class="p"> cognitive    </span><span class="g">│ │</span><span class="t"> hybrid-rag             </span><span class="g">│ │</span>
+<span class="g">         │  │</span><span class="o"> (FastAPI)    </span><span class="g">│ │</span><span class="p"> router       </span><span class="g">│ │</span><span class="t"> (dense+sparse+graph)   </span><span class="g">│ │</span>
+<span class="g">         │  │</span><span class="o"> replicas: 2  </span><span class="g">│ │</span><span class="p"> replicas: 2  </span><span class="g">│ │</span><span class="t"> replicas: 1            </span><span class="g">│ │</span>
+<span class="g">         │  └──────────────┘ └──────────────┘ └──────────────────────┘ │</span>
+<span class="g">         │                                                             │</span>
+<span class="g">         │  ┌──────────────┐ ┌──────────────┐ ┌──────────────────────┐ │</span>
+<span class="g">         │  │</span><span class="r"> 9 FIDC       </span><span class="g">│ │</span><span class="c"> 6 guardrail  </span><span class="g">│ │</span><span class="h"> metaclaw proxy         </span><span class="g">│ │</span>
+<span class="g">         │  │</span><span class="r"> agents       </span><span class="g">│ │</span><span class="c"> gates        </span><span class="g">│ │</span><span class="h"> (LLM routing)          </span><span class="g">│ │</span>
+<span class="g">         │  │</span><span class="r"> (workers)    </span><span class="g">│ │</span><span class="c"> (pipeline)   </span><span class="g">│ │</span><span class="h"> BYOK: client API keys  </span><span class="g">│ │</span>
+<span class="g">         │  └──────────────┘ └──────────────┘ └──────────────────────┘ │</span>
+<span class="g">         └─────────────────────────────────────────────────────────────┘</span>
+
+<span class="p">         ┌─────────────────────────────────────────────────────────────┐</span>
+<span class="p">         │                    MANAGED SERVICES                         │</span>
+<span class="p">         │  ┌──────────────┐ ┌──────────────┐ ┌──────────────────────┐ │</span>
+<span class="p">         │  │</span> RDS Postgres <span class="p">│ │</span> S3 (corpus)  <span class="p">│ │</span> CloudWatch + Alerts  <span class="p">│ │</span>
+<span class="p">         │  │</span> + pgvector   <span class="p">│ │</span> + backups    <span class="p">│ │</span> + X-Ray tracing      <span class="p">│ │</span>
+<span class="p">         │  │</span> db.t3.medium <span class="p">│ │</span> lifecycle    <span class="p">│ │</span> + billing alarms     <span class="p">│ │</span>
+<span class="p">         │  └──────────────┘ └──────────────┘ └──────────────────────┘ │</span>
+<span class="p">         └─────────────────────────────────────────────────────────────┘</span>
+
+<span class="h">         ┌─────────────────────────────────────────────────────────────┐</span>
+<span class="h">         │                    EXTERNAL APIS (BYOK)                      │</span>
+<span class="h">         │  Claude Sonnet │ GPT-4o │ Gemini Flash │ Client's choice    │</span>
+<span class="h">         └─────────────────────────────────────────────────────────────┘</span></div>
+
+<!-- INFRASTRUCTURE COSTS -->
+<h2>2. Custos de Infraestrutura (Fixo Mensal)</h2>
+
+<div class="sec">
+<div class="sec-t">EKS Cluster — POC (Single-AZ, mínimo viável)</div>
+<div class="sec-sub">Suficiente para POC com 1-10 usuários simultâneos</div>
+<table class="ct">
+<tr><th>COMPONENTE</th><th>SPEC</th><th>$/HORA</th><th>$/MÊS</th></tr>
+<tr class="cat"><td colspan="4">🎛 Control Plane</td></tr>
+<tr><td>EKS Control Plane <span class="tag tag-fix">FIXO</span></td><td class="desc">Managed K8s API server, etcd. Standard support.</td><td class="num">$0.10</td><td class="num">$72</td></tr>
+<tr class="cat"><td colspan="4">🖥 Compute (Node Group)</td></tr>
+<tr><td>EC2 t3.medium × 2 <span class="tag tag-fix">FIXO</span></td><td class="desc">2 vCPU, 4GB cada. Multi-AZ. On-Demand.</td><td class="num">$0.083</td><td class="num">$60</td></tr>
+<tr><td>EBS gp3 50GB × 2 <span class="tag tag-fix">FIXO</span></td><td class="desc">Root volumes dos nodes.</td><td class="num">—</td><td class="num">$8</td></tr>
+<tr class="cat"><td colspan="4">🗄 Database</td></tr>
+<tr><td>RDS PostgreSQL + pgvector <span class="tag tag-fix">FIXO</span></td><td class="desc">db.t3.medium, 2 vCPU, 4GB. Single-AZ para POC. 50GB gp3.</td><td class="num">$0.072</td><td class="num">$58</td></tr>
+<tr><td>RDS Storage 50GB gp3 <span class="tag tag-fix">FIXO</span></td><td class="desc">Corpus embeddings + agent state + audit logs.</td><td class="num">—</td><td class="num">$6</td></tr>
+<tr class="cat"><td colspan="4">🌐 Networking</td></tr>
+<tr><td>ALB (Application Load Balancer) <span class="tag tag-fix">FIXO</span></td><td class="desc">HTTPS termination, path routing, health checks.</td><td class="num">$0.023</td><td class="num">$22</td></tr>
+<tr><td>NAT Gateway × 1 <span class="tag tag-fix">FIXO</span></td><td class="desc">Single-AZ para POC. Outbound para LLM APIs.</td><td class="num">$0.045</td><td class="num">$37</td></tr>
+<tr><td>NAT Data Processing <span class="tag tag-var">VARIÁVEL</span></td><td class="desc">~200GB/mês (LLM API calls, updates).</td><td class="num">—</td><td class="num">$9</td></tr>
+<tr><td>Public IPv4 × 2 <span class="tag tag-fix">FIXO</span></td><td class="desc">ALB + NAT Gateway.</td><td class="num">$0.01</td><td class="num">$7</td></tr>
+<tr class="cat"><td colspan="4">📦 Storage & Monitoring</td></tr>
+<tr><td>S3 (corpus + backups) <span class="tag tag-var">VARIÁVEL</span></td><td class="desc">~10GB corpus docs + daily DB snapshots.</td><td class="num">—</td><td class="num">$3</td></tr>
+<tr><td>CloudWatch <span class="tag tag-var">VARIÁVEL</span></td><td class="desc">Logs, métricas, alarms. Basic tier.</td><td class="num">—</td><td class="num">$15</td></tr>
+<tr><td>ECR (Container Registry) <span class="tag tag-fix">FIXO</span></td><td class="desc">~5GB de imagens Docker.</td><td class="num">—</td><td class="num">$1</td></tr>
+<tr class="subtotal"><td colspan="3">SUBTOTAL INFRA (POC)</td><td class="num">$298</td></tr>
+</table>
+</div>
+
+<div class="sec">
+<div class="sec-t">Produção (Multi-AZ, HA)</div>
+<div class="sec-sub">Para ambiente de produção com SLA 99.9%</div>
+<table class="ct">
+<tr><th>UPGRADE</th><th>SPEC</th><th>DELTA/MÊS</th><th>NOVO TOTAL</th></tr>
+<tr><td>Node Group → 3 nodes</td><td class="desc">3× t3.medium cross-AZ para HA real.</td><td class="num">+$30</td><td class="num">$90</td></tr>
+<tr><td>RDS Multi-AZ</td><td class="desc">Standby automático, failover em ~60s.</td><td class="num">+$58</td><td class="num">$116</td></tr>
+<tr><td>NAT Gateway × 2</td><td class="desc">Um por AZ para HA de networking.</td><td class="num">+$37</td><td class="num">$74</td></tr>
+<tr><td>WAF (Web Application Firewall)</td><td class="desc">Proteção contra DDoS, injection, bot.</td><td class="num">+$10</td><td class="num">$10</td></tr>
+<tr><td>Secrets Manager</td><td class="desc">API keys, DB credentials. Rotação automática.</td><td class="num">+$5</td><td class="num">$5</td></tr>
+<tr class="subtotal"><td colspan="2">SUBTOTAL PROD (INFRA)</td><td class="num">+$140</td><td class="num">$438</td></tr>
+</table>
+</div>
+
+<!-- LLM COST MODEL -->
+<h2>3. Custo por Token × Tarefa (LLM)</h2>
+
+<div class="insight gold">
+<strong>Modelo BYOK (Bring Your Own Key):</strong> O cliente traz suas próprias API keys. 
+O custo LLM é do cliente, não nosso. Mas precisamos precificar como se fosse nosso para 
+a proposta de "managed service" — onde incluímos a inteligência no preço.
+</div>
+
+<div class="sec">
+<div class="sec-t">Tabela de Preços por Modelo (API)</div>
+<div class="sec-sub">Custo real por 1M tokens · Março 2026</div>
+<table class="ct">
+<tr><th>MODELO</th><th>INPUT/1M</th><th>OUTPUT/1M</th><th>CUSTO/TASK*</th><th>USO IDEAL</th></tr>
+<tr><td>Gemini 2.5 Flash <span class="tag tag-opt">MELHOR CUSTO</span></td><td class="num">$0.30</td><td class="num">$2.50</td><td class="num">$0.004</td><td class="desc">Routing, classificação, guardrails, RAG retrieval</td></tr>
+<tr><td>GPT-4o mini</td><td class="num">$0.15</td><td class="num">$0.60</td><td class="num">$0.001</td><td class="desc">Triagem, formatação, extração simples</td></tr>
+<tr><td>Claude Sonnet 4.6</td><td class="num">$3.00</td><td class="num">$15.00</td><td class="num">$0.038</td><td class="desc">Análise FIDC complexa, due diligence, compliance</td></tr>
+<tr><td>GPT-4o</td><td class="num">$2.50</td><td class="num">$10.00</td><td class="num">$0.028</td><td class="desc">Análise de documentos, relatórios, decisões</td></tr>
+<tr><td>Claude Opus 4.6</td><td class="num">$5.00</td><td class="num">$25.00</td><td class="num">$0.065</td><td class="desc">Decisões críticas, auditoria, regulatório</td></tr>
+</table>
+<div style="font-size:11px;color:var(--t3);margin-top:8px">* Task média = 3K input tokens + 2K output tokens (5K total por tarefa)</div>
+</div>
+
+<div class="sec">
+<div class="sec-t">Anatomia de uma Tarefa FIDC</div>
+<div class="sec-sub">Tokens consumidos por operação típica</div>
+<table class="ct">
+<tr><th>OPERAÇÃO</th><th>INPUT (tokens)</th><th>OUTPUT (tokens)</th><th>MODELO</th><th>CUSTO (Sonnet)</th></tr>
+<tr><td>Ingestão de documento (RAG)</td><td class="num">8,000</td><td class="num">500</td><td class="desc">Gemini Flash</td><td class="num">$0.004</td></tr>
+<tr><td>Classificação de risco</td><td class="num">2,000</td><td class="num">1,500</td><td class="desc">Sonnet</td><td class="num">$0.029</td></tr>
+<tr><td>Eligibility check (guardrail 1)</td><td class="num">1,500</td><td class="num">800</td><td class="desc">Flash</td><td class="num">$0.002</td></tr>
+<tr><td>Concentration analysis (guardrail 2)</td><td class="num">3,000</td><td class="num">1,200</td><td class="desc">Sonnet</td><td class="num">$0.027</td></tr>
+<tr><td>PLD/AML screening (guardrail 4)</td><td class="num">4,000</td><td class="num">2,000</td><td class="desc">Sonnet</td><td class="num">$0.042</td></tr>
+<tr><td>Due Diligence completa</td><td class="num">15,000</td><td class="num">5,000</td><td class="desc">Opus</td><td class="num">$0.200</td></tr>
+<tr><td>Relatório de compliance</td><td class="num">10,000</td><td class="num">8,000</td><td class="desc">Sonnet</td><td class="num">$0.150</td></tr>
+<tr class="subtotal"><td>PIPELINE COMPLETO (1 operação)</td><td class="num">43,500</td><td class="num">19,000</td><td></td><td class="num">$0.454</td></tr>
+</table>
+</div>
+
+<div class="sec">
+<div class="sec-t">Smart Routing — Redução de Custo por Tarefa</div>
+<div class="sec-sub">MetaClaw Cognitive Router otimiza modelo por complexidade</div>
+<table class="ct">
+<tr><th>CENÁRIO</th><th>MODELO ÚNICO (SONNET)</th><th>SMART ROUTING</th><th>SAVING</th></tr>
+<tr><td>Pipeline FIDC (1 operação)</td><td class="num">$0.454</td><td class="num">$0.186</td><td class="num">-59%</td></tr>
+<tr><td>1.000 operações/mês</td><td class="num">$454</td><td class="num">$186</td><td class="num">-$268</td></tr>
+<tr><td>10.000 operações/mês</td><td class="num">$4,540</td><td class="num">$1,860</td><td class="num">-$2,680</td></tr>
+</table>
+<div style="font-size:11px;color:var(--t3);margin-top:8px">Smart routing: Flash para triagem/guardrails simples (60% das tasks), Sonnet para análise (35%), Opus apenas para decisões críticas (5%)</div>
+</div>
+
+<!-- SCALING SCENARIOS -->
+<h2>4. Cenários de Escala</h2>
+
+<div class="tier-grid">
+<div class="tier">
+<div class="tier-name">🧪 POC</div>
+<div class="tier-price">$625/mês</div>
+<ul class="tier-items">
+<li>1 fundo, 5 usuários</li>
+<li>5.000 tasks/mês</li>
+<li>EKS single-AZ (2 nodes)</li>
+<li>RDS single-AZ</li>
+<li>Smart routing (Flash + Sonnet)</li>
+<li>Infra: $298 + LLM: $186 + margem: $141</li>
+<li>SLA: 99% (melhor esforço)</li>
+</ul>
+</div>
+
+<div class="tier recommended">
+<div class="tier-name">🏢 Produção</div>
+<div class="tier-price">$2.500/mês</div>
+<ul class="tier-items">
+<li>3-5 fundos, 20 usuários</li>
+<li>25.000 tasks/mês</li>
+<li>EKS multi-AZ (3 nodes) + HPA</li>
+<li>RDS Multi-AZ + daily snapshots</li>
+<li>WAF + Secrets Manager</li>
+<li>Infra: $438 + LLM: $930 + margem: $1,132</li>
+<li>SLA: 99.9%</li>
+</ul>
+</div>
+
+<div class="tier">
+<div class="tier-name">🏦 Enterprise</div>
+<div class="tier-price">$8.000+/mês</div>
+<ul class="tier-items">
+<li>10+ fundos, 50+ usuários</li>
+<li>100.000+ tasks/mês</li>
+<li>EKS com Karpenter (auto-scale)</li>
+<li>RDS r6g.xlarge + read replicas</li>
+<li>Dedicated VPC, PrivateLink</li>
+<li>Infra: $1,200+ LLM: $3,720+ custom</li>
+<li>SLA: 99.95% + suporte dedicado</li>
+</ul>
+</div>
+</div>
+
+<!-- COST PER TOKEN ANALYSIS -->
+<h2>5. Precificação para Venda</h2>
+
+<div class="sec">
+<div class="sec-t">Custo Real vs Preço de Venda</div>
+<div class="sec-sub">Margens mínimas recomendadas para sustentabilidade</div>
+<table class="ct">
+<tr><th>ITEM</th><th>CUSTO NOSSO</th><th>PREÇO VENDA</th><th>MARGEM</th></tr>
+<tr class="cat"><td colspan="4">📊 Por Operação FIDC (pipeline completo)</td></tr>
+<tr><td>Classificação de risco</td><td class="num">$0.029</td><td class="num">$0.15</td><td class="num">417%</td></tr>
+<tr><td>Guardrail check (cada gate)</td><td class="num">$0.004</td><td class="num">$0.05</td><td class="num">1150%</td></tr>
+<tr><td>Due Diligence completa</td><td class="num">$0.200</td><td class="num">$1.00</td><td class="num">400%</td></tr>
+<tr><td>Pipeline completo (smart routing)</td><td class="num">$0.186</td><td class="num">$0.80</td><td class="num">330%</td></tr>
+<tr class="cat"><td colspan="4">💼 Por Plano Mensal (infra + LLM inclusos)</td></tr>
+<tr><td>POC (5K tasks, 1 fundo)</td><td class="num">$484</td><td class="num">R$5.000</td><td class="num">96%</td></tr>
+<tr><td>Produção (25K tasks, 3-5 fundos)</td><td class="num">$1,368</td><td class="num">R$15.000</td><td class="num">109%</td></tr>
+<tr><td>Enterprise (100K tasks, 10+ fundos)</td><td class="num">$4,920</td><td class="num">R$50.000</td><td class="num">93%</td></tr>
+</table>
+</div>
+
+<div class="insight ok">
+<strong>Modelo de precificação recomendado: SaaS + usage.</strong><br>
+• <strong>Base mensal</strong> (infra + suporte + SLA): R$5.000-15.000/mês por fundo<br>
+• <strong>Usage</strong> (excedente): R$0.80-2.00 por operação FIDC acima da franquia<br>
+• <strong>BYOK discount</strong>: -30% se cliente trouxer próprias API keys<br>
+• <strong>Franquia inclusa</strong>: POC = 5K ops, Prod = 25K ops, Enterprise = 100K ops
+</div>
+
+<div class="insight warn">
+<strong>⚠ Custos ocultos a considerar no preço:</strong><br>
+• Suporte técnico (~20h/mês = R$5.000 em custo humano)<br>
+• Onboarding + customização de agentes (~40h one-time = R$10.000)<br>
+• Atualizações de compliance/regulatório (CVM, BCB) = contínuo<br>
+• Manutenção de corpus RAG (ingestão de novos docs) = contínuo<br>
+• Reserva para picos de uso (Black Friday de FIDCs = safra de duplicatas)
+</div>
+
+<!-- SUMMARY -->
+<h2>6. Resumo Executivo</h2>
+
+<div class="sec">
+<div class="sec-t">Composição do Custo Total — POC</div>
+<table class="ct">
+<tr><th>CAMADA</th><th>CUSTO/MÊS</th><th>%</th><th>NOTAS</th></tr>
+<tr><td>EKS Control Plane</td><td class="num">$72</td><td class="num">15%</td><td class="desc">Fixo, inevitável</td></tr>
+<tr><td>Compute (2× t3.medium)</td><td class="num">$68</td><td class="num">14%</td><td class="desc">Pode usar Spot para -60%</td></tr>
+<tr><td>Database (RDS pg + pgvector)</td><td class="num">$64</td><td class="num">13%</td><td class="desc">Single-AZ para POC</td></tr>
+<tr><td>Networking (ALB + NAT + IPs)</td><td class="num">$75</td><td class="num">15%</td><td class="desc">NAT é o vilão oculto</td></tr>
+<tr><td>Storage & Monitoring</td><td class="num">$19</td><td class="num">4%</td><td class="desc">S3 + CW + ECR</td></tr>
+<tr><td>LLM API (5K tasks, smart routing)</td><td class="num">$186</td><td class="num">38%</td><td class="desc">Gemini Flash + Sonnet mix</td></tr>
+<tr class="grand"><td>TOTAL POC</td><td class="num">$484</td><td class="num">100%</td><td class="desc">≈ R$2.545/mês @ 5.26</td></tr>
+</table>
+</div>
+
+<div class="insight gold">
+<strong>Conclusão:</strong> O custo base de rodar Paganini AIOS em EKS produção é <strong>~$500/mês</strong> (R$2.600). 
+O LLM é 38% — e escala linearmente com uso. Com smart routing (MetaClaw), 
+o custo por operação FIDC cai de $0.45 (modelo único) para <strong>$0.04-0.19</strong> (routing inteligente).<br><br>
+<strong>Para vender a R$8K/mês/fundo</strong> (plano Professional da proposta open-core), 
+o custo real é R$2.600-4.000. Margem de <strong>100-200%</strong>.<br><br>
+O EKS é mais caro que EC2 puro (~$300 de overhead por cluster), 
+mas entrega: auto-scaling, rolling deploys, health checks, HA, e — crucialmente — 
+<strong>isolamento por namespace</strong> (cada fundo do cliente roda isolado).
+</div>
+
+</div>
+</body></html>
