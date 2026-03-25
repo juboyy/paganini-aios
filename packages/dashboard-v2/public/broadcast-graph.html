@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Paganini · Broadcast Intelligence Graph</title>
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&family=Instrument+Serif&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#050709;--s1:rgba(255,255,255,0.02);--bd:rgba(255,255,255,0.04);--t1:#dddbd8;--t2:rgba(255,255,255,0.45);--t3:rgba(255,255,255,0.18);--ac:#6366f1;--m:'JetBrains Mono',monospace;--f:'Inter',system-ui;--s:'Instrument Serif',serif}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:var(--bg);color:var(--t1);font-family:var(--f);overflow:hidden;height:100vh;width:100vw}
+#graph{width:100vw;height:100vh}
+svg{width:100%;height:100%}
+
+.hero{position:fixed;top:0;left:0;right:0;z-index:10;padding:12px 16px;background:linear-gradient(to bottom,rgba(5,7,9,0.95),rgba(5,7,9,0.7),transparent);pointer-events:none}
+.hero-ey{font-family:var(--m);font-size:9px;color:var(--ac);text-transform:uppercase;letter-spacing:0.2em;margin-bottom:3px}
+.hero h1{font-family:var(--s);font-size:22px;line-height:1.1}
+.hero h1 em{color:var(--ac);font-style:italic}
+.hero-p{font-size:10px;color:var(--t2);margin-top:4px}
+
+.legend{position:fixed;bottom:12px;left:12px;z-index:10;display:flex;flex-wrap:wrap;gap:6px;pointer-events:none}
+.leg{display:flex;align-items:center;gap:4px;font-family:var(--m);font-size:8px;color:var(--t3);padding:3px 8px;background:rgba(5,7,9,0.8);border:1px solid var(--bd);border-radius:12px;backdrop-filter:blur(8px)}
+.leg-dot{width:6px;height:6px;border-radius:50%;flex-shrink:0}
+
+.tooltip{position:fixed;z-index:20;background:rgba(10,12,16,0.95);border:1px solid var(--bd);border-radius:8px;padding:10px 14px;max-width:280px;pointer-events:none;opacity:0;transition:opacity 0.15s;font-size:11px;backdrop-filter:blur(12px);box-shadow:0 8px 32px rgba(0,0,0,0.5)}
+.tooltip.show{opacity:1}
+.tt-type{font-family:var(--m);font-size:8px;text-transform:uppercase;letter-spacing:0.15em;margin-bottom:2px}
+.tt-title{font-weight:600;font-size:12px;line-height:1.3;margin-bottom:4px}
+.tt-meta{font-family:var(--m);font-size:9px;color:var(--t3)}
+.tt-conn{margin-top:6px;padding-top:6px;border-top:1px solid var(--bd);font-size:10px;color:var(--t2)}
+
+.stats{position:fixed;top:12px;right:12px;z-index:10;font-family:var(--m);font-size:9px;color:var(--t3);text-align:right;pointer-events:none;background:rgba(5,7,9,0.8);padding:8px 12px;border-radius:8px;border:1px solid var(--bd);backdrop-filter:blur(8px)}
+.stats div{margin-bottom:2px}
+.stats .sv{color:var(--ac);font-weight:600}
+
+.controls{position:fixed;bottom:12px;right:12px;z-index:10;display:flex;gap:4px}
+.controls button{font-family:var(--m);font-size:9px;padding:6px 12px;background:rgba(5,7,9,0.8);border:1px solid var(--bd);border-radius:6px;color:var(--t2);cursor:pointer;backdrop-filter:blur(8px)}
+.controls button:hover{border-color:var(--ac);color:var(--t1)}
+.controls button.active{border-color:var(--ac);color:var(--ac);background:rgba(99,102,241,0.1)}
+</style></head><body>
+
+<div class="hero">
+<div class="hero-ey">Broadcast Intelligence</div>
+<h1>Grafo de <em>interconexões</em></h1>
+<div class="hero-p">20 matérias Broadcast/Estadão · 136 nós · 167 conexões · Mar 2026</div>
+</div>
+
+<div class="stats">
+<div>Matérias: <span class="sv">20</span></div>
+<div>Entidades: <span class="sv">45</span></div>
+<div>Tópicos: <span class="sv">56</span></div>
+<div>Pessoas: <span class="sv">15</span></div>
+<div>Conexões: <span class="sv">167</span></div>
+</div>
+
+<div class="legend">
+<div class="leg"><div class="leg-dot" style="background:#6366f1"></div>Matéria</div>
+<div class="leg"><div class="leg-dot" style="background:#3b82f6"></div>Entidade</div>
+<div class="leg"><div class="leg-dot" style="background:#10b981"></div>Tópico</div>
+<div class="leg"><div class="leg-dot" style="background:#f59e0b"></div>Pessoa</div>
+</div>
+
+<div class="controls">
+<button class="active" onclick="filterType(null,this)">Todos</button>
+<button onclick="filterType('article',this)">Matérias</button>
+<button onclick="filterType('entity',this)">Entidades</button>
+<button onclick="filterType('topic',this)">Tópicos</button>
+<button onclick="filterType('person',this)">Pessoas</button>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+<div id="graph"></div>
+
+<script>
+const nodes = [{"id": "A1", "label": "Credores recusam oferta por fatia da Oi na V.tal", "type": "article", "date": "23/03", "source": "Coluna do Broadcast", "full_title": "Credores recusam oferta por fatia da Oi na V.tal"}, {"id": "A2", "label": "Governo Ibaneis usou TCU para pressionar BC no cas", "type": "article", "date": "24/03", "source": "Estad\u00e3o", "full_title": "Governo Ibaneis usou TCU para pressionar BC no caso Master-BRB"}, {"id": "A3", "label": "Auditoria do TCU identifica erros e irregularidade", "type": "article", "date": "24/03", "source": "Estad\u00e3o", "full_title": "Auditoria do TCU identifica erros e irregularidades na opera\u00e7\u00e3o Master-BRB"}, {"id": "A4", "label": "Gran investe R$ 114M em tecnologia", "type": "article", "date": "23/03", "source": "Coluna do Broadcast", "full_title": "Gran investe R$ 114M em tecnologia"}, {"id": "A5", "label": "Lombard Odier tem melhor ano no Brasil", "type": "article", "date": "22/03", "source": "Coluna do Broadcast", "full_title": "Lombard Odier tem melhor ano no Brasil"}, {"id": "A6", "label": "CEO da JBS: 'O vento est\u00e1 em nosso favor'", "type": "article", "date": "24/03", "source": "Estad\u00e3o", "full_title": "CEO da JBS: 'O vento est\u00e1 em nosso favor'"}, {"id": "A7", "label": "Canetas emagrecedoras mudam consumo e pressionam i", "type": "article", "date": "24/03", "source": "Estad\u00e3o", "full_title": "Canetas emagrecedoras mudam consumo e pressionam ind\u00fastria"}, {"id": "A8", "label": "62.2% dos usu\u00e1rios de canetas mudaram gastos", "type": "article", "date": "24/03", "source": "Estad\u00e3o", "full_title": "62.2% dos usu\u00e1rios de canetas mudaram gastos"}, {"id": "A9", "label": "Recompra de t\u00edtulos chega a R$ 47.3 bi", "type": "article", "date": "24/03", "source": "Estad\u00e3o", "full_title": "Recompra de t\u00edtulos chega a R$ 47.3 bi"}, {"id": "A10", "label": "Governo bloqueia R$ 1.6 bi em despesas", "type": "article", "date": "24/03", "source": "Estad\u00e3o", "full_title": "Governo bloqueia R$ 1.6 bi em despesas"}, {"id": "A11", "label": "VW negocia f\u00e1brica para defesa antim\u00edsseis para Is", "type": "article", "date": "24/03", "source": "Estad\u00e3o", "full_title": "VW negocia f\u00e1brica para defesa antim\u00edsseis para Israel"}, {"id": "A12", "label": "Fundo de David V\u00e9lez lidera investimento na IKKB (", "type": "article", "date": "22/03", "source": "Coluna do Broadcast", "full_title": "Fundo de David V\u00e9lez lidera investimento na IKKB (Inteli)"}, {"id": "A13", "label": "Guerra no Ir\u00e3 aumenta volatilidade e atrasa oferta", "type": "article", "date": "19/03", "source": "Coluna do Broadcast", "full_title": "Guerra no Ir\u00e3 aumenta volatilidade e atrasa ofertas de a\u00e7\u00f5es"}, {"id": "A14", "label": "O dilema do Copom: cen\u00e1rio internacional turva def", "type": "article", "date": "24/03", "source": "Coluna Schwartsman", "full_title": "O dilema do Copom: cen\u00e1rio internacional turva defini\u00e7\u00e3o da Selic"}, {"id": "A15", "label": "Petr\u00f3leo pode trazer de volta o home office?", "type": "article", "date": "24/03", "source": "Coluna Celso Ming", "full_title": "Petr\u00f3leo pode trazer de volta o home office?"}, {"id": "A16", "label": "BC deixa porta aberta para corte maior no juro", "type": "article", "date": "24/03", "source": "Coluna Fabio Alves", "full_title": "BC deixa porta aberta para corte maior no juro"}, {"id": "A17", "label": "Presidente do PP-SP recebeu R$ 11.4M da J&F", "type": "article", "date": "24/03", "source": "Estad\u00e3o", "full_title": "Presidente do PP-SP recebeu R$ 11.4M da J&F"}, {"id": "A18", "label": "Jhonatan de Jesus suspende processo do TCU sobre B", "type": "article", "date": "24/03", "source": "Estad\u00e3o", "full_title": "Jhonatan de Jesus suspende processo do TCU sobre BC no caso Master"}, {"id": "A19", "label": "Casas Bahia anuncia parceria com Amazon", "type": "article", "date": "24/03", "source": "Estad\u00e3o", "full_title": "Casas Bahia anuncia parceria com Amazon"}, {"id": "A20", "label": "Guerra no Oriente M\u00e9dio pressiona cadeias produtiv", "type": "article", "date": "24/03", "source": "Estad\u00e3o", "full_title": "Guerra no Oriente M\u00e9dio pressiona cadeias produtivas"}, {"id": "E_Oi", "label": "Oi", "type": "entity", "freq": 1}, {"id": "E_V.tal", "label": "V.tal", "type": "entity", "freq": 1}, {"id": "E_BTG_Pactual", "label": "BTG Pactual", "type": "entity", "freq": 1}, {"id": "E_Pimco", "label": "Pimco", "type": "entity", "freq": 1}, {"id": "E_SC_Lowy", "label": "SC Lowy", "type": "entity", "freq": 1}, {"id": "E_Ashmore", "label": "Ashmore", "type": "entity", "freq": 1}, {"id": "E_Banco_Master", "label": "Banco Master", "type": "entity", "freq": 3}, {"id": "E_BRB", "label": "BRB", "type": "entity", "freq": 2}, {"id": "E_TCU", "label": "TCU", "type": "entity", "freq": 3}, {"id": "E_Banco_Central", "label": "Banco Central", "type": "entity", "freq": 5}, {"id": "E_Governo_DF", "label": "Governo DF", "type": "entity", "freq": 1}, {"id": "E_Gran", "label": "Gran", "type": "entity", "freq": 1}, {"id": "E_OAB", "label": "OAB", "type": "entity", "freq": 1}, {"id": "E_Lombard_Odier", "label": "Lombard Odier", "type": "entity", "freq": 1}, {"id": "E_Ita\u00fa", "label": "Ita\u00fa", "type": "entity", "freq": 1}, {"id": "E_Bradesco", "label": "Bradesco", "type": "entity", "freq": 1}, {"id": "E_JP_Morgan", "label": "JP Morgan", "type": "entity", "freq": 1}, {"id": "E_JBS", "label": "JBS", "type": "entity", "freq": 1}, {"id": "E_Seara", "label": "Seara", "type": "entity", "freq": 1}, {"id": "E_Mantiqueira", "label": "Mantiqueira", "type": "entity", "freq": 1}, {"id": "E_Hickman's", "label": "Hickman's", "type": "entity", "freq": 1}, {"id": "E_Coca-Cola", "label": "Coca-Cola", "type": "entity", "freq": 1}, {"id": "E_PepsiCo", "label": "PepsiCo", "type": "entity", "freq": 1}, {"id": "E_NielsenIQ", "label": "NielsenIQ", "type": "entity", "freq": 2}, {"id": "E_Ozempic", "label": "Ozempic", "type": "entity", "freq": 1}, {"id": "E_Wegovy", "label": "Wegovy", "type": "entity", "freq": 1}, {"id": "E_Mounjaro", "label": "Mounjaro", "type": "entity", "freq": 1}, {"id": "E_Worldpanel", "label": "Worldpanel", "type": "entity", "freq": 1}, {"id": "E_Tesouro_Nacional", "label": "Tesouro Nacional", "type": "entity", "freq": 1}, {"id": "E_Warren_Investimentos", "label": "Warren Investimentos", "type": "entity", "freq": 1}, {"id": "E_Governo_Federal", "label": "Governo Federal", "type": "entity", "freq": 1}, {"id": "E_Volkswagen", "label": "Volkswagen", "type": "entity", "freq": 1}, {"id": "E_Rafael", "label": "Rafael", "type": "entity", "freq": 1}, {"id": "E_IKKB", "label": "IKKB", "type": "entity", "freq": 1}, {"id": "E_Inteli", "label": "Inteli", "type": "entity", "freq": 1}, {"id": "E_Nubank", "label": "Nubank", "type": "entity", "freq": 1}, {"id": "E_B3", "label": "B3", "type": "entity", "freq": 1}, {"id": "E_CVM", "label": "CVM", "type": "entity", "freq": 1}, {"id": "E_Copom", "label": "Copom", "type": "entity", "freq": 2}, {"id": "E_OPEP", "label": "OPEP", "type": "entity", "freq": 2}, {"id": "E_PP", "label": "PP", "type": "entity", "freq": 1}, {"id": "E_J&F", "label": "J&F", "type": "entity", "freq": 1}, {"id": "E_Coaf", "label": "Coaf", "type": "entity", "freq": 1}, {"id": "E_Casas_Bahia", "label": "Casas Bahia", "type": "entity", "freq": 1}, {"id": "E_Amazon", "label": "Amazon", "type": "entity", "freq": 1}, {"id": "T_Recupera\u00e7\u00e3o_Judicial", "label": "Recupera\u00e7\u00e3o Judicial", "type": "topic"}, {"id": "T_Telecom", "label": "Telecom", "type": "topic"}, {"id": "T_M&A", "label": "M&A", "type": "topic"}, {"id": "T_Leil\u00e3o", "label": "Leil\u00e3o", "type": "topic"}, {"id": "T_Regula\u00e7\u00e3o_Banc\u00e1ria", "label": "Regula\u00e7\u00e3o Banc\u00e1ria", "type": "topic"}, {"id": "T_Press\u00e3o_Pol\u00edtica", "label": "Press\u00e3o Pol\u00edtica", "type": "topic"}, {"id": "T_Auditoria", "label": "Auditoria", "type": "topic"}, {"id": "T_Liquida\u00e7\u00e3o", "label": "Liquida\u00e7\u00e3o", "type": "topic"}, {"id": "T_Fraude", "label": "Fraude", "type": "topic"}, {"id": "T_Due_Diligence", "label": "Due Diligence", "type": "topic"}, {"id": "T_EdTech", "label": "EdTech", "type": "topic"}, {"id": "T_IA", "label": "IA", "type": "topic"}, {"id": "T_Investimento", "label": "Investimento", "type": "topic"}, {"id": "T_Educa\u00e7\u00e3o", "label": "Educa\u00e7\u00e3o", "type": "topic"}, {"id": "T_Wealth_Management", "label": "Wealth Management", "type": "topic"}, {"id": "T_Banco_Su\u00ed\u00e7o", "label": "Banco Su\u00ed\u00e7o", "type": "topic"}, {"id": "T_Diversifica\u00e7\u00e3o", "label": "Diversifica\u00e7\u00e3o", "type": "topic"}, {"id": "T_Investimento_Estrangeiro", "label": "Investimento Estrangeiro", "type": "topic"}, {"id": "T_Prote\u00edna", "label": "Prote\u00edna", "type": "topic"}, {"id": "T_Canetas_Emagrecedoras", "label": "Canetas Emagrecedoras", "type": "topic"}, {"id": "T_GLP-1", "label": "GLP-1", "type": "topic"}, {"id": "T_Consumo", "label": "Consumo", "type": "topic"}, {"id": "T_Agroneg\u00f3cio", "label": "Agroneg\u00f3cio", "type": "topic"}, {"id": "T_Varejo", "label": "Varejo", "type": "topic"}, {"id": "T_Supermercados", "label": "Supermercados", "type": "topic"}, {"id": "T_Sa\u00fade", "label": "Sa\u00fade", "type": "topic"}, {"id": "T_Pesquisa", "label": "Pesquisa", "type": "topic"}, {"id": "T_D\u00edvida_P\u00fablica", "label": "D\u00edvida P\u00fablica", "type": "topic"}, {"id": "T_T\u00edtulos", "label": "T\u00edtulos", "type": "topic"}, {"id": "T_Volatilidade", "label": "Volatilidade", "type": "topic"}, {"id": "T_Pol\u00edtica_Monet\u00e1ria", "label": "Pol\u00edtica Monet\u00e1ria", "type": "topic"}, {"id": "T_Guerra_Ir\u00e3", "label": "Guerra Ir\u00e3", "type": "topic"}, {"id": "T_Or\u00e7amento", "label": "Or\u00e7amento", "type": "topic"}, {"id": "T_Fiscal", "label": "Fiscal", "type": "topic"}, {"id": "T_Austeridade", "label": "Austeridade", "type": "topic"}, {"id": "T_Defesa", "label": "Defesa", "type": "topic"}, {"id": "T_Geopol\u00edtica", "label": "Geopol\u00edtica", "type": "topic"}, {"id": "T_Convers\u00e3o_Industrial", "label": "Convers\u00e3o Industrial", "type": "topic"}, {"id": "T_Israel", "label": "Israel", "type": "topic"}, {"id": "T_Venture_Capital", "label": "Venture Capital", "type": "topic"}, {"id": "T_Startup", "label": "Startup", "type": "topic"}, {"id": "T_IPO", "label": "IPO", "type": "topic"}, {"id": "T_Mercado_de_Capitais", "label": "Mercado de Capitais", "type": "topic"}, {"id": "T_SELIC", "label": "SELIC", "type": "topic"}, {"id": "T_Copom", "label": "Copom", "type": "topic"}, {"id": "T_Infla\u00e7\u00e3o", "label": "Infla\u00e7\u00e3o", "type": "topic"}, {"id": "T_Petr\u00f3leo", "label": "Petr\u00f3leo", "type": "topic"}, {"id": "T_Trabalho_Remoto", "label": "Trabalho Remoto", "type": "topic"}, {"id": "T_Investiga\u00e7\u00e3o", "label": "Investiga\u00e7\u00e3o", "type": "topic"}, {"id": "T_Pol\u00edtica", "label": "Pol\u00edtica", "type": "topic"}, {"id": "T_Lavagem_de_Dinheiro", "label": "Lavagem de Dinheiro", "type": "topic"}, {"id": "T_Regula\u00e7\u00e3o", "label": "Regula\u00e7\u00e3o", "type": "topic"}, {"id": "T_E-commerce", "label": "E-commerce", "type": "topic"}, {"id": "T_Parceria", "label": "Parceria", "type": "topic"}, {"id": "T_Supply_Chain", "label": "Supply Chain", "type": "topic"}, {"id": "T_Ind\u00fastria", "label": "Ind\u00fastria", "type": "topic"}, {"id": "P_Ibaneis_Rocha", "label": "Ibaneis Rocha", "type": "person"}, {"id": "P_Daniel_Vorcaro", "label": "Daniel Vorcaro", "type": "person"}, {"id": "P_Jhonatan_de_Jesus", "label": "Jhonatan de Jesus", "type": "person"}, {"id": "P_Rodrigo_Calado", "label": "Rodrigo Calado", "type": "person"}, {"id": "P_Gabriel_Granjeiro", "label": "Gabriel Granjeiro", "type": "person"}, {"id": "P_Rog\u00e9rio_Zanin", "label": "Rog\u00e9rio Zanin", "type": "person"}, {"id": "P_Fr\u00e9d\u00e9ric_Rochat", "label": "Fr\u00e9d\u00e9ric Rochat", "type": "person"}, {"id": "P_Gilberto_Tomazoni", "label": "Gilberto Tomazoni", "type": "person"}, {"id": "P_Kesley_Gomes", "label": "Kesley Gomes", "type": "person"}, {"id": "P_Luis_Felipe_Vital", "label": "Luis Felipe Vital", "type": "person"}, {"id": "P_Cec\u00edlia_Mazzoni", "label": "Cec\u00edlia Mazzoni", "type": "person"}, {"id": "P_David_V\u00e9lez", "label": "David V\u00e9lez", "type": "person"}, {"id": "P_Alexandre_Schwartsman", "label": "Alexandre Schwartsman", "type": "person"}, {"id": "P_Celso_Ming", "label": "Celso Ming", "type": "person"}, {"id": "P_Fabio_Alves", "label": "Fabio Alves", "type": "person"}];
+const links = [{"source": "A1", "target": "E_Oi", "type": "mentions"}, {"source": "A1", "target": "E_V.tal", "type": "mentions"}, {"source": "A1", "target": "E_BTG_Pactual", "type": "mentions"}, {"source": "A1", "target": "E_Pimco", "type": "mentions"}, {"source": "A1", "target": "E_SC_Lowy", "type": "mentions"}, {"source": "A1", "target": "E_Ashmore", "type": "mentions"}, {"source": "A2", "target": "E_Banco_Master", "type": "mentions"}, {"source": "A2", "target": "E_BRB", "type": "mentions"}, {"source": "A2", "target": "E_TCU", "type": "mentions"}, {"source": "A2", "target": "E_Banco_Central", "type": "mentions"}, {"source": "A2", "target": "E_Governo_DF", "type": "mentions"}, {"source": "A3", "target": "E_TCU", "type": "mentions"}, {"source": "A3", "target": "E_Banco_Master", "type": "mentions"}, {"source": "A3", "target": "E_BRB", "type": "mentions"}, {"source": "A3", "target": "E_Banco_Central", "type": "mentions"}, {"source": "A4", "target": "E_Gran", "type": "mentions"}, {"source": "A4", "target": "E_OAB", "type": "mentions"}, {"source": "A5", "target": "E_Lombard_Odier", "type": "mentions"}, {"source": "A5", "target": "E_Ita\u00fa", "type": "mentions"}, {"source": "A5", "target": "E_Bradesco", "type": "mentions"}, {"source": "A5", "target": "E_JP_Morgan", "type": "mentions"}, {"source": "A6", "target": "E_JBS", "type": "mentions"}, {"source": "A6", "target": "E_Seara", "type": "mentions"}, {"source": "A6", "target": "E_Mantiqueira", "type": "mentions"}, {"source": "A6", "target": "E_Hickman's", "type": "mentions"}, {"source": "A6", "target": "E_Coca-Cola", "type": "mentions"}, {"source": "A6", "target": "E_PepsiCo", "type": "mentions"}, {"source": "A7", "target": "E_NielsenIQ", "type": "mentions"}, {"source": "A7", "target": "E_Ozempic", "type": "mentions"}, {"source": "A7", "target": "E_Wegovy", "type": "mentions"}, {"source": "A7", "target": "E_Mounjaro", "type": "mentions"}, {"source": "A7", "target": "E_Worldpanel", "type": "mentions"}, {"source": "A8", "target": "E_NielsenIQ", "type": "mentions"}, {"source": "A9", "target": "E_Tesouro_Nacional", "type": "mentions"}, {"source": "A9", "target": "E_Warren_Investimentos", "type": "mentions"}, {"source": "A10", "target": "E_Governo_Federal", "type": "mentions"}, {"source": "A11", "target": "E_Volkswagen", "type": "mentions"}, {"source": "A11", "target": "E_Rafael", "type": "mentions"}, {"source": "A12", "target": "E_IKKB", "type": "mentions"}, {"source": "A12", "target": "E_Inteli", "type": "mentions"}, {"source": "A12", "target": "E_Nubank", "type": "mentions"}, {"source": "A13", "target": "E_B3", "type": "mentions"}, {"source": "A13", "target": "E_CVM", "type": "mentions"}, {"source": "A14", "target": "E_Copom", "type": "mentions"}, {"source": "A14", "target": "E_Banco_Central", "type": "mentions"}, {"source": "A15", "target": "E_OPEP", "type": "mentions"}, {"source": "A16", "target": "E_Banco_Central", "type": "mentions"}, {"source": "A16", "target": "E_Copom", "type": "mentions"}, {"source": "A17", "target": "E_PP", "type": "mentions"}, {"source": "A17", "target": "E_J&F", "type": "mentions"}, {"source": "A17", "target": "E_Coaf", "type": "mentions"}, {"source": "A18", "target": "E_TCU", "type": "mentions"}, {"source": "A18", "target": "E_Banco_Central", "type": "mentions"}, {"source": "A18", "target": "E_Banco_Master", "type": "mentions"}, {"source": "A19", "target": "E_Casas_Bahia", "type": "mentions"}, {"source": "A19", "target": "E_Amazon", "type": "mentions"}, {"source": "A20", "target": "E_OPEP", "type": "mentions"}, {"source": "A1", "target": "T_Recupera\u00e7\u00e3o_Judicial", "type": "about"}, {"source": "A1", "target": "T_Telecom", "type": "about"}, {"source": "A1", "target": "T_M&A", "type": "about"}, {"source": "A1", "target": "T_Leil\u00e3o", "type": "about"}, {"source": "A2", "target": "T_Regula\u00e7\u00e3o_Banc\u00e1ria", "type": "about"}, {"source": "A2", "target": "T_Press\u00e3o_Pol\u00edtica", "type": "about"}, {"source": "A2", "target": "T_Auditoria", "type": "about"}, {"source": "A2", "target": "T_Liquida\u00e7\u00e3o", "type": "about"}, {"source": "A3", "target": "T_Auditoria", "type": "about"}, {"source": "A3", "target": "T_Fraude", "type": "about"}, {"source": "A3", "target": "T_Due_Diligence", "type": "about"}, {"source": "A3", "target": "T_Regula\u00e7\u00e3o_Banc\u00e1ria", "type": "about"}, {"source": "A4", "target": "T_EdTech", "type": "about"}, {"source": "A4", "target": "T_IA", "type": "about"}, {"source": "A4", "target": "T_Investimento", "type": "about"}, {"source": "A4", "target": "T_Educa\u00e7\u00e3o", "type": "about"}, {"source": "A5", "target": "T_Wealth_Management", "type": "about"}, {"source": "A5", "target": "T_Banco_Su\u00ed\u00e7o", "type": "about"}, {"source": "A5", "target": "T_Diversifica\u00e7\u00e3o", "type": "about"}, {"source": "A5", "target": "T_Investimento_Estrangeiro", "type": "about"}, {"source": "A6", "target": "T_Prote\u00edna", "type": "about"}, {"source": "A6", "target": "T_Canetas_Emagrecedoras", "type": "about"}, {"source": "A6", "target": "T_GLP-1", "type": "about"}, {"source": "A6", "target": "T_Consumo", "type": "about"}, {"source": "A6", "target": "T_Agroneg\u00f3cio", "type": "about"}, {"source": "A7", "target": "T_GLP-1", "type": "about"}, {"source": "A7", "target": "T_Consumo", "type": "about"}, {"source": "A7", "target": "T_Varejo", "type": "about"}, {"source": "A7", "target": "T_Supermercados", "type": "about"}, {"source": "A7", "target": "T_Sa\u00fade", "type": "about"}, {"source": "A8", "target": "T_GLP-1", "type": "about"}, {"source": "A8", "target": "T_Consumo", "type": "about"}, {"source": "A8", "target": "T_Pesquisa", "type": "about"}, {"source": "A9", "target": "T_D\u00edvida_P\u00fablica", "type": "about"}, {"source": "A9", "target": "T_T\u00edtulos", "type": "about"}, {"source": "A9", "target": "T_Volatilidade", "type": "about"}, {"source": "A9", "target": "T_Pol\u00edtica_Monet\u00e1ria", "type": "about"}, {"source": "A9", "target": "T_Guerra_Ir\u00e3", "type": "about"}, {"source": "A10", "target": "T_Or\u00e7amento", "type": "about"}, {"source": "A10", "target": "T_Fiscal", "type": "about"}, {"source": "A10", "target": "T_Austeridade", "type": "about"}, {"source": "A11", "target": "T_Defesa", "type": "about"}, {"source": "A11", "target": "T_Geopol\u00edtica", "type": "about"}, {"source": "A11", "target": "T_Convers\u00e3o_Industrial", "type": "about"}, {"source": "A11", "target": "T_Israel", "type": "about"}, {"source": "A12", "target": "T_Venture_Capital", "type": "about"}, {"source": "A12", "target": "T_Startup", "type": "about"}, {"source": "A12", "target": "T_EdTech", "type": "about"}, {"source": "A13", "target": "T_IPO", "type": "about"}, {"source": "A13", "target": "T_Volatilidade", "type": "about"}, {"source": "A13", "target": "T_Geopol\u00edtica", "type": "about"}, {"source": "A13", "target": "T_Guerra_Ir\u00e3", "type": "about"}, {"source": "A13", "target": "T_Mercado_de_Capitais", "type": "about"}, {"source": "A14", "target": "T_Pol\u00edtica_Monet\u00e1ria", "type": "about"}, {"source": "A14", "target": "T_SELIC", "type": "about"}, {"source": "A14", "target": "T_Copom", "type": "about"}, {"source": "A14", "target": "T_Infla\u00e7\u00e3o", "type": "about"}, {"source": "A15", "target": "T_Petr\u00f3leo", "type": "about"}, {"source": "A15", "target": "T_Guerra_Ir\u00e3", "type": "about"}, {"source": "A15", "target": "T_Infla\u00e7\u00e3o", "type": "about"}, {"source": "A15", "target": "T_Trabalho_Remoto", "type": "about"}, {"source": "A16", "target": "T_Pol\u00edtica_Monet\u00e1ria", "type": "about"}, {"source": "A16", "target": "T_SELIC", "type": "about"}, {"source": "A16", "target": "T_Copom", "type": "about"}, {"source": "A17", "target": "T_Investiga\u00e7\u00e3o", "type": "about"}, {"source": "A17", "target": "T_Pol\u00edtica", "type": "about"}, {"source": "A17", "target": "T_Lavagem_de_Dinheiro", "type": "about"}, {"source": "A18", "target": "T_Regula\u00e7\u00e3o", "type": "about"}, {"source": "A18", "target": "T_Press\u00e3o_Pol\u00edtica", "type": "about"}, {"source": "A18", "target": "T_Auditoria", "type": "about"}, {"source": "A19", "target": "T_Varejo", "type": "about"}, {"source": "A19", "target": "T_E-commerce", "type": "about"}, {"source": "A19", "target": "T_Parceria", "type": "about"}, {"source": "A20", "target": "T_Geopol\u00edtica", "type": "about"}, {"source": "A20", "target": "T_Guerra_Ir\u00e3", "type": "about"}, {"source": "A20", "target": "T_Supply_Chain", "type": "about"}, {"source": "A20", "target": "T_Ind\u00fastria", "type": "about"}, {"source": "A2", "target": "P_Ibaneis_Rocha", "type": "quotes"}, {"source": "A2", "target": "P_Daniel_Vorcaro", "type": "quotes"}, {"source": "A2", "target": "P_Jhonatan_de_Jesus", "type": "quotes"}, {"source": "A3", "target": "P_Daniel_Vorcaro", "type": "quotes"}, {"source": "A4", "target": "P_Rodrigo_Calado", "type": "quotes"}, {"source": "A4", "target": "P_Gabriel_Granjeiro", "type": "quotes"}, {"source": "A5", "target": "P_Rog\u00e9rio_Zanin", "type": "quotes"}, {"source": "A5", "target": "P_Fr\u00e9d\u00e9ric_Rochat", "type": "quotes"}, {"source": "A6", "target": "P_Gilberto_Tomazoni", "type": "quotes"}, {"source": "A7", "target": "P_Kesley_Gomes", "type": "quotes"}, {"source": "A9", "target": "P_Luis_Felipe_Vital", "type": "quotes"}, {"source": "A9", "target": "P_Cec\u00edlia_Mazzoni", "type": "quotes"}, {"source": "A12", "target": "P_David_V\u00e9lez", "type": "quotes"}, {"source": "A14", "target": "P_Alexandre_Schwartsman", "type": "quotes"}, {"source": "A15", "target": "P_Celso_Ming", "type": "quotes"}, {"source": "A16", "target": "P_Fabio_Alves", "type": "quotes"}, {"source": "A18", "target": "P_Jhonatan_de_Jesus", "type": "quotes"}, {"source": "A2", "target": "A3", "type": "related", "weight": 14, "shared": ["TCU", "Banco Master", "BRB"], "shared_topics": ["Regula\u00e7\u00e3o Banc\u00e1ria", "Auditoria"]}, {"source": "A2", "target": "A14", "type": "related", "weight": 3, "shared": ["Banco Central"], "shared_topics": []}, {"source": "A2", "target": "A16", "type": "related", "weight": 3, "shared": ["Banco Central"], "shared_topics": []}, {"source": "A2", "target": "A18", "type": "related", "weight": 11, "shared": ["TCU", "Banco Master", "Banco Central"], "shared_topics": ["Auditoria", "Press\u00e3o Pol\u00edtica"]}, {"source": "A3", "target": "A14", "type": "related", "weight": 3, "shared": ["Banco Central"], "shared_topics": []}, {"source": "A3", "target": "A16", "type": "related", "weight": 3, "shared": ["Banco Central"], "shared_topics": []}, {"source": "A3", "target": "A18", "type": "related", "weight": 10, "shared": ["TCU", "Banco Master", "Banco Central"], "shared_topics": ["Auditoria"]}, {"source": "A6", "target": "A7", "type": "related", "weight": 2, "shared": [], "shared_topics": ["Consumo", "GLP-1"]}, {"source": "A6", "target": "A8", "type": "related", "weight": 2, "shared": [], "shared_topics": ["Consumo", "GLP-1"]}, {"source": "A7", "target": "A8", "type": "related", "weight": 5, "shared": ["NielsenIQ"], "shared_topics": ["Consumo", "GLP-1"]}, {"source": "A9", "target": "A13", "type": "related", "weight": 2, "shared": [], "shared_topics": ["Volatilidade", "Guerra Ir\u00e3"]}, {"source": "A13", "target": "A20", "type": "related", "weight": 2, "shared": [], "shared_topics": ["Guerra Ir\u00e3", "Geopol\u00edtica"]}, {"source": "A14", "target": "A16", "type": "related", "weight": 9, "shared": ["Copom", "Banco Central"], "shared_topics": ["Pol\u00edtica Monet\u00e1ria", "Copom", "SELIC"]}, {"source": "A14", "target": "A18", "type": "related", "weight": 3, "shared": ["Banco Central"], "shared_topics": []}, {"source": "A15", "target": "A20", "type": "related", "weight": 4, "shared": ["OPEP"], "shared_topics": ["Guerra Ir\u00e3"]}, {"source": "A16", "target": "A18", "type": "related", "weight": 3, "shared": ["Banco Central"], "shared_topics": []}];
+
+const colors = {article:"#6366f1",entity:"#3b82f6",topic:"#10b981",person:"#f59e0b"};
+const sizes = {article:8,entity:d=>5+Math.min((d.freq||1)*2,12),topic:5,person:6};
+
+const W = window.innerWidth, H = window.innerHeight;
+const svg = d3.select("#graph").append("svg").attr("width",W).attr("height",H);
+const g = svg.append("g");
+
+// Zoom
+svg.call(d3.zoom().scaleExtent([0.3,5]).on("zoom", e => g.attr("transform",e.transform)));
+
+// Map node ids to indices
+const nodeMap = {};
+nodes.forEach((n,i) => nodeMap[n.id] = i);
+
+const validLinks = links.filter(l => nodeMap[l.source]!==undefined && nodeMap[l.target]!==undefined)
+    .map(l => ({...l, source:l.source, target:l.target}));
+
+const sim = d3.forceSimulation(nodes)
+    .force("link", d3.forceLink(validLinks).id(d=>d.id).distance(d => d.type==="related"?80:50))
+    .force("charge", d3.forceManyBody().strength(d => d.type==="article"?-200:-80))
+    .force("center", d3.forceCenter(W/2, H/2))
+    .force("collision", d3.forceCollide().radius(d => getR(d)+4))
+    .force("x", d3.forceX(W/2).strength(0.03))
+    .force("y", d3.forceY(H/2).strength(0.03));
+
+function getR(d) {
+    if(d.type==="entity") return 5+Math.min((d.freq||1)*2,12);
+    return {article:8,topic:5,person:6}[d.type]||5;
+}
+
+// Links
+const link = g.append("g").selectAll("line").data(validLinks).join("line")
+    .attr("stroke", d => d.type==="related"?"rgba(99,102,241,0.12)":"rgba(255,255,255,0.03)")
+    .attr("stroke-width", d => d.type==="related"?Math.min((d.weight||1)*0.4,2.5):0.5);
+
+// Nodes
+const node = g.append("g").selectAll("g").data(nodes).join("g")
+    .call(d3.drag().on("start",ds).on("drag",dd).on("end",de));
+
+node.append("circle")
+    .attr("r", d => getR(d))
+    .attr("fill", d => colors[d.type])
+    .attr("opacity", d => d.type==="article"?0.9:0.6)
+    .attr("stroke", d => colors[d.type])
+    .attr("stroke-width", 0.5)
+    .attr("stroke-opacity", 0.3);
+
+// Glow for articles
+node.filter(d => d.type==="article").append("circle")
+    .attr("r", d => getR(d)+4)
+    .attr("fill", "none")
+    .attr("stroke", d => colors[d.type])
+    .attr("stroke-width", 0.5)
+    .attr("stroke-opacity", 0.15);
+
+// Labels (only for entities and topics with connections)
+const labelNodes = nodes.filter(d => d.type==="entity" || d.type==="topic" || d.type==="person");
+node.filter(d => labelNodes.includes(d)).append("text")
+    .text(d => d.label.length>18 ? d.label.slice(0,16)+"…" : d.label)
+    .attr("x", d => getR(d)+4)
+    .attr("y", 3)
+    .attr("fill", d => colors[d.type])
+    .attr("opacity", 0.5)
+    .attr("font-size", d => d.type==="entity" && (d.freq||1)>2 ? "9px" : "7px")
+    .attr("font-family", "'JetBrains Mono', monospace")
+    .attr("font-weight", d => (d.freq||1)>2?"600":"400");
+
+// Tooltip
+const tooltip = document.getElementById("tooltip");
+node.on("mouseover", (e,d) => {
+    const conns = validLinks.filter(l => l.source.id===d.id || l.target.id===d.id);
+    const connected = conns.map(l => l.source.id===d.id ? l.target : l.source);
+    
+    let typeLabel = {article:"Matéria",entity:"Entidade",topic:"Tópico",person:"Pessoa"}[d.type];
+    let meta = d.date ? `${d.source} · ${d.date}/2026` : `Mencionado em ${conns.length} matérias`;
+    let title = d.full_title || d.label;
+    
+    let connHtml = "";
+    if(connected.length) {
+        const grouped = {};
+        connected.forEach(c => {
+            if(!grouped[c.type]) grouped[c.type]=[];
+            grouped[c.type].push(c.label);
+        });
+        connHtml = '<div class="tt-conn">';
+        for(const [t,items] of Object.entries(grouped)) {
+            const tl = {article:"Matérias",entity:"Entidades",topic:"Tópicos",person:"Pessoas"}[t];
+            connHtml += `<div style="margin-bottom:3px"><span style="color:${colors[t]};font-family:var(--m);font-size:8px;text-transform:uppercase">${tl}</span><br>${items.slice(0,5).join(", ")}</div>`;
+        }
+        connHtml += '</div>';
+    }
+    
+    tooltip.innerHTML = `<div class="tt-type" style="color:${colors[d.type]}">${typeLabel}</div><div class="tt-title">${title}</div><div class="tt-meta">${meta}</div>${connHtml}`;
+    tooltip.classList.add("show");
+    tooltip.style.left = (e.pageX+16)+"px";
+    tooltip.style.top = (e.pageY-10)+"px";
+    
+    // Highlight connected
+    node.select("circle").attr("opacity", n => n===d || connected.includes(n) ? 1 : 0.08);
+    node.selectAll("text").attr("opacity", n => n===d || connected.includes(n) ? 0.9 : 0.05);
+    link.attr("stroke-opacity", l => l.source===d || l.target===d ? 0.6 : 0.02);
+})
+.on("mousemove", e => {
+    tooltip.style.left = (e.pageX+16)+"px";
+    tooltip.style.top = (e.pageY-10)+"px";
+})
+.on("mouseout", () => {
+    tooltip.classList.remove("show");
+    node.select("circle").attr("opacity", d => d.type==="article"?0.9:0.6);
+    node.selectAll("text").attr("opacity", 0.5);
+    link.attr("stroke-opacity", 1);
+    link.attr("stroke", d => d.type==="related"?"rgba(99,102,241,0.12)":"rgba(255,255,255,0.03)");
+});
+
+sim.on("tick", () => {
+    link.attr("x1",d=>d.source.x).attr("y1",d=>d.source.y)
+        .attr("x2",d=>d.target.x).attr("y2",d=>d.target.y);
+    node.attr("transform",d=>`translate(${d.x},${d.y})`);
+});
+
+function ds(e,d){ if(!e.active)sim.alphaTarget(0.3).restart(); d.fx=d.x;d.fy=d.y; }
+function dd(e,d){ d.fx=e.x;d.fy=e.y; }
+function de(e,d){ if(!e.active)sim.alphaTarget(0); d.fx=null;d.fy=null; }
+
+// Filter
+window.filterType = function(type, btn) {
+    document.querySelectorAll('.controls button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    if(!type) {
+        node.attr("display","block");
+        link.attr("display","block");
+    } else {
+        node.attr("display", d => d.type===type || validLinks.some(l => 
+            (l.source.id===d.id && l.target.type===type) || 
+            (l.target.id===d.id && l.source.type===type) ||
+            (l.source.type===type && l.target.id===d.id) ||
+            (l.target.type===type && l.source.id===d.id)
+        ) ? "block" : "none");
+        link.attr("display", l => l.source.type===type || l.target.type===type ? "block" : "none");
+    }
+};
+</script>
+</body></html>
