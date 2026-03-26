@@ -1,0 +1,382 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Paganini AIOS — Pacote Instalável + Onboarding</title>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,300;0,500;0,700;1,400&family=DM+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0f0e0d;--s1:#181614;--s2:#1e1c19;--s3:#262320;--brd:#332f2a;--t1:#e8e4de;--t2:#a09888;--t3:#6b6358;--gold:#c9a84c;--goldD:#8b6914;--goldL:rgba(201,168,76,0.12);--red:#c45141;--green:#5a9e5c;--greenL:rgba(90,158,92,0.12);--blue:#5b8ec9;--blueL:rgba(91,142,201,0.12);--orange:#c98a3d}
+body{background:var(--bg);color:var(--t1);font-family:'DM Sans',sans-serif;font-size:14px;line-height:1.6}
+.wrap{max-width:1000px;margin:0 auto;padding:clamp(16px,4vw,40px)}
+h1{font-family:'Source Serif 4';font-size:clamp(28px,5vw,44px);font-weight:700;line-height:1.1;margin-bottom:8px}
+h1 em{font-style:italic;color:var(--gold)}
+h2{font-family:'Source Serif 4';font-size:clamp(18px,3vw,24px);font-weight:700;margin:clamp(32px,5vw,48px) 0 8px;padding-top:24px;border-top:1px solid var(--brd);color:var(--gold)}
+h3{font-family:'IBM Plex Mono';font-size:12px;letter-spacing:1.5px;text-transform:uppercase;color:var(--t3);margin:20px 0 8px}
+p{margin-bottom:10px;color:var(--t2)}
+.sub{font-size:12px;color:var(--t3);margin-bottom:16px}
+.card{background:var(--s1);border:1px solid var(--brd);border-radius:8px;padding:clamp(14px,2vw,20px);margin-bottom:10px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+@media(max-width:768px){.g2{grid-template-columns:1fr}}
+.mono{font-family:'IBM Plex Mono';font-weight:500}
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-family:'IBM Plex Mono';font-weight:600}
+.b-gold{background:var(--goldL);color:var(--gold)}
+.b-green{background:var(--greenL);color:var(--green)}
+.b-blue{background:var(--blueL);color:var(--blue)}
+
+/* TERMINAL */
+.term{background:#0a0a09;border:1px solid #2a2520;border-radius:8px;padding:16px 20px;font-family:'IBM Plex Mono';font-size:13px;line-height:1.8;overflow-x:auto;margin:12px 0}
+.term .prompt{color:var(--green)}
+.term .cmd{color:var(--t1)}
+.term .out{color:var(--t3)}
+.term .hl{color:var(--gold)}
+.term .ask{color:var(--blue)}
+
+/* FLOW */
+.flow-v{position:relative;padding-left:28px;margin:12px 0}
+.flow-v::before{content:'';position:absolute;left:10px;top:0;bottom:0;width:2px;background:var(--brd)}
+.fv-item{position:relative;margin-bottom:16px}
+.fv-item::before{content:'';position:absolute;left:-22px;top:6px;width:10px;height:10px;border-radius:50%;border:2px solid var(--brd);background:var(--bg)}
+.fv-item.gold::before{background:var(--gold);border-color:var(--gold)}
+.fv-item.green::before{background:var(--green);border-color:var(--green)}
+.fv-item.blue::before{background:var(--blue);border-color:var(--blue)}
+.fv-title{font-weight:600;font-size:14px}
+.fv-desc{font-size:12px;color:var(--t3);margin-top:2px}
+
+/* FILE TREE */
+.tree{font-family:'IBM Plex Mono';font-size:12px;line-height:1.8;color:var(--t2);margin:8px 0}
+.tree .dir{color:var(--gold)}
+.tree .file{color:var(--t2)}
+.tree .gen{color:var(--green);font-style:italic}
+.tree .desc{color:var(--t3);font-size:10px}
+
+/* BOX */
+.box{border:2px solid var(--gold);border-radius:8px;padding:16px 20px;margin:16px 0}
+.box-t{font-family:'Source Serif 4';font-size:16px;font-weight:700;color:var(--gold);margin-bottom:8px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div style="padding:clamp(32px,6vw,64px) 0 24px;border-bottom:1px solid var(--brd)">
+<div style="font-family:'IBM Plex Mono';font-size:11px;letter-spacing:2px;color:var(--gold);margin-bottom:12px">ARCHITECTURE DOCUMENT · INTERNAL</div>
+<h1>Paganini <em>AIOS</em></h1>
+<p style="font-size:16px;color:var(--t1);max-width:700px">Um pacote instalável. Um onboarding que escuta. Uma inteligência que cresce. Nada mais.</p>
+</div>
+
+<!-- ===== 1. O PACOTE ===== -->
+<h2>1. O que o cliente instala</h2>
+<div class="sub">Um comando. Não um manual de 40 páginas.</div>
+
+<div class="term">
+<span class="prompt">$</span> <span class="cmd">pip install paganini-aios</span><br>
+<span class="out">✓ Installed paganini-aios 2.0.0 (kernel, agents, guardrails, skills, cli)</span><br><br>
+<span class="prompt">$</span> <span class="cmd">paganini init</span><br>
+<span class="hl">🎼 Paganini AIOS — Onboarding</span><br>
+<span class="out">Vou fazer algumas perguntas para configurar seu sistema.</span><br>
+<span class="out">Isso leva ~10 minutos. Suas respostas geram todo o setup.</span><br><br>
+<span class="ask">→ Qual é o nome da sua empresa?</span> <span class="cmd">Vórtx DTVM</span><br>
+<span class="ask">→ Qual é o seu setor principal?</span> <span class="cmd">Administração fiduciária de FIDCs</span><br>
+<span class="ask">→ Quantos fundos vocês administram?</span> <span class="cmd">47</span><br>
+<span class="ask">→ Qual a sua maior dor operacional?</span><br>
+<span class="cmd">  Compliance manual — 2 analistas gastam 3 dias por fundo por mês</span><br>
+<span class="cmd">  verificando concentração, PLD e enquadramento. É repetitivo e</span><br>
+<span class="cmd">  propenso a erro. Já tomamos multa da CVM por atraso.</span><br>
+<span class="ask">→ Quais ferramentas vocês usam hoje?</span><br>
+<span class="cmd">  Broadcast (cotações), Slack (comunicação), Excel (controles),</span><br>
+<span class="cmd">  sistema próprio de custódia (API REST)</span><br>
+<span class="ask">→ Quais relatórios vocês precisam gerar?</span><br>
+<span class="cmd">  Informe mensal CVM, DD de cedentes, relatório de risco, PLD/AML</span><br>
+<span class="ask">→ Qual LLM vocês preferem?</span><br>
+<span class="cmd">  [1] Paganini Cloud (nosso LLM) — R$542/fundo/mês</span><br>
+<span class="cmd">  [2] BYOK — traz sua API key (OpenAI, Anthropic, Google)</span><br>
+<span class="cmd">  [3] On-prem — roda local no Mac Mini/GPU</span><br>
+<span class="cmd">  → 2</span><br>
+<span class="ask">→ Cole sua API key:</span> <span class="cmd">sk-proj-***</span><br><br>
+<span class="hl">⚙ Gerando workspace...</span><br>
+<span class="out">  ✓ SOUL.md — comportamento calibrado pra administração fiduciária</span><br>
+<span class="out">  ✓ 6 agentes criados: compliance, custódia, DD, pricing, reporting, gestor</span><br>
+<span class="out">  ✓ 4 guardrails ativados: eligibility, concentration, PLD/AML, covenant</span><br>
+<span class="out">  ✓ 3 skills instalados do Registry: pld-scan-v3, concentration-check-v2, cvm-ingest</span><br>
+<span class="out">  ✓ Integrações: Slack (webhook), API custódia (REST)</span><br>
+<span class="out">  ✓ Heartbeat: verificação diária compliance, alerta Slack</span><br>
+<span class="out">  ✓ Memory inicializada</span><br><br>
+<span class="hl">✓ Workspace criado em ./paganini-workspace/</span><br>
+<span class="hl">  Próximo: paganini up</span>
+</div>
+
+<div class="box">
+<div class="box-t">O que acontece no `paganini init`</div>
+<p>O onboarding NÃO é um formulário. É uma conversa com o kernel Paganini. Ele escuta as respostas, classifica o domínio, seleciona o Domain Pack mais próximo, e gera tudo customizado. As respostas do cliente vão pra MEMORY.md como contexto fundacional. O sistema já nasce sabendo quem é o cliente e o que ele precisa.</p>
+</div>
+
+<!-- ===== 2. O QUE É GERADO ===== -->
+<h2>2. O que é gerado</h2>
+<div class="sub">Estrutura do workspace que o cliente recebe.</div>
+
+<div class="tree">
+<span class="dir">paganini-workspace/</span><br>
+├── <span class="dir">SOUL.md</span> <span class="gen">← gerado do onboarding</span> <span class="desc">comportamento, tom, anti-patterns</span><br>
+├── <span class="dir">AGENTS.md</span> <span class="gen">← gerado</span> <span class="desc">orquestração dos agentes</span><br>
+├── <span class="dir">MEMORY.md</span> <span class="gen">← gerado</span> <span class="desc">contexto fundacional (respostas do onboarding)</span><br>
+├── <span class="dir">HEARTBEAT.md</span> <span class="gen">← gerado</span> <span class="desc">rotinas autônomas (compliance diário, alertas)</span><br>
+├── <span class="dir">TOOLS.md</span> <span class="gen">← gerado</span> <span class="desc">integrações conectadas</span><br>
+├── <span class="file">paganini.yaml</span> <span class="desc">config principal</span><br>
+│<br>
+├── <span class="dir">agents/</span><br>
+│   ├── <span class="dir">souls/</span><br>
+│   │   ├── <span class="file">compliance.md</span> <span class="gen">← gerado do domínio</span><br>
+│   │   ├── <span class="file">custodia.md</span> <span class="gen">← gerado</span><br>
+│   │   ├── <span class="file">due_diligence.md</span> <span class="gen">← gerado</span><br>
+│   │   ├── <span class="file">pricing.md</span> <span class="gen">← gerado</span><br>
+│   │   ├── <span class="file">reporting.md</span> <span class="gen">← gerado</span><br>
+│   │   └── <span class="file">gestor.md</span> <span class="gen">← gerado</span><br>
+│   └── <span class="file">framework.py</span> <span class="desc">agent runtime (do kernel)</span><br>
+│<br>
+├── <span class="dir">skills/</span><br>
+│   ├── <span class="file">pld-scan-v3/</span> <span class="b-green" style="font-size:9px">REGISTRY</span> <span class="desc">do Skill Registry, testado em 12 fundos</span><br>
+│   ├── <span class="file">concentration-check-v2/</span> <span class="b-green" style="font-size:9px">REGISTRY</span><br>
+│   ├── <span class="file">cvm-ingest/</span> <span class="b-green" style="font-size:9px">REGISTRY</span><br>
+│   └── <span class="file">custom/</span> <span class="gen">← skills gerados pelo uso</span><br>
+│<br>
+├── <span class="dir">guardrails/</span><br>
+│   ├── <span class="file">pipeline.py</span> <span class="desc">6-gate compliance pipeline</span><br>
+│   └── <span class="file">rules/</span> <span class="gen">← regras customizadas por fundo</span><br>
+│<br>
+├── <span class="dir">memory/</span><br>
+│   └── <span class="file">YYYY-MM-DD.md</span> <span class="desc">logs diários (gerados automaticamente)</span><br>
+│<br>
+├── <span class="dir">data/</span><br>
+│   ├── <span class="file">funds/</span> <span class="desc">dados dos fundos ingeridos (CVM + cliente)</span><br>
+│   └── <span class="file">market/</span> <span class="desc">dados B3/BCB</span><br>
+│<br>
+└── <span class="dir">integrations/</span><br>
+    ├── <span class="file">slack.yaml</span> <span class="gen">← gerado do onboarding</span><br>
+    └── <span class="file">custodia-api.yaml</span> <span class="gen">← gerado</span><br>
+</div>
+
+<!-- ===== 3. FLUXO PÓS-INSTALL ===== -->
+<h2>3. O que acontece depois</h2>
+<div class="sub">Do `paganini up` até o primeiro valor entregue.</div>
+
+<div class="term">
+<span class="prompt">$</span> <span class="cmd">paganini up</span><br>
+<span class="hl">🎼 Paganini AIOS running</span><br>
+<span class="out">  Kernel: Moltis v2 + MetaClaw routing</span><br>
+<span class="out">  Agents: 6 active (compliance, custódia, DD, pricing, reporting, gestor)</span><br>
+<span class="out">  Guardrails: 4 gates enabled</span><br>
+<span class="out">  Skills: 3 from Registry + 0 custom</span><br>
+<span class="out">  LLM: BYOK (OpenAI gpt-4o via client key)</span><br>
+<span class="out">  Heartbeat: every 1h (compliance check, market scan)</span><br><br>
+<span class="hl">→ Ingerindo fundos via CVM Dados Abertos...</span><br>
+<span class="out">  ✓ FIDC Atlas Premium (CNPJ 12.345.678/0001-90): 847 títulos, R$423M PL</span><br>
+<span class="out">  ✓ FIDC Mercantil III (CNPJ 23.456.789/0001-01): 2.341 títulos, R$1.23B PL</span><br>
+<span class="out">  ✓ FIDC Agro Capital (CNPJ 34.567.890/0001-12): 1.205 títulos, R$502M PL</span><br>
+<span class="out">  ... (44 more funds loading)</span><br><br>
+<span class="hl">→ Rodando compliance scan inicial...</span><br>
+<span class="out">  ⚠ FIDC Atlas Premium: concentração cedente principal 21.3% (limite: 20%)</span><br>
+<span class="out">  ⚠ FIDC Mercantil III: 3 devedores com match parcial OFAC</span><br>
+<span class="out">  ✓ FIDC Agro Capital: todos os gates OK</span><br>
+<span class="out">  → Alertas enviados ao Slack #compliance</span><br><br>
+<span class="hl">Sistema operacional. Primeiro valor entregue em: 4 minutos.</span>
+</div>
+
+<div class="g2">
+<div class="card">
+<div style="font-family:'IBM Plex Mono';font-size:10px;color:var(--gold);letter-spacing:1px;margin-bottom:8px">MINUTO 0 → MINUTO 5</div>
+<div class="flow-v">
+<div class="fv-item gold"><div class="fv-title">Ingere dados CVM</div><div class="fv-desc">47 fundos, composição de carteira, PL, cota, cedentes — tudo via API pública CVM</div></div>
+<div class="fv-item gold"><div class="fv-title">Roda compliance scan</div><div class="fv-desc">4 guardrails em cada fundo. Encontra problemas reais em minutos.</div></div>
+<div class="fv-item gold"><div class="fv-title">Envia alertas</div><div class="fv-desc">Slack/Telegram/Email — o que o cliente configurou no onboarding</div></div>
+</div>
+<p style="font-size:13px;color:var(--gold);font-weight:600">Primeiro valor: antes do café esfriar.</p>
+</div>
+<div class="card">
+<div style="font-family:'IBM Plex Mono';font-size:10px;color:var(--blue);letter-spacing:1px;margin-bottom:8px">DIA 1 → DIA 30</div>
+<div class="flow-v">
+<div class="fv-item blue"><div class="fv-title">Heartbeat diário</div><div class="fv-desc">Compliance scan todo dia. Detecta violações antes da CVM.</div></div>
+<div class="fv-item blue"><div class="fv-title">Memória acumula</div><div class="fv-desc">Padrões do cliente, exceções, decisões — sistema fica mais inteligente</div></div>
+<div class="fv-item blue"><div class="fv-title">Skills evoluem</div><div class="fv-desc">Skill falhou? Reflection loop melhora. Skill nova criada se necessário.</div></div>
+<div class="fv-item blue"><div class="fv-title">Registry sync</div><div class="fv-desc">Skills melhorados por outros clientes chegam automaticamente</div></div>
+</div>
+<p style="font-size:13px;color:var(--blue);font-weight:600">Mês 1: sistema conhece o cliente melhor que o analista novo.</p>
+</div>
+</div>
+
+<!-- ===== 4. DENTRO DO PACOTE ===== -->
+<h2>4. Anatomia do pacote</h2>
+<div class="sub">O que tem dentro do `pip install paganini-aios`.</div>
+
+<div class="g2">
+<div class="card">
+<div style="font-family:'IBM Plex Mono';font-size:10px;color:var(--gold);letter-spacing:1px;margin-bottom:8px">KERNEL (fixo, não customizado)</div>
+<div style="font-size:13px">
+<div style="padding:4px 0;border-bottom:1px solid var(--brd)"><span class="mono" style="color:var(--gold)">moltis.py</span> — LLM runtime (multi-provider)</div>
+<div style="padding:4px 0;border-bottom:1px solid var(--brd)"><span class="mono" style="color:var(--gold)">metaclaw.py</span> — skill routing + evolution</div>
+<div style="padding:4px 0;border-bottom:1px solid var(--brd)"><span class="mono" style="color:var(--gold)">router.py</span> — cognitive agent dispatch</div>
+<div style="padding:4px 0;border-bottom:1px solid var(--brd)"><span class="mono" style="color:var(--gold)">engine.py</span> — query pipeline orchestrator</div>
+<div style="padding:4px 0;border-bottom:1px solid var(--brd)"><span class="mono" style="color:var(--gold)">pipeline.py</span> — BMAD-CE execution</div>
+<div style="padding:4px 0;border-bottom:1px solid var(--brd)"><span class="mono" style="color:var(--gold)">memory.py</span> — RAG + persistent memory</div>
+<div style="padding:4px 0;border-bottom:1px solid var(--brd)"><span class="mono" style="color:var(--gold)">guardrails/</span> — compliance gate pipeline</div>
+<div style="padding:4px 0"><span class="mono" style="color:var(--gold)">cli.py</span> — paganini init / up / query / serve</div>
+</div>
+</div>
+<div class="card">
+<div style="font-family:'IBM Plex Mono';font-size:10px;color:var(--green);letter-spacing:1px;margin-bottom:8px">GERADO NO ONBOARDING (customizado por cliente)</div>
+<div style="font-size:13px">
+<div style="padding:4px 0;border-bottom:1px solid var(--brd)"><span class="mono" style="color:var(--green)">SOUL.md</span> — comportamento (tom, regras, anti-patterns)</div>
+<div style="padding:4px 0;border-bottom:1px solid var(--brd)"><span class="mono" style="color:var(--green)">AGENTS.md</span> — quais agentes, como orquestrar</div>
+<div style="padding:4px 0;border-bottom:1px solid var(--brd)"><span class="mono" style="color:var(--green)">agents/souls/*.md</span> — SOUL de cada agente</div>
+<div style="padding:4px 0;border-bottom:1px solid var(--brd)"><span class="mono" style="color:var(--green)">MEMORY.md</span> — contexto fundacional do cliente</div>
+<div style="padding:4px 0;border-bottom:1px solid var(--brd)"><span class="mono" style="color:var(--green)">HEARTBEAT.md</span> — rotinas autônomas</div>
+<div style="padding:4px 0;border-bottom:1px solid var(--brd)"><span class="mono" style="color:var(--green)">guardrails/rules/</span> — regras específicas do domínio</div>
+<div style="padding:4px 0"><span class="mono" style="color:var(--green)">integrations/</span> — conexões com ferramentas do cliente</div>
+</div>
+</div>
+</div>
+
+<div class="card" style="border-color:var(--gold)">
+<div style="font-family:'IBM Plex Mono';font-size:10px;color:var(--gold);letter-spacing:1px;margin-bottom:8px">SKILL REGISTRY (remoto, evolui continuamente)</div>
+<div style="font-size:13px">
+<p>O Registry é um repositório central curado pela Paganini. Quando o cliente faz <span class="mono">paganini init</span>, o sistema puxa as skills relevantes do Registry pro domínio dele. Quando skills evoluem (nossas ou de outros clientes), o cliente recebe updates via <span class="mono">paganini update</span>.</p>
+<div style="margin-top:8px">
+<span class="badge b-green">pld-scan-v3</span>
+<span class="badge b-green">concentration-v2</span>
+<span class="badge b-green">cvm-ingest</span>
+<span class="badge b-green">covenant-monitor</span>
+<span class="badge b-green">cedente-score</span>
+<span class="badge b-green">mark-to-market</span>
+<span class="badge b-green">dd-report</span>
+<span class="badge b-green">regulatory-watch</span>
+<span class="badge b-green">risk-scanner</span>
+<span class="badge b-gold">m&a-valuation</span>
+<span class="badge b-gold">esg-screening</span>
+<span class="badge b-blue">slack-alerts</span>
+<span class="badge b-blue">pdf-report-gen</span>
+<span class="badge b-blue">market-data-b3</span>
+</div>
+</div>
+</div>
+
+<!-- ===== 5. COMO O ONBOARDING GERA ===== -->
+<h2>5. Como o onboarding gera tudo</h2>
+<div class="sub">Não é template. É geração via LLM baseada nas respostas do cliente.</div>
+
+<div class="card" style="background:var(--s2)">
+<div style="font-family:'IBM Plex Mono';font-size:10px;color:var(--gold);letter-spacing:1px;margin-bottom:12px">FLUXO INTERNO DO `paganini init`</div>
+<div style="font-size:13px;line-height:2">
+
+<div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:12px">
+<span class="badge b-gold" style="flex-shrink:0;margin-top:2px">1</span>
+<div><strong>Coleta</strong> — 7 perguntas abertas. Cliente descreve em linguagem natural: empresa, setor, dores, ferramentas, relatórios, preferência de LLM, equipe.</div>
+</div>
+
+<div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:12px">
+<span class="badge b-gold" style="flex-shrink:0;margin-top:2px">2</span>
+<div><strong>Classificação</strong> — Kernel analisa respostas → identifica: domínio (FIDC, M&A, Asset, etc.), complexidade (fundos, volume, regulação), integrações necessárias.</div>
+</div>
+
+<div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:12px">
+<span class="badge b-gold" style="flex-shrink:0;margin-top:2px">3</span>
+<div><strong>Domain Pack</strong> — Seleciona o pack mais próximo do Registry. Ex: "administração fiduciária FIDC" → <span class="mono">finance-fidc</span> pack (9 agents, 6 guardrails, 9 skills).</div>
+</div>
+
+<div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:12px">
+<span class="badge b-gold" style="flex-shrink:0;margin-top:2px">4</span>
+<div><strong>Geração</strong> — LLM gera SOUL.md, agent SOULs, HEARTBEAT.md customizados. Não são templates com variáveis. São documentos escritos PARA aquele cliente, referenciando as dores e processos que ele descreveu.</div>
+</div>
+
+<div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:12px">
+<span class="badge b-gold" style="flex-shrink:0;margin-top:2px">5</span>
+<div><strong>Integração</strong> — Configura conexões com as ferramentas do cliente (Slack webhook, API endpoints, email SMTP). Gera YAML de integração.</div>
+</div>
+
+<div style="display:flex;gap:8px;align-items:flex-start;margin-bottom:12px">
+<span class="badge b-gold" style="flex-shrink:0;margin-top:2px">6</span>
+<div><strong>Ingestão</strong> — Se FIDC: puxa dados CVM Dados Abertos por CNPJ. Se outro domínio: cliente aponta fonte de dados (CSV, API, DB). Sistema ingere e indexa.</div>
+</div>
+
+<div style="display:flex;gap:8px;align-items:flex-start">
+<span class="badge b-gold" style="flex-shrink:0;margin-top:2px">7</span>
+<div><strong>Validação</strong> — Roda um scan de teste com os dados ingeridos. Mostra resultados ao cliente. "Encontramos X problemas nos seus fundos." Primeiro valor imediato.</div>
+</div>
+
+</div>
+</div>
+
+<!-- ===== 6. EXEMPLO SOUL GERADO ===== -->
+<h2>6. Exemplo: SOUL.md gerado para Vórtx DTVM</h2>
+<div class="sub">Gerado automaticamente pelo onboarding. Cada cliente recebe um diferente.</div>
+
+<div class="term" style="font-size:12px;line-height:1.6">
+<span class="hl"># SOUL.md — Paganini AIOS para Vórtx DTVM</span><br><br>
+<span class="out">## Identidade</span><br>
+<span class="cmd">Sou o sistema de inteligência operacional da Vórtx DTVM.</span><br>
+<span class="cmd">Administramos 47 FIDCs com PL total de R$8.2B.</span><br>
+<span class="cmd">Minha missão: zero multas CVM, zero surpresas de compliance.</span><br><br>
+<span class="out">## Comportamento</span><br>
+<span class="cmd">- Compliance é a prioridade #1. Na dúvida, bloqueia.</span><br>
+<span class="cmd">- Concentração acima de 18% → alerta imediato (antes do limite de 20%)</span><br>
+<span class="cmd">- PLD/AML: qualquer match OFAC/COAF → escala pra humano, nunca aprova sozinho</span><br>
+<span class="cmd">- Relatórios CVM: gera draft automático D-5, revisão humana D-3, envio D-1</span><br>
+<span class="cmd">- Tom: direto, técnico, sem jargão desnecessário</span><br>
+<span class="cmd">- Idioma: português formal (comunicação com CVM/cotistas)</span><br><br>
+<span class="out">## Rotinas autônomas</span><br>
+<span class="cmd">- 07:00: scan de concentração em todos os 47 fundos</span><br>
+<span class="cmd">- 09:00: ingestão de dados B3/BCB do dia anterior</span><br>
+<span class="cmd">- 14:00: PLD/AML scan em novas operações</span><br>
+<span class="cmd">- 17:00: mark-to-market + alerta se NAV divergir >0.5%</span><br>
+<span class="cmd">- Semanal: relatório consolidado → Slack #gestao</span><br><br>
+<span class="out">## O que nunca fazer</span><br>
+<span class="cmd">- Nunca aprovar operação que falhou num guardrail sem escalação humana</span><br>
+<span class="cmd">- Nunca enviar relatório CVM sem aprovação do diretor de compliance</span><br>
+<span class="cmd">- Nunca expor dados de um fundo para agentes de outro fundo</span><br>
+</div>
+
+<!-- ===== 7. CLI COMPLETO ===== -->
+<h2>7. CLI do cliente</h2>
+<div class="sub">Tudo que o cliente pode fazer após o setup.</div>
+
+<div class="term" style="font-size:12px">
+<span class="hl"># Setup</span><br>
+<span class="prompt">$</span> <span class="cmd">paganini init</span> <span class="out">— onboarding interativo</span><br>
+<span class="prompt">$</span> <span class="cmd">paganini up</span> <span class="out">— liga o sistema (heartbeat, daemons)</span><br>
+<span class="prompt">$</span> <span class="cmd">paganini down</span> <span class="out">— desliga</span><br><br>
+<span class="hl"># Operação</span><br>
+<span class="prompt">$</span> <span class="cmd">paganini query "qual a concentração do FIDC Atlas?"</span><br>
+<span class="prompt">$</span> <span class="cmd">paganini scan --fund "FIDC Atlas Premium"</span> <span class="out">— compliance scan</span><br>
+<span class="prompt">$</span> <span class="cmd">paganini report dd --fund "FIDC Atlas" --output pdf</span><br>
+<span class="prompt">$</span> <span class="cmd">paganini ingest --cnpj 12.345.678/0001-90</span> <span class="out">— ingere fundo novo</span><br><br>
+<span class="hl"># Skills</span><br>
+<span class="prompt">$</span> <span class="cmd">paganini skills list</span> <span class="out">— skills instaladas</span><br>
+<span class="prompt">$</span> <span class="cmd">paganini skills search "covenant"</span> <span class="out">— busca no Registry</span><br>
+<span class="prompt">$</span> <span class="cmd">paganini skills install covenant-monitor-v2</span><br>
+<span class="prompt">$</span> <span class="cmd">paganini update</span> <span class="out">— atualiza skills do Registry</span><br><br>
+<span class="hl"># Evolução</span><br>
+<span class="prompt">$</span> <span class="cmd">paganini evolve</span> <span class="out">— roda reflection loop (melhora skills que falharam)</span><br>
+<span class="prompt">$</span> <span class="cmd">paganini memory search "concentração"</span> <span class="out">— busca na memória</span><br>
+<span class="prompt">$</span> <span class="cmd">paganini serve</span> <span class="out">— sobe API REST (pra conectar frontend)</span><br>
+</div>
+
+<!-- ===== 8. TUDO JUNTO ===== -->
+<h2>8. O pacote completo</h2>
+
+<div class="box">
+<div class="box-t">O que o cliente compra</div>
+<div style="font-size:14px;line-height:2">
+<strong style="color:var(--gold)">1.</strong> <span class="mono">pip install paganini-aios</span> — o runtime<br>
+<strong style="color:var(--gold)">2.</strong> <span class="mono">paganini init</span> — onboarding que gera workspace completo do domínio dele<br>
+<strong style="color:var(--gold)">3.</strong> <span class="mono">paganini up</span> — sistema operacional rodando em 5 minutos<br>
+<strong style="color:var(--gold)">4.</strong> Skill Registry — skills que evoluem, curadas por nós, atualizadas pra todos<br>
+<strong style="color:var(--gold)">5.</strong> Managed Evolution — nós melhoramos as skills dele continuamente<br>
+<strong style="color:var(--gold)">6.</strong> Suporte — Slack/Telegram dedicado com time Paganini
+</div>
+</div>
+
+<div style="margin-top:40px;padding:20px 0;border-top:1px solid var(--brd);font-size:11px;color:var(--t3);font-family:'IBM Plex Mono'">
+Paganini AIOS · Architecture Blueprint · Confidencial · 26 Mar 2026
+</div>
+
+</div>
+</body>
+</html>
