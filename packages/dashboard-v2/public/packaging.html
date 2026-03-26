@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Paganini — Packaging: Produto vs Broadcast</title>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,300;0,500;0,700;1,400&family=DM+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#faf9f7;--s1:#fff;--s2:#f5f3ef;--s3:#edeae4;--brd:#e2dfd9;--t1:#1a1815;--t2:#5c574e;--t3:#8a847a;--brand:#b8390e;--brand2:#d94f1e;--brandL:#fef0ec;--navy:#0c2340;--navyL:#e8edf3;--ok:#2d6a2e;--okL:#ecf5ec;--warn:#a65300;--warnL:#fff4e6;--ng:#b8390e;--ngL:#fef0ec;--gold:#8b6914;--goldL:#fdf6e3}
+body{background:var(--bg);color:var(--t1);font-family:'DM Sans',sans-serif;line-height:1.7;font-size:15px}
+.wrap{max-width:1100px;margin:0 auto;padding:clamp(16px,4vw,40px)}
+.hero{padding:clamp(40px,8vw,80px) 0 clamp(24px,4vw,48px);border-bottom:2px solid var(--t1)}
+.hero-eyebrow{font-family:'IBM Plex Mono';font-size:12px;letter-spacing:3px;text-transform:uppercase;color:var(--brand);margin-bottom:12px}
+.hero h1{font-family:'Source Serif 4';font-size:clamp(28px,5vw,48px);font-weight:700;line-height:1.1;max-width:900px}
+.hero h1 em{font-style:italic;color:var(--brand)}
+.hero-sub{font-size:16px;color:var(--t2);margin-top:12px;max-width:700px}
+h2{font-family:'Source Serif 4';font-size:clamp(20px,3vw,28px);font-weight:700;margin:clamp(32px,5vw,48px) 0 8px;padding-top:clamp(24px,4vw,36px);border-top:2px solid var(--t1)}
+h2 em{font-style:italic;color:var(--brand)}
+h3{font-family:'Source Serif 4';font-size:18px;font-weight:700;margin:24px 0 8px;color:var(--navy)}
+.sub{font-size:13px;color:var(--t3);margin-bottom:20px}
+p{margin-bottom:12px}
+
+/* CARDS */
+.card{background:var(--s1);border:1px solid var(--brd);border-radius:8px;padding:clamp(16px,2vw,24px);margin-bottom:12px}
+.card-t{font-family:'IBM Plex Mono';font-size:10px;letter-spacing:1.5px;text-transform:uppercase;color:var(--t3);margin-bottom:8px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+@media(max-width:768px){.g2,.g3,.g4{grid-template-columns:1fr}}
+
+/* BADGES */
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-family:'IBM Plex Mono';font-weight:600}
+.b-ok{background:var(--okL);color:var(--ok)}.b-warn{background:var(--warnL);color:var(--warn)}
+.b-ng{background:var(--ngL);color:var(--ng)}.b-info{background:var(--navyL);color:var(--navy)}
+.b-gold{background:var(--goldL);color:var(--gold)}
+
+/* TABLE */
+.tbl{width:100%;border-collapse:collapse;font-size:13px;margin:12px 0}
+.tbl th{text-align:left;font-family:'IBM Plex Mono';font-size:10px;letter-spacing:1px;color:var(--t3);padding:8px;border-bottom:2px solid var(--brd);background:var(--s2)}
+.tbl td{padding:8px;border-bottom:1px solid var(--brd)}
+.tbl tr:hover td{background:var(--s2)}
+.mono{font-family:'IBM Plex Mono';font-weight:500}
+
+/* TIMELINE */
+.timeline{position:relative;padding-left:32px;margin:16px 0}
+.timeline::before{content:'';position:absolute;left:12px;top:0;bottom:0;width:2px;background:var(--brd)}
+.tl-item{position:relative;margin-bottom:20px}
+.tl-item::before{content:'';position:absolute;left:-24px;top:6px;width:12px;height:12px;border-radius:50%;background:var(--s1);border:2px solid var(--brd)}
+.tl-item.done::before{background:var(--ok);border-color:var(--ok)}
+.tl-item.curr::before{background:var(--brand);border-color:var(--brand);box-shadow:0 0 0 4px var(--brandL)}
+.tl-item.next::before{background:var(--s3);border-color:var(--brd)}
+.tl-head{font-family:'IBM Plex Mono';font-size:11px;color:var(--t3);margin-bottom:2px}
+.tl-title{font-weight:600;font-size:14px}
+.tl-desc{font-size:12px;color:var(--t2);margin-top:2px}
+
+/* FLOW */
+.flow{display:flex;gap:4px;align-items:center;flex-wrap:wrap;margin:12px 0}
+.flow-step{padding:8px 14px;border-radius:6px;font-size:12px;font-family:'IBM Plex Mono';background:var(--s2);border:1px solid var(--brd)}
+.flow-step.active{background:var(--brandL);border-color:var(--brand);color:var(--brand);font-weight:600}
+.flow-arrow{color:var(--t3);font-size:10px}
+
+/* PRICE */
+.price-card{background:var(--s1);border:2px solid var(--brd);border-radius:12px;padding:24px;text-align:center;transition:border 0.2s}
+.price-card.rec{border-color:var(--brand);position:relative}
+.price-card.rec::after{content:'RECOMENDADO';position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:var(--brand);color:#fff;padding:2px 12px;border-radius:4px;font-family:'IBM Plex Mono';font-size:9px;letter-spacing:1px}
+.price-name{font-family:'Source Serif 4';font-size:20px;font-weight:700;margin-bottom:4px}
+.price-val{font-family:'IBM Plex Mono';font-size:28px;font-weight:700;color:var(--brand)}
+.price-per{font-size:12px;color:var(--t3)}
+.price-list{text-align:left;margin-top:16px;font-size:13px}
+.price-list div{padding:4px 0;border-bottom:1px solid var(--s3)}
+.price-list div::before{content:'✓ ';color:var(--ok);font-weight:700}
+
+/* CHECKLIST */
+.check{display:flex;gap:8px;align-items:flex-start;padding:6px 0}
+.check-icon{flex-shrink:0;width:20px;height:20px;border-radius:4px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:700}
+.check-done{background:var(--okL);color:var(--ok)}
+.check-todo{background:var(--warnL);color:var(--warn)}
+.check-block{background:var(--ngL);color:var(--ng)}
+.check-text{font-size:13px}
+.check-meta{font-size:11px;color:var(--t3)}
+
+/* CALLOUT */
+.callout{background:var(--goldL);border-left:4px solid var(--gold);padding:16px 20px;border-radius:0 8px 8px 0;margin:16px 0;font-size:14px}
+.callout strong{color:var(--gold)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="hero">
+<div class="hero-eyebrow">Packaging Strategy · Confidencial</div>
+<h1>Paganini <em>vs</em> Broadcast — Plano de Produto para Venda</h1>
+<div class="hero-sub">O que temos, o que falta, o que embalar — com números reais de custo e entrega.</div>
+</div>
+
+<!-- ===== SECTION 1: INVENTÁRIO ===== -->
+<h2>1. O que <em>temos</em> hoje</h2>
+<div class="sub">Inventário real do codebase — não promessa, não slide.</div>
+
+<div class="g2">
+<div class="card">
+<div class="card-t">Backend (Python)</div>
+<table class="tbl">
+<tr><td><strong>31.883 LOC</strong> em 40+ módulos</td><td class="mono">Python 3.12</td></tr>
+<tr><td><strong>9 agentes FIDC</strong> com SOULs</td><td><span class="badge b-ok">Funcional</span></td></tr>
+<tr><td><strong>6 guardrails</strong> (compliance pipeline)</td><td><span class="badge b-ok">Funcional</span></td></tr>
+<tr><td><strong>Kernel</strong>: Moltis + MetaClaw + Router</td><td><span class="badge b-ok">Funcional</span></td></tr>
+<tr><td><strong>Hybrid RAG</strong> (dense+sparse+graph→RRF)</td><td><span class="badge b-ok">Funcional</span></td></tr>
+<tr><td><strong>SFT Qwen 27B</strong> (fine-tuned FIDC)</td><td><span class="badge b-ok">Treinado</span></td></tr>
+<tr><td><strong>55 testes</strong>, 15 test files</td><td><span class="badge b-info">Cobertura parcial</span></td></tr>
+<tr><td><strong>CLI</strong>: paganini init/up/serve</td><td><span class="badge b-ok">Funcional</span></td></tr>
+<tr><td><strong>Docker + Helm</strong> charts</td><td><span class="badge b-ok">Funcional</span></td></tr>
+<tr><td><strong>FastAPI</strong> bridge (chat/health/gateway)</td><td><span class="badge b-ok">Rodando EC2</span></td></tr>
+</table>
+</div>
+<div class="card">
+<div class="card-t">Frontend (Demonstrações)</div>
+<table class="tbl">
+<tr><td><strong>Platform</strong> — 7 módulos interativos</td><td><span class="badge b-warn">Demo</span></td></tr>
+<tr><td><strong>Competitive Analysis</strong></td><td><span class="badge b-ok">Completo</span></td></tr>
+<tr><td><strong>BI Dashboard</strong> — 3.1M data points</td><td><span class="badge b-ok">Real data</span></td></tr>
+<tr><td><strong>Intelligence Graph</strong> — 325 nós</td><td><span class="badge b-ok">Interativo</span></td></tr>
+<tr><td><strong>Deep Market Intel</strong> — D3 charts</td><td><span class="badge b-ok">Real data</span></td></tr>
+<tr><td><strong>JBSS3 Analysis</strong></td><td><span class="badge b-ok">Real data</span></td></tr>
+<tr><td><strong>PETR4 Geopolítica</strong></td><td><span class="badge b-ok">Completo</span></td></tr>
+<tr><td><strong>Cost Model</strong> — 9 abas Excel</td><td><span class="badge b-ok">Completo</span></td></tr>
+<tr><td><strong>License Audit</strong></td><td><span class="badge b-ok">Completo</span></td></tr>
+<tr><td><strong>EKS Architecture</strong></td><td><span class="badge b-ok">Completo</span></td></tr>
+</table>
+</div>
+</div>
+
+<div class="callout">
+<strong>Honestidade brutal:</strong> O backend funciona via CLI. O frontend é um demo bonito. Eles não estão conectados. O platform.html demonstra a visão, não é o produto rodando. Mas cada relatório HTML com dados reais (JBSS3, PETR4, B3 3.1M pts) É uma entrega de valor que pode ser vendida.
+</div>
+
+<!-- ===== SECTION 2: O PRODUTO ===== -->
+<h2>2. O que <em>vendemos</em> — três pacotes</h2>
+<div class="sub">Para o cliente do Broadcast — gestoras, assets, tesourarias, FIDCs.</div>
+
+<div class="g3">
+<div class="price-card">
+<div class="price-name">Intelligence Reports</div>
+<div class="price-val">R$15-50K</div>
+<div class="price-per">por projeto</div>
+<div class="price-list">
+<div>Análise competitiva do setor do cliente</div>
+<div>Deep dive em ativos específicos</div>
+<div>Relatório geopolítico (impacto no portfólio)</div>
+<div>Cost model / viabilidade financeira</div>
+<div>Due diligence automatizada</div>
+<div>Entrega em <strong>48h-5 dias</strong></div>
+</div>
+<div style="margin-top:16px;font-size:11px;color:var(--t3)">
+Custo real: R$20-150 em tokens<br>
+Margem: <strong style="color:var(--ok)">97-99%</strong>
+</div>
+</div>
+
+<div class="price-card rec">
+<div class="price-name">Intelligence Platform</div>
+<div class="price-val">R$5.000</div>
+<div class="price-per">/mês por fundo</div>
+<div class="price-list">
+<div>Dashboard interativo customizado</div>
+<div>Market data B3/BCB real-time</div>
+<div>9 agentes FIDC operacionais</div>
+<div>6 guardrails de compliance</div>
+<div>Relatórios automáticos (DD, Risk, Compliance)</div>
+<div>Alertas Slack/Telegram/Email</div>
+<div>Intelligence Graph do fundo</div>
+<div>AI Console (chat com agentes)</div>
+</div>
+<div style="margin-top:16px;font-size:11px;color:var(--t3)">
+Custo real: R$3.200/fundo/mês<br>
+Margem: <strong style="color:var(--warn)">36%</strong> (SaaS) / <strong style="color:var(--ok)">89%</strong> (BYOK)
+</div>
+</div>
+
+<div class="price-card">
+<div class="price-name">Enterprise License</div>
+<div class="price-val">R$25-50K</div>
+<div class="price-per">setup + R$8-15K/mês</div>
+<div class="price-list">
+<div>Tudo do Platform</div>
+<div>On-prem (Mac Mini M4 Pro)</div>
+<div>BYOK (cliente usa própria API key)</div>
+<div>SFT model customizado por fundo</div>
+<div>White-label (marca do cliente)</div>
+<div>API dedicada</div>
+<div>SLA 99.5% + suporte prioritário</div>
+</div>
+<div style="margin-top:16px;font-size:11px;color:var(--t3)">
+CAPEX cliente: ~R$17.500 (Mac Mini)<br>
+Margem: <strong style="color:var(--ok)">82-89%</strong>
+</div>
+</div>
+</div>
+
+<!-- ===== SECTION 3: COMPARATIVO DIRETO ===== -->
+<h2>3. Paganini <em>vs</em> Broadcast — Ponto a Ponto</h2>
+<div class="sub">O que o assinante do Broadcast paga hoje vs o que recebe de nós.</div>
+
+<table class="tbl">
+<tr><th style="width:25%">Feature</th><th style="width:25%">Broadcast (Estadão)</th><th style="width:25%">Paganini</th><th style="width:25%">Vantagem</th></tr>
+<tr><td><strong>Preço</strong></td><td class="mono">R$500-1.500/user/mês</td><td class="mono">R$5.000/fundo (ilimitado users)</td><td><span class="badge b-info">Custo/user menor acima de 4 users</span></td></tr>
+<tr><td><strong>AI nativo</strong></td><td>Bolt-on (alertas keyword)</td><td>9 agentes especializados, MetaClaw routing</td><td><span class="badge b-ok">Paganini</span></td></tr>
+<tr><td><strong>Compliance FIDC</strong></td><td>Nenhum</td><td>6 guardrails hard-stop pipeline</td><td><span class="badge b-ok">Paganini (exclusivo)</span></td></tr>
+<tr><td><strong>Dados mercado</strong></td><td>Real-time B3 + internacional</td><td>B3/BCB real (delayed 15min no MVP)</td><td><span class="badge b-ng">Broadcast (por enquanto)</span></td></tr>
+<tr><td><strong>Notícias</strong></td><td>AE (Agência Estado) exclusivo</td><td>Agregação multi-fonte</td><td><span class="badge b-ng">Broadcast (editorial próprio)</span></td></tr>
+<tr><td><strong>Análise de fundos</strong></td><td>Módulo Fundos (NAV, cota, benchmark)</td><td>Full DD + risk + compliance + graph</td><td><span class="badge b-ok">Paganini</span></td></tr>
+<tr><td><strong>Relatórios</strong></td><td>Templates fixos, exporta Excel</td><td>AI-generated, customizados, PDF/HTML</td><td><span class="badge b-ok">Paganini</span></td></tr>
+<tr><td><strong>Deploy</strong></td><td>Cloud only (SaaS)</td><td>Cloud + On-prem + Híbrido</td><td><span class="badge b-ok">Paganini</span></td></tr>
+<tr><td><strong>Customização</strong></td><td>Zero (todos veem a mesma coisa)</td><td>Por fundo, por gestora</td><td><span class="badge b-ok">Paganini</span></td></tr>
+<tr><td><strong>Modelo de IA próprio</strong></td><td>Não</td><td>SFT Qwen 27B treinado em FIDC</td><td><span class="badge b-ok">Paganini (exclusivo)</span></td></tr>
+<tr><td><strong>Track record</strong></td><td>30+ anos (desde 1991)</td><td>Produto novo</td><td><span class="badge b-ng">Broadcast</span></td></tr>
+<tr><td><strong>Base de clientes</strong></td><td>~5.000 assinantes</td><td>0</td><td><span class="badge b-ng">Broadcast</span></td></tr>
+</table>
+
+<div class="callout">
+<strong>3 fraquezas reais do Paganini vs Broadcast:</strong><br>
+1. <strong>Dados real-time</strong> — Broadcast tem feed direto da B3. Nós temos delayed. Fix: contratar feed B3 (~R$2K/mês) ou parceria com data provider.<br>
+2. <strong>Notícias</strong> — Broadcast TEM a Agência Estado. Nós agregamos. Nunca vamos ter redação própria. Fix: não competir em news — competir em inteligência sobre news.<br>
+3. <strong>Track record</strong> — 30 anos vs 0. Fix: POC grátis. Deixa o produto falar.
+</div>
+
+<!-- ===== SECTION 4: PACKAGING CONCRETO ===== -->
+<h2>4. O que <em>construir</em> para vender</h2>
+<div class="sub">Roadmap de 2 semanas para primeiro cliente pagante.</div>
+
+<h3>Semana 1 — Backend ↔ Frontend</h3>
+<div class="timeline">
+<div class="tl-item done">
+<div class="tl-head">PRONTO</div>
+<div class="tl-title">FastAPI bridge.py rodando (porta 8100)</div>
+<div class="tl-desc">Chat, health, gateway-proxy endpoints. EC2 aios-paganini.</div>
+</div>
+<div class="tl-item curr">
+<div class="tl-head">SEMANA 1 · DIA 1-2 (16h)</div>
+<div class="tl-title">API REST para o Platform</div>
+<div class="tl-desc">Novos endpoints: <code>/api/market</code> (preços reais B3/BCB), <code>/api/funds</code> (dados do fundo), <code>/api/guardrails/run</code> (executar pipeline), <code>/api/reports/generate</code> (gerar PDF). Platform.html chama esses endpoints em vez de dados hardcoded.</div>
+</div>
+<div class="tl-item curr">
+<div class="tl-head">SEMANA 1 · DIA 2-3 (12h)</div>
+<div class="tl-title">Auth básico</div>
+<div class="tl-desc">Login email/senha (JWT), multi-tenant por gestora. Cada login vê só os fundos da sua gestora. Sem SSO por enquanto.</div>
+</div>
+<div class="tl-item curr">
+<div class="tl-head">SEMANA 1 · DIA 3-4 (12h)</div>
+<div class="tl-title">Ingestão de fundo real</div>
+<div class="tl-desc">Endpoint <code>/api/onboard</code>: cliente insere CNPJ do fundo → puxa dados CVM Dados Abertos (composição carteira, PL, cota, cedentes) → armazena → agents processam. Zero-touch.</div>
+</div>
+<div class="tl-item curr">
+<div class="tl-head">SEMANA 1 · DIA 5 (8h)</div>
+<div class="tl-title">3 guardrails operacionais</div>
+<div class="tl-desc">Eligibility, Concentration, PLD/AML rodando de verdade sobre dados CVM ingeridos. Resultados aparecem no platform em tempo real.</div>
+</div>
+</div>
+
+<h3>Semana 2 — Relatórios + Polish</h3>
+<div class="timeline">
+<div class="tl-item next">
+<div class="tl-head">SEMANA 2 · DIA 1-2 (12h)</div>
+<div class="tl-title">Geração de relatório real (PDF)</div>
+<div class="tl-desc">Due Diligence report como PDF. Template profissional. Dados reais do fundo ingerido. Exporta com um clique.</div>
+</div>
+<div class="tl-item next">
+<div class="tl-head">SEMANA 2 · DIA 2-3 (8h)</div>
+<div class="tl-title">AI Chat conectado ao backend</div>
+<div class="tl-desc">Chat do platform.html fala com MetaClaw real. Agentes respondem baseado nos dados do fundo do cliente. Não mais keyword-match.</div>
+</div>
+<div class="tl-item next">
+<div class="tl-head">SEMANA 2 · DIA 3-4 (12h)</div>
+<div class="tl-title">Intelligence Graph real</div>
+<div class="tl-desc">Ontology builder lê dados CVM → monta grafo real: Fundo ↔ Cedentes ↔ Devedores ↔ Setores. Mostra no platform.html via D3.</div>
+</div>
+<div class="tl-item next">
+<div class="tl-head">SEMANA 2 · DIA 4-5 (8h)</div>
+<div class="tl-title">Deploy + Onboarding doc</div>
+<div class="tl-desc">Deploy em Vercel (frontend) + EC2 (backend). Doc de onboarding para o cliente: 1 pager + vídeo de 2 min.</div>
+</div>
+</div>
+
+<div class="card" style="background:var(--brandL);border-color:var(--brand)">
+<div class="card-t" style="color:var(--brand)">Custo total do packaging</div>
+<table class="tbl">
+<tr><td>Dev (100h × OraCLI)</td><td class="mono">~$15 em tokens</td><td class="mono">R$0 adicional (infra atual)</td></tr>
+<tr><td>Infra (EC2 existente)</td><td class="mono">Já pago</td><td class="mono">$0/mês extra</td></tr>
+<tr><td>Feed B3 (delayed ok pro MVP)</td><td class="mono">Supabase existente</td><td class="mono">$0/mês</td></tr>
+<tr><td><strong>Total investimento</strong></td><td></td><td class="mono"><strong>~R$80 + 2 semanas</strong></td></tr>
+</table>
+</div>
+
+<!-- ===== SECTION 5: FIRST SALE ===== -->
+<h2>5. Primeira <em>venda</em></h2>
+<div class="sub">Estratégia para converter o primeiro cliente Broadcast em cliente Paganini.</div>
+
+<div class="g2">
+<div class="card">
+<div class="card-t">O Pitch (30 segundos)</div>
+<p style="font-family:'Source Serif 4';font-size:16px;font-weight:500;line-height:1.5;font-style:italic">
+"Você paga R$1.000/mês no Broadcast pra ver cotação e ler notícia. A gente bota 9 agentes de IA dentro do seu FIDC — compliance, DD, pricing, risk — por R$5.000/mês. Eles rodam 24/7 e entregam o que 2 analistas fazem. Quer testar grátis por 30 dias com um fundo seu?"
+</p>
+</div>
+<div class="card">
+<div class="card-t">O Funil</div>
+<div class="flow">
+<div class="flow-step active">POC grátis (30 dias)</div>
+<span class="flow-arrow">→</span>
+<div class="flow-step">1 fundo R$5K/mês</div>
+<span class="flow-arrow">→</span>
+<div class="flow-step">Expande fundos</div>
+<span class="flow-arrow">→</span>
+<div class="flow-step">Enterprise license</div>
+</div>
+<div style="margin-top:12px;font-size:13px">
+<strong>POC grátis:</strong> Zero risco pro cliente. Nosso custo: ~R$100 em tokens.<br>
+<strong>Conversão:</strong> Se 3 guardrails pegam 1 problema real, o fundo se paga em 1 mês.<br>
+<strong>Expansão:</strong> Gestora média tem 3-8 fundos. De 1 pra todos é natural.
+</div>
+</div>
+</div>
+
+<h3>Target: Quem abordar</h3>
+<table class="tbl">
+<tr><th>Perfil</th><th>Por quê</th><th>Como chegar</th><th>Ticket estimado</th></tr>
+<tr><td><strong>Gestora FIDC média</strong> (3-8 fundos, R$200M-1B AUM)</td><td>Grande o suficiente pra ter dor, pequena o suficiente pra não ter infra interna</td><td>LinkedIn + ANBIMA eventos</td><td>R$15-40K/mês</td></tr>
+<tr><td><strong>Administrador fiduciário</strong></td><td>Administra 20-50 FIDCs de terceiros. Escala massiva.</td><td>Direto — poucos players (Oliveira Trust, Vórtx, Singulare)</td><td>R$100-250K/mês</td></tr>
+<tr><td><strong>Consultoria de crédito</strong></td><td>Faz DD pra clientes. Nosso relatório automatiza 80% do trabalho deles.</td><td>Network + ABDE</td><td>R$15-50K por projeto</td></tr>
+</table>
+
+<div class="callout">
+<strong>O killer move:</strong> Administradores fiduciários. Uma Vórtx administra 50+ FIDCs. Se fecharmos 1 administrador com license enterprise, são 50 fundos de uma vez. R$250K/mês com margem 82% (BYOK). Isso é R$3M/ano com 1 cliente.
+</div>
+
+<!-- ===== SECTION 6: O QUE NÃO FAZER ===== -->
+<h2>6. O que <em>não</em> fazer</h2>
+<div class="sub">Erros que matam startups de fintech B2B.</div>
+
+<div class="g2">
+<div class="card" style="border-left:4px solid var(--ng)">
+<div class="card-t" style="color:var(--ng)">NÃO</div>
+<div class="check"><div class="check-icon check-block">✗</div><div><div class="check-text">Competir em dados real-time com Broadcast</div><div class="check-meta">Eles têm 30 anos de feed. Não vamos ganhar isso em 2 meses.</div></div></div>
+<div class="check"><div class="check-icon check-block">✗</div><div><div class="check-text">Construir tudo antes de vender</div><div class="check-meta">2 semanas de MVP → vende → itera com feedback real.</div></div></div>
+<div class="check"><div class="check-icon check-block">✗</div><div><div class="check-text">Precificar como SaaS genérico</div><div class="check-meta">SaaS puro a R$5K não escala (margem 36%). BYOK ou pay-per-use.</div></div></div>
+<div class="check"><div class="check-icon check-block">✗</div><div><div class="check-text">Tentar vender pra banco grande primeiro</div><div class="check-meta">Ciclo de venda de 6-12 meses. Começa com gestora média.</div></div></div>
+</div>
+<div class="card" style="border-left:4px solid var(--ok)">
+<div class="card-t" style="color:var(--ok)">SIM</div>
+<div class="check"><div class="check-icon check-done">✓</div><div><div class="check-text">Competir em inteligência sobre dados</div><div class="check-meta">Broadcast mostra cotação. Nós dizemos o que fazer com ela.</div></div></div>
+<div class="check"><div class="check-icon check-done">✓</div><div><div class="check-text">POC grátis com fundo real do cliente</div><div class="check-meta">Custo: R$100. Valor percebido: R$50K+ se pegar 1 problema de compliance.</div></div></div>
+<div class="check"><div class="check-icon check-done">✓</div><div><div class="check-text">Focar no que Broadcast não faz</div><div class="check-meta">Compliance FIDC, AI agents, DD automático, on-prem. Campo limpo.</div></div></div>
+<div class="check"><div class="check-icon check-done">✓</div><div><div class="check-text">Administradores como multiplicador</div><div class="check-meta">1 admin = 20-50 fundos. Escala sem CAC por fundo.</div></div></div>
+</div>
+</div>
+
+<!-- ===== SECTION 7: UNIT ECONOMICS ===== -->
+<h2>7. Unit <em>economics</em> — Cenário 12 meses</h2>
+<div class="sub">Projeção conservadora. Sem milagres.</div>
+
+<table class="tbl">
+<tr><th>Mês</th><th>Fundos</th><th>MRR</th><th>Custo LLM</th><th>Infra</th><th>Margem</th><th>Acumulado</th></tr>
+<tr><td class="mono">1-2</td><td>1 (POC grátis)</td><td class="mono">R$0</td><td class="mono">R$2.851</td><td class="mono">R$373</td><td style="color:var(--ng)" class="mono">-R$3.224</td><td class="mono">-R$6.448</td></tr>
+<tr><td class="mono">3</td><td>1 (converte)</td><td class="mono">R$5.000</td><td class="mono">R$2.851</td><td class="mono">R$373</td><td style="color:var(--ok)" class="mono">+R$1.776</td><td class="mono">-R$4.672</td></tr>
+<tr><td class="mono">4-5</td><td>3</td><td class="mono">R$15.000</td><td class="mono">R$8.553</td><td class="mono">R$560</td><td style="color:var(--ok)" class="mono">+R$5.887</td><td class="mono">+R$7.102</td></tr>
+<tr><td class="mono">6-8</td><td>8 (2ª gestora)</td><td class="mono">R$40.000</td><td class="mono">R$22.808</td><td class="mono">R$1.050</td><td style="color:var(--ok)" class="mono">+R$16.142</td><td class="mono">+R$55.528</td></tr>
+<tr><td class="mono">9-12</td><td>20 (admin fiduciário)</td><td class="mono">R$100.000</td><td class="mono">R$57.020</td><td class="mono">R$2.300</td><td style="color:var(--ok)" class="mono">+R$40.680</td><td class="mono">+R$218.248</td></tr>
+</table>
+
+<div class="card">
+<div class="card-t">Cenário com BYOK (Enterprise License)</div>
+<table class="tbl">
+<tr><th>Mês 9-12</th><th>20 fundos BYOK</th></tr>
+<tr><td>MRR</td><td class="mono">R$70.000 (R$3.500/fundo)</td></tr>
+<tr><td>Custo LLM</td><td class="mono" style="color:var(--ok)">R$0 (cliente paga)</td></tr>
+<tr><td>Infra</td><td class="mono">R$2.300</td></tr>
+<tr><td><strong>Margem mensal</strong></td><td class="mono" style="color:var(--ok)"><strong>R$67.700 (97%)</strong></td></tr>
+<tr><td><strong>ARR projetado</strong></td><td class="mono"><strong>R$812.400</strong></td></tr>
+</table>
+</div>
+
+<!-- ===== SECTION 8: DECISÃO ===== -->
+<h2>8. <em>Decisão</em></h2>
+
+<div class="card" style="background:var(--navy);color:#fff;border:none">
+<div style="font-family:'Source Serif 4';font-size:22px;font-weight:700;margin-bottom:12px">Recomendação</div>
+<div style="font-size:15px;line-height:1.8">
+<strong style="color:#c9a84c">2 semanas de dev</strong> → MVP conectado (backend ↔ frontend)<br>
+<strong style="color:#c9a84c">1 POC grátis</strong> → gestora FIDC média com 3+ fundos<br>
+<strong style="color:#c9a84c">Pitch em 1 linha</strong> → "9 agentes de compliance FIDC por R$5K/mês — testa grátis"<br>
+<strong style="color:#c9a84c">Não competir</strong> em dados real-time com Broadcast<br>
+<strong style="color:#c9a84c">Competir</strong> em inteligência sobre dados — o que eles não fazem<br>
+<strong style="color:#c9a84c">Target whale</strong> → administrador fiduciário (1 cliente = 50 fundos = R$3M ARR)
+</div>
+</div>
+
+<div style="margin-top:40px;padding:24px 0;border-top:1px solid var(--brd);font-size:11px;color:var(--t3);font-family:'IBM Plex Mono'">
+Paganini Intelligence Platform · Confidencial · Gerado em 26 Mar 2026 03:25 UTC<br>
+Dados: Supabase (3.1M pts B3/BCB) · Backend: 31.883 LOC Python · 697 tasks tracked · 9 agents · 6 guardrails
+</div>
+
+</div>
+</body>
+</html>
