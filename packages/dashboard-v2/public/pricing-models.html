@@ -1,0 +1,607 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Paganini AIOS — Pricing, Plans & Enterprise Deployment</title>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,300;0,500;0,700;1,400&family=DM+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://d3js.org/d3.v7.min.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0f0e0d;--s1:#181614;--s2:#1e1c19;--s3:#262320;--brd:#332f2a;--t1:#e8e4de;--t2:#a09888;--t3:#6b6358;--gold:#c9a84c;--goldD:#8b6914;--goldL:rgba(201,168,76,0.12);--red:#c45141;--redL:rgba(196,81,65,0.12);--green:#5a9e5c;--greenL:rgba(90,158,92,0.12);--blue:#5b8ec9;--blueL:rgba(91,142,201,0.12);--orange:#c98a3d;--orangeL:rgba(201,138,61,0.12);--purple:#8b6ec7;--purpleL:rgba(139,110,199,0.12)}
+body{background:var(--bg);color:var(--t1);font-family:'DM Sans',sans-serif;font-size:14px;line-height:1.6}
+.wrap{max-width:1100px;margin:0 auto;padding:clamp(16px,4vw,40px)}
+h1{font-family:'Source Serif 4';font-size:clamp(28px,5vw,44px);font-weight:700;line-height:1.1;margin-bottom:8px}
+h1 em{font-style:italic;color:var(--gold)}
+h2{font-family:'Source Serif 4';font-size:clamp(18px,3vw,24px);font-weight:700;margin:clamp(32px,5vw,48px) 0 8px;padding-top:24px;border-top:1px solid var(--brd);color:var(--gold)}
+h3{font-family:'Source Serif 4';font-size:16px;font-weight:700;margin:20px 0 8px}
+.sub{font-size:12px;color:var(--t3);margin-bottom:16px}
+p{margin-bottom:10px;color:var(--t2);font-size:13px}
+.card{background:var(--s1);border:1px solid var(--brd);border-radius:8px;padding:clamp(14px,2vw,20px);margin-bottom:10px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+.g5{display:grid;grid-template-columns:repeat(5,1fr);gap:8px}
+@media(max-width:768px){.g2,.g3,.g4,.g5{grid-template-columns:1fr}}
+.mono{font-family:'IBM Plex Mono';font-weight:500}
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-family:'IBM Plex Mono';font-weight:600}
+.b-gold{background:var(--goldL);color:var(--gold)}.b-green{background:var(--greenL);color:var(--green)}
+.b-blue{background:var(--blueL);color:var(--blue)}.b-red{background:var(--redL);color:var(--red)}
+.b-purple{background:var(--purpleL);color:var(--purple)}.b-orange{background:var(--orangeL);color:var(--orange)}
+.tbl{width:100%;border-collapse:collapse;font-size:12px;margin:10px 0}
+.tbl th{text-align:left;font-family:'IBM Plex Mono';font-size:9px;letter-spacing:1px;color:var(--t3);padding:6px 8px;border-bottom:2px solid var(--brd);background:var(--s2)}
+.tbl td{padding:6px 8px;border-bottom:1px solid rgba(51,47,42,0.3)}
+.tbl tr:hover td{background:rgba(255,255,255,0.02)}
+.metric{padding:8px 0}.metric-l{font-family:'IBM Plex Mono';font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--t3)}
+.metric-v{font-family:'IBM Plex Mono';font-size:20px;font-weight:600;margin:2px 0}
+.up{color:var(--green)}.dn{color:var(--red)}.nt{color:var(--gold)}
+
+/* TIER CARD */
+.tier{background:var(--s1);border:2px solid var(--brd);border-radius:12px;padding:20px;position:relative;transition:border 0.2s}
+.tier.rec{border-color:var(--gold)}
+.tier.rec::after{content:'RECOMENDADO';position:absolute;top:-10px;left:50%;transform:translateX(-50%);background:var(--gold);color:var(--bg);padding:2px 12px;border-radius:4px;font-family:'IBM Plex Mono';font-size:9px;letter-spacing:1px}
+.tier-name{font-family:'Source Serif 4';font-size:18px;font-weight:700;margin-bottom:4px}
+.tier-price{font-family:'IBM Plex Mono';font-size:24px;font-weight:700;color:var(--gold)}
+.tier-per{font-size:11px;color:var(--t3)}
+.tier-list{margin-top:12px;font-size:12px}.tier-list div{padding:3px 0;border-bottom:1px solid var(--brd)}
+.tier-list div::before{content:'✓ ';color:var(--green)}
+.tier-list div.no::before{content:'✗ ';color:var(--red)}
+
+/* CHART */
+.chart-wrap{position:relative;height:300px;margin:12px 0}
+.callout{background:var(--goldL);border-left:3px solid var(--gold);padding:12px 16px;border-radius:0 8px 8px 0;margin:12px 0;font-size:13px}
+.callout strong{color:var(--gold)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div style="padding:clamp(32px,6vw,60px) 0 20px;border-bottom:1px solid var(--brd)">
+<div style="font-family:'IBM Plex Mono';font-size:11px;letter-spacing:2px;color:var(--gold);margin-bottom:8px">PRICING & DEPLOYMENT STRATEGY · CONFIDENCIAL</div>
+<h1>Paganini <em>AIOS</em> — Modelos de Negócio</h1>
+<p style="font-size:15px;color:var(--t1)">Fábrica autônoma. Por assento. Por uso. On-prem. Enterprise. Com números reais.</p>
+</div>
+
+<!-- ===== 1. OS 5 PLANOS ===== -->
+<h2>1. Cinco planos de entrega</h2>
+<div class="sub">Cada plano resolve um perfil diferente de cliente e tolerância a risco.</div>
+
+<div class="g5">
+<div class="tier">
+<div class="tier-name">Starter</div>
+<div class="tier-price">R$0</div>
+<div class="tier-per">por assento/mês</div>
+<div style="margin:8px 0"><span class="badge b-blue">PAY-PER-USE</span></div>
+<div class="tier-list">
+<div>1 canal (Telegram ou Slack)</div>
+<div>3 agentes ativos</div>
+<div>Skills do Registry (free tier)</div>
+<div>50 queries/dia incluídas</div>
+<div>LLM nosso (Gemini Flash)</div>
+<div class="no">Sem isolamento dedicado</div>
+<div class="no">Sem on-prem</div>
+<div class="no">Sem SFT customizado</div>
+</div>
+<div style="margin-top:12px;font-size:11px;color:var(--t3)">
+Excedente: <span class="mono">R$0.15/query</span><br>
+Target: freelancer, micro
+</div>
+</div>
+
+<div class="tier">
+<div class="tier-name">Professional</div>
+<div class="tier-price">R$299</div>
+<div class="tier-per">por assento/mês</div>
+<div style="margin:8px 0"><span class="badge b-green">PER SEAT</span></div>
+<div class="tier-list">
+<div>Multi-canal (Slack + Telegram + Dashboard)</div>
+<div>6 agentes ativos</div>
+<div>Registry completo (todas skills)</div>
+<div>500 queries/dia incluídas</div>
+<div>LLM nosso (Flash + Sonnet)</div>
+<div>Worker dedicado</div>
+<div>Heartbeat autônomo</div>
+<div class="no">Sem on-prem</div>
+</div>
+<div style="margin-top:12px;font-size:11px;color:var(--t3)">
+Excedente: <span class="mono">R$0.08/query</span><br>
+Target: PME, startup
+</div>
+</div>
+
+<div class="tier rec">
+<div class="tier-name">Business</div>
+<div class="tier-price">R$999</div>
+<div class="tier-per">por assento/mês</div>
+<div style="margin:8px 0"><span class="badge b-gold">PER SEAT + USAGE</span></div>
+<div class="tier-list">
+<div>Todos os canais + Dashboard + TUI</div>
+<div>Agentes ilimitados</div>
+<div>Registry + skills customizadas</div>
+<div>Queries ilimitadas</div>
+<div>LLM: Flash + Sonnet + Opus</div>
+<div>Worker pool dedicado (3 workers)</div>
+<div>Skill evolution automática</div>
+<div>Onboarding assistido (2h)</div>
+</div>
+<div style="margin-top:12px;font-size:11px;color:var(--t3)">
+Heavy use: <span class="mono">R$0.03/query após 5K/dia</span><br>
+Target: mid-market, gestora
+</div>
+</div>
+
+<div class="tier">
+<div class="tier-name">Enterprise</div>
+<div class="tier-price">R$2.499</div>
+<div class="tier-per">por assento/mês</div>
+<div style="margin:8px 0"><span class="badge b-purple">SEAT + BYOK</span></div>
+<div class="tier-list">
+<div>Tudo do Business</div>
+<div>BYOK (traz sua API key)</div>
+<div>Workspace 100% isolado</div>
+<div>SSO (SAML/OIDC)</div>
+<div>SFT model customizado</div>
+<div>Compliance audit trail</div>
+<div>SLA 99.5%</div>
+<div>Managed evolution dedicado</div>
+</div>
+<div style="margin-top:12px;font-size:11px;color:var(--t3)">
+Setup: <span class="mono">R$15.000</span> (one-time)<br>
+Target: gestora grande, admin fiduciário
+</div>
+</div>
+
+<div class="tier">
+<div class="tier-name">On-Prem</div>
+<div class="tier-price">R$4.999</div>
+<div class="tier-per">por assento/mês</div>
+<div style="margin:8px 0"><span class="badge b-red">ISOLATED</span></div>
+<div class="tier-list">
+<div>Tudo do Enterprise</div>
+<div>Deploy na infra do cliente</div>
+<div>Modelo local (Qwen 27B SFT)</div>
+<div>Zero dados saem da rede</div>
+<div>Air-gap compatible</div>
+<div>Custom training pipeline</div>
+<div>Hardware spec + provisioning</div>
+<div>Suporte on-site (8h/mês)</div>
+</div>
+<div style="margin-top:12px;font-size:11px;color:var(--t3)">
+Setup: <span class="mono">R$50.000</span> + hardware<br>
+Target: banco, regulador, governo
+</div>
+</div>
+</div>
+
+<!-- ===== 2. UNIT ECONOMICS POR PLANO ===== -->
+<h2>2. Unit economics por plano</h2>
+<div class="sub">Custo real por assento, margem bruta, breakeven.</div>
+
+<table class="tbl">
+<tr>
+<th>Métrica</th>
+<th>Starter</th>
+<th>Professional</th>
+<th>Business</th>
+<th>Enterprise</th>
+<th>On-Prem</th>
+</tr>
+<tr>
+<td><strong>Receita/assento/mês</strong></td>
+<td class="mono">R$45*</td>
+<td class="mono">R$299</td>
+<td class="mono" style="color:var(--gold)">R$999</td>
+<td class="mono">R$2.499</td>
+<td class="mono">R$4.999</td>
+</tr>
+<tr>
+<td><strong>Custo LLM/assento</strong></td>
+<td class="mono">R$28</td>
+<td class="mono">R$95</td>
+<td class="mono">R$180</td>
+<td class="mono">R$0 (BYOK)</td>
+<td class="mono">R$0 (local)</td>
+</tr>
+<tr>
+<td><strong>Custo infra/assento</strong></td>
+<td class="mono">R$2</td>
+<td class="mono">R$8</td>
+<td class="mono">R$15</td>
+<td class="mono">R$25</td>
+<td class="mono">R$50</td>
+</tr>
+<tr>
+<td><strong>Custo canal/assento</strong></td>
+<td class="mono">R$5</td>
+<td class="mono">R$12</td>
+<td class="mono">R$20</td>
+<td class="mono">R$20</td>
+<td class="mono">R$20</td>
+</tr>
+<tr>
+<td><strong>Custo total/assento</strong></td>
+<td class="mono">R$35</td>
+<td class="mono">R$115</td>
+<td class="mono">R$215</td>
+<td class="mono">R$45</td>
+<td class="mono">R$70</td>
+</tr>
+<tr style="background:var(--s2)">
+<td><strong>Margem bruta</strong></td>
+<td class="mono" style="color:var(--orange)">22%</td>
+<td class="mono" style="color:var(--green)">62%</td>
+<td class="mono" style="color:var(--green)">78%</td>
+<td class="mono" style="color:var(--green)">98%</td>
+<td class="mono" style="color:var(--green)">99%</td>
+</tr>
+<tr>
+<td><strong>Margem bruta/assento</strong></td>
+<td class="mono">R$10</td>
+<td class="mono">R$184</td>
+<td class="mono" style="color:var(--gold)">R$784</td>
+<td class="mono">R$2.454</td>
+<td class="mono">R$4.929</td>
+</tr>
+<tr>
+<td><strong>Breakeven (assentos)</strong></td>
+<td class="mono">450</td>
+<td class="mono">25</td>
+<td class="mono" style="color:var(--gold)">6</td>
+<td class="mono">2</td>
+<td class="mono">1</td>
+</tr>
+<tr>
+<td><strong>CAC estimado</strong></td>
+<td class="mono">R$0 (self-serve)</td>
+<td class="mono">R$500</td>
+<td class="mono">R$3.000</td>
+<td class="mono">R$10.000</td>
+<td class="mono">R$25.000</td>
+</tr>
+<tr>
+<td><strong>Payback CAC</strong></td>
+<td class="mono">—</td>
+<td class="mono">2.7 meses</td>
+<td class="mono" style="color:var(--gold)">3.8 meses</td>
+<td class="mono">4.1 meses</td>
+<td class="mono">5.1 meses</td>
+</tr>
+</table>
+<p style="font-size:11px">*Starter: média estimada R$45/assento/mês baseado em 300 queries/dia × R$0.15</p>
+
+<div class="callout">
+<strong>Insight:</strong> O plano Starter existe para funil — margem baixa mas zero CAC. O dinheiro real está no Business (margem 78%, breakeven com 6 assentos) e Enterprise/On-Prem (margem 98-99%, cada assento é quase puro lucro porque LLM = zero custo pra nós).
+</div>
+
+<!-- ===== 3. CUSTO DETALHADO DO WORKER ===== -->
+<h2>3. Anatomia do custo por Worker</h2>
+<div class="sub">O que custa manter um assento ativo — decomposição completa.</div>
+
+<div class="g2">
+<div class="card">
+<h3>Custo LLM por query (nosso proxy)</h3>
+<table class="tbl">
+<tr><th>Modelo</th><th>Input/1K tok</th><th>Output/1K tok</th><th>Avg query</th><th>Custo/query</th><th>Uso</th></tr>
+<tr><td>Gemini Flash</td><td class="mono">$0.075</td><td class="mono">$0.30</td><td class="mono">~2K tok</td><td class="mono nt">R$0.004</td><td>62% triagem</td></tr>
+<tr><td>Claude Sonnet</td><td class="mono">$3.00</td><td class="mono">$15.00</td><td class="mono">~3K tok</td><td class="mono nt">R$0.28</td><td>30% análise</td></tr>
+<tr><td>Claude Opus</td><td class="mono">$15.00</td><td class="mono">$75.00</td><td class="mono">~4K tok</td><td class="mono nt">R$1.89</td><td>5% decisão</td></tr>
+<tr><td>Qwen 27B SFT (local)</td><td colspan="3">Custo fixo infra</td><td class="mono up">R$0.00</td><td>3% especialista</td></tr>
+<tr style="background:var(--s2)"><td colspan="4"><strong>Média ponderada por query</strong></td><td class="mono" style="color:var(--gold)"><strong>R$0.10</strong></td><td></td></tr>
+</table>
+<p style="font-size:11px">Com cache hit 38%: R$0.062/query efetivo</p>
+</div>
+
+<div class="card">
+<h3>Custo infra por Worker (Cloudflare)</h3>
+<table class="tbl">
+<tr><th>Componente</th><th>Unidade</th><th>Custo</th><th>Por assento/mês</th></tr>
+<tr><td>Dynamic Worker request</td><td class="mono">1M requests</td><td class="mono">$0.50</td><td class="mono">R$0.80</td></tr>
+<tr><td>Worker compute (CPU ms)</td><td class="mono">1M ms</td><td class="mono">$0.02</td><td class="mono">R$1.50</td></tr>
+<tr><td>R2 storage (workspace)</td><td class="mono">1 MB</td><td class="mono">$0.015/GB</td><td class="mono">R$0.001</td></tr>
+<tr><td>KV reads (state/cache)</td><td class="mono">10M reads</td><td class="mono">$0.50</td><td class="mono">R$0.40</td></tr>
+<tr><td>KV writes</td><td class="mono">1M writes</td><td class="mono">$5.00</td><td class="mono">R$2.00</td></tr>
+<tr><td>Supabase (shared)</td><td class="mono">Pro plan / N users</td><td class="mono">$25 total</td><td class="mono">R$1.30</td></tr>
+<tr style="background:var(--s2)"><td colspan="3"><strong>Total infra por assento</strong></td><td class="mono" style="color:var(--gold)"><strong>R$6.00</strong></td></tr>
+</table>
+<p style="font-size:11px">Baseado em 500 queries/dia, 100KB workspace, 15K KV ops/dia</p>
+</div>
+</div>
+
+<div class="card">
+<h3>Custo por canal de entrega</h3>
+<table class="tbl">
+<tr><th>Canal</th><th>Custo/mês/assento</th><th>Setup</th><th>Notas</th></tr>
+<tr><td>Telegram Bot</td><td class="mono up">R$0</td><td class="mono">0</td><td>Gratuito (Bot API)</td></tr>
+<tr><td>Slack App</td><td class="mono up">R$0</td><td class="mono">OAuth</td><td>Gratuito (Bot token)</td></tr>
+<tr><td>Microsoft Teams</td><td class="mono">R$5</td><td class="mono">Azure AD</td><td>Azure Bot Service (F0 free tier limited)</td></tr>
+<tr><td>Dashboard Web</td><td class="mono">R$2</td><td class="mono">Vercel</td><td>Hosting + bandwidth</td></tr>
+<tr><td>TUI (Terminal)</td><td class="mono up">R$0</td><td class="mono">pip install</td><td>Roda local, zero custo</td></tr>
+</table>
+</div>
+
+<!-- ===== 4. MODELO DE FÁBRICA AUTÔNOMA ===== -->
+<h2>4. Fábrica autônoma — O modelo operacional</h2>
+<div class="sub">Como funciona a máquina que serve N clientes sem escalar headcount.</div>
+
+<div class="card" style="background:var(--s2);border:none;padding:24px">
+<div style="font-family:'IBM Plex Mono';font-size:12px;line-height:2.2;color:var(--t1)">
+<pre style="font-family:inherit;white-space:pre-wrap">
+┌──────────────────────────────────────────────────────────┐
+│                   PAGANINI FACTORY                       │
+│                                                          │
+│  ┌──────────┐    ┌──────────┐    ┌──────────┐           │
+│  │ Telegram │    │  Slack   │    │  Teams   │  ...      │
+│  └────┬─────┘    └────┬─────┘    └────┬─────┘           │
+│       └───────────────┼───────────────┘                  │
+│                       ▼                                  │
+│              ┌────────────────┐                          │
+│              │  GATEWAY       │ identifica cliente,      │
+│              │  (Cloudflare)  │ roteia, rate limit       │
+│              └───────┬────────┘                          │
+│                      ▼                                   │
+│    ┌─────────────────────────────────────┐               │
+│    │         WORKER POOL                 │               │
+│    │  ┌───────┐ ┌───────┐ ┌───────┐     │               │
+│    │  │W-001  │ │W-002  │ │W-003  │ ... │ Dynamic       │
+│    │  │Client │ │Client │ │Client │     │ Workers       │
+│    │  │  #12  │ │ #347  │ │  #89  │     │ (on-demand)   │
+│    │  └───┬───┘ └───┬───┘ └───┬───┘     │               │
+│    └──────┼─────────┼─────────┼─────────┘               │
+│           ▼         ▼         ▼                          │
+│    ┌─────────────────────────────────────┐               │
+│    │         STORAGE LAYER               │               │
+│    │  R2: /workspaces/{id}/              │ SOUL, memory, │
+│    │  KV: session state, cache           │ skills, data  │
+│    │  Supabase: structured data          │               │
+│    └─────────────────────────────────────┘               │
+│                       ▼                                  │
+│    ┌─────────────────────────────────────┐               │
+│    │         LLM LAYER                   │               │
+│    │  Flash (62%) → Sonnet (30%) → Opus  │ MetaClaw      │
+│    │  Qwen 27B SFT (especialista)        │ routing       │
+│    │  Client BYOK key (Enterprise)       │               │
+│    └─────────────────────────────────────┘               │
+│                       ▼                                  │
+│    ┌─────────────────────────────────────┐               │
+│    │       EVOLUTION ENGINE              │               │
+│    │  Skill Registry (shared R2)         │ Hyperagent    │
+│    │  Reflection loop (daily cron)       │ meta-loop     │
+│    │  Performance tracking (per skill)   │               │
+│    │  Cross-client pattern detection     │               │
+│    └─────────────────────────────────────┘               │
+└──────────────────────────────────────────────────────────┘
+</pre>
+</div>
+</div>
+
+<div class="g3">
+<div class="card">
+<div class="metric"><div class="metric-l">Workers simultâneos</div><div class="metric-v nt">∞</div></div>
+<p>Dynamic Workers escalam automaticamente. Não existe "capacity planning". Cloudflare garante.</p>
+</div>
+<div class="card">
+<div class="metric"><div class="metric-l">Headcount necessário</div><div class="metric-v up">0-2</div></div>
+<p>0 até 500 clientes. 1 SRE a partir de 500. 1 skill engineer a partir de 1.000. O sistema opera sozinho.</p>
+</div>
+<div class="card">
+<div class="metric"><div class="metric-l">Latência p95</div><div class="metric-v nt">&lt;3s</div></div>
+<p>Worker hydrate: 5ms. Skill lookup: 10ms. LLM: 1-3s. Total dominado pelo LLM, não pela infra.</p>
+</div>
+</div>
+
+<!-- ===== 5. ESCALA POR PLANO ===== -->
+<h2>5. Projeção de escala — 24 meses</h2>
+<div class="sub">Cenário conservador: 1 plano por vez, crescimento orgânico + 1 enterprise deal.</div>
+
+<table class="tbl">
+<tr><th>Mês</th><th>Starter</th><th>Professional</th><th>Business</th><th>Enterprise</th><th>On-Prem</th><th>Total assentos</th><th>MRR</th><th>Custo</th><th>Margem</th></tr>
+<tr><td class="mono">1-3</td><td>20</td><td>5</td><td>0</td><td>0</td><td>0</td><td>25</td><td class="mono">R$2.395</td><td class="mono">R$1.275</td><td class="mono up">47%</td></tr>
+<tr><td class="mono">4-6</td><td>80</td><td>20</td><td>5</td><td>0</td><td>0</td><td>105</td><td class="mono">R$14.575</td><td class="mono">R$6.065</td><td class="mono up">58%</td></tr>
+<tr><td class="mono">7-9</td><td>200</td><td>50</td><td>15</td><td>3</td><td>0</td><td>268</td><td class="mono">R$39.482</td><td class="mono">R$12.595</td><td class="mono up">68%</td></tr>
+<tr><td class="mono">10-12</td><td>400</td><td>100</td><td>30</td><td>8</td><td>1</td><td>539</td><td class="mono">R$94.867</td><td class="mono">R$25.060</td><td class="mono up">74%</td></tr>
+<tr style="background:var(--s2)"><td class="mono">12</td><td colspan="5"><strong>ARR</strong></td><td></td><td class="mono" style="color:var(--gold)"><strong>R$1.138.404</strong></td><td></td><td class="mono up"><strong>74%</strong></td></tr>
+<tr><td class="mono">13-18</td><td>800</td><td>200</td><td>60</td><td>20</td><td>3</td><td>1.083</td><td class="mono">R$189.082</td><td class="mono">R$48.500</td><td class="mono up">74%</td></tr>
+<tr><td class="mono">19-24</td><td>1.500</td><td>400</td><td>120</td><td>50</td><td>8</td><td>2.078</td><td class="mono">R$397.340</td><td class="mono">R$92.300</td><td class="mono up">77%</td></tr>
+<tr style="background:var(--goldL)"><td class="mono">24</td><td colspan="5"><strong>ARR Ano 2</strong></td><td></td><td class="mono" style="color:var(--gold)"><strong>R$4.768.080</strong></td><td></td><td class="mono up"><strong>77%</strong></td></tr>
+</table>
+
+<div class="g4">
+<div class="card"><div class="metric"><div class="metric-l">ARR Ano 1</div><div class="metric-v nt">R$1.14M</div></div></div>
+<div class="card"><div class="metric"><div class="metric-l">ARR Ano 2</div><div class="metric-v nt">R$4.77M</div></div></div>
+<div class="card"><div class="metric"><div class="metric-l">Margem média</div><div class="metric-v up">74-77%</div></div></div>
+<div class="card"><div class="metric"><div class="metric-l">Headcount</div><div class="metric-v">2-3</div></div></div>
+</div>
+
+<!-- ===== 6. LLM STRATEGY ===== -->
+<h2>6. Estratégia de LLM — Nosso vs BYOK vs Local</h2>
+<div class="sub">Três caminhos, três perfis de cliente, três modelos de receita.</div>
+
+<div class="g3">
+<div class="card" style="border-top:3px solid var(--blue)">
+<h3 style="color:var(--blue)">① Nosso Proxy (Starter/Pro/Business)</h3>
+<p><strong>Como funciona:</strong> Cliente usa nosso proxy. MetaClaw roteia: Flash pra triagem, Sonnet pra análise, Opus pra decisão. Cliente não precisa de API key.</p>
+<p><strong>Nosso custo:</strong> R$0.10/query (média ponderada)</p>
+<p><strong>Receita:</strong> Incluída no assento + excedente</p>
+<p><strong>Margem LLM:</strong> 60-78% (spread entre custo e preço do plano)</p>
+<p><strong>Vantagem:</strong> Zero friction no onboarding. Cliente começa em 2 minutos.</p>
+<p><strong>Risco:</strong> Se pricing do provider sobe, margem comprime.</p>
+<div style="margin-top:8px">
+<span class="badge b-blue">Flash 62%</span>
+<span class="badge b-gold">Sonnet 30%</span>
+<span class="badge b-red">Opus 5%</span>
+<span class="badge b-green">SFT 3%</span>
+</div>
+</div>
+
+<div class="card" style="border-top:3px solid var(--purple)">
+<h3 style="color:var(--purple)">② BYOK (Enterprise)</h3>
+<p><strong>Como funciona:</strong> Cliente traz sua API key (OpenAI, Anthropic, Google). Nosso proxy roteia mas usa a key dele. Custo LLM = zero pra nós.</p>
+<p><strong>Nosso custo:</strong> R$0/query</p>
+<p><strong>Receita:</strong> Puro assento (R$2.499/mês)</p>
+<p><strong>Margem LLM:</strong> 100% (não pagamos LLM)</p>
+<p><strong>Vantagem:</strong> Margem máxima. Cliente controla seus custos.</p>
+<p><strong>Risco:</strong> Cliente vê quanto gasta no provider e questiona nosso preço.</p>
+<p style="font-size:11px;color:var(--t3);margin-top:8px">Mitigação: valor está nos agentes, skills e evolução — não no LLM em si.</p>
+</div>
+
+<div class="card" style="border-top:3px solid var(--red)">
+<h3 style="color:var(--red)">③ On-Prem / Local (On-Prem)</h3>
+<p><strong>Como funciona:</strong> Qwen 27B SFT roda no hardware do cliente (Mac Mini M4 Pro 64GB ou GPU server). Zero dados saem da rede.</p>
+<p><strong>Nosso custo:</strong> R$0/query</p>
+<p><strong>Receita:</strong> Assento + setup + training fee</p>
+<p><strong>Margem LLM:</strong> 100%</p>
+<p><strong>Vantagem:</strong> Air-gap, compliance total, dados protegidos.</p>
+<p><strong>Risco:</strong> Performance do modelo local (14 tok/s no 27B Q4) vs cloud (60+ tok/s).</p>
+<div style="margin-top:8px">
+<span class="badge b-red">Qwen 27B SFT: 14 tok/s</span><br>
+<span class="badge b-green" style="margin-top:4px">Qwen 8B fast: 55 tok/s</span>
+</div>
+<p style="font-size:11px;color:var(--t3);margin-top:8px">Arquitetura: 8B local pra triagem (rápido) + 27B local pra análise (preciso). Sem cloud.</p>
+</div>
+</div>
+
+<!-- ===== 7. ENTERPRISE DEPLOYMENT ===== -->
+<h2>7. Deployment enterprise — 4 padrões</h2>
+<div class="sub">Como implementar numa empresa grande. Simples, adaptável, sem friction.</div>
+
+<div class="g2">
+<div class="card" style="border-left:3px solid var(--blue)">
+<h3>Padrão A — Channel-First (2 dias)</h3>
+<p><strong>Para:</strong> Empresa que quer testar rápido. Mínimo friction.</p>
+<table class="tbl">
+<tr><td><strong>Dia 1</strong></td><td>Bot adicionado ao Slack/Teams da empresa</td></tr>
+<tr><td><strong>Dia 1</strong></td><td>Onboarding conversacional com 1 stakeholder</td></tr>
+<tr><td><strong>Dia 1</strong></td><td>Workspace gerado, skills instaladas</td></tr>
+<tr><td><strong>Dia 2</strong></td><td>Dados ingeridos (CVM, CSV, API)</td></tr>
+<tr><td><strong>Dia 2</strong></td><td>Primeiro compliance scan + relatório</td></tr>
+</table>
+<p style="font-size:11px;color:var(--gold);margin-top:8px"><strong>Esforço cliente:</strong> 30 min de conversa + share de dados</p>
+</div>
+
+<div class="card" style="border-left:3px solid var(--green)">
+<h3>Padrão B — API Integration (1 semana)</h3>
+<p><strong>Para:</strong> Empresa que quer integrar no sistema deles.</p>
+<table class="tbl">
+<tr><td><strong>Dia 1-2</strong></td><td>Onboarding + workspace gerado</td></tr>
+<tr><td><strong>Dia 3-4</strong></td><td>API REST habilitada (<code>paganini serve</code>)</td></tr>
+<tr><td><strong>Dia 4-5</strong></td><td>Webhooks configurados (eventos → sistema do cliente)</td></tr>
+<tr><td><strong>Dia 5-6</strong></td><td>Dashboard embeddable fornecido</td></tr>
+<tr><td><strong>Dia 7</strong></td><td>Go-live + monitoramento</td></tr>
+</table>
+<p style="font-size:11px;color:var(--gold);margin-top:8px"><strong>Esforço cliente:</strong> 1 dev pra integrar endpoints</p>
+</div>
+
+<div class="card" style="border-left:3px solid var(--purple)">
+<h3>Padrão C — Departmental Rollout (2 semanas)</h3>
+<p><strong>Para:</strong> Empresa grande, rollout por departamento.</p>
+<table class="tbl">
+<tr><td><strong>Semana 1</strong></td><td>Piloto com 1 departamento (5-10 assentos)</td></tr>
+<tr><td><strong>Semana 1</strong></td><td>SSO/SAML integrado com AD/Okta</td></tr>
+<tr><td><strong>Semana 2</strong></td><td>Skills customizadas pro workflow do depto</td></tr>
+<tr><td><strong>Semana 2</strong></td><td>Training session (1h) com usuários</td></tr>
+<tr><td><strong>Mês 2-3</strong></td><td>Expansão para outros departamentos</td></tr>
+</table>
+<p style="font-size:11px;color:var(--gold);margin-top:8px"><strong>Esforço cliente:</strong> 1 champion interno + IT pra SSO</p>
+</div>
+
+<div class="card" style="border-left:3px solid var(--red)">
+<h3>Padrão D — On-Prem (4 semanas)</h3>
+<p><strong>Para:</strong> Banco, governo, regulador. Zero cloud.</p>
+<table class="tbl">
+<tr><td><strong>Semana 1</strong></td><td>Hardware spec + aquisição (Mac Mini/GPU)</td></tr>
+<tr><td><strong>Semana 2</strong></td><td>Deploy do kernel + modelo SFT local</td></tr>
+<tr><td><strong>Semana 2</strong></td><td>Onboarding + workspace gerado</td></tr>
+<tr><td><strong>Semana 3</strong></td><td>Custom training com dados do cliente</td></tr>
+<tr><td><strong>Semana 3</strong></td><td>Guardrails calibrados</td></tr>
+<tr><td><strong>Semana 4</strong></td><td>Security audit + go-live</td></tr>
+</table>
+<p style="font-size:11px;color:var(--gold);margin-top:8px"><strong>Esforço cliente:</strong> Infra team + security review + dados pra training</p>
+</div>
+</div>
+
+<!-- ===== 8. COMPARATIVO DE ESCALA ===== -->
+<h2>8. Custo de escala — Comparativo de arquiteturas</h2>
+<div class="sub">Por que Dynamic Workers e não EC2/EKS/Lambda.</div>
+
+<table class="tbl">
+<tr><th>Métrica</th><th>EC2 (1/cliente)</th><th>EKS (shared)</th><th>Lambda</th><th style="color:var(--gold)">CF Dynamic Workers</th></tr>
+<tr><td><strong>100 clientes</strong></td><td class="mono dn">$1.500/mês</td><td class="mono">$600/mês</td><td class="mono">$200/mês</td><td class="mono up">$50/mês</td></tr>
+<tr><td><strong>1.000 clientes</strong></td><td class="mono dn">$15.000/mês</td><td class="mono">$3.000/mês</td><td class="mono">$800/mês</td><td class="mono up">$150/mês</td></tr>
+<tr><td><strong>10.000 clientes</strong></td><td class="mono dn">$150.000/mês</td><td class="mono">$12.000/mês</td><td class="mono">$5.000/mês</td><td class="mono up">$800/mês</td></tr>
+<tr><td><strong>Cold start</strong></td><td class="mono">sempre quente</td><td class="mono">5-30s (pod)</td><td class="mono">100-500ms</td><td class="mono up">5ms</td></tr>
+<tr><td><strong>Idle cost</strong></td><td class="mono dn">100% (24/7)</td><td class="mono dn">base cluster</td><td class="mono up">$0</td><td class="mono up">$0</td></tr>
+<tr><td><strong>Isolamento</strong></td><td class="mono up">VM (forte)</td><td class="mono">pod (médio)</td><td class="mono up">VM (forte)</td><td class="mono up">V8 isolate (forte)</td></tr>
+<tr><td><strong>Max scale</strong></td><td class="mono dn">manual</td><td class="mono">HPA</td><td class="mono">1.000 concur.</td><td class="mono up">ilimitado</td></tr>
+<tr><td><strong>Ops effort</strong></td><td class="mono dn">alto</td><td class="mono dn">alto (K8s)</td><td class="mono">médio</td><td class="mono up">zero</td></tr>
+</table>
+
+<div class="callout">
+<strong>CF Dynamic Workers vencem em tudo exceto vendor lock-in.</strong> Mitigação: o kernel Paganini é cloud-agnostic. O Worker é um wrapper fino. Migrar pra Lambda ou Deno Deploy = reescrever o wrapper (1 dia), não o kernel.
+</div>
+
+<!-- ===== 9. SKILL ECONOMY ===== -->
+<h2>9. Skill Economy — O flywheel de receita</h2>
+<div class="sub">Como skills geram receita incremental além do assento.</div>
+
+<div class="g2">
+<div class="card">
+<h3>Skills gratuitas (Registry free)</h3>
+<p>Incluídas em todos os planos. São o bait.</p>
+<div style="font-size:12px;margin-top:8px">
+<div style="padding:3px 0;border-bottom:1px solid var(--brd)"><span class="badge b-green">FREE</span> Ingestão de dados genérica</div>
+<div style="padding:3px 0;border-bottom:1px solid var(--brd)"><span class="badge b-green">FREE</span> Alertas básicos</div>
+<div style="padding:3px 0;border-bottom:1px solid var(--brd)"><span class="badge b-green">FREE</span> Relatório simples (texto)</div>
+<div style="padding:3px 0"><span class="badge b-green">FREE</span> Chat com agente básico</div>
+</div>
+</div>
+<div class="card">
+<h3>Skills premium (Registry Pro)</h3>
+<p>Incluídas em Business+. Vendidas avulso pra Professional.</p>
+<div style="font-size:12px;margin-top:8px">
+<div style="padding:3px 0;border-bottom:1px solid var(--brd)"><span class="badge b-gold">PRO</span> PLD/AML scan com OFAC/COAF <span class="mono" style="font-size:10px">R$99/mês</span></div>
+<div style="padding:3px 0;border-bottom:1px solid var(--brd)"><span class="badge b-gold">PRO</span> Due Diligence automatizada <span class="mono" style="font-size:10px">R$149/mês</span></div>
+<div style="padding:3px 0;border-bottom:1px solid var(--brd)"><span class="badge b-gold">PRO</span> Compliance CVM 175 <span class="mono" style="font-size:10px">R$199/mês</span></div>
+<div style="padding:3px 0;border-bottom:1px solid var(--brd)"><span class="badge b-gold">PRO</span> PDF report generator <span class="mono" style="font-size:10px">R$79/mês</span></div>
+<div style="padding:3px 0"><span class="badge b-gold">PRO</span> Market intelligence (B3/BCB) <span class="mono" style="font-size:10px">R$129/mês</span></div>
+</div>
+</div>
+</div>
+
+<div class="card" style="border-color:var(--gold)">
+<h3>Custom Skills — Sob demanda</h3>
+<p>Cliente pede uma capability que não existe. Nós construímos, ele paga o dev (R$2-10K), a skill entra no Registry (anonimizada) e gera receita de outros clientes.</p>
+<table class="tbl">
+<tr><td><strong>Cliente paga</strong></td><td>R$5.000 (one-time)</td></tr>
+<tr><td><strong>Nós construímos</strong></td><td>2-5 dias</td></tr>
+<tr><td><strong>Skill vai pro Registry</strong></td><td>Anonimizada, disponível pra outros</td></tr>
+<tr><td><strong>Receita adicional</strong></td><td>R$99-199/mês × N clientes</td></tr>
+<tr><td><strong>ROI do dev</strong></td><td>5 clientes = R$5K receita/mês recorrente</td></tr>
+</table>
+<p style="font-size:12px;color:var(--gold);margin-top:8px"><strong>O cliente financia o R&D. O Registry monetiza infinitamente.</strong></p>
+</div>
+
+<!-- ===== 10. DECISÃO ===== -->
+<h2>10. Resumo executivo</h2>
+
+<div class="card" style="background:linear-gradient(135deg,#1a1510,#0f0e0d);border:2px solid var(--gold)">
+<div style="font-family:'Source Serif 4';font-size:20px;font-weight:700;color:var(--gold);margin-bottom:12px">O modelo Paganini</div>
+<div style="font-size:14px;line-height:2">
+<strong style="color:var(--gold)">Fábrica autônoma:</strong> Dynamic Workers servem N clientes com zero idle cost e zero headcount até 500 clientes.<br>
+<strong style="color:var(--gold)">5 planos:</strong> Starter (free/usage) → Professional (R$299/seat) → Business (R$999/seat) → Enterprise (R$2.499 BYOK) → On-Prem (R$4.999 isolated).<br>
+<strong style="color:var(--gold)">LLM strategy:</strong> Nosso proxy (margem 60-78%) para Starter-Business. BYOK (margem 98%) para Enterprise. Local SFT (margem 99%) para On-Prem.<br>
+<strong style="color:var(--gold)">Skill economy:</strong> Registry free como bait, Pro como upsell, Custom como R&D financiado pelo cliente.<br>
+<strong style="color:var(--gold)">Escala:</strong> 10K clientes = $800/mês de infra. Margem melhora com escala.<br>
+<strong style="color:var(--gold)">Enterprise deploy:</strong> 4 padrões — Channel-First (2 dias) a On-Prem (4 semanas). Adaptável ao nível de paranoia do CISO.<br>
+<strong style="color:var(--gold)">ARR projetado:</strong> R$1.14M (ano 1) → R$4.77M (ano 2) com 2-3 pessoas.<br>
+<strong style="color:var(--gold)">Hyperagent loop:</strong> Sistema fica mais inteligente com cada cliente. Meta-improvement transfere entre domínios. O produto no mês 24 é incomparavelmente melhor que no mês 1.
+</div>
+</div>
+
+<div style="margin-top:40px;padding:20px 0;border-top:1px solid var(--brd);font-size:11px;color:var(--t3);font-family:'IBM Plex Mono'">
+Paganini AIOS · Pricing & Deployment Strategy · Confidencial · 26 Mar 2026 04:15 UTC<br>
+Dados: custos reais Cloudflare Workers, Claude/Gemini API pricing Mar 2026, Supabase Pro tier.<br>
+Projeções: conservadoras, baseadas em crescimento orgânico + 1 enterprise deal por trimestre.
+</div>
+
+</div>
+</body>
+</html>
