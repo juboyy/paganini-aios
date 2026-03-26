@@ -1,0 +1,666 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Paganini AIOS — Master Build Plan</title>
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,wght@0,300;0,500;0,700;1,400&family=DM+Sans:wght@300;400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--bg:#0f0e0d;--s1:#181614;--s2:#1e1c19;--s3:#262320;--brd:#332f2a;--t1:#e8e4de;--t2:#a09888;--t3:#6b6358;--gold:#c9a84c;--goldD:#8b6914;--goldL:rgba(201,168,76,0.12);--red:#c45141;--redL:rgba(196,81,65,0.12);--green:#5a9e5c;--greenL:rgba(90,158,92,0.12);--blue:#5b8ec9;--blueL:rgba(91,142,201,0.12);--orange:#c98a3d;--orangeL:rgba(201,138,61,0.12);--purple:#8b6ec7;--purpleL:rgba(139,110,199,0.12);--cyan:#5b9e9e;--cyanL:rgba(91,158,158,0.12)}
+body{background:var(--bg);color:var(--t1);font-family:'DM Sans',sans-serif;font-size:14px;line-height:1.6}
+.wrap{max-width:1100px;margin:0 auto;padding:clamp(16px,4vw,40px)}
+h1{font-family:'Source Serif 4';font-size:clamp(28px,5vw,44px);font-weight:700;line-height:1.1;margin-bottom:8px}
+h1 em{font-style:italic;color:var(--gold)}
+h2{font-family:'Source Serif 4';font-size:clamp(18px,3vw,24px);font-weight:700;margin:clamp(32px,5vw,48px) 0 8px;padding-top:24px;border-top:1px solid var(--brd);color:var(--gold)}
+h3{font-family:'Source Serif 4';font-size:16px;font-weight:700;margin:16px 0 8px}
+h4{font-size:13px;font-weight:600;margin:12px 0 4px;color:var(--t2)}
+.sub{font-size:12px;color:var(--t3);margin-bottom:16px}
+p{margin-bottom:8px;color:var(--t2);font-size:13px}
+.card{background:var(--s1);border:1px solid var(--brd);border-radius:8px;padding:clamp(14px,2vw,20px);margin-bottom:10px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.g4{display:grid;grid-template-columns:repeat(4,1fr);gap:10px}
+@media(max-width:768px){.g2,.g3,.g4{grid-template-columns:1fr}}
+.mono{font-family:'IBM Plex Mono';font-weight:500}
+.badge{display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-family:'IBM Plex Mono';font-weight:600}
+.b-gold{background:var(--goldL);color:var(--gold)}.b-green{background:var(--greenL);color:var(--green)}
+.b-blue{background:var(--blueL);color:var(--blue)}.b-red{background:var(--redL);color:var(--red)}
+.b-purple{background:var(--purpleL);color:var(--purple)}.b-orange{background:var(--orangeL);color:var(--orange)}
+.b-cyan{background:var(--cyanL);color:var(--cyan)}
+.tbl{width:100%;border-collapse:collapse;font-size:12px;margin:10px 0}
+.tbl th{text-align:left;font-family:'IBM Plex Mono';font-size:9px;letter-spacing:1px;color:var(--t3);padding:6px 8px;border-bottom:2px solid var(--brd);background:var(--s2)}
+.tbl td{padding:6px 8px;border-bottom:1px solid rgba(51,47,42,0.3);vertical-align:top}
+.tbl tr:hover td{background:rgba(255,255,255,0.02)}
+.callout{background:var(--goldL);border-left:3px solid var(--gold);padding:12px 16px;border-radius:0 8px 8px 0;margin:12px 0;font-size:13px}
+.callout strong{color:var(--gold)}
+.metric{padding:6px 0}.metric-l{font-family:'IBM Plex Mono';font-size:9px;letter-spacing:1.5px;text-transform:uppercase;color:var(--t3)}
+.metric-v{font-family:'IBM Plex Mono';font-size:18px;font-weight:600;margin:2px 0}
+.up{color:var(--green)}.dn{color:var(--red)}.nt{color:var(--gold)}
+
+/* Phase bar */
+.phase{display:flex;gap:4px;margin:16px 0}
+.phase-seg{height:8px;border-radius:4px;flex:1}
+.ph1{background:var(--green)}.ph2{background:var(--blue)}.ph3{background:var(--purple)}.ph4{background:var(--gold)}.ph5{background:var(--orange)}
+
+/* Status indicators */
+.st{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+.st-done{background:var(--green)}.st-wip{background:var(--orange)}.st-todo{background:var(--brd)}.st-crit{background:var(--red)}
+
+/* Timeline */
+.tl{position:relative;padding-left:24px;margin:8px 0}
+.tl::before{content:'';position:absolute;left:8px;top:0;bottom:0;width:2px;background:var(--brd)}
+.tl-item{position:relative;padding:8px 0 8px 16px;font-size:12px}
+.tl-item::before{content:'';position:absolute;left:-20px;top:12px;width:10px;height:10px;border-radius:50%;border:2px solid var(--brd);background:var(--bg)}
+.tl-item.done::before{border-color:var(--green);background:var(--green)}
+.tl-item.wip::before{border-color:var(--orange);background:var(--orange)}
+.tl-item.crit::before{border-color:var(--red);background:var(--red)}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div style="padding:clamp(32px,6vw,60px) 0 20px;border-bottom:1px solid var(--brd)">
+<div style="font-family:'IBM Plex Mono';font-size:11px;letter-spacing:2px;color:var(--gold);margin-bottom:8px">MASTER BUILD PLAN · v1.0 · 26 MAR 2026</div>
+<h1>Paganini <em>AIOS</em> — Tudo que precisamos construir</h1>
+<p style="font-size:15px;color:var(--t1)">Do estado atual ao produto escalável. 5 fases. 47 deliverables. Timeline realista.</p>
+</div>
+
+<!-- Status atual -->
+<h2>0. O que já temos (inventário)</h2>
+<div class="sub">Auditoria do que existe, funciona, e pode ser reutilizado.</div>
+
+<div class="g3">
+<div class="card">
+<h3 style="color:var(--green)">✅ Construído</h3>
+<div style="font-size:12px;line-height:2">
+<div><span class="st st-done"></span>Kernel Python (7.2K LOC, 40 .py)</div>
+<div><span class="st st-done"></span>9 agentes FIDC especializados</div>
+<div><span class="st st-done"></span>6 guardrail gates</div>
+<div><span class="st st-done"></span>Cognitive Router (MetaClaw v1)</div>
+<div><span class="st st-done"></span>Hybrid RAG (dense + sparse + graph → RRF)</div>
+<div><span class="st st-done"></span>55 testes, CI pipeline</div>
+<div><span class="st st-done"></span>Docker + Helm/K8s configs</div>
+<div><span class="st st-done"></span>FastAPI dashboard (básico)</div>
+<div><span class="st st-done"></span>Slack bot integration</div>
+<div><span class="st st-done"></span>CLI: <code>paganini init/up</code></div>
+<div><span class="st st-done"></span>Pack system (domain packs)</div>
+<div><span class="st st-done"></span>Qwen 27B SFT (fine-tuned, 637MB adapter)</div>
+<div><span class="st st-done"></span>RunPod Serverless template</div>
+<div><span class="st st-done"></span>Dashboard v2 (Vercel)</div>
+<div><span class="st st-done"></span>Pricing model definido (5 tiers)</div>
+</div>
+</div>
+
+<div class="card">
+<h3 style="color:var(--orange)">🔶 Parcial / WIP</h3>
+<div style="font-size:12px;line-height:2">
+<div><span class="st st-wip"></span>Onboarding conversacional (design, não code)</div>
+<div><span class="st st-wip"></span>Skill Registry (conceito, sem infra)</div>
+<div><span class="st st-wip"></span>MetaClaw routing (pattern match, não SkillRouter)</div>
+<div><span class="st st-wip"></span>Canal Telegram (via OpenClaw, não standalone)</div>
+<div><span class="st st-wip"></span>Isolamento multi-tenant (design, não implementado)</div>
+<div><span class="st st-wip"></span>RunPod inference endpoint (GPUs indisponíveis)</div>
+<div><span class="st st-wip"></span>Reflection loop (conceito Memento-Skills)</div>
+<div><span class="st st-wip"></span>Domain packs beyond FIDC</div>
+</div>
+</div>
+
+<div class="card">
+<h3 style="color:var(--red)">❌ Não existe</h3>
+<div style="font-size:12px;line-height:2">
+<div><span class="st st-crit"></span>Gateway multi-tenant</div>
+<div><span class="st st-crit"></span>Worker pool (Dynamic Workers)</div>
+<div><span class="st st-crit"></span>Workspace hydration/dehydration</div>
+<div><span class="st st-crit"></span>Billing/subscription system</div>
+<div><span class="st st-crit"></span>Canal Slack standalone</div>
+<div><span class="st st-crit"></span>Canal Teams</div>
+<div><span class="st st-crit"></span>Canal Dashboard (real-time)</div>
+<div><span class="st st-crit"></span>TUI client</div>
+<div><span class="st st-crit"></span>SSO/SAML/OIDC</div>
+<div><span class="st st-crit"></span>Anonymization gate</div>
+<div><span class="st st-crit"></span>Hyperagent meta-loop</div>
+<div><span class="st st-crit"></span>SkillRouter (retrieve-and-rerank)</div>
+<div><span class="st st-crit"></span>Compliance audit trail</div>
+<div><span class="st st-crit"></span>BYOK proxy</div>
+<div><span class="st st-crit"></span>On-prem installer</div>
+<div><span class="st st-crit"></span>Landing page / marketing site</div>
+<div><span class="st st-crit"></span>API REST pública</div>
+</div>
+</div>
+</div>
+
+<!-- ========== PHASE 1 ========== -->
+<h2>1. Phase 1 — Foundation (Semanas 1-4)</h2>
+<div class="sub">Tornar o kernel multi-tenant e servível. MVP que roda 1 cliente real.</div>
+
+<div class="phase">
+<div class="phase-seg ph1" style="flex:4"></div>
+<div class="phase-seg" style="flex:1;background:var(--s2)"></div>
+<div class="phase-seg" style="flex:1;background:var(--s2)"></div>
+<div class="phase-seg" style="flex:1;background:var(--s2)"></div>
+<div class="phase-seg" style="flex:1;background:var(--s2)"></div>
+</div>
+
+<table class="tbl">
+<tr><th>#</th><th>Deliverable</th><th>Descrição</th><th>Esforço</th><th>Deps</th><th>Prioridade</th></tr>
+<tr>
+<td class="mono">1.1</td>
+<td><strong>Gateway Multi-Tenant</strong></td>
+<td>Entry point HTTP que recebe mensagens de qualquer canal, identifica o cliente (API key ou webhook secret), e roteia para o kernel. Rate limiting, auth, logging. Cloudflare Worker ou FastAPI.</td>
+<td class="mono">5d</td>
+<td>—</td>
+<td><span class="badge b-red">P0</span></td>
+</tr>
+<tr>
+<td class="mono">1.2</td>
+<td><strong>Workspace Manager</strong></td>
+<td>CRUD de workspaces. Cada cliente = 1 workspace (SOUL.md, memory/, skills/, config.yaml). Storage: R2 (cloud) ou filesystem (on-prem). Hydrate/dehydrate em &lt;50ms.</td>
+<td class="mono">5d</td>
+<td>—</td>
+<td><span class="badge b-red">P0</span></td>
+</tr>
+<tr>
+<td class="mono">1.3</td>
+<td><strong>Onboarding Engine</strong></td>
+<td>Conversa aberta que coleta informações do cliente e gera SOUL.md + config.yaml automaticamente. Sem formulários, sem menus. O AIOS pergunta, o cliente responde.</td>
+<td class="mono">3d</td>
+<td>1.2</td>
+<td><span class="badge b-red">P0</span></td>
+</tr>
+<tr>
+<td class="mono">1.4</td>
+<td><strong>LLM Proxy (MetaClaw v2)</strong></td>
+<td>Proxy que roteia queries entre Flash/Sonnet/Opus baseado em complexidade. Cache layer (KV). Token counting. Cost tracking per workspace. BYOK support (cliente usa sua key).</td>
+<td class="mono">4d</td>
+<td>1.1</td>
+<td><span class="badge b-red">P0</span></td>
+</tr>
+<tr>
+<td class="mono">1.5</td>
+<td><strong>Canal: Telegram Bot</strong></td>
+<td>Bot Telegram standalone (não via OpenClaw). Webhook → Gateway → Kernel → resposta. Suporte a texto, imagens, documentos, voice notes.</td>
+<td class="mono">3d</td>
+<td>1.1</td>
+<td><span class="badge b-gold">P1</span></td>
+</tr>
+<tr>
+<td class="mono">1.6</td>
+<td><strong>Canal: Slack App</strong></td>
+<td>Slack App com OAuth. Events API → Gateway. Slash commands, threads, file uploads.</td>
+<td class="mono">3d</td>
+<td>1.1</td>
+<td><span class="badge b-gold">P1</span></td>
+</tr>
+<tr>
+<td class="mono">1.7</td>
+<td><strong>Data Ingestor</strong></td>
+<td>Pipeline genérico: CSV, PDF, API endpoints, CVM/B3 feeds. Extrai → chunka → embeda → armazena no workspace RAG index. Deve funcionar pra qualquer domínio.</td>
+<td class="mono">5d</td>
+<td>1.2</td>
+<td><span class="badge b-red">P0</span></td>
+</tr>
+<tr>
+<td class="mono">1.8</td>
+<td><strong>RunPod Serverless Inference</strong></td>
+<td>Endpoint funcional do Qwen 27B GPTQ. Resolver problema de GPU scarcity (flashboot, pre-warm, fallback provider). OpenAI-compatible API.</td>
+<td class="mono">2d</td>
+<td>—</td>
+<td><span class="badge b-gold">P1</span></td>
+</tr>
+</table>
+
+<div class="callout">
+<strong>Gate de saída Phase 1:</strong> 1 cliente real usando o Paganini via Telegram ou Slack. Workspace isolado. Dados ingeridos. Agentes respondendo queries. Custo &lt; R$50/mês de infra.
+</div>
+
+<!-- ========== PHASE 2 ========== -->
+<h2>2. Phase 2 — Intelligence (Semanas 5-8)</h2>
+<div class="sub">Tornar o sistema inteligente: skills, evolution, e routing sofisticado.</div>
+
+<div class="phase">
+<div class="phase-seg" style="flex:1;background:var(--s2)"></div>
+<div class="phase-seg ph2" style="flex:4"></div>
+<div class="phase-seg" style="flex:1;background:var(--s2)"></div>
+<div class="phase-seg" style="flex:1;background:var(--s2)"></div>
+<div class="phase-seg" style="flex:1;background:var(--s2)"></div>
+</div>
+
+<table class="tbl">
+<tr><th>#</th><th>Deliverable</th><th>Descrição</th><th>Esforço</th><th>Deps</th><th>Prioridade</th></tr>
+<tr>
+<td class="mono">2.1</td>
+<td><strong>Skill Registry</strong></td>
+<td>Repositório central de skills. CRUD, versionamento, search. Cada skill = SKILL.md + scripts/ + tests/. API REST + CLI. Storage: R2 + Supabase metadata.</td>
+<td class="mono">5d</td>
+<td>1.2</td>
+<td><span class="badge b-red">P0</span></td>
+</tr>
+<tr>
+<td class="mono">2.2</td>
+<td><strong>SkillRouter</strong></td>
+<td>Implementar o paper arXiv:2603.22455. Encoder 0.6B + Reranker 0.6B. Indexa corpo completo da skill (não só nome/desc). 74% top-1 accuracy em 80K skills. Roda local (1.2B params).</td>
+<td class="mono">7d</td>
+<td>2.1</td>
+<td><span class="badge b-red">P0</span></td>
+</tr>
+<tr>
+<td class="mono">2.3</td>
+<td><strong>Memento-Skills Engine</strong></td>
+<td>Implementar evolução de skills. Cada skill tem performance_score. Reflection loop diário: identifica skills fracas → gera variantes → testa → promove melhores. Cross-client pattern detection anonimizado.</td>
+<td class="mono">7d</td>
+<td>2.1</td>
+<td><span class="badge b-gold">P1</span></td>
+</tr>
+<tr>
+<td class="mono">2.4</td>
+<td><strong>Guardrail Framework</strong></td>
+<td>Generalizar os 6 gates FIDC para framework plugável. Cada domínio define seus guardrails via config. Gates: eligibility, concentration, covenant, compliance, risk, PLD/AML — todos configuráveis.</td>
+<td class="mono">4d</td>
+<td>1.3</td>
+<td><span class="badge b-gold">P1</span></td>
+</tr>
+<tr>
+<td class="mono">2.5</td>
+<td><strong>Alerting System</strong></td>
+<td>Alerta pro-ativo via canal do cliente. Triggers configuráveis (threshold, schedule, event). Template de mensagem. Throttling (não enviar 100 alertas/dia).</td>
+<td class="mono">3d</td>
+<td>1.5, 1.6</td>
+<td><span class="badge b-gold">P1</span></td>
+</tr>
+<tr>
+<td class="mono">2.6</td>
+<td><strong>Report Generator</strong></td>
+<td>PDF reports gerados sob demanda ou agendados. Templates por domínio. Gráficos, tabelas, análises. Enviados no canal do cliente.</td>
+<td class="mono">4d</td>
+<td>1.7</td>
+<td><span class="badge b-gold">P1</span></td>
+</tr>
+<tr>
+<td class="mono">2.7</td>
+<td><strong>Heartbeat Autônomo</strong></td>
+<td>Cada workspace tem seu heartbeat loop. Checka dados, gera alertas, roda reflection. Cron distribuído (não centralizado). Billing-aware (não roda se plano não inclui).</td>
+<td class="mono">3d</td>
+<td>1.2, 2.5</td>
+<td><span class="badge b-gold">P1</span></td>
+</tr>
+</table>
+
+<div class="callout">
+<strong>Gate de saída Phase 2:</strong> 5-10 clientes ativos. Skills instaláveis do Registry. Alertas funcionando. Reports PDF. SkillRouter roteando com precisão. Skill evolution rodando em background.
+</div>
+
+<!-- ========== PHASE 3 ========== -->
+<h2>3. Phase 3 — Scale (Semanas 9-14)</h2>
+<div class="sub">Infra para 100+ clientes. Billing. Multi-canal. Segurança enterprise.</div>
+
+<div class="phase">
+<div class="phase-seg" style="flex:1;background:var(--s2)"></div>
+<div class="phase-seg" style="flex:1;background:var(--s2)"></div>
+<div class="phase-seg ph3" style="flex:6"></div>
+<div class="phase-seg" style="flex:1;background:var(--s2)"></div>
+<div class="phase-seg" style="flex:1;background:var(--s2)"></div>
+</div>
+
+<table class="tbl">
+<tr><th>#</th><th>Deliverable</th><th>Descrição</th><th>Esforço</th><th>Deps</th><th>Prioridade</th></tr>
+<tr>
+<td class="mono">3.1</td>
+<td><strong>Dynamic Workers (Cloudflare)</strong></td>
+<td>Migrar Gateway de FastAPI/EC2 para Cloudflare Workers. Zero idle cost. Auto-scale. KV para state, R2 para workspace, Durable Objects para sessions.</td>
+<td class="mono">7d</td>
+<td>1.1</td>
+<td><span class="badge b-red">P0</span></td>
+</tr>
+<tr>
+<td class="mono">3.2</td>
+<td><strong>Billing System</strong></td>
+<td>Stripe integration. Planos (Starter/Pro/Business/Enterprise/On-Prem). Usage tracking (queries/dia). Overage billing. Invoicing automático. Webhook handlers.</td>
+<td class="mono">7d</td>
+<td>1.4</td>
+<td><span class="badge b-red">P0</span></td>
+</tr>
+<tr>
+<td class="mono">3.3</td>
+<td><strong>Dashboard Real-Time</strong></td>
+<td>Dashboard web para cada cliente. Auth (email/password + SSO). Mostra: queries, custos, skills ativas, alertas, reports, performance. WebSocket para real-time.</td>
+<td class="mono">10d</td>
+<td>3.2</td>
+<td><span class="badge b-gold">P1</span></td>
+</tr>
+<tr>
+<td class="mono">3.4</td>
+<td><strong>Canal: Microsoft Teams</strong></td>
+<td>Teams Bot via Azure Bot Service. Adaptive Cards para outputs ricos. OAuth para workspace linking.</td>
+<td class="mono">5d</td>
+<td>1.1</td>
+<td><span class="badge b-gold">P1</span></td>
+</tr>
+<tr>
+<td class="mono">3.5</td>
+<td><strong>API REST Pública</strong></td>
+<td>API REST para integração com sistemas do cliente. OpenAPI spec. API keys. Rate limiting. Webhooks de eventos. SDK Python + TypeScript.</td>
+<td class="mono">5d</td>
+<td>1.1, 3.2</td>
+<td><span class="badge b-gold">P1</span></td>
+</tr>
+<tr>
+<td class="mono">3.6</td>
+<td><strong>Tenant Isolation & Security</strong></td>
+<td>Anonymization gate no reflection loop. Workspace encryption at rest. Audit trail (quem acessou o quê). IAM policies. Pen test report.</td>
+<td class="mono">7d</td>
+<td>1.2, 3.1</td>
+<td><span class="badge b-red">P0</span></td>
+</tr>
+<tr>
+<td class="mono">3.7</td>
+<td><strong>TUI Client</strong></td>
+<td>Terminal UI (Rich/Textual). Conecta ao workspace via API. Chat, queries, alertas, skill management. Para devs e power users.</td>
+<td class="mono">3d</td>
+<td>3.5</td>
+<td><span class="badge b-blue">P2</span></td>
+</tr>
+<tr>
+<td class="mono">3.8</td>
+<td><strong>Landing Page & Marketing Site</strong></td>
+<td>Site de vendas. Pricing page. Demo interativa. Blog (SEO). Formulário de contato enterprise. Analytics (PostHog/Plausible).</td>
+<td class="mono">5d</td>
+<td>—</td>
+<td><span class="badge b-red">P0</span></td>
+</tr>
+<tr>
+<td class="mono">3.9</td>
+<td><strong>Domain Packs: Logística + Jurídico</strong></td>
+<td>2 packs novos para validar domain-agnostic: Logística (rastreamento, otimização rota, estoque) e Jurídico (análise contrato, prazo, jurisprudência). Cada um com 5-7 agentes + guardrails.</td>
+<td class="mono">10d</td>
+<td>2.4</td>
+<td><span class="badge b-gold">P1</span></td>
+</tr>
+</table>
+
+<div class="callout">
+<strong>Gate de saída Phase 3:</strong> 50-100 clientes. Billing funcionando. 3+ canais. Dashboard real-time. API pública documentada. 3 domain packs (FIDC + Logística + Jurídico). Segurança auditada.
+</div>
+
+<!-- ========== PHASE 4 ========== -->
+<h2>4. Phase 4 — Enterprise (Semanas 15-20)</h2>
+<div class="sub">Features enterprise: SSO, on-prem, SFT customizado, compliance.</div>
+
+<div class="phase">
+<div class="phase-seg" style="flex:1;background:var(--s2)"></div>
+<div class="phase-seg" style="flex:1;background:var(--s2)"></div>
+<div class="phase-seg" style="flex:1;background:var(--s2)"></div>
+<div class="phase-seg ph4" style="flex:6"></div>
+<div class="phase-seg" style="flex:1;background:var(--s2)"></div>
+</div>
+
+<table class="tbl">
+<tr><th>#</th><th>Deliverable</th><th>Descrição</th><th>Esforço</th><th>Deps</th><th>Prioridade</th></tr>
+<tr>
+<td class="mono">4.1</td>
+<td><strong>SSO/SAML/OIDC</strong></td>
+<td>Integração com Active Directory, Okta, Auth0. SCIM provisioning. Role-based access (admin, analyst, viewer).</td>
+<td class="mono">7d</td>
+<td>3.3</td>
+<td><span class="badge b-gold">P1</span></td>
+</tr>
+<tr>
+<td class="mono">4.2</td>
+<td><strong>On-Prem Installer</strong></td>
+<td>Script/Helm chart que deploya o Paganini inteiro na infra do cliente. Suporte: bare metal (Mac Mini M4), Docker, K8s. Air-gap mode (zero internet).</td>
+<td class="mono">10d</td>
+<td>3.1</td>
+<td><span class="badge b-gold">P1</span></td>
+</tr>
+<tr>
+<td class="mono">4.3</td>
+<td><strong>Custom SFT Pipeline</strong></td>
+<td>Pipeline pra fine-tunar Qwen pro domínio do cliente. Coleta dados do workspace → gera dataset → treina no RunPod → deploy modelo customizado. Tudo automatizado.</td>
+<td class="mono">7d</td>
+<td>1.8</td>
+<td><span class="badge b-gold">P1</span></td>
+</tr>
+<tr>
+<td class="mono">4.4</td>
+<td><strong>Compliance Engine</strong></td>
+<td>Audit trail completo (queryable). Data retention policies. LGPD compliance (delete on request). SOC 2 prep. Exportar logs em formato regulatório.</td>
+<td class="mono">7d</td>
+<td>3.6</td>
+<td><span class="badge b-gold">P1</span></td>
+</tr>
+<tr>
+<td class="mono">4.5</td>
+<td><strong>BYOK Proxy</strong></td>
+<td>Cliente configura suas API keys (OpenAI, Anthropic, Google). MetaClaw roteia usando a key do cliente. Zero custo LLM pra nós. Dashboard mostra consumo.</td>
+<td class="mono">3d</td>
+<td>1.4</td>
+<td><span class="badge b-gold">P1</span></td>
+</tr>
+<tr>
+<td class="mono">4.6</td>
+<td><strong>Hyperagent Meta-Loop</strong></td>
+<td>Implementar paper FAIR (arXiv:2603.19461). Meta-improvement cross-domain. Sistema identifica padrões de sucesso em um domínio e transfere para outros. O Paganini no mês 12 é incomparavelmente melhor que no mês 1.</td>
+<td class="mono">10d</td>
+<td>2.3</td>
+<td><span class="badge b-purple">P2</span></td>
+</tr>
+</table>
+
+<div class="callout">
+<strong>Gate de saída Phase 4:</strong> 1º cliente Enterprise (R$2.499/seat). SSO funcionando. 1 deploy on-prem. SFT customizado entregue. Compliance audit trail operacional.
+</div>
+
+<!-- ========== PHASE 5 ========== -->
+<h2>5. Phase 5 — Moat (Semanas 21-26)</h2>
+<div class="sub">Construir defensibilidade: marketplace, rede, efeitos de escala.</div>
+
+<div class="phase">
+<div class="phase-seg" style="flex:1;background:var(--s2)"></div>
+<div class="phase-seg" style="flex:1;background:var(--s2)"></div>
+<div class="phase-seg" style="flex:1;background:var(--s2)"></div>
+<div class="phase-seg" style="flex:1;background:var(--s2)"></div>
+<div class="phase-seg ph5" style="flex:6"></div>
+</div>
+
+<table class="tbl">
+<tr><th>#</th><th>Deliverable</th><th>Descrição</th><th>Esforço</th><th>Deps</th><th>Prioridade</th></tr>
+<tr>
+<td class="mono">5.1</td>
+<td><strong>Skill Marketplace</strong></td>
+<td>Marketplace público de skills. Qualquer dev publica. Review automático (testes + security scan). Revenue share: 70% dev / 30% Paganini. Inspirado no TIG protocol (submit → benchmark → verify → reward).</td>
+<td class="mono">10d</td>
+<td>2.1, 2.2</td>
+<td><span class="badge b-gold">P1</span></td>
+</tr>
+<tr>
+<td class="mono">5.2</td>
+<td><strong>OpenClaw-RL Training Loop</strong></td>
+<td>Framework RL que treina modelo a partir de conversas reais. Cada interação do cliente = datapoint. Modelo fica mais inteligente com uso. RLHF contínuo.</td>
+<td class="mono">14d</td>
+<td>4.3</td>
+<td><span class="badge b-purple">P2</span></td>
+</tr>
+<tr>
+<td class="mono">5.3</td>
+<td><strong>Partner API / White-Label</strong></td>
+<td>API para parceiros embeddarem Paganini no produto deles. White-label: remove branding Paganini. Revenue share model.</td>
+<td class="mono">7d</td>
+<td>3.5</td>
+<td><span class="badge b-blue">P2</span></td>
+</tr>
+<tr>
+<td class="mono">5.4</td>
+<td><strong>Multi-Language Support</strong></td>
+<td>Suporte a EN, ES, PT-BR nativo. Detecção automática. SOUL.md + skills traduzidos. LLM prompts multilíngues.</td>
+<td class="mono">5d</td>
+<td>1.3</td>
+<td><span class="badge b-blue">P2</span></td>
+</tr>
+<tr>
+<td class="mono">5.5</td>
+<td><strong>Mobile App (iOS/Android)</strong></td>
+<td>App nativo para receber alertas push, consultar dados, e falar com o AIOS. React Native ou Flutter. Offline mode com sync.</td>
+<td class="mono">14d</td>
+<td>3.5</td>
+<td><span class="badge b-blue">P2</span></td>
+</tr>
+</table>
+
+<!-- ========== TIMELINE VISUAL ========== -->
+<h2>6. Timeline consolidada</h2>
+<div class="sub">26 semanas (6 meses). Cada fase tem um gate. Não avança sem passar no gate.</div>
+
+<div class="card" style="padding:24px">
+<div style="font-family:'IBM Plex Mono';font-size:11px;line-height:2.4;color:var(--t1)">
+<pre style="font-family:inherit;white-space:pre-wrap">
+Mês 1    Mês 2    Mês 3    Mês 4    Mês 5    Mês 6
+S1  S2   S3  S4   S5  S6   S7  S8   S9  S10  S11 S12
+│   │    │   │    │   │    │   │    │   │    │   │
+
+████████████████                                        Phase 1: Foundation
+1.1 Gateway ████                                        
+1.2 Workspace ████                                      
+1.3 Onboarding  ███                                     
+1.4 LLM Proxy  ████                                     
+1.5 Telegram    ███                                     
+1.6 Slack       ███                                     
+1.7 Ingestor  █████                                     
+1.8 RunPod     ██                                       
+
+                ████████████████                        Phase 2: Intelligence
+                2.1 Registry █████                      
+                2.2 SkillRouter ███████                 
+                2.3 Memento    ███████                  
+                2.4 Guardrails  ████                    
+                2.5 Alerts      ███                     
+                2.6 Reports     ████                    
+                2.7 Heartbeat   ███                     
+
+                                ████████████████████████ Phase 3: Scale
+                                3.1 CF Workers ███████  
+                                3.2 Billing    ███████  
+                                3.3 Dashboard     ██████████
+                                3.4 Teams     █████     
+                                3.5 API REST  █████     
+                                3.6 Security  ███████   
+                                3.7 TUI         ███     
+                                3.8 Landing  █████      
+                                3.9 Packs       ██████████
+
+                                                ████████████████████████
+                                                Phase 4+5: Enterprise + Moat
+                                                4.1 SSO ███████
+                                                4.2 On-Prem ██████████
+                                                4.3 SFT Pipeline ███████
+                                                4.4 Compliance ███████
+                                                5.1 Marketplace ██████████
+</pre>
+</div>
+</div>
+
+<!-- ========== TECH STACK ========== -->
+<h2>7. Tech stack definitiva</h2>
+
+<div class="g2">
+<div class="card">
+<h3>Runtime & Infra</h3>
+<table class="tbl">
+<tr><td><strong>Gateway</strong></td><td>Cloudflare Workers (TypeScript)</td></tr>
+<tr><td><strong>Kernel</strong></td><td>Python 3.11+ (existing codebase)</td></tr>
+<tr><td><strong>State</strong></td><td>Cloudflare KV (session) + R2 (workspace) + Durable Objects (long-running)</td></tr>
+<tr><td><strong>Database</strong></td><td>Supabase (PostgreSQL + pgvector + Auth)</td></tr>
+<tr><td><strong>LLM Proxy</strong></td><td>Python (litellm or custom)</td></tr>
+<tr><td><strong>Inference</strong></td><td>RunPod Serverless (Qwen 27B GPTQ) + API providers (Claude, Gemini)</td></tr>
+<tr><td><strong>Embedding</strong></td><td>Gemini Embedding 001 (3072d)</td></tr>
+<tr><td><strong>SkillRouter</strong></td><td>ONNX runtime, bge-base-en + cross-encoder (1.2B total)</td></tr>
+</table>
+</div>
+
+<div class="card">
+<h3>Client & Delivery</h3>
+<table class="tbl">
+<tr><td><strong>Dashboard</strong></td><td>Next.js 15 + shadcn/ui + Vercel</td></tr>
+<tr><td><strong>Landing</strong></td><td>Next.js + Framer Motion</td></tr>
+<tr><td><strong>TUI</strong></td><td>Python (Textual)</td></tr>
+<tr><td><strong>Mobile</strong></td><td>React Native (Phase 5)</td></tr>
+<tr><td><strong>Telegram</strong></td><td>python-telegram-bot</td></tr>
+<tr><td><strong>Slack</strong></td><td>Bolt for Python</td></tr>
+<tr><td><strong>Teams</strong></td><td>Azure Bot Framework</td></tr>
+<tr><td><strong>Billing</strong></td><td>Stripe (subscriptions + metered)</td></tr>
+<tr><td><strong>Auth</strong></td><td>Supabase Auth + SSO (Phase 4)</td></tr>
+<tr><td><strong>Analytics</strong></td><td>PostHog (self-hosted or cloud)</td></tr>
+</table>
+</div>
+</div>
+
+<!-- ========== RESEARCH INTEGRATION ========== -->
+<h2>8. Papers integrados na arquitetura</h2>
+<div class="sub">Cada paper vira um componente concreto.</div>
+
+<table class="tbl">
+<tr><th>Paper</th><th>Componente</th><th>Phase</th><th>Impacto</th></tr>
+<tr>
+<td><strong>SkillRouter</strong> (arXiv:2603.22455)</td>
+<td>2.2 — Retrieve-and-rerank para seleção de skills. Body da skill é o sinal decisivo (91.7% attention). 1.2B params.</td>
+<td><span class="badge b-blue">Phase 2</span></td>
+<td>Resolve routing em escala (100+ skills)</td>
+</tr>
+<tr>
+<td><strong>Memento-Skills</strong> (GitHub)</td>
+<td>2.3 — Evolução autônoma de skills. Performance tracking + variantes + seleção.</td>
+<td><span class="badge b-blue">Phase 2</span></td>
+<td>Skills melhoram sozinhas com uso</td>
+</tr>
+<tr>
+<td><strong>Hyperagents</strong> (arXiv:2603.19461, FAIR)</td>
+<td>4.6 — Meta-improvement cross-domain. Transfere aprendizado entre verticais.</td>
+<td><span class="badge b-purple">Phase 4</span></td>
+<td>Efeito de rede: cada novo domínio melhora todos</td>
+</tr>
+<tr>
+<td><strong>TIG Protocol</strong> (tig-foundation)</td>
+<td>5.1 — Modelo de coordenação para Skill Marketplace. Submit → benchmark → verify → reward.</td>
+<td><span class="badge b-orange">Phase 5</span></td>
+<td>Marketplace com qualidade garantida</td>
+</tr>
+<tr>
+<td><strong>Dynamic Workers</strong> (Cloudflare)</td>
+<td>3.1 — Infra serverless. Zero idle cost. 5ms cold start.</td>
+<td><span class="badge b-purple">Phase 3</span></td>
+<td>10K clientes = $800/mês</td>
+</tr>
+</table>
+
+<!-- ========== RESUMO ========== -->
+<h2>9. Resumo executivo</h2>
+
+<div class="g4">
+<div class="card"><div class="metric"><div class="metric-l">Deliverables</div><div class="metric-v nt">47</div></div></div>
+<div class="card"><div class="metric"><div class="metric-l">Fases</div><div class="metric-v nt">5</div></div></div>
+<div class="card"><div class="metric"><div class="metric-l">Timeline</div><div class="metric-v nt">26 sem</div></div></div>
+<div class="card"><div class="metric"><div class="metric-l">Headcount</div><div class="metric-v nt">1-2</div></div></div>
+</div>
+
+<div class="card" style="background:linear-gradient(135deg,#1a1510,#0f0e0d);border:2px solid var(--gold)">
+<div style="font-family:'Source Serif 4';font-size:18px;font-weight:700;color:var(--gold);margin-bottom:12px">Ordem de ataque</div>
+<div style="font-size:14px;line-height:2">
+<strong style="color:var(--green)">Semana 1:</strong> Gateway Multi-Tenant + Workspace Manager — sem isso, nada mais funciona.<br>
+<strong style="color:var(--green)">Semana 2:</strong> LLM Proxy + Data Ingestor — o kernel precisa falar com LLMs e comer dados.<br>
+<strong style="color:var(--green)">Semana 3:</strong> Onboarding Engine + Telegram Bot — primeiro canal de entrega funcional.<br>
+<strong style="color:var(--green)">Semana 4:</strong> Slack App + RunPod Inference — segundo canal + modelo próprio servindo.<br>
+<strong style="color:var(--blue)">Semana 5-6:</strong> Skill Registry + SkillRouter — inteligência escalável.<br>
+<strong style="color:var(--blue)">Semana 7-8:</strong> Memento-Skills + Guardrails + Alerts + Reports — autonomia completa.<br>
+<strong style="color:var(--purple)">Semana 9-12:</strong> Dynamic Workers + Billing + Security — escala + receita.<br>
+<strong style="color:var(--gold)">Semana 13-20:</strong> Enterprise features — o dinheiro grande.<br>
+<strong style="color:var(--orange)">Semana 21-26:</strong> Marketplace + RL + White-Label — defensibilidade.
+</div>
+</div>
+
+<div style="margin-top:40px;padding:20px 0;border-top:1px solid var(--brd);font-size:11px;color:var(--t3);font-family:'IBM Plex Mono'">
+Paganini AIOS · Master Build Plan v1.0 · Confidencial · 26 Mar 2026<br>
+Papers: SkillRouter (2603.22455), Memento-Skills, Hyperagents (2603.19461), TIG Protocol, Dynamic Workers (Cloudflare)<br>
+47 deliverables · 5 fases · 26 semanas · Do kernel existente ao produto SaaS com marketplace
+</div>
+
+</div>
+</body>
+</html>
