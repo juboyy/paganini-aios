@@ -1,0 +1,80 @@
+# Sentrux Architectural Rules — Paganini AIOS
+# Checked by `sentrux check` and `check_rules` MCP tool.
+
+[constraints]
+max_cycles = 0           # No circular dependencies
+max_cc = 30              # Max cyclomatic complexity per function
+max_fn_lines = 120       # Max function length
+no_god_files = false     # Allow for now (pipeline.py is 730 lines)
+
+# Layer definitions: higher order depends on lower order only.
+[[layers]]
+name = "rag"
+paths = ["core/rag/*"]
+order = 0
+
+[[layers]]
+name = "moltis"
+paths = ["core/moltis/*"]
+order = 0
+
+[[layers]]
+name = "kernel"
+paths = ["packages/kernel/*"]
+order = 1
+
+[[layers]]
+name = "ontology"
+paths = ["packages/ontology/*"]
+order = 1
+
+[[layers]]
+name = "shared"
+paths = ["packages/shared/*"]
+order = 1
+
+[[layers]]
+name = "agents"
+paths = ["packages/agents/*"]
+order = 2
+
+[[layers]]
+name = "integrations"
+paths = ["packages/integrations/*"]
+order = 3
+
+[[layers]]
+name = "dashboard"
+paths = ["packages/dashboard/*"]
+order = 4
+
+# Boundary rules: forbidden cross-layer imports
+[[boundaries]]
+from = "core/rag/*"
+to = "packages/agents/*"
+reason = "RAG core must not depend on agents (dependency inversion)"
+
+[[boundaries]]
+from = "core/rag/*"
+to = "packages/dashboard/*"
+reason = "RAG core must not depend on dashboard"
+
+[[boundaries]]
+from = "core/rag/*"
+to = "packages/integrations/*"
+reason = "RAG core must not depend on integrations"
+
+[[boundaries]]
+from = "core/moltis/*"
+to = "packages/agents/*"
+reason = "Moltis runtime must not depend on agents"
+
+[[boundaries]]
+from = "packages/kernel/*"
+to = "packages/dashboard/*"
+reason = "Kernel must not depend on dashboard"
+
+[[boundaries]]
+from = "packages/agents/*"
+to = "packages/dashboard/*"
+reason = "Agents must not depend on dashboard"
