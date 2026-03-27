@@ -7,13 +7,13 @@ Three-tier ranking strategy (from best to fallback):
    ``sentence-transformers`` package and a downloaded model).
 2. **Keyword overlap + position** — fast rule-based fallback combining:
    - TF-IDF-inspired query-term coverage in the passage
-   - Exact-match bonus for key financial terms
+   - Exact-match bonus for domain terms (loaded from :class:`~core.rag.domain.DomainConfig`)
    - Positional bias toward earlier passages
 3. **Abstract interface** — ``BaseReranker`` ABC allows plugging in
    ColBERT, PyLate, or any future reranker without changing the pipeline.
 
-The reranker runs *after* RRF fusion and *before* context assembly, so
-retrieval diversity is preserved while final ordering is optimised for quality.
+Domain knowledge (domain_terms) is loaded from a ``DomainConfig`` pack.
+Pass ``domain=None`` to skip domain boost — pure keyword overlap is still applied.
 
 Config expected in ``config["rag"]["reranker"]``::
 
@@ -26,8 +26,10 @@ Config expected in ``config["rag"]["reranker"]``::
 Usage::
 
     from core.rag.reranker import get_reranker
+    from core.rag.domain import load_domain
 
-    reranker = get_reranker(config)
+    domain = load_domain(pack_name="finance")
+    reranker = get_reranker(config, domain=domain)
     reranked_chunks = reranker.rerank(query, chunks)
 """
 
@@ -36,6 +38,8 @@ from __future__ import annotations
 import re
 from abc import ABC, abstractmethod
 from typing import Optional
+
+from core.rag.domain import DomainConfig, GENERIC_DOMAIN
 
 __all__ = [
     "BaseReranker",
@@ -50,11 +54,7 @@ __all__ = [
 # ---------------------------------------------------------------------------
 
 class BaseReranker(ABC):
-    """Abstract base class for all rerankers.
-
-    Subclass this to integrate ColBERT, PyLate, or any custom scorer.
-    The only required method is :meth:`rerank`.
-    """
+    """Abstract base class for all rerankers."""
 
     def __init__(self, top_k: int = 5):
         self.top_k = top_k
@@ -87,45 +87,52 @@ _STOPWORDS_PT = frozenset({
     "que", "mais", "mas", "quando", "então", "já", "ainda", "mesmo",
 })
 
-# Financial domain key terms that receive a bonus when they appear in both
-# query and chunk (boosts precision for domain-specific results).
-_DOMAIN_BOOST_TERMS: frozenset[str] = frozenset({
-    "subordinação", "sênior", "mezanino", "fidc", "fundo",
-    "regulamento", "cvm", "anbima", "cedente", "sacado",
-    "recebível", "securitização", "inadimplência", "provisão",
-    "patrimônio", "cotista", "gestor", "administrador", "custodiante",
-    "rating", "spread", "duration", "yield", "taxa", "cota",
+_STOPWORDS_EN = frozenset({
+    "the", "a", "an", "and", "or", "but", "in", "on", "at", "to", "for",
+    "of", "with", "by", "from", "as", "is", "was", "are", "were", "be",
+    "been", "being", "have", "has", "had", "do", "does", "did", "will",
+    "would", "could", "should", "may", "might", "this", "that", "these",
+    "those", "it", "its", "not", "no",
 })
 
 
-def _content_tokens(text: str) -> list[str]:
+def _content_tokens(text: str, stopwords: frozenset[str] = _STOPWORDS_PT) -> list[str]:
     """Lowercase alphabetic tokens, minus stopwords."""
     raw = re.findall(r"[a-záéíóúâêîôûãõçàèìòùñ]+", text.lower())
-    return [t for t in raw if len(t) > 2 and t not in _STOPWORDS_PT]
+    return [t for t in raw if len(t) > 2 and t not in stopwords]
 
 
-def _keyword_score(query: str, text: str, position: int = 0, n_total: int = 1) -> float:
+def _keyword_score(
+    query: str,
+    text: str,
+    domain_terms: frozenset[str],
+    position: int = 0,
+    n_total: int = 1,
+    stopwords: frozenset[str] = _STOPWORDS_PT,
+) -> float:
     """Compute a composite keyword relevance score.
 
     Components:
     - **Term coverage**: fraction of unique query terms present in the chunk.
-    - **Domain boost**: +0.15 per shared domain term.
+    - **Domain boost**: +0.08 per shared domain term (capped at 0.30).
     - **Exact phrase bonus**: +0.20 if any 3-gram from query appears verbatim.
-    - **Positional bias**: small negative bias for later chunks (earlier = better).
+    - **Positional bias**: small negative bias for later chunks.
     """
-    query_tokens = set(_content_tokens(query))
+    query_tokens = set(_content_tokens(query, stopwords))
     if not query_tokens:
         return 0.0
 
-    chunk_tokens = set(_content_tokens(text))
+    chunk_tokens = set(_content_tokens(text, stopwords))
 
     # Term coverage
     overlap = query_tokens & chunk_tokens
     coverage = len(overlap) / len(query_tokens)
 
-    # Domain boost
-    domain_matches = (query_tokens & chunk_tokens) & _DOMAIN_BOOST_TERMS
-    domain_bonus = min(len(domain_matches) * 0.08, 0.30)
+    # Domain boost (only when domain terms are configured)
+    domain_bonus = 0.0
+    if domain_terms:
+        domain_matches = (query_tokens & chunk_tokens) & domain_terms
+        domain_bonus = min(len(domain_matches) * 0.08, 0.30)
 
     # Exact phrase bonus (3-grams from query in chunk text)
     phrase_bonus = 0.0
@@ -137,10 +144,7 @@ def _keyword_score(query: str, text: str, position: int = 0, n_total: int = 1) -
             break
 
     # Positional bias: items retrieved earlier are slightly preferred
-    if n_total > 1:
-        pos_penalty = 0.05 * (position / (n_total - 1))
-    else:
-        pos_penalty = 0.0
+    pos_penalty = 0.05 * (position / (n_total - 1)) if n_total > 1 else 0.0
 
     return coverage + domain_bonus + phrase_bonus - pos_penalty
 
@@ -148,20 +152,34 @@ def _keyword_score(query: str, text: str, position: int = 0, n_total: int = 1) -
 class KeywordReranker(BaseReranker):
     """Fast, dependency-free reranker using keyword overlap + domain signals.
 
-    Suitable as a drop-in fallback when ``sentence-transformers`` is not
-    available or when latency must be minimised.
-
     Args:
         top_k: Maximum number of chunks to return after reranking.
         blend_original_score: Weight (0–1) given to the original retrieval
                               score vs. the new keyword score. ``0.0`` means
                               pure keyword scoring; ``1.0`` keeps original
                               scores unchanged.
+        domain: Optional :class:`~core.rag.domain.DomainConfig` whose
+                ``domain_terms`` receive a bonus when they overlap between
+                query and chunk.  When ``None``, domain boost is disabled.
     """
 
-    def __init__(self, top_k: int = 5, blend_original_score: float = 0.3):
+    def __init__(
+        self,
+        top_k: int = 5,
+        blend_original_score: float = 0.3,
+        domain: Optional[DomainConfig] = None,
+    ):
         super().__init__(top_k=top_k)
         self.blend = blend_original_score
+        d = domain or GENERIC_DOMAIN
+        self._domain_terms: frozenset[str] = frozenset(
+            t.lower() for t in d.domain_terms
+        )
+        # Pick stopword set based on language
+        if d.language.lower().startswith("pt"):
+            self._stopwords = _STOPWORDS_PT
+        else:
+            self._stopwords = _STOPWORDS_EN
 
     def rerank(self, query: str, chunks: list) -> list:
         if not chunks:
@@ -169,8 +187,14 @@ class KeywordReranker(BaseReranker):
 
         n = len(chunks)
         for i, chunk in enumerate(chunks):
-            kw_score = _keyword_score(query, chunk.text, position=i, n_total=n)
-            # Blend with original (normalised) retrieval score
+            kw_score = _keyword_score(
+                query,
+                chunk.text,
+                self._domain_terms,
+                position=i,
+                n_total=n,
+                stopwords=self._stopwords,
+            )
             chunk.score = (1 - self.blend) * kw_score + self.blend * chunk.score
 
         chunks.sort(key=lambda c: c.score, reverse=True)
@@ -193,17 +217,15 @@ class KeywordReranker(BaseReranker):
 class CrossEncoderReranker(BaseReranker):
     """Cross-encoder reranker using ``sentence-transformers``.
 
-    Loads a cross-encoder model once and caches it for the lifetime of the
-    process.  Falls back to :class:`KeywordReranker` if the package is not
-    installed or the model fails to load.
+    Falls back to :class:`KeywordReranker` if the package is not installed
+    or the model fails to load.
 
     Args:
         model_name: HuggingFace model id.
-                    Default: ``"cross-encoder/ms-marco-MiniLM-L-6-v2"``.
         top_k: Number of chunks to return after reranking.
-        device: PyTorch device string (``"cpu"``, ``"cuda"``, …).
-                ``None`` lets sentence-transformers auto-detect.
-        max_length: Maximum token length for the cross-encoder (truncation).
+        device: PyTorch device string.  ``None`` auto-detects.
+        max_length: Maximum token length for the cross-encoder.
+        domain: Passed to the :class:`KeywordReranker` fallback.
     """
 
     def __init__(
@@ -212,11 +234,13 @@ class CrossEncoderReranker(BaseReranker):
         top_k: int = 5,
         device: Optional[str] = None,
         max_length: int = 512,
+        domain: Optional[DomainConfig] = None,
     ):
         super().__init__(top_k=top_k)
         self.model_name = model_name
         self.device = device
         self.max_length = max_length
+        self._domain = domain
         self._model = None
         self._fallback: Optional[KeywordReranker] = None
         self._load_model()
@@ -229,9 +253,9 @@ class CrossEncoderReranker(BaseReranker):
                 kwargs["device"] = self.device
             self._model = CrossEncoder(self.model_name, **kwargs)
         except ImportError:
-            self._fallback = KeywordReranker(top_k=self.top_k)
+            self._fallback = KeywordReranker(top_k=self.top_k, domain=self._domain)
         except Exception:
-            self._fallback = KeywordReranker(top_k=self.top_k)
+            self._fallback = KeywordReranker(top_k=self.top_k, domain=self._domain)
 
     def rerank(self, query: str, chunks: list) -> list:
         if self._fallback is not None:
@@ -245,8 +269,7 @@ class CrossEncoderReranker(BaseReranker):
         try:
             scores = self._model.predict(pairs)
         except Exception:
-            # Model inference failed at runtime — degrade gracefully
-            self._fallback = KeywordReranker(top_k=self.top_k)
+            self._fallback = KeywordReranker(top_k=self.top_k, domain=self._domain)
             return self._fallback.rerank(query, chunks)
 
         for chunk, score in zip(chunks, scores):
@@ -254,7 +277,6 @@ class CrossEncoderReranker(BaseReranker):
 
         chunks.sort(key=lambda c: c.score, reverse=True)
 
-        # Re-normalise cross-encoder raw logits to 0-1
         if chunks:
             max_s = max(c.score for c in chunks)
             min_s = min(c.score for c in chunks)
@@ -269,7 +291,10 @@ class CrossEncoderReranker(BaseReranker):
 # Factory
 # ---------------------------------------------------------------------------
 
-def get_reranker(config: dict) -> BaseReranker:
+def get_reranker(
+    config: dict,
+    domain: Optional[DomainConfig] = None,
+) -> BaseReranker:
     """Instantiate the appropriate reranker from the pipeline config dict.
 
     Reads ``config["rag"]["reranker"]``::
@@ -279,7 +304,12 @@ def get_reranker(config: dict) -> BaseReranker:
             enabled: true
             model: "cross-encoder/ms-marco-MiniLM-L-6-v2"
             top_k: 5
-            blend_original_score: 0.3   # only for keyword fallback
+            blend_original_score: 0.3
+
+    Args:
+        config: Pipeline configuration dict.
+        domain: Optional :class:`~core.rag.domain.DomainConfig` forwarded to
+                the keyword reranker for domain-term boosting.
 
     Returns:
         A :class:`KeywordReranker` when reranking is disabled or when
@@ -293,23 +323,21 @@ def get_reranker(config: dict) -> BaseReranker:
     top_k = reranker_cfg.get("top_k", rag_cfg.get("top_k", 5))
 
     if not enabled:
-        # Disabled — return a no-op keyword reranker (blend=1.0 keeps original scores)
-        return KeywordReranker(top_k=top_k, blend_original_score=1.0)
+        return KeywordReranker(top_k=top_k, blend_original_score=1.0, domain=domain)
 
     model_name = reranker_cfg.get("model", "cross-encoder/ms-marco-MiniLM-L-6-v2")
     device = reranker_cfg.get("device", None)
     max_length = reranker_cfg.get("max_length", 512)
     blend = reranker_cfg.get("blend_original_score", 0.3)
 
-    # Try cross-encoder first; it self-degrades if sentence-transformers is missing
     reranker: BaseReranker = CrossEncoderReranker(
         model_name=model_name,
         top_k=top_k,
         device=device,
         max_length=max_length,
+        domain=domain,
     )
 
-    # If the cross-encoder fell back internally, patch its top_k anyway
     if hasattr(reranker, "_fallback") and reranker._fallback is not None:
         reranker._fallback.blend = blend
 

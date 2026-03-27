@@ -12,17 +12,22 @@ Filter dimensions supported:
 
 * **Fund name / ID** — ``fundo_nome``, ``fundo_id``
 * **Document date / version** — ``doc_date``, prefer newest
-* **Document type** — ``doc_type``: regulamento, parecer, ata, contrato, …
-* **Regulatory body** — ``regulatory_body``: CVM, ANBIMA, CETIP, BACEN
+* **Document type** — ``doc_type``: loaded from domain pack
+* **Regulatory body** — ``regulatory_body``: loaded from domain pack
+
+Domain knowledge (regulatory bodies, doc types) is loaded from a
+:class:`~core.rag.domain.DomainConfig` pack.  Pass ``domain=None`` for a
+generic filter that still handles dates, versions, and free-text doc_type.
 
 Usage::
 
     from core.rag.metadata_filter import MetadataFilter
+    from core.rag.domain import load_domain
 
-    mf = MetadataFilter()
+    domain = load_domain(pack_name="finance")
+    mf = MetadataFilter(domain=domain)
     criteria = mf.extract_from_query("Regulamento do FIDC Empírica 2024 emitido pela CVM")
     where_clause = mf.to_chroma_where(criteria)
-    # → {"regulatory_body": {"$contains": "CVM"}, "doc_type": "regulamento"}
 
     # After retrieval, post-filter:
     filtered = mf.post_filter(chunks, criteria)
@@ -34,6 +39,8 @@ import re
 from dataclasses import dataclass, field
 from typing import Any, Optional
 
+from core.rag.domain import DomainConfig, GENERIC_DOMAIN
+
 __all__ = [
     "FilterCriteria",
     "MetadataFilter",
@@ -41,33 +48,32 @@ __all__ = [
 
 
 # ---------------------------------------------------------------------------
-# Extraction patterns
+# Built-in doc-type patterns (domain-agnostic fallback)
 # ---------------------------------------------------------------------------
 
-_DOC_TYPE_PATTERNS: list[tuple[str, re.Pattern]] = [
-    ("regulamento",  re.compile(r"\bregulamenta?\b|\bregulamento\b", re.I)),
-    ("parecer",      re.compile(r"\bparecer\b|\bopini[aã]o legal\b", re.I)),
-    ("ata",          re.compile(r"\bata\b|\bata de reuni[aã]o\b|\bassembl[eé]ia\b", re.I)),
-    ("contrato",     re.compile(r"\bcontrato\b|\bacordo\b|\btermo\b", re.I)),
-    ("prospecto",    re.compile(r"\bprospecto\b|\boffering memorandum\b", re.I)),
-    ("relatorio",    re.compile(r"\brelat[oó]rio\b|\bbalancete\b|\bdemonstrac[aã]o\b", re.I)),
-    ("comunicado",   re.compile(r"\bcomunicado\b|\baviso\b|\binforme\b", re.I)),
-    ("laudo",        re.compile(r"\blaudo\b|\bvaluation\b|\bavalia[cç][aã]o\b", re.I)),
+_BUILTIN_DOC_TYPE_PATTERNS: list[tuple[str, re.Pattern]] = [
+    ("report",   re.compile(r"\breport\b|\brelat[oó]rio\b|\bbalancete\b|\bdemonstrac[aã]o\b", re.I)),
+    ("contract", re.compile(r"\bcontrato\b|\bcontract\b|\bacordo\b|\btermo\b", re.I)),
+    ("policy",   re.compile(r"\bpolicy\b|\bpol[ií]tica\b|\bmanual\b|\bprocedimento\b", re.I)),
 ]
 
-_REGULATORY_BODY_PATTERNS: list[tuple[str, re.Pattern]] = [
-    ("CVM",    re.compile(r"\bCVM\b|\bComiss[aã]o de Valores Mobili[aá]rios\b", re.I)),
-    ("ANBIMA", re.compile(r"\bANBIMA\b", re.I)),
-    ("BACEN",  re.compile(r"\bBACEN\b|\bBanco Central\b", re.I)),
-    ("CETIP",  re.compile(r"\bCETIP\b|\bB3\b")),
-    ("SUSEP",  re.compile(r"\bSUSEP\b", re.I)),
-]
+# ---------------------------------------------------------------------------
+# Fund / entity name patterns (generic enough for any corpus)
+# ---------------------------------------------------------------------------
 
 _FUND_NAME_PATTERNS: list[re.Pattern] = [
     re.compile(r"FIDC\s+([\w\s\-]+?)(?:\s+\d{4}|\s*[,;\.\|]|$)", re.I),
-    re.compile(r"FUNDO\s+(?:DE\s+)?INVEST\w*\s+(?:EM\s+)?(?:DIREITOS?\s+CREDIT[OÓ]RIOS?\s+)?([\w\s\-]+?)(?:\s+\d{4}|\s*[,;\.\|]|$)", re.I),
+    re.compile(
+        r"FUNDO\s+(?:DE\s+)?INVEST\w*\s+(?:EM\s+)?(?:DIREITOS?\s+CREDIT[OÓ]RIOS?\s+)?"
+        r"([\w\s\-]+?)(?:\s+\d{4}|\s*[,;\.\|]|$)",
+        re.I,
+    ),
     re.compile(r"FII\s+([\w\s\-]+?)(?:\s+\d{4}|\s*[,;\.\|]|$)", re.I),
 ]
+
+# ---------------------------------------------------------------------------
+# Date / version patterns
+# ---------------------------------------------------------------------------
 
 _DATE_PATTERNS: list[re.Pattern] = [
     re.compile(r"\b(20\d{2}[-/][01]\d(?:[-/][0-3]\d)?)\b"),   # YYYY-MM or YYYY-MM-DD
@@ -80,9 +86,51 @@ _VERSION_KEYWORDS = re.compile(
 )
 
 _PREFER_NEWEST_KEYWORDS = re.compile(
-    r"\brecente\b|\bvigente\b|\batual\b|\b[uú]ltimo\b|\bnovo\b|\blatest\b|\bnewest\b", re.I
+    r"\brecente\b|\bvigente\b|\batual\b|\b[uú]ltimo\b|\bnovo\b|\blatest\b|\bnewest\b|\bcurrent\b",
+    re.I,
 )
 
+
+# ---------------------------------------------------------------------------
+# Helper: compile domain doc-type patterns
+# ---------------------------------------------------------------------------
+
+def _compile_doc_type_patterns(domain: DomainConfig) -> list[tuple[str, re.Pattern]]:
+    if domain.doc_type_patterns:
+        compiled: list[tuple[str, re.Pattern]] = []
+        for label, patterns in domain.doc_type_patterns.items():
+            if patterns:
+                combined = "|".join(
+                    re.escape(p) if not any(c in p for c in r"\.^$*+?{}[]|()")
+                    else p
+                    for p in patterns
+                )
+                # Wrap each alternative in word-boundary anchors where possible
+                compiled.append((label, re.compile(combined, re.I)))
+        return compiled
+    return _BUILTIN_DOC_TYPE_PATTERNS
+
+
+def _compile_regulatory_patterns(domain: DomainConfig) -> list[tuple[str, re.Pattern]]:
+    compiled: list[tuple[str, re.Pattern]] = []
+    if domain.regulatory_patterns:
+        for body, patterns in domain.regulatory_patterns.items():
+            if patterns:
+                combined = "|".join(
+                    re.escape(p) if not any(c in p for c in r"\.^$*+?{}[]|()")
+                    else p
+                    for p in patterns
+                )
+                compiled.append((body, re.compile(combined, re.I)))
+    elif domain.regulatory_bodies:
+        for body in domain.regulatory_bodies:
+            compiled.append((body, re.compile(rf"\b{re.escape(body)}\b", re.I)))
+    return compiled
+
+
+# ---------------------------------------------------------------------------
+# FilterCriteria dataclass
+# ---------------------------------------------------------------------------
 
 @dataclass
 class FilterCriteria:
@@ -91,12 +139,12 @@ class FilterCriteria:
     All fields are optional. ``None`` means "no constraint on this dimension".
     """
 
-    doc_type: Optional[str] = None               # e.g. "regulamento"
-    regulatory_body: Optional[str] = None        # e.g. "CVM" or "CVM, ANBIMA"
-    fund_name: Optional[str] = None              # e.g. "Empírica"
-    date_from: Optional[str] = None              # ISO-ish string e.g. "2024"
-    version: Optional[str] = None               # e.g. "2.1"
-    prefer_newest: bool = False                  # sort/filter toward newest doc
+    doc_type: Optional[str] = None
+    regulatory_body: Optional[str] = None
+    fund_name: Optional[str] = None
+    date_from: Optional[str] = None
+    version: Optional[str] = None
+    prefer_newest: bool = False
     extra: dict[str, Any] = field(default_factory=dict)
 
     def is_empty(self) -> bool:
@@ -111,6 +159,10 @@ class FilterCriteria:
         )
 
 
+# ---------------------------------------------------------------------------
+# MetadataFilter
+# ---------------------------------------------------------------------------
+
 class MetadataFilter:
     """Extract filter criteria from natural-language queries and apply them.
 
@@ -122,7 +174,17 @@ class MetadataFilter:
     4. :meth:`sort_by_recency` — push newest documents to the top.
 
     All operations are purely local — no LLM or network required.
+
+    Args:
+        domain: Optional :class:`~core.rag.domain.DomainConfig` for domain
+                vocabulary (regulatory bodies, doc types).  When ``None``,
+                falls back to generic built-in patterns.
     """
+
+    def __init__(self, domain: Optional[DomainConfig] = None):
+        self._domain = domain or GENERIC_DOMAIN
+        self._doc_type_patterns = _compile_doc_type_patterns(self._domain)
+        self._regulatory_patterns = _compile_regulatory_patterns(self._domain)
 
     # ------------------------------------------------------------------
     # Extraction
@@ -132,7 +194,7 @@ class MetadataFilter:
         """Parse a natural-language query and return :class:`FilterCriteria`.
 
         Args:
-            query: User's query string in Portuguese (or mixed EN/PT).
+            query: User's query string.
 
         Returns:
             :class:`FilterCriteria` populated from heuristic extraction.
@@ -140,14 +202,14 @@ class MetadataFilter:
         criteria = FilterCriteria()
 
         # Document type
-        for label, pat in _DOC_TYPE_PATTERNS:
+        for label, pat in self._doc_type_patterns:
             if pat.search(query):
                 criteria.doc_type = label
                 break
 
         # Regulatory body (may match multiple)
         bodies: list[str] = []
-        for name, pat in _REGULATORY_BODY_PATTERNS:
+        for name, pat in self._regulatory_patterns:
             if pat.search(query):
                 bodies.append(name)
         if bodies:
@@ -158,8 +220,7 @@ class MetadataFilter:
             m = pat.search(query)
             if m:
                 raw = m.group(1).strip()
-                cleaned = re.sub(r"\s+", " ", raw)
-                criteria.fund_name = cleaned
+                criteria.fund_name = re.sub(r"\s+", " ", raw)
                 break
 
         # Date / year
@@ -187,11 +248,7 @@ class MetadataFilter:
     def to_chroma_where(self, criteria: FilterCriteria) -> Optional[dict[str, Any]]:
         """Convert :class:`FilterCriteria` to a ChromaDB ``where`` dict.
 
-        ChromaDB ``where`` supports ``$eq``, ``$ne``, ``$gt``, ``$lt``,
-        ``$contains``, and ``$and`` / ``$or`` operators.
-
-        Returns ``None`` when there are no constraints (avoids empty-dict
-        errors in ChromaDB).
+        Returns ``None`` when there are no constraints.
         """
         if criteria.is_empty():
             return None
@@ -202,22 +259,18 @@ class MetadataFilter:
             clauses.append({"doc_type": {"$eq": criteria.doc_type}})
 
         if criteria.regulatory_body:
-            # May be "CVM, ANBIMA" — use $contains on first match
             first_body = criteria.regulatory_body.split(",")[0].strip()
             clauses.append({"regulatory_body": {"$contains": first_body}})
 
         if criteria.fund_name:
-            # Fuzzy match isn't natively supported — use $contains on keywords
-            keywords = criteria.fund_name.split()[:3]  # first 3 words
+            keywords = criteria.fund_name.split()[:3]
             if keywords:
                 clauses.append({"fund_name": {"$contains": keywords[0]}})
 
         if criteria.version:
             clauses.append({"version": {"$contains": criteria.version}})
 
-        # date_from → filter metadata field if present
         if criteria.date_from:
-            # Store as string comparison — works for YYYY and YYYY-MM formats
             clauses.append({"doc_date": {"$gte": criteria.date_from}})
 
         if not clauses:
@@ -233,8 +286,7 @@ class MetadataFilter:
     def post_filter(self, chunks: list, criteria: FilterCriteria) -> list:
         """Filter a chunk list using :class:`FilterCriteria`.
 
-        Applied *after* retrieval (e.g. to BM25 results that weren't
-        pre-filtered by ChromaDB).  Chunks without matching metadata fields
+        Applied *after* retrieval.  Chunks without matching metadata fields
         pass through — only chunks with *conflicting* metadata are removed.
 
         Args:
@@ -287,29 +339,22 @@ class MetadataFilter:
     def sort_by_recency(chunks: list, weight: float = 0.2) -> list:
         """Boost score of chunks from newer documents.
 
-        Computes a recency bonus based on the ``doc_date`` or ``version``
-        metadata field (lexicographic comparison works for ISO dates and
-        YYYY-MM strings).  Blends with the existing retrieval score.
-
         Args:
             chunks: Chunk objects with a ``.score`` attribute.
             weight: How much weight (0–1) to give recency vs. relevance score.
 
         Returns:
-            New list sorted by blended score (descending).  Original objects
-            are mutated in-place (score updated).
+            New list sorted by blended score (descending).
         """
         if not chunks:
             return chunks
 
-        # Collect all dates for normalisation
         dates: list[str] = []
         for c in chunks:
             meta = c.metadata if hasattr(c, "metadata") else {}
             d = meta.get("doc_date", "") or meta.get("version", "")
             dates.append(d)
 
-        # Rank by date (lexicographic — works for YYYY, YYYY-MM, YYYY-MM-DD)
         unique_dates = sorted(set(d for d in dates if d), reverse=True)
         date_rank: dict[str, float] = {
             d: 1.0 - i / max(len(unique_dates) - 1, 1)
@@ -317,7 +362,7 @@ class MetadataFilter:
         }
 
         for chunk, d in zip(chunks, dates):
-            recency = date_rank.get(d, 0.5)  # unknown → neutral
+            recency = date_rank.get(d, 0.5)
             chunk.score = (1 - weight) * chunk.score + weight * recency
 
         return sorted(chunks, key=lambda c: c.score, reverse=True)

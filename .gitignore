@@ -49,3 +49,4 @@ secrets/
 moltis.yaml
 skills/
 data/corpus/
+__pycache__/

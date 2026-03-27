@@ -9,6 +9,10 @@ you need from this package::
         RAGPipeline,
         Chunk,
         Answer,
+        # --- domain config ---
+        DomainConfig,
+        load_domain,
+        GENERIC_DOMAIN,
         # --- advanced modules ---
         inject_headers_into_chunks,
         build_contextual_header,
@@ -28,6 +32,12 @@ you need from this package::
         is_multi_hop_query,
     )
 """
+
+from core.rag.domain import (
+    DomainConfig,
+    load_domain,
+    GENERIC_DOMAIN,
+)
 
 from core.rag.pipeline import RAGPipeline, Chunk, Answer
 
@@ -75,6 +85,10 @@ from core.rag.graph_rag import (
 )
 
 __all__ = [
+    # Domain config
+    "DomainConfig",
+    "load_domain",
+    "GENERIC_DOMAIN",
     # Core pipeline
     "RAGPipeline",
     "Chunk",

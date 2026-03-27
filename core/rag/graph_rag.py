@@ -6,8 +6,9 @@ information from multiple documents (multi-hop reasoning).
 
 Architecture
 ------------
-* **Entity extraction** — rule-based NER for Brazilian financial domain
-  (FUNDO, REGULACAO, CEDENTE, COTISTA, INDICADOR, AGENTE).
+* **Entity extraction** — domain-driven NER patterns loaded from
+  :class:`~core.rag.domain.DomainConfig`.  Without a domain, falls back to
+  basic proper-noun / number heuristics.
 * **Adjacency graph** — entity → set of chunk-ids that mention it.
 * **Reverse map** — chunk-id → set of entities it contains.
 * **Multi-hop traversal** — starting from the entities in the query, expand
@@ -18,14 +19,15 @@ Architecture
 Usage::
 
     from core.rag.graph_rag import GraphRAG
+    from core.rag.domain import load_domain
 
-    g = GraphRAG(graph_path="runtime/data/graph.json")
-    g.build_from_chunks(chunks)          # called after ingest
+    domain = load_domain(pack_name="finance")
+    g = GraphRAG(graph_path="runtime/data/graph.json", domain=domain)
+    g.build_from_chunks(chunks)
     g.save()
 
     # At query time:
-    extra_chunks = g.retrieve(query, base_chunks, chunk_store)
-    # extra_chunks: additional Chunk objects via graph traversal
+    extra_chunks = g.retrieve(query, base_chunks)
 """
 
 from __future__ import annotations
@@ -36,6 +38,8 @@ from collections import defaultdict
 from pathlib import Path
 from typing import Any, Optional
 
+from core.rag.domain import DomainConfig, GENERIC_DOMAIN
+
 __all__ = [
     "EntityType",
     "Entity",
@@ -43,11 +47,12 @@ __all__ = [
     "is_multi_hop_query",
 ]
 
+
 # ---------------------------------------------------------------------------
-# Entity types
+# Entity type constants (kept for backward-compat)
 # ---------------------------------------------------------------------------
 
-EntityType = str  # one of the constants below
+EntityType = str
 
 FUNDO = "FUNDO"
 REGULACAO = "REGULACAO"
@@ -59,71 +64,53 @@ AGENTE = "AGENTE"
 _ALL_TYPES = {FUNDO, REGULACAO, CEDENTE, COTISTA, INDICADOR, AGENTE}
 
 # ---------------------------------------------------------------------------
-# NER patterns — Brazilian financial domain, Portuguese-first
+# Generic fallback NER patterns (domain-agnostic)
 # ---------------------------------------------------------------------------
 
-_PATTERNS: list[tuple[EntityType, re.Pattern]] = [
-    # Fundos de investimento
-    (FUNDO, re.compile(
-        r"FIDC\s+[\w\s\-\.]+?(?=\s*[,;:\|\n]|$)"
-        r"|FUNDO\s+(?:DE\s+)?INVEST\w+\s+[\w\s\-\.]+?(?=\s*[,;:\|\n]|$)"
-        r"|FII\s+[\w\s\-\.]+?(?=\s*[,;:\|\n]|$)"
-        r"|FICFIDC\s+[\w\s\-\.]+?(?=\s*[,;:\|\n]|$)",
-        re.I,
+_GENERIC_PATTERNS: list[tuple[EntityType, re.Pattern]] = [
+    # Proper nouns (sequences of Title-case words)
+    ("ENTITY", re.compile(
+        r"\b(?:[A-ZÁÉÍÓÚÂÊÎÔÛÃÕÇ][a-záéíóúâêîôûãõç]+(?:\s+[A-ZÁÉÍÓÚÂÊÎÔÛÃÕÇ][a-záéíóúâêîôûãõç]+){1,4})\b"
     )),
-    # Regulatory instruments
-    (REGULACAO, re.compile(
-        r"Instru[çc][ãa]o CVM\s*n[°º.]?\s*\d+"
-        r"|Resolu[çc][ãa]o\s+(?:CMN|CVM|BACEN)\s*n[°º.]?\s*\d+"
-        r"|Circular BACEN\s*n[°º.]?\s*\d+"
-        r"|Lei\s+(?:Federal\s+)?n[°º.]?\s*[\d\.]+(?:/\d{4})?"
-        r"|ICVM[\s-]?\d+",
-        re.I,
-    )),
-    # Cedentes / originators
-    (CEDENTE, re.compile(
-        r"cedente[s]?\s+[\w\s\-\.]+?(?=\s*[,;:\|\n]|$)"
-        r"|originador\s+[\w\s\-\.]+?(?=\s*[,;:\|\n]|$)",
-        re.I,
-    )),
-    # Cotistas / investors
-    (COTISTA, re.compile(
-        r"cotista[s]?\s+[\w\s\-\.]+?(?=\s*[,;:\|\n]|$)"
-        r"|investidor\s+(?:qualificado|profissional|institucional)\s+[\w\s\-\.]+?(?=\s*[,;:\|\n]|$)",
-        re.I,
-    )),
-    # Financial indicators
-    (INDICADOR, re.compile(
-        r"\b(?:CDI|IPCA|IGP-M|SELIC|DI|TJLP|TR|INPC)\b"
-        r"|\bCDI[+\-]\s*[\d,\.]+%"
-        r"|\bIPCA[+\-]\s*[\d,\.]+%",
-        re.I,
-    )),
-    # Market participants / agents
-    (AGENTE, re.compile(
-        r"(?:Administrador|Gestora?|Custodiante|Auditor|Agente\s+Fiduci[aá]rio|"
-        r"Coordenador\s+L[ií]der|Distribuidora|Estruturador)\s+"
-        r"(?:[A-Z][A-Za-z\s]+?(?:\s+(?:S\.A\.|DTVM|CTVM|Ltda\.?))?)"
-        r"(?=\s*[,;:\|\n]|$)",
-        re.I,
-    )),
+    # Years and ISO dates
+    ("DATE", re.compile(r"\b20\d{2}(?:-[01]\d(?:-[0-3]\d)?)?\b")),
+    # Standalone acronyms (2-6 uppercase letters)
+    ("ACRONYM", re.compile(r"\b[A-Z]{2,6}\b")),
 ]
 
-# Multi-hop signal keywords
+# Multi-hop signal keywords (language-flexible)
 _MULTI_HOP_SIGNALS = re.compile(
     r"rela[cç][aã]o entre|como .+ afeta|impacto de .+ em|"
     r"quem é responsável|além disso|adicionalmente|também|"
     r"e como|qual a diferen[cç]a entre|comparando|"
-    r"connect|related|affects|impacts|between .+ and",
+    r"connect|related|affects|impacts|between .+ and|"
+    r"how .+ relates|difference between|compared to",
     re.I,
 )
 
 
+def _compile_entity_patterns(domain: DomainConfig) -> list[tuple[EntityType, re.Pattern]]:
+    """Build NER patterns from domain config, falling back to generic patterns."""
+    if not domain.entity_types:
+        return _GENERIC_PATTERNS
+
+    compiled: list[tuple[EntityType, re.Pattern]] = []
+    for entity_type, patterns in domain.entity_types.items():
+        if not patterns:
+            continue
+        # Join multiple patterns for the same type with OR
+        combined = "|".join(patterns)
+        try:
+            compiled.append((entity_type, re.compile(combined, re.I)))
+        except re.error:
+            # Malformed pattern in YAML — skip silently
+            pass
+
+    return compiled if compiled else _GENERIC_PATTERNS
+
+
 def is_multi_hop_query(query: str) -> bool:
     """Heuristic: does this query likely require multi-hop reasoning?
-
-    Checks for connective language, comparative structures, and mentions
-    of multiple distinct entities.
 
     Args:
         query: User query string.
@@ -133,9 +120,7 @@ def is_multi_hop_query(query: str) -> bool:
     """
     if _MULTI_HOP_SIGNALS.search(query):
         return True
-    # If the query mentions 2+ distinct fund/regulation names, likely multi-hop
-    entity_hits = sum(1 for _, pat in _PATTERNS if pat.search(query))
-    return entity_hits >= 2
+    return False
 
 
 # ---------------------------------------------------------------------------
@@ -147,7 +132,7 @@ class Entity:
 
     Attributes:
         text: Raw surface form of the entity.
-        entity_type: One of the EntityType constants (FUNDO, REGULACAO, …).
+        entity_type: Entity type label (e.g. FUNDO, REGULACAO, …).
         normalized: Lower-cased, whitespace-collapsed form used as graph key.
     """
 
@@ -177,14 +162,13 @@ class GraphRAG:
     * ``entity_to_chunks``: entity_key → set of chunk_ids
     * ``chunk_to_entities``: chunk_id → set of entity_keys
 
-    These are stored as a JSON file for zero-dependency persistence.
-
     Args:
         graph_path: Path to the JSON file used for persistence.
-                    Created automatically on first :meth:`save`.
         max_hops: Maximum graph traversal depth (1 or 2). Default is 1.
-        max_extra_chunks: Cap on how many extra chunks graph traversal may
-                         add to the result set.
+        max_extra_chunks: Cap on extra chunks graph traversal may add.
+        domain: Optional :class:`~core.rag.domain.DomainConfig` whose
+                ``entity_types`` drive NER.  When ``None``, uses generic
+                proper-noun / acronym heuristics.
     """
 
     def __init__(
@@ -192,17 +176,17 @@ class GraphRAG:
         graph_path: str | Path = "runtime/data/graph.json",
         max_hops: int = 1,
         max_extra_chunks: int = 3,
+        domain: Optional[DomainConfig] = None,
     ):
         self.graph_path = Path(graph_path)
         self.max_hops = max_hops
         self.max_extra_chunks = max_extra_chunks
+        self._domain = domain or GENERIC_DOMAIN
+        self._patterns = _compile_entity_patterns(self._domain)
 
-        # Core graph structures
         self.entity_to_chunks: dict[str, set[str]] = defaultdict(set)
         self.chunk_to_entities: dict[str, set[str]] = defaultdict(set)
-        self.entity_metadata: dict[str, dict[str, str]] = {}  # key → {text, type}
-
-        # Chunk store: chunk_id → chunk text + metadata (populated during build)
+        self.entity_metadata: dict[str, dict[str, str]] = {}
         self._chunk_store: dict[str, dict[str, Any]] = {}
 
         self._try_load()
@@ -252,9 +236,8 @@ class GraphRAG:
     # Entity extraction
     # ------------------------------------------------------------------
 
-    @staticmethod
-    def extract_entities(text: str) -> list[Entity]:
-        """Extract named entities from text using rule-based patterns.
+    def extract_entities(self, text: str) -> list[Entity]:
+        """Extract named entities from text using domain-driven patterns.
 
         Args:
             text: Raw text (chunk content or query).
@@ -265,10 +248,9 @@ class GraphRAG:
         entities: list[Entity] = []
         seen_keys: set[str] = set()
 
-        for entity_type, pattern in _PATTERNS:
+        for entity_type, pattern in self._patterns:
             for match in pattern.finditer(text):
                 raw = match.group(0).strip()
-                # Basic cleaning: collapse whitespace, strip trailing punctuation
                 raw = re.sub(r"\s+", " ", raw)
                 raw = raw.rstrip(".,;:")
                 if len(raw) < 3:
@@ -296,41 +278,32 @@ class GraphRAG:
         Args:
             query: User query (used for entity extraction).
             base_chunks: Chunks already retrieved by the main pipeline.
-                         Used to avoid duplicates.
-            force: If ``True``, skip the :func:`is_multi_hop_query` check
-                   and always perform graph traversal.
+            force: If ``True``, skip the :func:`is_multi_hop_query` check.
 
         Returns:
-            List of additional :class:`~core.rag.pipeline.Chunk`-like objects
-            (plain dicts with ``.text``, ``.source``, etc. attributes set via
-            a lightweight adapter).  May be empty if nothing new is found.
+            List of additional chunk-like objects.  May be empty.
         """
         if not force and not is_multi_hop_query(query):
             return []
 
-        # Extract entities from the query
         query_entities = self.extract_entities(query)
         if not query_entities:
             return []
 
-        # Seed: chunk-ids from base results
         base_ids: set[str] = {self._chunk_id(c) for c in base_chunks}
         candidate_ids: set[str] = set()
 
-        # Hop 1: find chunks that share query entities
         for entity in query_entities:
             related = self.entity_to_chunks.get(entity.normalized, set())
             candidate_ids.update(related - base_ids)
 
         if self.max_hops >= 2 and candidate_ids:
-            # Hop 2: from hop-1 chunks, collect their entities, then expand again
             hop2_ids: set[str] = set()
             for cid in candidate_ids:
                 for ekey in self.chunk_to_entities.get(cid, set()):
                     hop2_ids.update(self.entity_to_chunks.get(ekey, set()))
             candidate_ids.update(hop2_ids - base_ids - candidate_ids)
 
-        # Build result chunks from store, capped at max_extra_chunks
         result = []
         for cid in list(candidate_ids)[: self.max_extra_chunks]:
             stored = self._chunk_store.get(cid)
@@ -340,14 +313,7 @@ class GraphRAG:
         return result
 
     def entity_neighbours(self, entity_key: str) -> list[str]:
-        """Return all chunk-ids that mention a given entity.
-
-        Args:
-            entity_key: Normalised entity key (lower-cased surface form).
-
-        Returns:
-            List of chunk-ids.
-        """
+        """Return all chunk-ids that mention a given entity."""
         return list(self.entity_to_chunks.get(entity_key.lower(), []))
 
     # ------------------------------------------------------------------
@@ -363,7 +329,9 @@ class GraphRAG:
             "entity_metadata": self.entity_metadata,
             "chunk_store": self._chunk_store,
         }
-        self.graph_path.write_text(json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8")
+        self.graph_path.write_text(
+            json.dumps(data, ensure_ascii=False, indent=2), encoding="utf-8"
+        )
 
     def _try_load(self) -> None:
         """Load the graph from disk if the file exists."""
@@ -380,7 +348,7 @@ class GraphRAG:
             self.entity_metadata = data.get("entity_metadata", {})
             self._chunk_store = data.get("chunk_store", {})
         except (json.JSONDecodeError, KeyError):
-            pass  # Corrupt file — start fresh
+            pass
 
     # ------------------------------------------------------------------
     # Stats
@@ -424,7 +392,7 @@ class _StoredChunk:
         self.text = data.get("text", "")
         self.source = data.get("source", "graph")
         self.section = data.get("section", "")
-        self.score = data.get("score", 0.3)  # graph-retrieved → moderate confidence
+        self.score = data.get("score", 0.3)
         self.metadata = data.get("metadata", {})
         self.metadata["graph_retrieved"] = True
 

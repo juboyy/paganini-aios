@@ -1,0 +1,314 @@
+# FIDC Domain Configuration for Paganini RAG
+# Pack: packs/finance
+#
+# This file contains ALL domain-specific knowledge previously hardcoded in the
+# six core RAG modules.  Editing this file is the ONLY place to change FIDC
+# vocabulary — the modules themselves are now domain-agnostic.
+
+name: fidc
+language: pt-BR
+
+# ---------------------------------------------------------------------------
+# Document types (chunk_headers.py)
+# ---------------------------------------------------------------------------
+
+doc_types:
+  - regulamento
+  - parecer
+  - ata
+  - contrato
+  - suplemento
+  - prospecto
+  - termo
+  - relatorio
+  - comunicado
+  - politica
+  - laudo
+
+# Patterns used to detect each doc type from filename + text snippet.
+# Each pattern is a case-insensitive substring / regex fragment.
+doc_type_patterns:
+  regulamento:
+    - "regulamento"
+    - "regulament"
+    - "reg[._-]"
+    - "norma interna"
+    - "instrução"
+    - "resolução"
+  parecer:
+    - "parecer"
+    - "opini"
+    - "laudo jurídico"
+    - "legal opinion"
+  ata:
+    - "ata"
+    - "ata de reuniao"
+    - "ata de assembleia"
+    - "assembleia"
+  contrato:
+    - "contrato"
+    - "acordo"
+    - "termo"
+  suplemento:
+    - "suplemento"
+    - "supplement"
+  prospecto:
+    - "prospecto"
+    - "offering memorandum"
+    - "offering_memorandum"
+  termo:
+    - "termo de adesão"
+    - "termo de cessão"
+    - "termo de compromisso"
+  relatorio:
+    - "relatorio"
+    - "relat"
+    - "report"
+    - "demonstracao"
+    - "balancete"
+  comunicado:
+    - "comunicado"
+    - "aviso"
+    - "informe"
+  politica:
+    - "politica"
+    - "policy"
+    - "manual"
+    - "procedimento"
+  laudo:
+    - "laudo"
+    - "valuation"
+    - "avaliacao"
+
+# ---------------------------------------------------------------------------
+# Synonyms for query expansion (multi_query.py)
+# ---------------------------------------------------------------------------
+
+synonyms:
+  # Estrutura de cotas
+  subordinação:
+    - "cota subordinada"
+    - "mezanino"
+    - "credit enhancement"
+    - "subordinação de cotas"
+    - "proteção sênior"
+  sênior:
+    - "cota sênior"
+    - "tranche sênior"
+    - "série sênior"
+  mezanino:
+    - "cota mezanino"
+    - "tranche intermediária"
+    - "subordinação intermediária"
+  cotista:
+    - "investidor"
+    - "detentor de cotas"
+    - "titular de cotas"
+  cota:
+    - "fração ideal"
+    - "quota"
+    - "participação no fundo"
+
+  # Operações de crédito
+  cedente:
+    - "originador"
+    - "vendedor de recebíveis"
+    - "assignor"
+    - "sacador"
+  sacado:
+    - "devedor"
+    - "pagador"
+    - "obrigado"
+  recebível:
+    - "direito creditório"
+    - "crédito a receber"
+    - "receivable"
+  securitização:
+    - "cessão de crédito"
+    - "estruturação de recebíveis"
+    - "securitization"
+  deságio:
+    - "desconto"
+    - "deságio na cessão"
+    - "haircut"
+  inadimplência:
+    - "default"
+    - "atraso"
+    - "não pagamento"
+    - "calote"
+  provisão:
+    - "PDD"
+    - "provisão para devedores duvidosos"
+    - "allowance"
+
+  # Regulação
+  CVM:
+    - "Comissão de Valores Mobiliários"
+    - "regulador"
+    - "autarquia federal"
+  ANBIMA:
+    - "associação de mercado"
+    - "autorregulador"
+  regulamento:
+    - "estatuto"
+    - "regimento"
+    - "norma interna"
+    - "regulação"
+  instrução:
+    - "resolução CVM"
+    - "circular"
+    - "deliberação"
+    - "norma"
+  "patrimônio líquido":
+    - "PL"
+    - "NAV"
+    - "net asset value"
+    - "valor patrimonial"
+
+  # Fundos
+  FIDC:
+    - "fundo de investimento em direitos creditórios"
+    - "fundo de recebíveis"
+  FII:
+    - "fundo imobiliário"
+    - "fundo de investimento imobiliário"
+  fundo:
+    - "veículo de investimento"
+    - "estrutura de investimento"
+  administrador:
+    - "gestor administrativo"
+    - "administradora fiduciária"
+  gestor:
+    - "gestora"
+    - "portfolio manager"
+    - "gestor de carteira"
+  custodiante:
+    - "custodiador"
+    - "banco custodiante"
+    - "depositário"
+
+  # Indicadores
+  "taxa de retorno":
+    - "yield"
+    - "retorno esperado"
+    - "TIR"
+    - "taxa interna de retorno"
+  duration:
+    - "prazo médio ponderado"
+    - "duration modificada"
+    - "DV01"
+  spread:
+    - "diferencial de taxa"
+    - "prêmio de risco"
+    - "credit spread"
+  rating:
+    - "classificação de risco"
+    - "nota de crédito"
+    - "avaliação de risco"
+
+# ---------------------------------------------------------------------------
+# Regulatory bodies (metadata_filter.py + chunk_headers.py)
+# ---------------------------------------------------------------------------
+
+regulatory_bodies:
+  - CVM
+  - ANBIMA
+  - CETIP
+  - BACEN
+  - SUSEP
+  - B3
+  - CMN
+
+# Patterns for each body — used when matching text in queries / snippets.
+# Case-insensitive substring matching.
+regulatory_patterns:
+  CVM:
+    - "CVM"
+    - "Comissão de Valores Mobiliários"
+    - "comissao de valores mobiliarios"
+  ANBIMA:
+    - "ANBIMA"
+  CETIP:
+    - "CETIP"
+  BACEN:
+    - "BACEN"
+    - "Banco Central"
+    - "banco central do brasil"
+  SUSEP:
+    - "SUSEP"
+  B3:
+    - "B3"
+    - "bolsa de valores"
+  CMN:
+    - "CMN"
+    - "Conselho Monetário Nacional"
+
+# ---------------------------------------------------------------------------
+# Domain terms for reranker boost (reranker.py)
+# ---------------------------------------------------------------------------
+
+domain_terms:
+  - subordinação
+  - sênior
+  - mezanino
+  - fidc
+  - fundo
+  - regulamento
+  - cvm
+  - anbima
+  - cedente
+  - sacado
+  - recebível
+  - securitização
+  - inadimplência
+  - provisão
+  - patrimônio
+  - cotista
+  - gestor
+  - administrador
+  - custodiante
+  - rating
+  - spread
+  - duration
+  - yield
+  - taxa
+  - cota
+  - b3
+  - cetip
+  - bacen
+  - pdd
+  - haircut
+  - deságio
+  - originador
+  - direito creditório
+
+# ---------------------------------------------------------------------------
+# Entity types for GraphRAG NER (graph_rag.py)
+# ---------------------------------------------------------------------------
+# Each key becomes an entity type constant.
+# Values are regex pattern strings (Python re syntax, case-insensitive applied).
+
+entity_types:
+  FUNDO:
+    - 'FIDC\s+[\w\s\-\.]+?(?=\s*[,;:\|\n]|$)'
+    - 'FUNDO\s+(?:DE\s+)?INVEST\w+\s+[\w\s\-\.]+?(?=\s*[,;:\|\n]|$)'
+    - 'FII\s+[\w\s\-\.]+?(?=\s*[,;:\|\n]|$)'
+    - 'FICFIDC\s+[\w\s\-\.]+?(?=\s*[,;:\|\n]|$)'
+  REGULACAO:
+    - 'Instru[çc][ãa]o CVM\s*n[°º.]?\s*\d+'
+    - 'Resolu[çc][ãa]o\s+(?:CMN|CVM|BACEN)\s*n[°º.]?\s*\d+'
+    - 'Circular BACEN\s*n[°º.]?\s*\d+'
+    - 'Lei\s+(?:Federal\s+)?n[°º.]?\s*[\d\.]+(?:/\d{4})?'
+    - 'ICVM[\s-]?\d+'
+  CEDENTE:
+    - 'cedente[s]?\s+[\w\s\-\.]+?(?=\s*[,;:\|\n]|$)'
+    - 'originador\s+[\w\s\-\.]+?(?=\s*[,;:\|\n]|$)'
+  COTISTA:
+    - 'cotista[s]?\s+[\w\s\-\.]+?(?=\s*[,;:\|\n]|$)'
+    - 'investidor\s+(?:qualificado|profissional|institucional)\s+[\w\s\-\.]+?(?=\s*[,;:\|\n]|$)'
+  INDICADOR:
+    - '\b(?:CDI|IPCA|IGP-M|SELIC|DI|TJLP|TR|INPC)\b'
+    - '\bCDI[+\-]\s*[\d,\.]+%'
+    - '\bIPCA[+\-]\s*[\d,\.]+%'
+  AGENTE:
+    - '(?:Administrador|Gestora?|Custodiante|Auditor|Agente\s+Fiduci[aá]rio|Coordenador\s+L[ií]der|Distribuidora|Estruturador)\s+(?:[A-Z][A-Za-z\s]+?(?:\s+(?:S\.A\.|DTVM|CTVM|Ltda\.?))?)'

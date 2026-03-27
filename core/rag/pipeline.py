@@ -8,6 +8,9 @@ Extended with 6 advanced RAG techniques:
   5. Post-Retrieval Reranking  — :mod:`core.rag.reranker`
   6. GraphRAG Foundation       — :mod:`core.rag.graph_rag`
 
+Domain knowledge is supplied via a :class:`~core.rag.domain.DomainConfig` pack.
+Pass ``domain_config`` directly or configure ``config["pack"]`` to auto-load a pack.
+
 The existing :meth:`RAGPipeline.retrieve` and :meth:`RAGPipeline.query`
 methods are unchanged for backward compatibility.  New callers should use
 :meth:`RAGPipeline.enhanced_retrieve` / :meth:`RAGPipeline.enhanced_query`.
@@ -20,6 +23,7 @@ from typing import Callable, Optional
 
 import chromadb
 
+from core.rag.domain import DomainConfig, load_domain, GENERIC_DOMAIN
 from core.rag.bm25 import BM25Index
 from core.rag.chunk_headers import inject_headers_into_chunks
 from core.rag.multi_query import MultiQueryRewriter
@@ -59,12 +63,37 @@ class RAGPipeline:
 
     Designed to be optimized by AutoResearch (program.md + eval.py loop).
     Every parameter is exposed and tunable.
+
+    Args:
+        config: Pipeline configuration dict.
+        domain_config: Optional :class:`~core.rag.domain.DomainConfig` for
+            domain-specific vocabulary (doc types, synonyms, entity patterns,
+            regulatory bodies, reranker boost terms).
+
+            If ``None``, the pipeline attempts to load a pack from
+            ``config["pack"]`` (a pack name string, e.g. ``"finance"``).
+            If neither is provided, the pipeline runs in **generic mode** —
+            all modules work correctly, just without domain-specific boosts.
     """
 
-    def __init__(self, config: dict):
+    def __init__(self, config: dict, domain_config: Optional[DomainConfig] = None):
         self.config = config
         self.data_dir = Path(config.get("data_dir", "runtime/data"))
         self.data_dir.mkdir(parents=True, exist_ok=True)
+
+        # === DOMAIN CONFIG ===
+        if domain_config is not None:
+            self.domain = domain_config
+        else:
+            pack_name: Optional[str] = config.get("pack")
+            if pack_name:
+                try:
+                    self.domain = load_domain(pack_name=pack_name)
+                except FileNotFoundError:
+                    print(f"Warning: pack '{pack_name}' not found — running in generic mode.")
+                    self.domain = GENERIC_DOMAIN
+            else:
+                self.domain = GENERIC_DOMAIN
 
         # === CHUNKING (AutoResearch tunes these) ===
         rag_cfg = config.get("rag", {})
@@ -89,7 +118,6 @@ class RAGPipeline:
             self.chroma = chromadb.PersistentClient(path=chroma_path)
         except Exception:
             self.chroma = chromadb.Client()
-        # Use Google Gemini embedding for superior multilingual quality
         _embed_fn = None
         try:
             import chromadb.utils.embedding_functions as ef
@@ -112,17 +140,18 @@ class RAGPipeline:
         # === BM25 (sparse retrieval) ===
         self.bm25 = BM25Index(self.data_dir / "bm25_index.json")
 
-        # === ADVANCED RAG MODULES ===
+        # === ADVANCED RAG MODULES (all receive domain) ===
         # 1. Contextual chunk headers — injected during _chunk_document
         self.inject_chunk_headers: bool = rag_cfg.get("chunk_headers", True)
 
         # 2. Multi-query rewriting
         self.multi_query = MultiQueryRewriter(
             n_variants=rag_cfg.get("multi_query_variants", 4),
+            domain=self.domain,
         )
 
         # 3. Metadata filter
-        self.metadata_filter = MetadataFilter()
+        self.metadata_filter = MetadataFilter(domain=self.domain)
 
         # 4. Context compressor
         self.compressor = ContextCompressor(
@@ -131,7 +160,7 @@ class RAGPipeline:
         )
 
         # 5. Reranker
-        self.reranker = get_reranker(config)
+        self.reranker = get_reranker(config, domain=self.domain)
 
         # 6. GraphRAG
         graph_path = self.data_dir / "graph.json"
@@ -139,6 +168,7 @@ class RAGPipeline:
             graph_path=graph_path,
             max_hops=rag_cfg.get("graph_max_hops", 1),
             max_extra_chunks=rag_cfg.get("graph_max_extra_chunks", 3),
+            domain=self.domain,
         )
 
     def ingest(self, corpus_dir: str) -> dict:
@@ -181,20 +211,16 @@ class RAGPipeline:
                 stats["chunks"] += 1
                 stats["total_chars"] += len(chunk.text)
 
-                # Batch upsert every 100 chunks
                 if len(batch_ids) >= 100:
                     self.collection.upsert(ids=batch_ids, documents=batch_docs, metadatas=batch_metas)
                     self.bm25.index(batch_docs, batch_ids, batch_metas)
                     batch_ids, batch_docs, batch_metas = [], [], []
 
-        # Final batch
         if batch_ids:
             self.collection.upsert(ids=batch_ids, documents=batch_docs, metadatas=batch_metas)
             self.bm25.index(batch_docs, batch_ids, batch_metas)
 
         # === Build / update GraphRAG knowledge graph ===
-        # Re-retrieve all chunks from Chroma to build the graph (memory-efficient
-        # alternative: collect chunks during the loop above)
         try:
             all_chroma = self.collection.get(include=["documents", "metadatas"])
             graph_chunks = []
@@ -222,7 +248,6 @@ class RAGPipeline:
         if self.collection.count() == 0:
             return []
 
-        # --- Dense retrieval (ChromaDB) ---
         dense_results = self.collection.query(
             query_texts=[query],
             n_results=min(k * 2, self.collection.count()),
@@ -236,11 +261,10 @@ class RAGPipeline:
             dense_hits[doc_id] = {
                 "text": doc,
                 "meta": meta,
-                "dense_rank": i,           # 0-indexed rank
+                "dense_rank": i,
                 "dense_score": 1 - distance,
             }
 
-        # --- Sparse retrieval (BM25) ---
         sparse_results = self.bm25.search(query, top_k=k * 2)
         sparse_hits: dict[str, dict] = {}
         for rank, hit in enumerate(sparse_results):
@@ -250,7 +274,6 @@ class RAGPipeline:
                 "meta": hit["metadata"],
             }
 
-        # --- RRF fusion ---
         all_ids = set(dense_hits) | set(sparse_hits)
         rrf_k = self.rrf_k
 
@@ -260,19 +283,15 @@ class RAGPipeline:
             if doc_id in dense_hits:
                 score += 1.0 / (rrf_k + dense_hits[doc_id]["dense_rank"] + 1)
             else:
-                # Not in dense results — penalise with a large rank
                 score += 1.0 / (rrf_k + k * 2 + 1)
-
             if doc_id in sparse_hits:
                 score += 1.0 / (rrf_k + sparse_hits[doc_id]["sparse_rank"] + 1)
             else:
                 score += 1.0 / (rrf_k + k * 2 + 1)
-
             fused.append((doc_id, score))
 
         fused.sort(key=lambda x: x[1], reverse=True)
 
-        # --- Build Chunk objects ---
         chunks: list[Chunk] = []
         for doc_id, fused_score in fused[:k]:
             if doc_id in dense_hits:
@@ -280,9 +299,8 @@ class RAGPipeline:
                 text = hit["text"]
                 meta = hit["meta"]
             else:
-                # Sparse-only hit — we have metadata but need text from BM25 meta
                 meta = sparse_hits[doc_id]["meta"]
-                text = meta.get("text", "")  # text not stored in BM25, fallback
+                text = meta.get("text", "")
 
             chunk = Chunk(
                 text=text,
@@ -293,7 +311,6 @@ class RAGPipeline:
             chunk.score = fused_score
             chunks.append(chunk)
 
-        # Normalize scores to 0-1 range for display/confidence
         if chunks:
             max_score = max(c.score for c in chunks)
             min_score = min(c.score for c in chunks)
@@ -316,7 +333,6 @@ class RAGPipeline:
                 chunks=[], confidence=0.0
             )
 
-        # Build context from chunks
         context_parts = []
         for i, chunk in enumerate(chunks):
             context_parts.append(
@@ -350,11 +366,8 @@ Responda citando as fontes relevantes."""
             start = time.time()
             response_text = llm_fn(system_prompt, user_prompt)
             latency = (time.time() - start) * 1000
-
-            # Estimate confidence from chunk scores
             avg_score = sum(c.score for c in chunks) / len(chunks) if chunks else 0
-            confidence = min(avg_score * 1.2, 1.0)  # Scale up slightly
-
+            confidence = min(avg_score * 1.2, 1.0)
             return Answer(
                 text=response_text,
                 chunks=chunks,
@@ -362,7 +375,6 @@ Responda citando as fontes relevantes."""
                 latency_ms=latency
             )
         else:
-            # No LLM — return context only
             return Answer(
                 text=f"[RAG sem LLM] Top {len(chunks)} chunks encontrados:\n\n{context}",
                 chunks=chunks,
@@ -390,15 +402,12 @@ Responda citando as fontes relevantes."""
            traverse the knowledge graph and append up to 3 extra chunks.
 
         Args:
-            query: User query in Portuguese (or mixed EN/PT).
+            query: User query.
             top_k: Override the pipeline's default ``top_k``.
-            llm_fn: Optional LLM callable ``(system_prompt, user_prompt) → str``
-                    used for abstractive compression and LLM-based query
-                    rewriting when available.
+            llm_fn: Optional LLM callable ``(system_prompt, user_prompt) → str``.
 
         Returns:
-            Reranked, compressed list of :class:`Chunk` objects ready for
-            context assembly.
+            Reranked, compressed list of :class:`Chunk` objects.
         """
         k = top_k or self.top_k
 
@@ -413,14 +422,11 @@ Responda citando as fontes relevantes."""
         all_variant_results: list[list[Chunk]] = []
         for variant in query_variants:
             variant_chunks = self._retrieve_with_filter(variant, k, where_clause)
-            # Post-filter BM25 / merged results
             variant_chunks = self.metadata_filter.post_filter(variant_chunks, criteria)
             all_variant_results.append(variant_chunks)
 
-        # Merge across variants (dedup + score boost for multi-occurrence)
         chunks = self.multi_query.merge_results(all_variant_results)
 
-        # Recency sort if "prefer newest" was detected
         if criteria.prefer_newest:
             chunks = self.metadata_filter.sort_by_recency(chunks, weight=0.25)
 
@@ -434,10 +440,9 @@ Responda citando as fontes relevantes."""
         try:
             if is_multi_hop_query(query):
                 graph_chunks = self.graph.retrieve(query, chunks, force=False)
-                # Append graph chunks at the end (they're supplementary)
                 chunks = chunks + graph_chunks  # type: ignore[operator]
         except Exception:
-            pass  # Graph errors must not break retrieval
+            pass
 
         return chunks  # type: ignore[return-value]
 
@@ -448,14 +453,11 @@ Responda citando as fontes relevantes."""
     ) -> Answer:
         """Full enhanced RAG: :meth:`enhanced_retrieve` + generation.
 
-        Drop-in replacement for :meth:`query` with all 6 RAG enhancements
-        applied during retrieval.
+        Drop-in replacement for :meth:`query` with all 6 RAG enhancements.
 
         Args:
-            question: User's question in Portuguese.
+            question: User's question.
             llm_fn: LLM callable ``(system_prompt, user_prompt) → str``.
-                    When ``None``, returns context without generation (same
-                    behaviour as :meth:`query`).
 
         Returns:
             :class:`Answer` with the generated response and source chunks.
@@ -468,7 +470,6 @@ Responda citando as fontes relevantes."""
                 chunks=[], confidence=0.0,
             )
 
-        # Build context — include contextual header when present
         context_parts = []
         for i, chunk in enumerate(chunks):
             header = ""
@@ -476,7 +477,6 @@ Responda citando as fontes relevantes."""
                 header = chunk.metadata.get("contextual_header", "")
             label = f"[Fonte {i + 1}: {chunk.source} | Seção: {chunk.section} | Relevância: {chunk.score:.2f}]"
             body = chunk.text
-            # If header is already prepended to body (by inject_headers), avoid duplication
             if header and body.startswith(header):
                 context_parts.append(f"{label}\n{body}")
             elif header:
@@ -537,12 +537,7 @@ Responda citando as fontes relevantes."""
         k: int,
         where: Optional[dict] = None,
     ) -> list[Chunk]:
-        """Run the hybrid retrieval pipeline with an optional ChromaDB where-filter.
-
-        This is a filtered variant of :meth:`retrieve` that accepts a pre-built
-        ChromaDB ``where`` clause.  Falls back to unfiltered retrieval if the
-        where-clause results in 0 hits.
-        """
+        """Run the hybrid retrieval pipeline with an optional ChromaDB where-filter."""
         if self.collection.count() == 0:
             return []
 
@@ -557,7 +552,6 @@ Responda citando as fontes relevantes."""
         try:
             dense_results = self.collection.query(**query_kwargs)
         except Exception:
-            # where-filter may raise if no documents match — fall back
             query_kwargs.pop("where", None)
             try:
                 dense_results = self.collection.query(**query_kwargs)
@@ -631,12 +625,7 @@ Responda citando as fontes relevantes."""
         return chunks
 
     def _chunk_document(self, text: str, source: str) -> list[Chunk]:
-        """Chunk a markdown document respecting headers.
-
-        After chunking, contextual headers are injected into each chunk's
-        metadata (and optionally prepended to the text) when
-        ``config["rag"]["chunk_headers"]`` is enabled (default: True).
-        """
+        """Chunk a markdown document respecting headers."""
         if self.respect_headers:
             chunks = self._chunk_by_headers(text, source)
         else:
@@ -648,6 +637,7 @@ Responda citando as fontes relevantes."""
                 source=source,
                 full_text=text,
                 prepend_to_text=True,
+                domain=self.domain,
             )
 
         return chunks
@@ -662,7 +652,6 @@ Responda citando as fontes relevantes."""
             if not lines:
                 continue
 
-            # Extract section title
             title = ""
             if lines[0].startswith('#'):
                 title = lines[0].lstrip('#').strip()
@@ -673,11 +662,9 @@ Responda citando as fontes relevantes."""
             if not content:
                 continue
 
-            # If section is small enough, keep as one chunk
-            if len(content) <= self.chunk_size * 4:  # chars ≈ tokens * 4
+            if len(content) <= self.chunk_size * 4:
                 chunks.append(Chunk(text=content, source=source, section=title))
             else:
-                # Split large sections into overlapping chunks
                 sub_chunks = self._split_text(content, self.chunk_size * 4, self.chunk_overlap * 4)
                 for i, sub in enumerate(sub_chunks):
                     chunks.append(Chunk(
@@ -725,6 +712,8 @@ Responda citando as fontes relevantes."""
             "data_dir": str(self.data_dir),
             "max_context_tokens": self.max_context_tokens,
             "compression_strategy": self.compressor.strategy,
+            "domain": self.domain.name,
+            "domain_language": self.domain.language,
         }
         base.update(self.graph.stats())
         return base

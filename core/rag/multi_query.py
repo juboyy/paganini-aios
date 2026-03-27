@@ -3,7 +3,7 @@
 Recall suffers when the user's phrasing differs from the corpus vocabulary.
 This module generates alternative phrasings through:
 
-1. **Synonym expansion** — financial/legal synonyms in Portuguese
+1. **Synonym expansion** — domain synonyms loaded from :class:`~core.rag.domain.DomainConfig`
 2. **Specificity variation** — broader and narrower reformulations
 3. **Perspective shift** — regulatory, operational, and risk lenses
 
@@ -11,22 +11,27 @@ When an LLM function is provided the module delegates generation to it;
 otherwise a fast rule-based fallback is used so the system works fully
 offline without any API calls.
 
+Domain knowledge (synonyms) is loaded from a ``DomainConfig`` pack.  Pass
+``domain=None`` to use an empty synonym table — perspective/specificity
+variations still apply.
+
 Usage::
 
     from core.rag.multi_query import MultiQueryRewriter
+    from core.rag.domain import load_domain
 
-    rewriter = MultiQueryRewriter()
+    domain = load_domain(pack_name="finance")
+    rewriter = MultiQueryRewriter(domain=domain)
     queries = rewriter.rewrite("O que é subordinação em FIDC?")
-    # → ["O que é subordinação em FIDC?",
-    #    "cota subordinada FIDC definição",
-    #    "mezanino crédito subordinado fundo",
-    #    ...]
+    # → ["O que é subordinação em FIDC?", "cota subordinada FIDC definição", ...]
 """
 
 from __future__ import annotations
 
 import re
 from typing import Callable, Optional
+
+from core.rag.domain import DomainConfig, GENERIC_DOMAIN
 
 __all__ = [
     "MultiQueryRewriter",
@@ -36,91 +41,62 @@ __all__ = [
 
 
 # ---------------------------------------------------------------------------
-# Synonym dictionary — Portuguese financial / legal vocabulary
+# Module-level SYNONYM_MAP kept for backward-compat (now loaded from domain)
 # ---------------------------------------------------------------------------
 
-SYNONYM_MAP: dict[str, list[str]] = {
-    # Estrutura de cotas
-    "subordinação":     ["cota subordinada", "mezanino", "credit enhancement", "subordinação de cotas"],
-    "sênior":           ["cota sênior", "tranche sênior", "série sênior"],
-    "mezanino":         ["cota mezanino", "tranche intermediária", "subordinação intermediária"],
-    "cotista":          ["investidor", "detentor de cotas", "titular de cotas"],
-    "cota":             ["fração ideal", "quota", "participação no fundo"],
-
-    # Operações de crédito
-    "cedente":          ["originador", "vendedor de recebíveis", "assignor"],
-    "sacado":           ["devedor", "pagador", "obrigado"],
-    "recebível":        ["direito creditório", "crédito a receber", "receivable"],
-    "securitização":    ["cessão de crédito", "estruturação de recebíveis", "securitization"],
-    "deságio":          ["desconto", "deságio na cessão", "haircut"],
-    "inadimplência":    ["default", "atraso", "não pagamento", "calote"],
-    "provisão":         ["PDD", "provisão para devedores duvidosos", "allowance"],
-
-    # Regulação
-    "CVM":              ["Comissão de Valores Mobiliários", "regulador", "autarquia federal"],
-    "ANBIMA":           ["associação de mercado", "autorregulador"],
-    "regulamento":      ["estatuto", "regimento", "norma interna", "regulação"],
-    "instrução":        ["resolução CVM", "circular", "deliberação", "norma"],
-    "patrimônio líquido": ["PL", "NAV", "net asset value", "valor patrimonial"],
-
-    # Fundos
-    "FIDC":             ["fundo de investimento em direitos creditórios", "fundo de recebíveis"],
-    "FII":              ["fundo imobiliário", "fundo de investimento imobiliário"],
-    "fundo":            ["veículo de investimento", "estrutura de investimento"],
-    "administrador":    ["gestor administrativo", "administradora fiduciária"],
-    "gestor":           ["gestora", "portfolio manager", "gestor de carteira"],
-    "custodiante":      ["custodiador", "banco custodiante", "depositário"],
-
-    # Indicadores
-    "taxa de retorno":  ["yield", "retorno esperado", "TIR", "taxa interna de retorno"],
-    "duration":         ["prazo médio ponderado", "duration modificada", "DV01"],
-    "spread":           ["diferencial de taxa", "prêmio de risco", "credit spread"],
-    "rating":           ["classificação de risco", "nota de crédito", "avaliação de risco"],
-}
+# This is intentionally empty — the real synonyms live in packs/finance/rag_domain.yaml.
+# Existing code that imports SYNONYM_MAP directly will get an empty dict, which is
+# functionally equivalent to "no domain" (generic mode).
+SYNONYM_MAP: dict[str, list[str]] = {}
 
 # ---------------------------------------------------------------------------
-# Perspective templates
+# Perspective templates — language-neutral enough for any domain
 # ---------------------------------------------------------------------------
 
 PERSPECTIVE_TEMPLATES: dict[str, str] = {
-    "regulatorio":   "Do ponto de vista regulatório (CVM/ANBIMA): {query}",
-    "operacional":   "Em termos operacionais e de gestão: {query}",
-    "risco":         "Considerando análise de risco e inadimplência: {query}",
-    "contabil":      "Sob perspectiva contábil e de provisionamento: {query}",
-    "investidor":    "Para um cotista ou investidor institucional: {query}",
+    "regulatory":  "From a regulatory and compliance perspective: {query}",
+    "operational": "In operational and management terms: {query}",
+    "risk":        "Considering risk analysis and failure scenarios: {query}",
+    "accounting":  "From an accounting and financial reporting perspective: {query}",
+    "investor":    "For an investor or end-user of this system: {query}",
 }
 
-# ---------------------------------------------------------------------------
-# LLM prompt for when an llm_fn is supplied
-# ---------------------------------------------------------------------------
+# Portuguese-language override — used when domain language starts with "pt"
+_PERSPECTIVE_TEMPLATES_PT: dict[str, str] = {
+    "regulatorio":  "Do ponto de vista regulatório: {query}",
+    "operacional":  "Em termos operacionais e de gestão: {query}",
+    "risco":        "Considerando análise de risco e inadimplência: {query}",
+    "contabil":     "Sob perspectiva contábil e de provisionamento: {query}",
+    "investidor":   "Para um cotista ou investidor institucional: {query}",
+}
 
+# LLM prompt templates
 _LLM_SYSTEM = (
-    "Você é um especialista em fundos de investimento e mercado de capitais brasileiro. "
-    "Gere variações de consulta para melhorar a recuperação de documentos."
+    "You are a domain expert helping to generate query variations for document retrieval."
 )
 
 _LLM_TEMPLATE = (
-    "Dado a consulta: «{query}»\n\n"
-    "Gere exatamente {n} variações alternativas que ajudem a recuperar documentos relevantes. "
-    "Use sinônimos financeiros/jurídicos em português, perspectivas diferentes (regulatória, "
-    "operacional, de risco) e variações de especificidade (mais ampla e mais estreita).\n\n"
-    "Retorne SOMENTE as variações, uma por linha, sem numeração ou marcadores."
+    "Given the query: «{query}»\n\n"
+    "Generate exactly {n} alternative variations that help retrieve relevant documents. "
+    "Use domain-specific synonyms, different perspectives (regulatory, operational, risk) "
+    "and specificity variations (broader and narrower).\n\n"
+    "Return ONLY the variations, one per line, without numbering or bullets."
 )
 
 
 def _tokenize(text: str) -> list[str]:
-    """Lowercase word tokens."""
-    return re.findall(r"[a-záéíóúâêîôûãõç]+", text.lower())
+    """Lowercase word tokens (handles accented characters)."""
+    return re.findall(r"[a-záéíóúâêîôûãõçàèìòùñ]+", text.lower())
 
 
-def _expand_synonyms(query: str) -> list[str]:
-    """Replace known terms in the query with their synonyms, producing new queries."""
+def _expand_synonyms(query: str, synonyms: dict[str, list[str]]) -> list[str]:
+    """Replace known terms in the query with their synonyms."""
     variants: list[str] = []
     q_lower = query.lower()
 
-    for term, synonyms in SYNONYM_MAP.items():
+    for term, syns in synonyms.items():
         if term.lower() in q_lower:
-            for syn in synonyms[:2]:  # cap at 2 replacements per term
+            for syn in syns[:2]:
                 variant = re.sub(re.escape(term), syn, query, flags=re.IGNORECASE)
                 if variant.lower() != query.lower():
                     variants.append(variant)
@@ -128,55 +104,56 @@ def _expand_synonyms(query: str) -> list[str]:
     return variants
 
 
-def _specificity_variants(query: str) -> list[str]:
+def _specificity_variants(query: str, domain: DomainConfig) -> list[str]:
     """Generate a broader and a narrower version of the query."""
     tokens = _tokenize(query)
     variants: list[str] = []
 
-    # Broader: strip the last descriptive word (likely a qualifier)
+    # Broader: strip the last descriptive word
     if len(tokens) >= 3:
-        # Drop last token
         broader = " ".join(tokens[:-1])
         variants.append(broader)
 
-    # Narrower: add a financial context anchor
-    anchors = ["FIDC", "regulamento", "CVM", "fundo de investimento"]
-    has_anchor = any(a.lower() in query.lower() for a in anchors)
+    # Narrower: add a domain context anchor if none present
+    anchors = list(domain.regulatory_bodies) + list(domain.doc_types)[:3]
+    has_anchor = any(a.lower() in query.lower() for a in anchors) if anchors else False
+
     if not has_anchor and tokens:
-        narrower = f"{query} em FIDC"
-        variants.append(narrower)
-    else:
-        # Add "conforme regulação CVM" as a narrowing qualifier
-        if "CVM" not in query:
-            variants.append(f"{query} conforme regulação CVM")
+        # Generic narrowing: append "in context"
+        if anchors:
+            variants.append(f"{query} {anchors[0]}")
+        else:
+            variants.append(f"{query} (detailed)")
+    elif anchors and anchors[0] not in query:
+        variants.append(f"{query} {anchors[0]}")
 
     return variants
 
 
-def _perspective_variants(query: str, max_perspectives: int = 2) -> list[str]:
+def _perspective_variants(
+    query: str,
+    templates: dict[str, str],
+    max_perspectives: int = 2,
+) -> list[str]:
     """Generate query variants from different professional perspectives."""
-    # Pick the most relevant perspectives based on query content
     q_lower = query.lower()
     priorities: list[str] = []
 
-    if any(w in q_lower for w in ["regulamento", "instrução", "cvm", "norma", "resolução"]):
-        priorities.append("regulatorio")
-    if any(w in q_lower for w in ["risco", "inadimplência", "default", "perda", "rating"]):
-        priorities.append("risco")
-    if any(w in q_lower for w in ["gestor", "administrador", "operaç", "procedimento"]):
-        priorities.append("operacional")
-    if any(w in q_lower for w in ["cotista", "investidor", "retorno", "yield"]):
-        priorities.append("investidor")
+    # Heuristic: pick perspectives relevant to the query content
+    keys = list(templates.keys())
+    for key in keys:
+        word = key.lower()
+        if any(w in q_lower for w in [word, word[:5]]):
+            priorities.append(key)
 
-    # Fill remaining with defaults
-    for key in PERSPECTIVE_TEMPLATES:
+    # Fill remaining
+    for key in keys:
         if key not in priorities:
             priorities.append(key)
 
     results: list[str] = []
     for key in priorities[:max_perspectives]:
-        template = PERSPECTIVE_TEMPLATES[key]
-        results.append(template.format(query=query))
+        results.append(templates[key].format(query=query))
 
     return results
 
@@ -194,11 +171,25 @@ class MultiQueryRewriter:
         n_variants: Total number of query variants to produce (including the
                     original). Clamped to the range [2, 8].
         dedup: Whether to deduplicate near-identical variants.
+        domain: Optional :class:`~core.rag.domain.DomainConfig` containing
+                the synonym table. When ``None``, synonym expansion is skipped
+                but perspective/specificity variations still run.
     """
 
-    def __init__(self, n_variants: int = 4, dedup: bool = True):
+    def __init__(
+        self,
+        n_variants: int = 4,
+        dedup: bool = True,
+        domain: Optional[DomainConfig] = None,
+    ):
         self.n_variants = max(2, min(8, n_variants))
         self.dedup = dedup
+        self._domain = domain or GENERIC_DOMAIN
+        # Select perspective templates based on domain language
+        if self._domain.language.lower().startswith("pt"):
+            self._perspectives = _PERSPECTIVE_TEMPLATES_PT
+        else:
+            self._perspectives = PERSPECTIVE_TEMPLATES
 
     # ------------------------------------------------------------------
     # Public API
@@ -212,7 +203,7 @@ class MultiQueryRewriter:
         """Produce *n_variants* query strings including the original.
 
         Args:
-            query: Original user query in Portuguese.
+            query: Original user query.
             llm_fn: Optional LLM callable ``(system_prompt, user_prompt) → text``.
                     When supplied, the LLM generates variations; rule-based
                     logic is used as a fallback if the LLM call fails.
@@ -251,12 +242,12 @@ class MultiQueryRewriter:
         Returns:
             Deduplicated, re-scored list of chunks sorted by descending score.
         """
-        seen: dict[str, object] = {}   # text fingerprint → Chunk
+        seen: dict[str, object] = {}
         counts: dict[str, int] = {}
 
         for results in results_per_query:
             for chunk in results:
-                key = chunk.text[:120]  # fingerprint
+                key = chunk.text[:120]
                 if key in seen:
                     counts[key] = counts[key] + 1
                 else:
@@ -280,22 +271,18 @@ class MultiQueryRewriter:
     def _rule_based_rewrite(self, query: str) -> list[str]:
         variants: list[str] = [query]
 
-        # 1. Synonym expansions
-        syn_variants = _expand_synonyms(query)
-        variants.extend(syn_variants)
+        # 1. Synonym expansions (domain-driven)
+        variants.extend(_expand_synonyms(query, self._domain.synonyms))
 
         # 2. Specificity
-        spec_variants = _specificity_variants(query)
-        variants.extend(spec_variants)
+        variants.extend(_specificity_variants(query, self._domain))
 
         # 3. Perspective shifts
-        persp_variants = _perspective_variants(query)
-        variants.extend(persp_variants)
+        variants.extend(_perspective_variants(query, self._perspectives))
 
         if self.dedup:
             variants = self._deduplicate(variants)
 
-        # Trim or pad to n_variants
         return variants[: self.n_variants]
 
     def _llm_rewrite(
@@ -303,12 +290,11 @@ class MultiQueryRewriter:
         query: str,
         llm_fn: Callable[[str, str], str],
     ) -> list[str]:
-        n = self.n_variants - 1  # we'll prepend the original
+        n = self.n_variants - 1
         user_prompt = _LLM_TEMPLATE.format(query=query, n=n)
         response = llm_fn(_LLM_SYSTEM, user_prompt)
 
         lines = [ln.strip() for ln in response.splitlines() if ln.strip()]
-        # Strip leading bullets/numbers
         cleaned = [re.sub(r"^[\d.)\-*•]+\s*", "", ln) for ln in lines]
         variants = [query] + [ln for ln in cleaned if ln and ln.lower() != query.lower()]
 

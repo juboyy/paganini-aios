@@ -1,0 +1,64 @@
+# Generic Domain Configuration — minimal template
+#
+# This is the empty/neutral pack that ships with Paganini.
+# All RAG modules work correctly with this config; they just have no
+# domain-specific vocabulary to boost results.
+#
+# Copy this file into your own pack directory and fill in the fields:
+#
+#   packs/<my_pack>/rag_domain.yaml
+#
+# Then load it in your pipeline:
+#
+#   from core.rag.domain import load_domain
+#   domain = load_domain(pack_name="<my_pack>")
+
+name: generic
+language: en
+
+# ---------------------------------------------------------------------------
+# Document types recognised by chunk_headers.py
+# ---------------------------------------------------------------------------
+doc_types: []
+  # - document
+  # - report
+  # - contract
+  # - policy
+
+doc_type_patterns: {}
+  # document:
+  #   - "document"
+  #   - "doc"
+
+# ---------------------------------------------------------------------------
+# Synonyms for query expansion (multi_query.py)
+# ---------------------------------------------------------------------------
+synonyms: {}
+  # "my term":
+  #   - "synonym 1"
+  #   - "synonym 2"
+
+# ---------------------------------------------------------------------------
+# Regulatory / authority bodies (metadata_filter.py)
+# ---------------------------------------------------------------------------
+regulatory_bodies: []
+  # - MY_REGULATOR
+
+regulatory_patterns: {}
+  # MY_REGULATOR:
+  #   - "my regulator"
+  #   - "full name"
+
+# ---------------------------------------------------------------------------
+# Domain terms for reranker score boost (reranker.py)
+# ---------------------------------------------------------------------------
+domain_terms: []
+  # - "important term"
+  # - "key concept"
+
+# ---------------------------------------------------------------------------
+# Entity types for GraphRAG NER (graph_rag.py)
+# ---------------------------------------------------------------------------
+entity_types: {}
+  # MY_ENTITY:
+  #   - 'My\s+Entity\s+[\w\s]+?(?=\s*[,;\n]|$)'
