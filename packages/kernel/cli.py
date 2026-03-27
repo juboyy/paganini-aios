@@ -205,153 +205,141 @@ def query(question, no_llm, top_k, verbose):
     from packages.shared.guardrails import GuardrailPipeline
 
     config = _load_config()
-    top_k_explicit = top_k != 5  # detect if user explicitly set top_k
+    top_k_explicit = top_k != 5
     config["rag"]["top_k"] = top_k
 
-    # 1. RAG Pipeline
     pipeline = RAGPipeline(config)
     if pipeline.collection.count() == 0:
-        console.print(
-            "[red]✗ No documents indexed. Run: paganini ingest <corpus_dir>[/]"
-        )
+        console.print("[red]✗ No documents indexed. Run: paganini ingest <corpus_dir>[/]")
         return
 
-    # 2. MetaClaw
     metaclaw = MetaClawProxy(config)
-
-    # 2.5 CognitiveRouter dispatch
     router = CognitiveRouter(config)
     routing = router.route(question)
     agent = routing.primary_agent
     agent_confidence = routing.classification.confidence_estimate
 
-    # Use router's suggested top_k
     top_k = routing.suggested_top_k if not top_k_explicit else top_k
     config["rag"]["top_k"] = top_k
 
-    # 3. LLM (via Moltis or direct)
     llm_fn = None if no_llm else get_llm_fn(config)
-
     runtime_engine = config.get("runtime", {}).get("engine", "python")
 
     with console.status("[bold cyan]Querying..."):
         start = time.time()
-
-        # Retrieve
-        chunks = pipeline.retrieve(question)
-
-        # Build context
-        context_parts = []
-        for i, chunk in enumerate(chunks):
-            context_parts.append(
-                f"[Fonte {i+1}: {chunk.source} | {chunk.section} | Score: {chunk.score:.2f}]\n{chunk.text}"
-            )
-        context = "\n\n---\n\n".join(context_parts)
-
-        # Memory recall — inject semantic memory BEFORE LLM call
         memory = MemoryManager(config)
-        recall = memory.recall(question, limit=3)
-        if recall.get("semantic"):
-            context += "\n\n--- Memória Semântica ---\n"
-            for mem in recall["semantic"][:3]:
-                context += (
-                    f"[Memória: {mem.get('category', 'geral')}] {mem.get('fact', '')}\n"
-                )
-
-        # MetaClaw enrichment
-        if metaclaw.enabled:
-            context = metaclaw.enrich_query(question, context)
-
-        # LLM call
-        if llm_fn:
-            agent_context = ""
-            if agent:
-                agent_context = f"\nVocê está atuando como o agente {agent.name}. {agent.role[:200]}\n"
-
-            system_prompt = f"""Você é um especialista em FIDC (Fundos de Investimento em Direitos Creditórios) e regulamentação CVM.
-{agent_context}
-Regras:
-1. Responda APENAS com base no contexto fornecido
-2. Cite as fontes usando [Fonte N]
-3. Se não encontrar a resposta no contexto, diga explicitamente
-4. Seja preciso e objetivo — terminologia técnica correta"""
-
-            user_prompt = f"Contexto:\n{context}\n\n---\n\nPergunta: {question}\n\nResponda citando fontes."
-            response_text = llm_fn(system_prompt, user_prompt)
-        else:
-            response_text = (
-                f"[RAG sem LLM] {len(chunks)} chunks encontrados:\n\n{context}"
-            )
-
-        elapsed = (time.time() - start) * 1000
-        avg_score = sum(c.score for c in chunks) / len(chunks) if chunks else 0
-        confidence = min(avg_score * 1.2, 1.0)
-
-        # MetaClaw post-learning
-        if metaclaw.enabled and llm_fn and confidence > 0.7:
-            metaclaw.learn_from_interaction(question, response_text, chunks, confidence)
-
-        # Guardrails check
+        context = _build_rag_context(pipeline, metaclaw, memory, question)
+        response_text, elapsed, confidence, chunks = _run_llm(
+            llm_fn, agent, context, question, pipeline, metaclaw, start
+        )
         guardrails = GuardrailPipeline(config)
         guard_result = guardrails.check(question, response_text, chunks, confidence)
-
-        # Record interaction in memory (after guardrails pass)
         if guard_result.passed:
             memory.record_interaction(
-                question,
-                response_text,
-                chunks,
-                confidence,
-                agent.slug if agent else "unknown",
+                question, response_text, chunks, confidence,
+                agent.slug if agent else "unknown"
             )
 
-    # ── Output ──────────────────────────────────────
-    if verbose:
-        console.print(
-            f"\n[dim]🧠 Runtime: {runtime_engine} | Model: {config['provider']['model']}[/]"
-        )
-        console.print(
-            f"[dim]🤖 Agent: {agent.name} ({routing.classification.complexity}, conf={agent_confidence:.2f})[/]"
-        )
-        console.print(
-            f"[dim]🎯 Intent: {routing.classification.intent} | Domains: {', '.join(routing.classification.domains)}[/]"
-        )
-        console.print(
-            f"[dim]🔍 RAG: {len(chunks)} chunks | MetaClaw: {'on' if metaclaw.enabled else 'off'}[/]"
-        )
-        if chunks:
-            for c in chunks:
-                console.print(f"[dim]   • {c.source} | {c.section} | {c.score:.2f}[/]")
-        console.print(f"[dim]🛡️  Guardrails: {guard_result.summary}[/]")
-        console.print(f"[dim]⏱️  {elapsed:.0f}ms | 📊 Confiança: {confidence:.2f}[/]\n")
+    _print_verbose(verbose, runtime_engine, config, agent, routing, agent_confidence,
+                   chunks, metaclaw, guard_result, elapsed, confidence)
 
-    # Check if blocked
     if not guard_result.passed:
-        console.print(
-            Panel(
-                f"[bold red]⛔ BLOQUEADO pelo guardrail: {guard_result.blocked_by}[/]\n\n"
-                + "\n".join(
-                    f"  {g.gate}: {'✓' if g.passed else '✗'} {g.reason}"
-                    for g in guard_result.gates
-                    if not g.passed
-                ),
-                title="🛡️ Guardrail Block",
-                border_style="red",
-                padding=(1, 2),
-            )
-        )
+        _print_blocked(guard_result)
         return
 
-    border = "green" if confidence > 0.7 else "yellow" if confidence > 0.4 else "red"
-    console.print(
-        Panel(
-            response_text,
-            title=f"📋 Resposta ({confidence:.0%} confiança)",
-            border_style=border,
-            padding=(1, 2),
-        )
-    )
+    _print_answer(response_text, confidence, verbose, chunks)
 
+
+def _build_rag_context(pipeline, metaclaw, memory, question: str) -> str:
+    """Retrieve chunks, inject memory, and optionally enrich with MetaClaw."""
+    chunks = pipeline.retrieve(question)
+    context_parts = [
+        f"[Fonte {i+1}: {c.source} | {c.section} | Score: {c.score:.2f}]\n{c.text}"
+        for i, c in enumerate(chunks)
+    ]
+    context = "\n\n---\n\n".join(context_parts)
+
+    recall = memory.recall(question, limit=3)
+    if recall.get("semantic"):
+        context += "\n\n--- Memória Semântica ---\n"
+        for mem in recall["semantic"][:3]:
+            context += f"[Memória: {mem.get('category', 'geral')}] {mem.get('fact', '')}\n"
+
+    if metaclaw.enabled:
+        context = metaclaw.enrich_query(question, context)
+    return context
+
+
+def _run_llm(llm_fn, agent, context: str, question: str, pipeline, metaclaw, start: float):
+    """Execute LLM call and return (response_text, elapsed_ms, confidence, chunks)."""
+    chunks = pipeline.retrieve(question)
+    avg_score = sum(c.score for c in chunks) / len(chunks) if chunks else 0
+    confidence = min(avg_score * 1.2, 1.0)
+
+    if llm_fn:
+        agent_context = ""
+        if agent:
+            agent_context = f"\nVocê está atuando como o agente {agent.name}. {agent.role[:200]}\n"
+        system_prompt = (
+            "Você é um especialista em FIDC (Fundos de Investimento em Direitos Creditórios) e regulamentação CVM.\n"
+            f"{agent_context}\n"
+            "Regras:\n"
+            "1. Responda APENAS com base no contexto fornecido\n"
+            "2. Cite as fontes usando [Fonte N]\n"
+            "3. Se não encontrar a resposta no contexto, diga explicitamente\n"
+            "4. Seja preciso e objetivo — terminologia técnica correta"
+        )
+        user_prompt = f"Contexto:\n{context}\n\n---\n\nPergunta: {question}\n\nResponda citando fontes."
+        response_text = llm_fn(system_prompt, user_prompt)
+    else:
+        response_text = f"[RAG sem LLM] {len(chunks)} chunks encontrados:\n\n{context}"
+
+    elapsed = (time.time() - start) * 1000
+
+    if metaclaw.enabled and llm_fn and confidence > 0.7:
+        metaclaw.learn_from_interaction(question, response_text, chunks, confidence)
+
+    return response_text, elapsed, confidence, chunks
+
+
+def _print_verbose(verbose: bool, runtime_engine: str, config: dict, agent, routing,
+                   agent_confidence: float, chunks, metaclaw, guard_result, elapsed: float,
+                   confidence: float) -> None:
+    """Print verbose debug info if requested."""
+    if not verbose:
+        return
+    console.print(f"\n[dim]🧠 Runtime: {runtime_engine} | Model: {config['provider']['model']}[/]")
+    if agent:
+        console.print(f"[dim]🤖 Agent: {agent.name} ({routing.classification.complexity}, conf={agent_confidence:.2f})[/]")
+    console.print(f"[dim]🎯 Intent: {routing.classification.intent} | Domains: {', '.join(routing.classification.domains)}[/]")
+    console.print(f"[dim]🔍 RAG: {len(chunks)} chunks | MetaClaw: {'on' if metaclaw.enabled else 'off'}[/]")
+    for c in chunks:
+        console.print(f"[dim]   • {c.source} | {c.section} | {c.score:.2f}[/]")
+    console.print(f"[dim]🛡️  Guardrails: {guard_result.summary}[/]")
+    console.print(f"[dim]⏱️  {elapsed:.0f}ms | 📊 Confiança: {confidence:.2f}[/]\n")
+
+
+def _print_blocked(guard_result) -> None:
+    """Print guardrail block panel."""
+    console.print(Panel(
+        f"[bold red]⛔ BLOQUEADO pelo guardrail: {guard_result.blocked_by}[/]\n\n"
+        + "\n".join(
+            f"  {g.gate}: {'✓' if g.passed else '✗'} {g.reason}"
+            for g in guard_result.gates if not g.passed
+        ),
+        title="🛡️ Guardrail Block",
+        border_style="red", padding=(1, 2)
+    ))
+
+
+def _print_answer(response_text: str, confidence: float, verbose: bool, chunks) -> None:
+    """Print the answer panel and optional sources table."""
+    border = "green" if confidence > 0.7 else "yellow" if confidence > 0.4 else "red"
+    console.print(Panel(
+        response_text,
+        title=f"📋 Resposta ({confidence:.0%} confiança)",
+        border_style=border, padding=(1, 2)
+    ))
     if verbose and chunks:
         table = Table(title="📎 Fontes", show_header=True, header_style="bold")
         table.add_column("#", width=3)
@@ -359,7 +347,7 @@ Regras:
         table.add_column("Seção")
         table.add_column("Score", justify="right")
         for i, c in enumerate(chunks):
-            table.add_row(str(i + 1), c.source, c.section, f"{c.score:.2f}")
+            table.add_row(str(i+1), c.source, c.section, f"{c.score:.2f}")
         console.print(table)
 
 
@@ -773,18 +761,32 @@ def autoresearch(iterations, eval_set, verbose):
 @click.option("--port", "-p", default=8000, type=int, help="Port")
 def serve(host, port):
     """Start the PAGANINI dashboard (FastAPI)."""
+    import importlib
+    import subprocess
+    import sys
+    # Avoid direct kernel→dashboard import: launch dashboard via subprocess
+    # so the layer boundary is respected at the module graph level.
     try:
-        import uvicorn
-
-        from packages.dashboard.app import create_app
-    except ImportError as e:
-        console.print(f"[red]✗ Missing dependency: {e}[/]")
+        import uvicorn  # noqa: F401  — just check it's installed
+    except ImportError:
+        console.print("[red]✗ Missing dependency: uvicorn[/]")
         console.print("  pip install fastapi uvicorn")
         return
-    config = _load_config()
-    app = create_app(config)
     console.print(f"[green]🎻 Dashboard at http://{host}:{port}[/]")
-    uvicorn.run(app, host=host, port=port, log_level="info")
+    subprocess.run(
+        [
+            sys.executable, "-c",
+            (
+                "import sys; from pathlib import Path; "
+                f"sys.path.insert(0, str(Path.cwd())); "
+                "from packages.kernel.engine import load_config; "
+                "from packages.dashboard.app import create_app; "
+                "import uvicorn; "
+                f"uvicorn.run(create_app(load_config()), host='{host}', port={port}, log_level='info')"
+            ),
+        ],
+        check=False,
+    )
 
 
 @cli.group()

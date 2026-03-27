@@ -7,6 +7,10 @@ max_cc = 30              # Max cyclomatic complexity per function
 max_fn_lines = 120       # Max function length
 no_god_files = false     # Allow for now (pipeline.py is 730 lines)
 
+# Exclude external skills from complexity checks
+[constraints.exclude]
+paths = ["skills/alphaear-*/**"]
+
 # Layer definitions: higher order depends on lower order only.
 [[layers]]
 name = "rag"
@@ -39,9 +43,14 @@ paths = ["packages/agents/*"]
 order = 2
 
 [[layers]]
+name = "services"
+paths = ["packages/services/*"]
+order = 3
+
+[[layers]]
 name = "integrations"
 paths = ["packages/integrations/*"]
-order = 3
+order = 4
 
 [[layers]]
 name = "dashboard"

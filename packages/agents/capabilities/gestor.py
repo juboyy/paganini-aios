@@ -415,12 +415,6 @@ class GestorAgent:
 
         Scenarios: base | adverse | extreme
 
-        For each scenario, computes:
-        - Stressed PDD = base_pdd × pdd_multiplier × (1 − recovery_rate)
-        - Stressed NAV = current_nav − incremental_pdd − liquidity_haircut − mtm_discount
-        - Liquidity buffer after haircut
-        - NAV impact percentage
-
         Args:
             portfolio: List of receivable dicts with face_value, pdd_rate (optional),
                        and sector.
@@ -435,79 +429,26 @@ class GestorAgent:
             )
 
         params = STRESS_SCENARIOS[scenario]
-
-        # Base calculations
         total_face_value = sum(float(r.get("face_value", 0)) for r in portfolio)
         if total_face_value <= 0:
             return {"error": "Portfolio is empty or has no positive face values."}
 
-        # Weighted PDD base rate (from portfolio data or BACEN 3% default)
-        base_pdd_amounts: list[float] = []
-        for rec in portfolio:
-            fv = float(rec.get("face_value", 0.0))
-            pdd_rate = float(rec.get("pdd_rate", 0.03))  # Default 3%
-            base_pdd_amounts.append(fv * pdd_rate)
-
-        base_pdd = sum(base_pdd_amounts)
-        base_nav = total_face_value - base_pdd
-
-        # Cash / liquid component (assume 5% of portfolio if not provided)
-        liquid_assets = sum(
-            float(r.get("face_value", 0))
-            for r in portfolio
-            if r.get("type") in ("cash", "liquid")
+        base_pdd, base_nav, liquid_assets = _stress_base_financials(portfolio, total_face_value)
+        stressed_pdd, incremental_pdd, stressed_liquid, liquidity_lost, mtm_loss = (
+            _stress_apply_scenario(params, base_pdd, liquid_assets, total_face_value)
         )
-        if liquid_assets == 0:
-            liquid_assets = total_face_value * 0.05  # Assume 5% liquid
-
-        # Stressed PDD
-        stressed_pdd = (
-            base_pdd * params["pdd_multiplier"] * (1 - params["recovery_rate"])
-        )
-        incremental_pdd = stressed_pdd - base_pdd * (1 - params["recovery_rate"])
-
-        # Liquidity haircut
-        stressed_liquid = liquid_assets * (1 - params["liquidity_haircut"])
-        liquidity_lost = liquid_assets - stressed_liquid
-
-        # MTM discount on non-liquid assets
-        non_liquid = total_face_value - liquid_assets - stressed_pdd
-        mtm_loss = max(non_liquid * params["nav_discount"], 0.0)
-
-        # Stressed NAV
         stressed_nav = base_nav - incremental_pdd - liquidity_lost - mtm_loss
-        nav_impact_pct = (
-            (base_nav - stressed_nav) / base_nav * 100 if base_nav > 0 else 0.0
-        )
+        nav_impact_pct = (base_nav - stressed_nav) / base_nav * 100 if base_nav > 0 else 0.0
 
-        # Sector breakdown under stress
-        sector_impacts: dict[str, dict[str, float]] = {}
-        for rec in portfolio:
-            sector = str(rec.get("sector", "geral"))
-            fv = float(rec.get("face_value", 0.0))
-            pdd_rate = float(rec.get("pdd_rate", 0.03))
-            stressed_loss = (
-                fv * pdd_rate * params["pdd_multiplier"] * (1 - params["recovery_rate"])
-            )
-            if sector not in sector_impacts:
-                sector_impacts[sector] = {"exposure_brl": 0.0, "stressed_loss_brl": 0.0}
-            sector_impacts[sector]["exposure_brl"] += fv
-            sector_impacts[sector]["stressed_loss_brl"] += stressed_loss
-
-        for sec_data in sector_impacts.values():
-            sec_data["loss_rate_pct"] = round(
-                (
-                    sec_data["stressed_loss_brl"] / sec_data["exposure_brl"] * 100
-                    if sec_data["exposure_brl"] > 0
-                    else 0.0
-                ),
-                2,
-            )
-
-        # Subordination sufficiency check
-        # Assumes sub_nav = 20% of base_nav
+        sector_impacts = _stress_sector_breakdown(portfolio, params)
         sub_nav = base_nav * 0.20
         sub_covers_losses = sub_nav >= (base_nav - stressed_nav)
+
+        risk_label = (
+            "LOW" if nav_impact_pct < 5
+            else "MODERATE" if nav_impact_pct < 10
+            else "HIGH" if nav_impact_pct < 20 else "CRITICAL"
+        )
 
         return {
             "scenario": scenario,
@@ -537,16 +478,67 @@ class GestorAgent:
                 k: {kk: round(vv, 2) for kk, vv in v.items()}
                 for k, v in sector_impacts.items()
             },
-            "risk_assessment": (
-                "LOW"
-                if nav_impact_pct < 5
-                else (
-                    "MODERATE"
-                    if nav_impact_pct < 10
-                    else "HIGH" if nav_impact_pct < 20 else "CRITICAL"
-                )
-            ),
+            "risk_assessment": risk_label,
         }
+
+
+def _stress_base_financials(
+    portfolio: list[dict[str, Any]],
+    total_face_value: float,
+) -> tuple[float, float, float]:
+    """Compute base PDD, NAV, and liquid assets from portfolio."""
+    base_pdd = sum(
+        float(r.get("face_value", 0.0)) * float(r.get("pdd_rate", 0.03))
+        for r in portfolio
+    )
+    base_nav = total_face_value - base_pdd
+    liquid_assets = sum(
+        float(r.get("face_value", 0))
+        for r in portfolio
+        if r.get("type") in ("cash", "liquid")
+    )
+    if liquid_assets == 0:
+        liquid_assets = total_face_value * 0.05  # Assume 5% liquid
+    return base_pdd, base_nav, liquid_assets
+
+
+def _stress_apply_scenario(
+    params: dict[str, float],
+    base_pdd: float,
+    liquid_assets: float,
+    total_face_value: float,
+) -> tuple[float, float, float, float, float]:
+    """Apply scenario multipliers; return stressed financials tuple."""
+    stressed_pdd = base_pdd * params["pdd_multiplier"] * (1 - params["recovery_rate"])
+    incremental_pdd = stressed_pdd - base_pdd * (1 - params["recovery_rate"])
+    stressed_liquid = liquid_assets * (1 - params["liquidity_haircut"])
+    liquidity_lost = liquid_assets - stressed_liquid
+    non_liquid = total_face_value - liquid_assets - stressed_pdd
+    mtm_loss = max(non_liquid * params["nav_discount"], 0.0)
+    return stressed_pdd, incremental_pdd, stressed_liquid, liquidity_lost, mtm_loss
+
+
+def _stress_sector_breakdown(
+    portfolio: list[dict[str, Any]],
+    params: dict[str, float],
+) -> dict[str, dict[str, float]]:
+    """Compute per-sector stressed loss breakdown."""
+    sector_impacts: dict[str, dict[str, float]] = {}
+    for rec in portfolio:
+        sector = str(rec.get("sector", "geral"))
+        fv = float(rec.get("face_value", 0.0))
+        pdd_rate = float(rec.get("pdd_rate", 0.03))
+        stressed_loss = fv * pdd_rate * params["pdd_multiplier"] * (1 - params["recovery_rate"])
+        if sector not in sector_impacts:
+            sector_impacts[sector] = {"exposure_brl": 0.0, "stressed_loss_brl": 0.0}
+        sector_impacts[sector]["exposure_brl"] += fv
+        sector_impacts[sector]["stressed_loss_brl"] += stressed_loss
+    for sec_data in sector_impacts.values():
+        exp = sec_data["exposure_brl"]
+        sec_data["loss_rate_pct"] = round(
+            sec_data["stressed_loss_brl"] / exp * 100 if exp > 0 else 0.0, 2
+        )
+    return sector_impacts
 
 
 # ---------------------------------------------------------------------------

@@ -20,10 +20,10 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from typing import Any
 from urllib.parse import parse_qs
 
-from packages.kernel.memory import MemoryManager
-from packages.kernel.moltis import get_llm_fn
 from packages.rag.pipeline import RAGPipeline
-from packages.shared.guardrails import GuardrailPipeline
+from packages.services.memory_service import MemoryService
+from packages.services.engine_service import EngineService
+from packages.services.risk_service import RiskService
 
 logger = logging.getLogger(__name__)
 
@@ -128,6 +128,39 @@ def _format_response_blocks(
 
 
 # ---------------------------------------------------------------------------
+# Adapters — thin shims so SlackIRBot can call .check(), .stats(), .store()
+# without knowing it's talking to a service facade.
+# ---------------------------------------------------------------------------
+
+
+class _GuardrailsAdapter:
+    """Makes RiskService look like GuardrailPipeline.check(text, context)."""
+
+    def __init__(self, risk_svc: "RiskService") -> None:
+        self._risk_svc = risk_svc
+
+    def check(self, text: str, context: dict | None = None) -> dict:
+        result = self._risk_svc.check_guardrails(query=text)
+        # GuardrailPipeline returns a dict-like object; normalise to dict
+        if isinstance(result, dict):
+            return result
+        return {"blocked": not getattr(result, "passed", True), "warned": False}
+
+
+class _MemoryAdapter:
+    """Makes MemoryService look like MemoryManager.store()/stats() interface."""
+
+    def __init__(self, memory_svc: "MemoryService") -> None:
+        self._memory_svc = memory_svc
+
+    def store(self, data: dict) -> None:
+        self._memory_svc.store(data)
+
+    def stats(self) -> dict:
+        return self._memory_svc.stats()
+
+
+# ---------------------------------------------------------------------------
 # Core bot class
 # ---------------------------------------------------------------------------
 
@@ -141,9 +174,14 @@ class SlackIRBot:
         self.signing_secret: str = slack_cfg.get("signing_secret", "")
 
         self.rag: RAGPipeline = RAGPipeline(config)
-        self.guardrails: GuardrailPipeline = GuardrailPipeline(config)
-        self.memory: MemoryManager = MemoryManager(config)
-        self.llm_fn = get_llm_fn(config)
+        self._risk_svc = RiskService(config)
+        self._memory_svc = MemoryService(config)
+        self._engine_svc = EngineService(config)
+        self.llm_fn = self._engine_svc.get_llm_fn()
+
+        # Expose guardrails via risk_svc for compatibility
+        self.guardrails = _GuardrailsAdapter(self._risk_svc)
+        self.memory = _MemoryAdapter(self._memory_svc)
 
         logger.info(
             "SlackIRBot initialised (token=%s…)", self.bot_token[:8] or "MISSING"

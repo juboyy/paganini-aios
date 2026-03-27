@@ -405,25 +405,6 @@ class DueDiligenceAgent:
     def score_cedente(self, cnpj: str, data: dict[str, Any]) -> CedenteScore:
         """
         Score a cedente across 5 weighted criteria. Returns 0–100 score.
-
-        Criteria:
-        1. tempo_mercado (20%): Years in business.
-           0-1y: 20, 1-3y: 40, 3-5y: 60, 5-10y: 80, >10y: 100
-        2. saude_financeira (30%): From analyze_financials health_score.
-        3. historico_judicial (15%): Fewer lawsuits = higher score.
-           0 suits: 100, 1-2: 70, 3-5: 40, >5: 10
-        4. pep_sanctions (20%): PEP/sanctions exposure.
-           No hits: 100, Warnings: 60, Hits: 0
-        5. setor_atuacao (15%): Sector risk multiplier × 100.
-
-        Args:
-            cnpj: CNPJ of the cedente.
-            data: Company data dict with:
-                company_name, years_in_business, balance_sheet,
-                lawsuit_count, key_people_names, sector.
-
-        Returns:
-            CedenteScore dataclass.
         """
         company_name = data.get("company_name", "N/A")
         years = float(data.get("years_in_business", 0))
@@ -435,106 +416,53 @@ class DueDiligenceAgent:
         criteria_scores: dict[str, float] = {}
         criteria_details: dict[str, Any] = {}
 
-        # 1. tempo_mercado
-        if years > 10:
-            tm_score = 100.0
-        elif years > 5:
-            tm_score = 80.0
-        elif years > 3:
-            tm_score = 60.0
-        elif years > 1:
-            tm_score = 40.0
-        else:
-            tm_score = 20.0
+        # 1. tempo_mercado (20%)
+        tm_score = 100.0 if years > 10 else 80.0 if years > 5 else 60.0 if years > 3 else 40.0 if years > 1 else 20.0
         criteria_scores["tempo_mercado"] = tm_score
         criteria_details["tempo_mercado"] = {"years": years, "raw_score": tm_score}
 
-        # 2. saude_financeira
+        # 2. saude_financeira (30%)
         fin_analysis = self.analyze_financials(balance_sheet) if balance_sheet else {}
         sf_score = fin_analysis.get("health_score", 50.0)
         criteria_scores["saude_financeira"] = sf_score
         criteria_details["saude_financeira"] = fin_analysis
 
-        # 3. historico_judicial
-        if lawsuit_count == 0:
-            hj_score = 100.0
-        elif lawsuit_count <= 2:
-            hj_score = 70.0
-        elif lawsuit_count <= 5:
-            hj_score = 40.0
-        else:
-            hj_score = 10.0
+        # 3. historico_judicial (15%)
+        hj_score = 100.0 if lawsuit_count == 0 else 70.0 if lawsuit_count <= 2 else 40.0 if lawsuit_count <= 5 else 10.0
         criteria_scores["historico_judicial"] = hj_score
-        criteria_details["historico_judicial"] = {
-            "lawsuit_count": lawsuit_count,
-            "raw_score": hj_score,
-        }
+        criteria_details["historico_judicial"] = {"lawsuit_count": lawsuit_count, "raw_score": hj_score}
 
-        # 4. pep_sanctions
+        # 4. pep_sanctions (20%)
         pep_hits = self.check_pep(key_people) if key_people else []
-        high_risk_pep = [
-            h for h in pep_hits if h.get("risk_level") in ("HIGH", "VERY_HIGH")
-        ]
-        if high_risk_pep:
-            ps_score = 0.0
-        elif pep_hits:
-            ps_score = 60.0
-        else:
-            ps_score = 100.0
+        ps_score = 0.0 if any(h.get("risk_level") in ("HIGH", "VERY_HIGH") for h in pep_hits) else 60.0 if pep_hits else 100.0
         criteria_scores["pep_sanctions"] = ps_score
-        criteria_details["pep_sanctions"] = {
-            "pep_hits": pep_hits,
-            "raw_score": ps_score,
-        }
+        criteria_details["pep_sanctions"] = {"pep_hits": pep_hits, "raw_score": ps_score}
 
-        # 5. setor_atuacao
+        # 5. setor_atuacao (15%)
         sector_mult = SECTOR_RISK.get(sector, 0.60)
-        sa_score = sector_mult * 100
-        criteria_scores["setor_atuacao"] = sa_score
-        criteria_details["setor_atuacao"] = {
-            "sector": sector,
-            "risk_multiplier": sector_mult,
-            "raw_score": sa_score,
-        }
+        criteria_scores["setor_atuacao"] = sector_mult * 100
+        criteria_details["setor_atuacao"] = {"sector": sector, "risk_multiplier": sector_mult, "raw_score": sector_mult * 100}
 
-        # Weighted aggregate
-        overall = sum(
-            criteria_scores[criterion] * weight
-            for criterion, weight in self.scoring_weights.items()
-        )
-
-        # Risk level
-        risk_level = "critico"
-        for threshold, level in RISK_LEVELS:
-            if overall >= threshold:
-                risk_level = level
-                break
-
-        # Recommendation
-        if overall >= 70:
-            recommendation = "APROVADO — baixo risco, crédito padrão."
-        elif overall >= 50:
-            recommendation = (
-                "APROVADO COM RESSALVAS — diligência adicional recomendada."
-            )
-        elif overall >= 30:
-            recommendation = (
-                "PENDING_EDD — due diligence aprimorada obrigatória antes da aprovação."
-            )
-        else:
-            recommendation = (
-                "REJEITADO — risco crítico. Não onboar sem aprovação do comitê."
-            )
+        overall = sum(criteria_scores[c] * self.scoring_weights[c] for c in self.scoring_weights)
+        risk_level = self._get_risk_level_name(overall)
+        recommendation = self._get_scoring_recommendation(overall)
 
         return CedenteScore(
-            cnpj=cnpj,
-            company_name=company_name,
-            overall_score=round(overall, 2),
-            risk_level=risk_level,
-            criteria_scores=criteria_scores,
-            criteria_details=criteria_details,
-            recommendation=recommendation,
+            cnpj=cnpj, company_name=company_name, overall_score=round(overall, 2),
+            risk_level=risk_level, criteria_scores=criteria_scores,
+            criteria_details=criteria_details, recommendation=recommendation,
         )
+
+    def _get_risk_level_name(self, score: float) -> str:
+        for threshold, level in RISK_LEVELS:
+            if score >= threshold: return level
+        return "critico"
+
+    def _get_scoring_recommendation(self, score: float) -> str:
+        if score >= 70: return "APROVADO — baixo risco, crédito padrão."
+        if score >= 50: return "APROVADO COM RESSALVAS — diligência adicional recomendada."
+        if score >= 30: return "PENDING_EDD — due diligence aprimorada obrigatória antes da aprovação."
+        return "REJEITADO — risco crítico. Não onboar sem aprovação do comitê."
 
     def run_onboarding_pipeline(
         self,
@@ -543,60 +471,40 @@ class DueDiligenceAgent:
     ) -> OnboardingResult:
         """
         Full cedente onboarding pipeline.
-
-        Steps:
-        1. CNPJ validation
-        2. PEP screening of key people
-        3. Financial analysis
-        4. Cedente scoring (5 criteria)
-        5. Credit limit suggestion based on score and revenue
-        6. Go/no-go decision
-
-        Args:
-            cnpj: CNPJ of the cedente.
-            company_data: Full company data dict.
-
-        Returns:
-            OnboardingResult with status, score, credit limit, and blockers.
         """
-        company_name = company_data.get("company_name", "N/A")
         checks: list[dict[str, Any]] = []
         blockers: list[str] = []
         warnings_list: list[str] = []
 
-        # Step 1: CNPJ validation
-        cnpj_valid = self.validate_cnpj(cnpj)
-        checks.append({"step": "cnpj_validation", "cnpj": cnpj, "passed": cnpj_valid})
-        if not cnpj_valid:
-            blockers.append(f"CNPJ inválido: {cnpj}")
+        # Step 1: CNPJ
+        if not self.validate_cnpj(cnpj): blockers.append(f"CNPJ inválido: {cnpj}")
+        checks.append({"step": "cnpj_validation", "passed": self.validate_cnpj(cnpj)})
 
-        # Step 2: PEP screening
-        key_people = company_data.get("key_people_names", [])
-        pep_hits = self.check_pep(key_people)
-        high_risk_hits = [
-            h for h in pep_hits if h.get("risk_level") in ("HIGH", "VERY_HIGH")
-        ]
-        checks.append(
-            {
-                "step": "pep_screening",
-                "screened": len(key_people),
-                "hits": len(pep_hits),
-                "high_risk_hits": len(high_risk_hits),
-                "passed": len(high_risk_hits) == 0,
-            }
+        # Step 2: PEP
+        pep_hits = self.check_pep(company_data.get("key_people_names", []))
+        hr_hits = [h for h in pep_hits if h.get("risk_level") in ("HIGH", "VERY_HIGH")]
+        if hr_hits: blockers.append(f"{len(hr_hits)} PEP de alto risco detectado(s).")
+        elif pep_hits: warnings_list.append(f"{len(pep_hits)} PEP detectado(s).")
+        checks.append({"step": "pep_screening", "passed": len(hr_hits) == 0})
+
+        # Step 3: Financials & 4: Scoring
+        fin_analysis = self.analyze_financials(company_data.get("balance_sheet", {}))
+        score_res = self.score_cedente(cnpj, company_data)
+        checks.append({"step": "cedente_scoring", "score": score_res.overall_score, "passed": score_res.overall_score >= 30})
+        if score_res.overall_score < 30: blockers.append("Score insuficiente para onboarding automático.")
+
+        # Step 5: Limit
+        revenue = float(company_data.get("balance_sheet", {}).get("revenue", 0.0))
+        limit = (revenue * 0.15) * (score_res.overall_score / 100)
+
+        # Step 6: Decision
+        status = "REJECTED" if blockers else "APPROVED_WITH_RESSALVAS" if warnings_list or score_res.overall_score < 70 else "APPROVED"
+
+        return OnboardingResult(
+            cnpj=cnpj, company_name=company_data.get("company_name", "N/A"),
+            status=status, score=score_res, suggested_limit_brl=round(limit, 2),
+            blockers=blockers, warnings=warnings_list, checks=checks,
         )
-        if high_risk_hits:
-            blockers.append(
-                f"{len(high_risk_hits)} PEP de alto risco detectado(s). EDD obrigatório."
-            )
-        elif pep_hits:
-            warnings_list.append(
-                f"{len(pep_hits)} PEP detectado(s). Monitoramento contínuo recomendado."
-            )
-
-        # Step 3: Financial analysis
-        balance_sheet = company_data.get("balance_sheet", {})
-        fin_result: dict[str, Any] = {}
         if balance_sheet:
             fin_result = self.analyze_financials(balance_sheet)
             fin_ok = fin_result.get("health_score", 0) >= 40

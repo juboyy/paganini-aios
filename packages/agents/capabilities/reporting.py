@@ -93,152 +93,111 @@ class ReportingAgent:
     def generate_monthly_report(self, fund_data: dict) -> str:
         """
         Complete monthly fund report in Markdown.
-
-        Sections:
-          - Header (fund name, CNPJ, administrator, period)
-          - NAV summary
-          - Quota information
-          - Portfolio aging schedule
-          - Covenant status
-          - Compliance summary
-          - Risk indicators
-          - Upcoming maturities
-
-        Args:
-            fund_data: Compiled fund data dict
-
-        Returns:
-            Markdown string
         """
         now = datetime.utcnow()
         period = fund_data.get("period", now.strftime("%B/%Y"))
-        fname = fund_data.get("fund_name", self.FUND_NAME_DEFAULT)
-        cnpj = fund_data.get("cnpj", "00.000.000/0001-00")
-        admin = fund_data.get("administrator", "Paganini Gestora S.A.")
-        gestor = fund_data.get("gestor", "Paganini Capital Ltda.")
-        custodia = fund_data.get("custodia", "Banco XYZ S.A.")
-
-        nav = fund_data.get("nav", 0.0)
-        quotas_senior = fund_data.get("quotas_senior", 0.0)
-        quotas_sub = fund_data.get("quotas_sub", 0.0)
-        quota_value = fund_data.get("quota_value", 0.0)
         total_receivables = fund_data.get("total_receivables", 0.0)
-        pdd = fund_data.get("pdd", 0.0)
-        pdd_pct = (pdd / total_receivables * 100) if total_receivables else 0
-        subordination_pct = fund_data.get("subordination_pct", 0.0)
-        cash = fund_data.get("cash", 0.0)
-        mtd_return = fund_data.get("mtd_return", 0.0)
-        cdi_mtd = fund_data.get("cdi_mtd", self.CDI_ANNUAL / 12)
-        rating = fund_data.get("rating", "A")
-        liquidity_ratio = fund_data.get("liquidity_ratio", 0.0)
-
-        aging = fund_data.get("aging", DEMO_AGING)
-        covenants = fund_data.get("covenants", DEMO_COVENANTS)
-        compliance = fund_data.get("compliance", {})
 
         lines = [
-            f"# {fname}",
+            f"# {fund_data.get('fund_name', self.FUND_NAME_DEFAULT)}",
             f"## Relatório Mensal — {period}",
             "",
-            "| Campo | Valor |",
-            "|-------|-------|",
-            f"| CNPJ | {cnpj} |",
-            f"| Administrador | {admin} |",
-            f"| Gestor | {gestor} |",
-            f"| Custodiante | {custodia} |",
-            f"| Competência | {period} |",
-            f"| Data do relatório | {now.strftime('%d/%m/%Y')} |",
-            "",
+            self._render_report_header(fund_data, now),
             "---",
-            "## 1. Patrimônio Líquido (PL)",
-            "",
-            "| Métrica | Valor |",
-            "|---------|-------|",
-            f"| PL Total | {self.format_brl(nav)} |",
-            f"| Recebíveis Totais | {self.format_brl(total_receivables)} |",
-            f"| PDD | {self.format_brl(pdd)} ({pdd_pct:.2f}% da carteira) |",
-            f"| Caixa Disponível | {self.format_brl(cash)} |",
-            f"| Subordinação | {subordination_pct:.2f}% do PL |",
-            "",
+            self._render_pl_section(fund_data),
             "---",
-            "## 2. Cotas",
-            "",
-            "| Tipo | Quantidade | Valor Unitário | Total |",
-            "|------|-----------|----------------|-------|",
-            f"| Sênior | {quotas_senior:,.0f} | {self.format_brl(quota_value)} | {self.format_brl(quotas_senior * quota_value)} |",
-            f"| Subordinada | {quotas_sub:,.0f} | — | {self.format_brl(fund_data.get('subordination_value', 0))} |",
-            "",
+            self._render_cotas_section(fund_data),
             "---",
-            "## 3. Rentabilidade",
-            "",
-            "| Período | Fundo | CDI | % CDI |",
-            "|---------|-------|-----|-------|",
-            f"| Mês | {mtd_return*100:.4f}% | {cdi_mtd*100:.4f}% | {(mtd_return/cdi_mtd*100) if cdi_mtd else 0:.1f}% |",
-            "",
+            self._render_return_section(fund_data),
             "---",
-            "## 4. Carteira — Aging Schedule",
-            "",
-            "| Faixa | Valor | % Carteira | PDD |",
-            "|-------|-------|-----------|-----|",
-        ]
-
-        for bucket in aging:
-            bucket_val = bucket.get("value", 0)
-            pct = (bucket_val / total_receivables * 100) if total_receivables else 0
-            lines.append(
-                f"| {bucket.get('range', '')} | {self.format_brl(bucket_val)} | "
-                f"{pct:.1f}% | {self.format_brl(bucket.get('pdd', 0))} |"
-            )
-
-        lines += [
-            "",
+            self._render_aging_section(fund_data, total_receivables),
             "---",
-            "## 5. Covenants",
-            "",
-            "| Covenant | Limite | Atual | Status |",
-            "|----------|--------|-------|--------|",
-        ]
-
-        for cov in covenants:
-            status_icon = "✅" if cov.get("ok", True) else "❌"
-            lines.append(
-                f"| {cov.get('name', '')} | {cov.get('limit', '')} | "
-                f"{cov.get('actual', '')} | {status_icon} |"
-            )
-
-        lines += [
-            "",
+            self._render_covenants_section(fund_data),
             "---",
-            "## 6. Indicadores de Risco",
-            "",
-            "| Indicador | Valor |",
-            "|-----------|-------|",
-            f"| Rating | {rating} |",
-            f"| Índice de Liquidez | {liquidity_ratio:.2f}x |",
-            f"| PDD / Carteira | {pdd_pct:.2f}% |",
-            "",
+            self._render_risk_section(fund_data),
             "---",
-            "## 7. Compliance",
-            "",
-        ]
-
-        comp_status = compliance.get("status", "OK")
-        lines.append(
-            f"**Status:** {'✅ Em Conformidade' if comp_status == 'OK' else '❌ Pendências Identificadas'}"
-        )
-        if compliance.get("findings"):
-            lines.append("\n**Pendências:**")
-            for item in compliance["findings"]:
-                lines.append(f"- {item}")
-
-        lines += [
+            self._render_compliance_section(fund_data),
             "",
             "---",
             "*Relatório gerado automaticamente pelo sistema Paganini AIOS.*",
             "*Este documento é confidencial e destinado exclusivamente aos cotistas e reguladores.*",
         ]
-
         return "\n".join(lines)
+
+    def _render_report_header(self, fund_data: dict, now: datetime) -> str:
+        rows = [
+            f"| CNPJ | {fund_data.get('cnpj', '00.000.000/0001-00')} |",
+            f"| Administrador | {fund_data.get('administrator', 'Paganini Gestora S.A.')} |",
+            f"| Gestor | {fund_data.get('gestor', 'Paganini Capital Ltda.')} |",
+            f"| Custodiante | {fund_data.get('custodia', 'Banco XYZ S.A.')} |",
+            f"| Competência | {fund_data.get('period', now.strftime('%B/%Y'))} |",
+            f"| Data do relatório | {now.strftime('%d/%m/%Y')} |",
+        ]
+        return "| Campo | Valor |\n|-------|-------|\n" + "\n".join(rows) + "\n"
+
+    def _render_pl_section(self, fund_data: dict) -> str:
+        nav = fund_data.get("nav", 0.0)
+        total_rec = fund_data.get("total_receivables", 0.0)
+        pdd = fund_data.get("pdd", 0.0)
+        pdd_pct = (pdd / total_rec * 100) if total_rec else 0
+        rows = [
+            f"| PL Total | {self.format_brl(nav)} |",
+            f"| Recebíveis Totais | {self.format_brl(total_rec)} |",
+            f"| PDD | {self.format_brl(pdd)} ({pdd_pct:.2f}% da carteira) |",
+            f"| Caixa Disponível | {self.format_brl(fund_data.get('cash', 0.0))} |",
+            f"| Subordinação | {fund_data.get('subordination_pct', 0.0):.2f}% do PL |",
+        ]
+        return "## 1. Patrimônio Líquido (PL)\n\n| Métrica | Valor |\n|---------|-------|\n" + "\n".join(rows) + "\n"
+
+    def _render_cotas_section(self, fund_data: dict) -> str:
+        qs = fund_data.get("quotas_senior", 0.0)
+        qv = fund_data.get("quota_value", 0.0)
+        rows = [
+            f"| Sênior | {qs:,.0f} | {self.format_brl(qv)} | {self.format_brl(qs * qv)} |",
+            f"| Subordinada | {fund_data.get('quotas_sub', 0.0):,.0f} | — | {self.format_brl(fund_data.get('subordination_value', 0))} |",
+        ]
+        return "## 2. Cotas\n\n| Tipo | Quantidade | Valor Unitário | Total |\n|------|-----------|----------------|-------|\n" + "\n".join(rows) + "\n"
+
+    def _render_return_section(self, fund_data: dict) -> str:
+        mr = fund_data.get("mtd_return", 0.0)
+        cm = fund_data.get("cdi_mtd", self.CDI_ANNUAL / 12)
+        pct = (mr / cm * 100) if cm else 0
+        return f"## 3. Rentabilidade\n\n| Período | Fundo | CDI | % CDI |\n|---------|-------|-----|-------|\n| Mês | {mr*100:.4f}% | {cm*100:.4f}% | {pct:.1f}% |\n"
+
+    def _render_aging_section(self, fund_data: dict, total_receivables: float) -> str:
+        lines = ["## 4. Carteira — Aging Schedule", "", "| Faixa | Valor | % Carteira | PDD |", "|-------|-------|-----------|-----|"]
+        for bucket in fund_data.get("aging", DEMO_AGING):
+            val = bucket.get("value", 0)
+            pct = (val / total_receivables * 100) if total_receivables else 0
+            lines.append(f"| {bucket.get('range', '')} | {self.format_brl(val)} | {pct:.1f}% | {self.format_brl(bucket.get('pdd', 0))} |")
+        return "\n".join(lines) + "\n"
+
+    def _render_covenants_section(self, fund_data: dict) -> str:
+        lines = ["## 5. Covenants", "", "| Covenant | Limite | Atual | Status |", "|----------|--------|-------|--------|"]
+        for cov in fund_data.get("covenants", DEMO_COVENANTS):
+            icon = "✅" if cov.get("ok", True) else "❌"
+            lines.append(f"| {cov.get('name', '')} | {cov.get('limit', '')} | {cov.get('actual', '')} | {icon} |")
+        return "\n".join(lines) + "\n"
+
+    def _render_risk_section(self, fund_data: dict) -> str:
+        tr = fund_data.get("total_receivables", 0.0)
+        pdd_pct = (fund_data.get("pdd", 0.0) / tr * 100) if tr else 0
+        rows = [
+            f"| Rating | {fund_data.get('rating', 'A')} |",
+            f"| Índice de Liquidez | {fund_data.get('liquidity_ratio', 0.0):.2f}x |",
+            f"| PDD / Carteira | {pdd_pct:.2f}% |",
+        ]
+        return "## 6. Indicadores de Risco\n\n| Indicador | Valor |\n|-----------|-------|\n" + "\n".join(rows) + "\n"
+
+    def _render_compliance_section(self, fund_data: dict) -> str:
+        comp = fund_data.get("compliance", {})
+        status = comp.get("status", "OK")
+        lines = ["## 7. Compliance", "", f"**Status:** {'✅ Em Conformidade' if status == 'OK' else '❌ Pendências Identificadas'}"]
+        if comp.get("findings"):
+            lines.append("\n**Pendências:**")
+            for item in comp["findings"]:
+                lines.append(f"- {item}")
+        return "\n".join(lines) + "\n"
 
     # ------------------------------------------------------------------ #
     # 2. CVM Filing                                                        #

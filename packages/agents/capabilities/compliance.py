@@ -558,99 +558,27 @@ class ComplianceAgent:
         failures = 0
         warnings = 0
 
-        cnpj = str(entity.get("cnpj", ""))
-        name = str(entity.get("name", "")).upper()
-        pep_names = [n.upper() for n in entity.get("pep_names", [])]
-        recent_transactions = entity.get("recent_transactions", [])
-        current_amount = float(entity.get("current_amount", 0.0))
-        historical_avg = float(entity.get("historical_avg_amount", 0.0))
-
-        # 1. Sanctions check
-        in_sanctions = cnpj in _SANCTIONS_LIST or any(
-            name_part in _SANCTIONS_LIST for name_part in [name]
-        )
-        checks.append(
-            {
-                "name": "sanctions_list",
-                "entity": cnpj or name,
-                "passed": not in_sanctions,
-                "sources_checked": ["CEIS", "TCU", "Coaf (mock)"],
-            }
-        )
-        if in_sanctions:
+        # Sanctions check
+        sanc_ok = self._check_sanctions(entity, checks)
+        if not sanc_ok:
             failures += 1
 
-        # 2. PEP check
-        pep_hits = [n for n in pep_names if n in _PEP_LIST]
-        is_pep = bool(pep_hits)
-        checks.append(
-            {
-                "name": "pep_check",
-                "pep_names_screened": pep_names,
-                "hits": pep_hits,
-                "passed": not is_pep,
-                "note": (
-                    "PEP requires enhanced due diligence — operation allowed with EDD."
-                    if is_pep
-                    else ""
-                ),
-            }
-        )
-        if is_pep:
-            warnings += 1  # PEP ≠ automatic reject; requires EDD
+        # PEP check
+        pep_is_warning = self._check_pep(entity, checks)
+        if pep_is_warning:
+            warnings += 1
 
-        # 3. Unusual transaction pattern
-        if historical_avg > 0 and current_amount > 0:
-            ratio = current_amount / historical_avg
-            unusual = ratio > 5.0  # Current op is 5× the historical average
-            checks.append(
-                {
-                    "name": "unusual_pattern",
-                    "current_amount": current_amount,
-                    "historical_avg": historical_avg,
-                    "ratio": round(ratio, 2),
-                    "threshold": 5.0,
-                    "passed": not unusual,
-                }
-            )
-            if unusual:
-                warnings += 1
-        else:
-            checks.append(
-                {
-                    "name": "unusual_pattern",
-                    "passed": True,
-                    "note": "Insufficient history.",
-                }
-            )
+        # Unusual transaction pattern
+        unusual_is_warning = self._check_unusual_pattern(entity, checks)
+        if unusual_is_warning:
+            warnings += 1
 
-        # 4. Structuring detection (smurfing)
-        # Flag if multiple recent transactions just below the threshold
-        sub_threshold = [
-            t
-            for t in recent_transactions
-            if 0 < float(t.get("amount", 0)) < STRUCTURING_THRESHOLD_BRL
-        ]
-        structuring_suspected = len(sub_threshold) >= 3
-        checks.append(
-            {
-                "name": "structuring_detection",
-                "sub_threshold_transactions": len(sub_threshold),
-                "threshold_brl": STRUCTURING_THRESHOLD_BRL,
-                "passed": not structuring_suspected,
-                "transactions_reviewed": len(recent_transactions),
-            }
-        )
-        if structuring_suspected:
+        # Structuring detection
+        struct_ok = self._check_structuring(entity, checks)
+        if not struct_ok:
             failures += 1
 
-        if failures > 0:
-            status = GateStatus.REJECTED
-        elif warnings > 0:
-            status = GateStatus.WARNING
-        else:
-            status = GateStatus.APPROVED
-
+        status = GateStatus.REJECTED if failures > 0 else (GateStatus.WARNING if warnings > 0 else GateStatus.APPROVED)
         score = max(0.0, 1.0 - (failures / 4) - (warnings * 0.1))
 
         return GateResult(
@@ -661,115 +589,61 @@ class ComplianceAgent:
             details=f"PLD/AML: {failures} failure(s), {warnings} warning(s).",
         )
 
-    # ------------------------------------------------------------------
-    # Gate 5 — Regulatory Compliance
-    # ------------------------------------------------------------------
+    def _check_sanctions(self, entity: dict[str, Any], checks: list) -> bool:
+        cnpj = str(entity.get("cnpj", ""))
+        name = str(entity.get("name", "")).upper()
+        in_sanctions = cnpj in _SANCTIONS_LIST or any(name_part in _SANCTIONS_LIST for name_part in [name])
+        checks.append({
+            "name": "sanctions_list",
+            "entity": cnpj or name,
+            "passed": not in_sanctions,
+            "sources_checked": ["CEIS", "TCU", "Coaf (mock)"],
+        })
+        return not in_sanctions
 
-    def check_compliance(
-        self,
-        operation: dict[str, Any],
-        regulatory_context: list[dict[str, Any]],
-    ) -> GateResult:
-        """
-        Gate 5: CVM 175 and fund regulation compliance.
+    def _check_pep(self, entity: dict[str, Any], checks: list) -> bool:
+        pep_names = [n.upper() for n in entity.get("pep_names", [])]
+        pep_hits = [n for n in pep_names if n in _PEP_LIST]
+        is_pep = bool(pep_hits)
+        checks.append({
+            "name": "pep_check",
+            "pep_names_screened": pep_names,
+            "hits": pep_hits,
+            "passed": not is_pep,
+            "note": "PEP requires enhanced due diligence — operation allowed with EDD." if is_pep else "",
+        })
+        return is_pep
 
-        Checks:
-        - Operation type is permitted by the fund's regulation
-        - Operation does not violate CVM 175 article thresholds
-        - Disclosure obligations met (if operation > R$ 1M)
-        - Related-party rules (Art. 42 CVM 175)
+    def _check_unusual_pattern(self, entity: dict[str, Any], checks: list) -> bool:
+        current_amount = float(entity.get("current_amount", 0.0))
+        historical_avg = float(entity.get("historical_avg_amount", 0.0))
+        if historical_avg > 0 and current_amount > 0:
+            ratio = current_amount / historical_avg
+            unusual = ratio > 5.0
+            checks.append({
+                "name": "unusual_pattern",
+                "current_amount": current_amount,
+                "historical_avg": historical_avg,
+                "ratio": round(ratio, 2),
+                "threshold": 5.0,
+                "passed": not unusual,
+            })
+            return unusual
+        checks.append({"name": "unusual_pattern", "passed": True, "note": "Insufficient history."})
+        return False
 
-        Args:
-            operation: Dict with amount, type, related_party, fund_regulation_allows.
-            regulatory_context: List of regulatory rule dicts from vector search.
-
-        Returns:
-            GateResult.
-        """
-        checks = []
-        failures = 0
-        warnings = 0
-
-        amount = float(operation.get("amount", 0.0))
-        op_type = operation.get("type", "")
-        related_party = bool(operation.get("related_party", False))
-        fund_allows = operation.get("fund_regulation_allows", True)
-        disclosure_done = operation.get("disclosure_done", True)
-
-        # 1. Fund regulation allows this type
-        checks.append(
-            {
-                "name": "fund_regulation_allows",
-                "type": op_type,
-                "allowed": fund_allows,
-                "passed": bool(fund_allows),
-            }
-        )
-        if not fund_allows:
-            failures += 1
-
-        # 2. CVM 175 — large operation disclosure
-        requires_disclosure = amount >= 1_000_000
-        disclosure_ok = not requires_disclosure or disclosure_done
-        checks.append(
-            {
-                "name": "cvm175_disclosure",
-                "amount": amount,
-                "requires_disclosure": requires_disclosure,
-                "disclosure_done": disclosure_done,
-                "passed": disclosure_ok,
-            }
-        )
-        if not disclosure_ok:
-            warnings += 1
-
-        # 3. Related-party restriction (Art. 42 CVM 175)
-        # Related-party ops require 100% quota-holder approval
-        related_party_cleared = operation.get(
-            "related_party_approval", not related_party
-        )
-        checks.append(
-            {
-                "name": "related_party_check",
-                "is_related_party": related_party,
-                "approval_obtained": related_party_cleared,
-                "passed": related_party_cleared,
-                "rule": "CVM 175, Art. 42 — relacionadas requerem aprovação unânime.",
-            }
-        )
-        if not related_party_cleared:
-            failures += 1
-
-        # 4. Regulatory context rules (from RAG)
-        rag_violations = 0
-        for rule in regulatory_context[:5]:  # Cap to 5 for performance
-            rule_name = rule.get("name", "unknown")
-            rule_passed = rule.get("compliant", True)
-            checks.append({"name": f"rag_rule_{rule_name}", "passed": rule_passed})
-            if not rule_passed:
-                rag_violations += 1
-                warnings += 1
-
-        if failures > 0:
-            status = GateStatus.REJECTED
-        elif warnings > 0:
-            status = GateStatus.WARNING
-        else:
-            status = GateStatus.APPROVED
-
-        score = max(0.0, 1.0 - (failures / 3) - (warnings * 0.05))
-
-        return GateResult(
-            gate="compliance",
-            status=status,
-            checks=checks,
-            score=score,
-            details=f"Compliance: {failures} failure(s), {warnings} warning(s). RAG violations: {rag_violations}.",
-        )
-
-    # ------------------------------------------------------------------
-    # Gate 6 — Risk
-    # ------------------------------------------------------------------
+    def _check_structuring(self, entity: dict[str, Any], checks: list) -> bool:
+        recent_transactions = entity.get("recent_transactions", [])
+        sub_threshold = [t for t in recent_transactions if 0 < float(t.get("amount", 0)) < STRUCTURING_THRESHOLD_BRL]
+        structuring_suspected = len(sub_threshold) >= 3
+        checks.append({
+            "name": "structuring_detection",
+            "sub_threshold_transactions": len(sub_threshold),
+            "threshold_brl": STRUCTURING_THRESHOLD_BRL,
+            "passed": not structuring_suspected,
+            "transactions_reviewed": len(recent_transactions),
+        })
+        return not structuring_suspected
 
     def check_risk(
         self,
@@ -778,154 +652,95 @@ class ComplianceAgent:
     ) -> GateResult:
         """
         Gate 6: Credit and concentration risk assessment.
-
-        Checks:
-        - Expected loss rate <= 8% of face value
-        - Post-addition concentration risk score
-        - Stress test impact on NAV <= 10%
-
-        Expected Loss = PD × LGD × EAD
-            PD  = probability of default (from rating)
-            LGD = loss given default (sector-based)
-            EAD = exposure at default (face_value)
-
-        Args:
-            operation: Dict with face_value, rating, sector, pd_override, lgd_override.
-            portfolio: Dict with nav, total_receivables, sector_concentrations.
-
-        Returns:
-            GateResult.
         """
         checks = []
         failures = 0
         warnings = 0
 
-        face_value = float(operation.get("face_value", 0.0))
-        rating = str(operation.get("rating", "B"))
-        sector = str(operation.get("sector", "geral"))
-        nav = float(portfolio.get("nav", 1.0))
-        total_receivables = float(portfolio.get("total_receivables", 0.0))
-
-        # PD by rating (annualised, simplified BACEN curves)
-        PD_BY_RATING: dict[str, float] = {
-            "AAA": 0.0001,
-            "AA+": 0.0002,
-            "AA": 0.0003,
-            "AA-": 0.0005,
-            "A+": 0.0008,
-            "A": 0.001,
-            "A-": 0.0015,
-            "BBB+": 0.003,
-            "BBB": 0.005,
-            "BBB-": 0.008,
-            "BB+": 0.015,
-            "BB": 0.025,
-            "BB-": 0.04,
-            "B+": 0.07,
-            "B": 0.10,
-            "B-": 0.15,
-            "CCC+": 0.25,
-            "CCC": 0.35,
-            "CCC-": 0.50,
-            "CC": 0.70,
-            "C": 0.85,
-            "D": 1.00,
-        }
-        # LGD by sector (simplified)
-        LGD_BY_SECTOR: dict[str, float] = {
-            "agronegócio": 0.35,
-            "varejo": 0.55,
-            "saúde": 0.40,
-            "educação": 0.45,
-            "construção": 0.50,
-            "tecnologia": 0.45,
-            "energia": 0.35,
-            "financeiro": 0.30,
-            "geral": 0.50,
-        }
-
-        pd = float(operation.get("pd_override", PD_BY_RATING.get(rating.upper(), 0.10)))
-        lgd = float(
-            operation.get("lgd_override", LGD_BY_SECTOR.get(sector.lower(), 0.50))
-        )
-        ead = face_value
-
-        expected_loss = pd * lgd * ead
-        expected_loss_rate = expected_loss / face_value if face_value > 0 else 0.0
-
-        el_ok = expected_loss_rate <= MAX_EXPECTED_LOSS_RATE
-        checks.append(
-            {
-                "name": "expected_loss",
-                "pd": round(pd, 4),
-                "lgd": round(lgd, 4),
-                "ead": ead,
-                "expected_loss_brl": round(expected_loss, 2),
-                "expected_loss_rate": round(expected_loss_rate, 4),
-                "limit": MAX_EXPECTED_LOSS_RATE,
-                "passed": el_ok,
-            }
-        )
-        if not el_ok:
+        # PD and EL calculation
+        expected_loss_rate = self._calc_expected_loss(operation, checks)
+        if expected_loss_rate > MAX_EXPECTED_LOSS_RATE:
             failures += 1
 
-        # Concentration risk score (Herfindahl-Hirschman index proxy)
-        sector_concentrations = portfolio.get("sector_concentrations", {})
-        sector_conc = float(sector_concentrations.get(sector, 0.0))
-        new_sector_conc = (
-            (sector_conc + face_value) / (total_receivables + face_value)
-            if (total_receivables + face_value) > 0
-            else 0
-        )
-        hhi_contribution = new_sector_conc**2
-        hhi_ok = new_sector_conc <= MAX_SECTOR_CONCENTRATION
-        checks.append(
-            {
-                "name": "concentration_risk",
-                "sector": sector,
-                "post_concentration": round(new_sector_conc, 4),
-                "hhi_contribution": round(hhi_contribution, 6),
-                "limit": MAX_SECTOR_CONCENTRATION,
-                "passed": hhi_ok,
-            }
-        )
-        if not hhi_ok:
+        # Concentration risk
+        conc_ok = self._check_concentration_risk(operation, portfolio, checks)
+        if not conc_ok:
             warnings += 1
 
-        # Stress impact: worst-case = 3× PD, with 90% LGD
-        stress_loss = min(pd * 3, 1.0) * 0.90 * ead
-        stress_nav_impact = stress_loss / nav if nav > 0 else 0.0
-        stress_ok = stress_nav_impact <= MAX_STRESS_NAV_IMPACT
-        checks.append(
-            {
-                "name": "stress_nav_impact",
-                "stress_loss_brl": round(stress_loss, 2),
-                "nav_impact_pct": round(stress_nav_impact * 100, 2),
-                "limit_pct": MAX_STRESS_NAV_IMPACT * 100,
-                "passed": stress_ok,
-            }
-        )
+        # Stress impact
+        stress_ok = self._check_stress_impact(operation, portfolio, checks)
         if not stress_ok:
             warnings += 1
 
-        if failures > 0:
-            status = GateStatus.REJECTED
-        elif warnings > 0:
-            status = GateStatus.WARNING
-        else:
-            status = GateStatus.APPROVED
-
-        score = max(
-            0.0, 1.0 - expected_loss_rate - (failures * 0.3) - (warnings * 0.05)
-        )
+        status = GateStatus.REJECTED if failures > 0 else (GateStatus.WARNING if warnings > 0 else GateStatus.APPROVED)
+        score = max(0.0, 1.0 - expected_loss_rate - (failures * 0.3) - (warnings * 0.05))
 
         return GateResult(
             gate="risk",
             status=status,
             checks=checks,
             score=score,
-            details=f"Expected loss: {expected_loss_rate * 100:.2f}%. Stress NAV impact: {stress_nav_impact * 100:.2f}%.",
+            details=f"Expected loss: {expected_loss_rate * 100:.2f}%.",
         )
+
+    def _calc_expected_loss(self, operation: dict[str, Any], checks: list) -> float:
+        face_value = float(operation.get("face_value", 0.0))
+        rating = str(operation.get("rating", "B")).upper()
+        sector = str(operation.get("sector", "geral")).lower()
+
+        # Simplified curves
+        pd = float(operation.get("pd_override", self._get_pd(rating)))
+        lgd = float(operation.get("lgd_override", self._get_lgd(sector)))
+        expected_loss = pd * lgd * face_value
+        rate = expected_loss / face_value if face_value > 0 else 0.0
+
+        checks.append({
+            "name": "expected_loss", "pd": round(pd, 4), "lgd": round(lgd, 4), "ead": face_value,
+            "expected_loss_brl": round(expected_loss, 2), "expected_loss_rate": round(rate, 4),
+            "limit": MAX_EXPECTED_LOSS_RATE, "passed": rate <= MAX_EXPECTED_LOSS_RATE,
+        })
+        return rate
+
+    def _get_pd(self, rating: str) -> float:
+        curves = {"AAA": 0.0001, "AA+": 0.0002, "AA": 0.0003, "AA-": 0.0005, "A+": 0.0008, "A": 0.001,
+                  "A-": 0.0015, "BBB+": 0.003, "BBB": 0.005, "BBB-": 0.008, "BB+": 0.015, "BB": 0.025,
+                  "BB-": 0.04, "B+": 0.07, "B": 0.10, "B-": 0.15, "CCC+": 0.25, "CCC": 0.35, "CCC-": 0.50,
+                  "CC": 0.70, "C": 0.85, "D": 1.00}
+        return curves.get(rating, 0.10)
+
+    def _get_lgd(self, sector: str) -> float:
+        lgds = {"agronegócio": 0.35, "varejo": 0.55, "saúde": 0.40, "educação": 0.45, "construção": 0.50,
+                "tecnologia": 0.45, "energia": 0.35, "financeiro": 0.30, "geral": 0.50}
+        return lgds.get(sector, 0.50)
+
+    def _check_concentration_risk(self, operation: dict, portfolio: dict, checks: list) -> bool:
+        face_value = float(operation.get("face_value", 0.0))
+        sector = str(operation.get("sector", "geral")).lower()
+        total_receivables = float(portfolio.get("total_receivables", 0.0))
+        sector_concentrations = portfolio.get("sector_concentrations", {})
+        sector_conc = float(sector_concentrations.get(sector, 0.0))
+        new_conc = (sector_conc + face_value) / (total_receivables + face_value) if (total_receivables + face_value) > 0 else 0
+        hhi_cont = new_conc**2
+        ok = new_conc <= MAX_SECTOR_CONCENTRATION
+        checks.append({
+            "name": "concentration_risk", "sector": sector, "post_concentration": round(new_conc, 4),
+            "hhi_contribution": round(hhi_cont, 6), "limit": MAX_SECTOR_CONCENTRATION, "passed": ok,
+        })
+        return ok
+
+    def _check_stress_impact(self, operation: dict, portfolio: dict, checks: list) -> bool:
+        face_value = float(operation.get("face_value", 0.0))
+        rating = str(operation.get("rating", "B")).upper()
+        nav = float(portfolio.get("nav", 1.0))
+        pd = self._get_pd(rating)
+        stress_loss = min(pd * 3, 1.0) * 0.90 * face_value
+        impact = stress_loss / nav if nav > 0 else 0.0
+        ok = impact <= MAX_STRESS_NAV_IMPACT
+        checks.append({
+            "name": "stress_nav_impact", "stress_loss_brl": round(stress_loss, 2),
+            "nav_impact_pct": round(impact * 100, 2), "limit_pct": MAX_STRESS_NAV_IMPACT * 100, "passed": ok,
+        })
+        return ok
 
     # ------------------------------------------------------------------
     # Full pipeline

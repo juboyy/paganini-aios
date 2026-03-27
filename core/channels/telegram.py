@@ -75,13 +75,39 @@ class TelegramBot:
         self._tg_call("sendChatAction", {"chat_id": chat_id, "action": "typing"})
 
     def handle(self, msg: dict):
-        """Process incoming message."""
+        """Process incoming message — dispatches to sub-handlers."""
         chat_id = msg["chat"]["id"]
         text = (msg.get("text") or "").strip()
         if not text:
             return
 
-        # Commands
+        # Built-in command dispatch
+        if self._handle_command(chat_id, text):
+            return
+
+        # Casual & short query guards
+        if self._handle_casual(chat_id, text):
+            return
+
+        # Strip /query prefix
+        if text.startswith("/query"):
+            text = text[6:].strip()
+        if not text:
+            return
+
+        # Client-side adversarial guardrail
+        if self._check_pld_guardrail(chat_id, text):
+            return
+
+        # RAG query via dashboard API
+        self._handle_rag_query(chat_id, text)
+
+    # ------------------------------------------------------------------
+    # handle() sub-handlers
+    # ------------------------------------------------------------------
+
+    def _handle_command(self, chat_id: int, text: str) -> bool:
+        """Handle /start, /help, /market, /status, /agents. Returns True if handled."""
         if text == "/start":
             self.send(chat_id,
                 "🎻 <b>Paganini AIOS</b>\n\n"
@@ -94,69 +120,84 @@ class TelegramBot:
                 "/status — Status do sistema\n\n"
                 "Ou simplesmente digite sua pergunta."
             )
-            return
+            return True
 
         if text in ("/help", "/start@" + self._bot_username):
-            return self.handle({"chat": {"id": chat_id}, "text": "/start"})
+            self.handle({"chat": {"id": chat_id}, "text": "/start"})
+            return True
 
         if text == "/market":
-            self.typing(chat_id)
-            d = self._api_call("/api/market")
-            if "_error" in d:
-                self.send(chat_id, f"❌ {d['_error'][:200]}")
-                return
-            indicators = d.get("indicators", {})
-            labels = {"cdi": "CDI", "selic": "SELIC", "ipca": "IPCA",
-                      "igpm": "IGP-M", "cambio_usd": "USD/BRL",
-                      "inad_pf": "Inad. PF", "inad_pj": "Inad. PJ"}
-            lines = ["📊 <b>Indicadores BCB</b>\n"]
-            for k, label in labels.items():
-                ind = indicators.get(k, {})
-                v = ind.get("latest_value", "—")
-                dt = ind.get("latest_date", "")
-                unit = "" if k == "cambio_usd" else "%"
-                lines.append(f"  <b>{label}:</b> {v}{unit}  <i>({dt})</i>")
-            self.send(chat_id, "\n".join(lines))
-            return
+            self._cmd_market(chat_id)
+            return True
 
         if text == "/status":
-            self.typing(chat_id)
-            d = self._api_call("/api/status")
-            if "_error" in d:
-                self.send(chat_id, f"❌ {d['_error'][:200]}")
-                return
-            self.send(chat_id,
-                "🎻 <b>Paganini AIOS</b>\n\n"
-                f"  <b>Status:</b> {'🟢 online' if d.get('ok') else '🔴 offline'}\n"
-                f"  <b>Agentes:</b> {d.get('agents', '?')}\n"
-                f"  <b>Chunks:</b> {d.get('chunks', '?')}\n"
-                f"  <b>Modelo:</b> {d.get('model', '?')}\n"
-            )
-            return
+            self._cmd_status(chat_id)
+            return True
 
         if text == "/agents":
-            self.typing(chat_id)
-            agents = self._api_call("/api/agents")
-            if isinstance(agents, dict) and "_error" in agents:
-                self.send(chat_id, f"❌ {agents['_error'][:200]}")
-                return
-            if isinstance(agents, dict):
-                agents = agents.get("agents", [])
-            icons = {"administrador": "📋", "compliance": "🛡️",
-                     "custodiante": "🏦", "due_diligence": "🔍",
-                     "gestor": "💼", "investor_relations": "📊",
-                     "pricing": "💰", "regulatory_watch": "📡",
-                     "reporting": "📝"}
-            lines = ["🤖 <b>Agentes</b>\n"]
-            for a in agents:
-                name = a.get("name", str(a)) if isinstance(a, dict) else str(a)
-                key = name.lower().replace(" ", "_").replace("agent:", "").strip()
-                icon = icons.get(key, "🤖")
-                lines.append(f"  {icon} {name}")
-            self.send(chat_id, "\n".join(lines))
-            return
+            self._cmd_agents(chat_id)
+            return True
 
-        # Greetings & casual — don't send to RAG
+        return False
+
+    def _cmd_market(self, chat_id: int) -> None:
+        """Handle /market command — fetch and display BCB indicators."""
+        self.typing(chat_id)
+        d = self._api_call("/api/market")
+        if "_error" in d:
+            self.send(chat_id, f"❌ {d['_error'][:200]}")
+            return
+        indicators = d.get("indicators", {})
+        labels = {"cdi": "CDI", "selic": "SELIC", "ipca": "IPCA",
+                  "igpm": "IGP-M", "cambio_usd": "USD/BRL",
+                  "inad_pf": "Inad. PF", "inad_pj": "Inad. PJ"}
+        lines = ["📊 <b>Indicadores BCB</b>\n"]
+        for k, label in labels.items():
+            ind = indicators.get(k, {})
+            v = ind.get("latest_value", "—")
+            dt = ind.get("latest_date", "")
+            unit = "" if k == "cambio_usd" else "%"
+            lines.append(f"  <b>{label}:</b> {v}{unit}  <i>({dt})</i>")
+        self.send(chat_id, "\n".join(lines))
+
+    def _cmd_status(self, chat_id: int) -> None:
+        """Handle /status command."""
+        self.typing(chat_id)
+        d = self._api_call("/api/status")
+        if "_error" in d:
+            self.send(chat_id, f"❌ {d['_error'][:200]}")
+            return
+        self.send(chat_id,
+            "🎻 <b>Paganini AIOS</b>\n\n"
+            f"  <b>Status:</b> {'🟢 online' if d.get('ok') else '🔴 offline'}\n"
+            f"  <b>Agentes:</b> {d.get('agents', '?')}\n"
+            f"  <b>Chunks:</b> {d.get('chunks', '?')}\n"
+            f"  <b>Modelo:</b> {d.get('model', '?')}\n"
+        )
+
+    def _cmd_agents(self, chat_id: int) -> None:
+        """Handle /agents command."""
+        self.typing(chat_id)
+        agents = self._api_call("/api/agents")
+        if isinstance(agents, dict) and "_error" in agents:
+            self.send(chat_id, f"❌ {agents['_error'][:200]}")
+            return
+        if isinstance(agents, dict):
+            agents = agents.get("agents", [])
+        icons = {"administrador": "📋", "compliance": "🛡️",
+                 "custodiante": "🏦", "due_diligence": "🔍",
+                 "gestor": "💼", "investor_relations": "📊",
+                 "pricing": "💰", "regulatory_watch": "📡",
+                 "reporting": "📝"}
+        lines = ["🤖 <b>Agentes</b>\n"]
+        for a in agents:
+            name = a.get("name", str(a)) if isinstance(a, dict) else str(a)
+            key = name.lower().replace(" ", "_").replace("agent:", "").strip()
+            lines.append(f"  {icons.get(key, '🤖')} {name}")
+        self.send(chat_id, "\n".join(lines))
+
+    def _handle_casual(self, chat_id: int, text: str) -> bool:
+        """Handle greetings and short queries. Returns True if handled."""
         greetings = ["oi", "olá", "ola", "hey", "hi", "hello", "bom dia",
                      "boa tarde", "boa noite", "e aí", "e ai", "fala",
                      "salve", "eae", "yo", "tudo bem", "como vai"]
@@ -171,24 +212,20 @@ class TelegramBot:
                 "• Como funciona o stress test?\n"
                 "• /market — indicadores BCB"
             )
-            return
+            return True
 
-        # Short/vague queries — ask for more detail
         if len(text) < 10 and not text.startswith("/"):
             self.send(chat_id,
                 "Pode elaborar? Preciso de uma pergunta mais específica "
                 "sobre fundos de investimento para consultar os agentes.\n\n"
                 "<i>Ex: \"Quais as obrigações do custodiante?\"</i>"
             )
-            return
+            return True
 
-        # Strip /query prefix
-        if text.startswith("/query"):
-            text = text[6:].strip()
-        if not text:
-            return
+        return False
 
-        # Guardrail — client-side adversarial check
+    def _check_pld_guardrail(self, chat_id: int, text: str) -> bool:
+        """Block adversarial PLD/AML attempts. Returns True if blocked."""
         if re.search(
             r"coaf|lavagem|fraude|burlar|evadir|bypass|fracionar.*evitar|"
             r"ocultar.*origem|simular|fraudar|driblar", text, re.IGNORECASE
@@ -199,62 +236,57 @@ class TelegramBot:
                 "orientações que violam regulação.\n\n"
                 "<b>Base legal:</b> CVM 175 Art. 23 · Lei 9.613/98"
             )
-            return
+            return True
+        return False
 
-        # Query via API
-        self.typing(chat_id)
+    def _handle_rag_query(self, chat_id: int, text: str) -> None:
+        """Send query to dashboard API and format the response."""
         from urllib.parse import urlencode
+        self.typing(chat_id)
         params = urlencode({"q": text})
         sid = self._sessions.get(chat_id)
         if sid:
             params += f"&session_id={sid}"
 
         d = self._api_call(f"/api/query?{params}", timeout=60)
-
         if "_error" in d:
             self.send(chat_id, f"❌ Erro: {d['_error'][:200]}")
             return
 
-        # Track session
         if d.get("session_id"):
             self._sessions[chat_id] = d["session_id"]
 
         answer = d.get("answer", "Sem resposta.")
         conf = int((d.get("confidence", 0)) * 100)
         sources = d.get("sources", [])
-        blocked = d.get("blocked", False)
 
-        if blocked:
-            self.send(chat_id,
-                "🛡️ <b>QUERY BLOQUEADA</b>\n\n"
-                f"{answer[:500]}"
-            )
+        if d.get("blocked"):
+            self.send(chat_id, f"🛡️ <b>QUERY BLOQUEADA</b>\n\n{answer[:500]}")
             return
 
         conf_emoji = "🟢" if conf >= 80 else "🟡" if conf >= 60 else "🔴"
-
-        # Format sources
-        src_text = ""
-        if sources:
-            names = []
-            for s in sources[:3]:
-                n = s.get("source", "doc") if isinstance(s, dict) else str(s)
-                n = n.split("/")[-1].replace(".md", "")
-                n = re.sub(r"#U([0-9a-fA-F]{4})",
-                           lambda m: chr(int(m.group(1), 16)), n)
-                names.append(f"📄 {n}")
-            src_text = "\n\n<b>Fontes:</b> " + " · ".join(names)
-
-        # Escape HTML in answer
+        src_text = self._format_sources(sources)
         safe = (answer
                 .replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
                 .replace("**", ""))
-
         self.send(chat_id,
             f"{safe}\n\n"
             f"{conf_emoji} <b>Confiança:</b> {conf}% "
             f"{src_text}"
         )
+
+    def _format_sources(self, sources: list) -> str:
+        """Format source list into HTML string."""
+        if not sources:
+            return ""
+        names = []
+        for s in sources[:3]:
+            n = s.get("source", "doc") if isinstance(s, dict) else str(s)
+            n = n.split("/")[-1].replace(".md", "")
+            n = re.sub(r"#U([0-9a-fA-F]{4})",
+                       lambda m: chr(int(m.group(1), 16)), n)
+            names.append(f"📄 {n}")
+        return "\n\n<b>Fontes:</b> " + " · ".join(names)
 
     def poll(self):
         """Long polling loop."""

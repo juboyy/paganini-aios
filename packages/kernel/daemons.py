@@ -159,137 +159,61 @@ def _load_fund_data(base: Path) -> list[dict]:
 
 
 def covenant_monitor(config: dict) -> dict:
-    """Check covenant compliance across all active funds.
-
-    Reads fund data from filesystem memory, evaluates known covenant thresholds,
-    and returns a structured result with any violations or warnings.
-    """
+    """Check covenant compliance across all active funds."""
     base = _resolve_base(config)
     funds = _load_fund_data(base)
     started = _ts()
 
     if not funds:
-        result = {
-            "status": "no_data",
-            "timestamp": started,
-            "violations": [],
-            "warnings": [],
-            "details": "No fund data found in runtime/data/funds.json",
-        }
-        _append_daemon_result(base, {"daemon": "covenant-monitor", **result})
-        logger.info("[%s] covenant_monitor: no_data", started)
-        return result
+        return _handle_empty_funds(base, started)
 
-    # Default covenant thresholds (override via config["covenants"] dict)
-    thresholds: dict = config.get(
-        "covenants",
-        {
-            "max_inadimplencia_rate": 0.05,  # 5%
-            "min_subordinacao": 0.20,  # 20%
-            "max_concentracao_cedente": 0.15,  # 15% per cedente
-            "min_liquidity_ratio": 0.10,  # 10%
-        },
-    )
+    thresholds = config.get("covenants", {
+        "max_inadimplencia_rate": 0.05, "min_subordinacao": 0.20,
+        "max_concentracao_cedente": 0.15, "min_liquidity_ratio": 0.10,
+    })
 
     violations: list[dict] = []
     warnings: list[dict] = []
 
     for fund in funds:
-        name = fund.get("name", fund.get("fund_name", "unknown"))
-        cnpj = fund.get("cnpj", "—")
-
-        # --- Inadimplência check ---
-        inad = fund.get("inadimplencia_rate", fund.get("default_rate"))
-        if inad is not None:
-            limit = thresholds["max_inadimplencia_rate"]
-            if inad > limit:
-                violations.append(
-                    {
-                        "fund": name,
-                        "cnpj": cnpj,
-                        "covenant": "inadimplencia_rate",
-                        "limit": limit,
-                        "actual": inad,
-                        "severity": "breach",
-                    }
-                )
-            elif inad > limit * 0.80:  # 80% of limit → warning
-                warnings.append(
-                    {
-                        "fund": name,
-                        "cnpj": cnpj,
-                        "covenant": "inadimplencia_rate",
-                        "limit": limit,
-                        "actual": inad,
-                        "severity": "warn",
-                    }
-                )
-
-        # --- Subordinação check ---
-        sub = fund.get("subordinacao_ratio", fund.get("subordination_ratio"))
-        if sub is not None:
-            limit = thresholds["min_subordinacao"]
-            if sub < limit:
-                violations.append(
-                    {
-                        "fund": name,
-                        "cnpj": cnpj,
-                        "covenant": "subordinacao_ratio",
-                        "limit": limit,
-                        "actual": sub,
-                        "severity": "breach",
-                    }
-                )
-            elif sub < limit * 1.10:  # within 10% headroom → warning
-                warnings.append(
-                    {
-                        "fund": name,
-                        "cnpj": cnpj,
-                        "covenant": "subordinacao_ratio",
-                        "limit": limit,
-                        "actual": sub,
-                        "severity": "warn",
-                    }
-                )
-
-        # --- Concentração por cedente check ---
-        top_cedente_pct = fund.get(
-            "top_cedente_pct", fund.get("max_cedente_concentration")
-        )
-        if top_cedente_pct is not None:
-            limit = thresholds["max_concentracao_cedente"]
-            if top_cedente_pct > limit:
-                violations.append(
-                    {
-                        "fund": name,
-                        "cnpj": cnpj,
-                        "covenant": "concentracao_cedente",
-                        "limit": limit,
-                        "actual": top_cedente_pct,
-                        "severity": "breach",
-                    }
-                )
+        _check_fund_covenants(fund, thresholds, violations, warnings)
 
     overall = "ok" if not violations else "breach"
-    if warnings and not violations:
-        overall = "warn"
+    if warnings and not violations: overall = "warn"
 
     result = {
-        "status": overall,
-        "timestamp": started,
-        "funds_checked": len(funds),
-        "violations": violations,
-        "warnings": warnings,
-        "details": (
-            f"Checked {len(funds)} fund(s): "
-            f"{len(violations)} breach(es), {len(warnings)} warning(s)"
-        ),
+        "status": overall, "timestamp": started, "funds_checked": len(funds),
+        "violations": violations, "warnings": warnings,
+        "details": f"Checked {len(funds)} fund(s): {len(violations)} breach(es), {len(warnings)} warning(s)",
     }
-
     _append_daemon_result(base, {"daemon": "covenant-monitor", **result})
     logger.info("[%s] covenant_monitor: %s", started, result["details"])
-    print(f"[{started}] covenant_monitor: {result['details']}")
     return result
+
+def _handle_empty_funds(base, started):
+    res = {"status": "no_data", "timestamp": started, "violations": [], "warnings": [], "details": "No fund data found"}
+    _append_daemon_result(base, {"daemon": "covenant-monitor", **res})
+    return res
+
+def _check_fund_covenants(fund, thresholds, violations, warnings):
+    name, cnpj = fund.get("name", "unknown"), fund.get("cnpj", "—")
+    # Inadimplência
+    inad = fund.get("inadimplencia_rate", fund.get("default_rate"))
+    if inad is not None:
+        lim = thresholds["max_inadimplencia_rate"]
+        if inad > lim: violations.append({"fund": name, "cnpj": cnpj, "covenant": "inadimplencia_rate", "limit": lim, "actual": inad, "severity": "breach"})
+        elif inad > lim * 0.80: warnings.append({"fund": name, "cnpj": cnpj, "covenant": "inadimplencia_rate", "limit": lim, "actual": inad, "severity": "warn"})
+    # Subordinação
+    sub = fund.get("subordinacao_ratio", fund.get("subordination_ratio"))
+    if sub is not None:
+        lim = thresholds["min_subordinacao"]
+        if sub < lim: violations.append({"fund": name, "cnpj": cnpj, "covenant": "subordinacao_ratio", "limit": lim, "actual": sub, "severity": "breach"})
+        elif sub < lim * 1.10: warnings.append({"fund": name, "cnpj": cnpj, "covenant": "subordinacao_ratio", "limit": lim, "actual": sub, "severity": "warn"})
+    # Concentração
+    top = fund.get("top_cedente_pct", fund.get("max_cedente_concentration"))
+    if top is not None:
+        lim = thresholds["max_concentracao_cedente"]
+        if top > lim: violations.append({"fund": name, "cnpj": cnpj, "covenant": "concentracao_cedente", "limit": lim, "actual": top, "severity": "breach"})
 
 
 def pdd_calculator(config: dict) -> dict:
@@ -406,35 +330,18 @@ def market_data_sync(config: dict) -> dict:
 
 
 def risk_scanner(config: dict) -> dict:
-    """Scan portfolio for risk indicators: concentration, diversification, and alerts.
-
-    Reads fund data from filesystem; returns structured alerts and concentration metrics.
-    """
+    """Scan portfolio for risk indicators."""
     base = _resolve_base(config)
     started = _ts()
     funds = _load_fund_data(base)
 
     if not funds:
-        result = {
-            "status": "no_data",
-            "timestamp": started,
-            "alerts": [],
-            "concentration": {},
-            "details": "No fund data available for risk scan",
-        }
-        _append_daemon_result(base, {"daemon": "risk-scanner", **result})
-        logger.info("[%s] risk_scanner: no_data", started)
-        return result
+        return _handle_empty_risk(base, started)
 
-    thresholds: dict = config.get(
-        "risk_limits",
-        {
-            "max_concentration_index": 0.15,  # HHI / top-cedente % PL
-            "min_diversification_count": 5,  # minimum distinct cedentes
-            "max_var_99_pct_pl": 0.10,  # VaR 99% must not exceed 10% PL
-            "min_liquidity_ratio": 0.10,
-        },
-    )
+    thresholds = config.get("risk_limits", {
+        "max_concentration_index": 0.15, "min_diversification_count": 5,
+        "max_var_99_pct_pl": 0.10, "min_liquidity_ratio": 0.10,
+    })
 
     alerts: list[dict] = []
     concentration_summary: dict = {}
@@ -444,93 +351,40 @@ def risk_scanner(config: dict) -> dict:
         name = fund.get("name", fund.get("fund_name", "unknown"))
         pl = float(fund.get("pl", fund.get("patrimonio_liquido", 0.0)))
         total_pl += pl
-
-        # Concentration check
-        top_cedente_pct = float(
-            fund.get("top_cedente_pct", fund.get("max_cedente_concentration", 0.0))
-        )
-        n_cedentes = int(fund.get("n_cedentes", fund.get("cedente_count", 0)))
-        liq_ratio = float(fund.get("liquidity_ratio", fund.get("indice_liquidez", 1.0)))
-        var_99 = float(fund.get("var_99", 0.0))
-
-        concentration_summary[name] = {
-            "pl": pl,
-            "top_cedente_pct": top_cedente_pct,
-            "n_cedentes": n_cedentes,
-            "liquidity_ratio": liq_ratio,
-        }
-
-        if top_cedente_pct > thresholds["max_concentration_index"]:
-            alerts.append(
-                {
-                    "fund": name,
-                    "type": "concentration",
-                    "message": (
-                        f"Top cedente represents {top_cedente_pct:.1%} of PL, "
-                        f"exceeding limit of {thresholds['max_concentration_index']:.1%}"
-                    ),
-                    "severity": "high",
-                }
-            )
-
-        if n_cedentes > 0 and n_cedentes < thresholds["min_diversification_count"]:
-            alerts.append(
-                {
-                    "fund": name,
-                    "type": "diversification",
-                    "message": (
-                        f"Only {n_cedentes} cedente(s) — minimum is "
-                        f"{thresholds['min_diversification_count']}"
-                    ),
-                    "severity": "medium",
-                }
-            )
-
-        if liq_ratio < thresholds["min_liquidity_ratio"]:
-            alerts.append(
-                {
-                    "fund": name,
-                    "type": "liquidity",
-                    "message": (
-                        f"Liquidity ratio {liq_ratio:.1%} below minimum "
-                        f"{thresholds['min_liquidity_ratio']:.1%}"
-                    ),
-                    "severity": "high",
-                }
-            )
-
-        if pl > 0 and var_99 > 0 and (var_99 / pl) > thresholds["max_var_99_pct_pl"]:
-            alerts.append(
-                {
-                    "fund": name,
-                    "type": "var",
-                    "message": (
-                        f"VaR 99% is {var_99/pl:.1%} of PL, "
-                        f"exceeding limit of {thresholds['max_var_99_pct_pl']:.1%}"
-                    ),
-                    "severity": "high",
-                }
-            )
+        _scan_fund_risks(fund, pl, thresholds, alerts, concentration_summary, name)
 
     high_count = sum(1 for a in alerts if a.get("severity") == "high")
     overall = "ok" if not alerts else ("critical" if high_count > 0 else "warn")
 
     result = {
-        "status": overall,
-        "timestamp": started,
-        "alerts": alerts,
-        "concentration": concentration_summary,
-        "total_pl": round(total_pl, 2),
-        "details": (
-            f"Scanned {len(funds)} fund(s): "
-            f"{len(alerts)} alert(s) ({high_count} high-severity)"
-        ),
+        "status": overall, "timestamp": started, "alerts": alerts,
+        "concentration": concentration_summary, "total_pl": round(total_pl, 2),
+        "details": f"Scanned {len(funds)} fund(s): {len(alerts)} alert(s) ({high_count} high-severity)",
     }
-
     _append_daemon_result(base, {"daemon": "risk-scanner", **result})
     logger.info("[%s] risk_scanner: %s", started, result["details"])
-    print(f"[{started}] risk_scanner: {result['details']}")
     return result
+
+def _handle_empty_risk(base, started):
+    res = {"status": "no_data", "timestamp": started, "alerts": [], "concentration": {}, "details": "No fund data available"}
+    _append_daemon_result(base, {"daemon": "risk-scanner", **res})
+    return res
+
+def _scan_fund_risks(fund, pl, thresholds, alerts, summary, name):
+    top = float(fund.get("top_cedente_pct", fund.get("max_cedente_concentration", 0.0)))
+    n_ced = int(fund.get("n_cedentes", fund.get("cedente_count", 0)))
+    liq = float(fund.get("liquidity_ratio", fund.get("indice_liquidez", 1.0)))
+    var = float(fund.get("var_99", 0.0))
+    summary[name] = {"pl": pl, "top_cedente_pct": top, "n_cedentes": n_ced, "liquidity_ratio": liq}
+    # Checks
+    if top > thresholds["max_concentration_index"]:
+        alerts.append({"fund": name, "type": "concentration", "message": f"Top cedente represents {top:.1%} of PL", "severity": "high"})
+    if 0 < n_ced < thresholds["min_diversification_count"]:
+        alerts.append({"fund": name, "type": "diversification", "message": f"Only {n_ced} cedente(s)", "severity": "medium"})
+    if liq < thresholds["min_liquidity_ratio"]:
+        alerts.append({"fund": name, "type": "liquidity", "message": f"Liquidity ratio {liq:.1%} below minimum", "severity": "high"})
+    if pl > 0 and var > 0 and (var / pl) > thresholds["max_var_99_pct_pl"]:
+        alerts.append({"fund": name, "type": "var", "message": f"VaR 99% is {var/pl:.1%} of PL", "severity": "high"})
 
 
 def regulatory_watch(config: dict) -> dict:

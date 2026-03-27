@@ -166,144 +166,89 @@ def _classify_risk(title: str) -> tuple[str, list[str]]:
 
 
 def cedente_monitor(config: dict) -> dict:
-    """Monitor news about each cedente in the fund portfolio.
-
-    For each cedente:
-    1. Search Google News RSS
-    2. Classify risk of each headline
-    3. Log alerts for medium+ risk
-    4. Track seen items to avoid duplicates
-    """
+    """Monitor news about each cedente in the fund portfolio."""
     base = _resolve_base(config)
     started = _ts()
 
     cedentes = _load_cedentes(base)
     if not cedentes:
-        result = {
-            "status": "no_data",
-            "timestamp": started,
-            "details": "No cedentes found in fund data",
-        }
-        _append_daemon_result(base, {"daemon": "cedente-monitor", **result})
-        return result
+        return _handle_no_cedentes(base, started)
 
-    # Load seen items
-    seen_path = base / "runtime" / "data" / "cedente_news_seen.json"
-    seen_path.parent.mkdir(parents=True, exist_ok=True)
-    seen_hashes: set = set()
-    if seen_path.exists():
-        try:
-            seen_hashes = set(json.loads(seen_path.read_text()))
-        except Exception:
-            pass
-
-    total_news = 0
-    new_items = 0
-    alerts = []
-    cedente_results = {}
-
-    for cedente in cedentes:
-        name = cedente.get("nome", cedente.get("name", ""))
-        cnpj = cedente.get("cnpj", "")
-        if not name:
-            continue
-
-        # Rate limit: small delay between searches
-        time.sleep(0.5)
-
-        news = _search_cedente_news(name, cnpj)
-        total_news += len(news)
-
-        cedente_items = []
-        for item in news:
-            h = hashlib.md5(f"{item['title']}:{item['link']}".encode()).hexdigest()
-
-            if h in seen_hashes:
-                continue
-
-            seen_hashes.add(h)
-            new_items += 1
-
-            severity, keywords = _classify_risk(item["title"])
-
-            enriched = {
-                **item,
-                "cedente": name,
-                "cnpj": cnpj,
-                "risk_severity": severity,
-                "risk_keywords": keywords,
-                "hash": h,
-            }
-            cedente_items.append(enriched)
-
-            # Alert for medium+ risk
-            if severity in ("critical", "high", "medium"):
-                alert = {
-                    "type": "cedente_risk",
-                    "timestamp": started,
-                    "severity": severity,
-                    "title": f"[{name}] {item['title'][:120]}",
-                    "source": "cedente_monitor",
-                    "cedente": name,
-                    "cnpj": cnpj,
-                    "link": item.get("link", ""),
-                    "keywords": keywords,
-                }
-                alerts.append(alert)
-                _append_alert(base, alert)
-
-        cedente_results[name] = {
-            "total_news": len(news),
-            "new_items": len(cedente_items),
-            "risk_items": sum(1 for i in cedente_items if i["risk_severity"] in ("critical", "high", "medium")),
-        }
-
-    # Save seen hashes (keep last 2000)
-    seen_path.write_text(json.dumps(list(seen_hashes)[-2000:]))
-
-    # Save detailed results
-    results_dir = base / "runtime" / "data" / "cedente_monitor"
-    results_dir.mkdir(parents=True, exist_ok=True)
-    date_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
-    (results_dir / f"scan_{date_str}.json").write_text(
-        json.dumps({
-            "timestamp": started,
-            "cedentes_scanned": len(cedente_results),
-            "results": cedente_results,
-            "alerts": alerts,
-        }, ensure_ascii=False, indent=2)
+    seen_hashes = _load_seen_hashes(base)
+    total_news, new_items, alerts, cedente_results = _scan_cedentes(
+        cedentes, seen_hashes, started, base
     )
+    _save_seen_hashes(base, seen_hashes)
+    _save_scan_results(base, started, cedente_results, alerts)
 
     high_count = sum(1 for a in alerts if a.get("severity") in ("critical", "high"))
-
     result = {
         "status": "alerts" if high_count > 0 else ("warnings" if alerts else "ok"),
-        "timestamp": started,
-        "cedentes_scanned": len(cedente_results),
-        "total_news": total_news,
-        "new_items": new_items,
-        "alerts": len(alerts),
+        "timestamp": started, "cedentes_scanned": len(cedente_results),
+        "total_news": total_news, "new_items": new_items, "alerts": len(alerts),
         "high_severity": high_count,
-        "details": (
-            f"Scanned {len(cedente_results)} cedentes: "
-            f"{total_news} news items, {new_items} new, "
-            f"{len(alerts)} risk alerts ({high_count} high/critical)"
-        ),
+        "details": f"Scanned {len(cedente_results)} cedentes: {total_news} news items, {new_items} new, {len(alerts)} risk alerts ({high_count} high/critical)",
     }
 
     _append_daemon_result(base, {"daemon": "cedente-monitor", **result})
     logger.info("[%s] cedente_monitor: %s", started, result["details"])
-    print(f"[{started}] cedente_monitor: {result['details']}")
-
-    # Dispatch high+ alerts
-    if high_count > 0:
-        try:
-            from core.runtime.handlers import AlertDispatcher
-            dispatcher = AlertDispatcher(config)
-            for alert in alerts:
-                if alert.get("severity") in ("critical", "high"):
-                    dispatcher.dispatch(alert)
-        except Exception as exc:
-            logger.warning("Alert dispatch failed: %s", exc)
-
+    _dispatch_high_alerts(alerts, config)
     return result
+
+def _handle_no_cedentes(base: Path, started: str) -> dict:
+    res = {"status": "no_data", "timestamp": started, "details": "No cedentes found in fund data"}
+    _append_daemon_result(base, {"daemon": "cedente-monitor", **res})
+    return res
+
+def _scan_cedentes(
+    cedentes: list,
+    seen_hashes: set,
+    started: str,
+    base: Path,
+) -> tuple:
+    """Scan each cedente for news; return (total_news, new_items, alerts, cedente_results)."""
+    total_news = 0
+    new_items = 0
+    alerts: list = []
+    cedente_results: dict = {}
+
+    for cedente in cedentes:
+        name = cedente.get("nome", cedente.get("name", ""))
+        cnpj = cedente.get("cnpj", "")
+        if not name: continue
+        time.sleep(0.5)
+
+        news = _search_cedente_news(name, cnpj)
+        total_news += len(news)
+        cedente_items = []
+
+        for item in news:
+            h = hashlib.md5(f"{item['title']}:{item['link']}".encode()).hexdigest()
+            if h in seen_hashes: continue
+            seen_hashes.add(h)
+            new_items += 1
+            severity, keywords = _classify_risk(item["title"])
+            enriched = {**item, "cedente": name, "cnpj": cnpj, "risk_severity": severity, "risk_keywords": keywords, "hash": h}
+            cedente_items.append(enriched)
+            if severity in ("critical", "high", "medium"):
+                alert = {"type": "cedente_risk", "timestamp": started, "severity": severity, "title": f"[{name}] {item['title'][:120]}", "source": "cedente_monitor", "cedente": name, "cnpj": cnpj, "link": item.get("link", ""), "keywords": keywords}
+                alerts.append(alert)
+                _append_alert(base, alert)
+
+        cedente_results[name] = {"total_news": len(news), "new_items": len(cedente_items), "risk_items": sum(1 for i in cedente_items if i["risk_severity"] in ("critical", "high", "medium"))}
+
+    return total_news, new_items, alerts, cedente_results
+
+
+def _dispatch_high_alerts(alerts: list, config: dict) -> None:
+    """Dispatch high/critical alerts via AlertDispatcher if available."""
+    high_alerts = [a for a in alerts if a.get("severity") in ("critical", "high")]
+    if not high_alerts:
+        return
+    try:
+        from core.runtime.handlers import AlertDispatcher
+        dispatcher = AlertDispatcher(config)
+        for alert in high_alerts:
+            dispatcher.dispatch(alert)
+    except Exception as exc:
+        logger.warning("Alert dispatch failed: %s", exc)

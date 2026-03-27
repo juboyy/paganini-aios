@@ -1,0 +1,1475 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Paganini Terminal — Enterprise Bloomberg Roadmap</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600;700&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <!-- no external JS needed -->
+  <style>
+    :root {
+      --font-body: 'DM Sans', system-ui, sans-serif;
+      --font-serif: 'Instrument Serif', Georgia, serif;
+      --font-mono: 'JetBrains Mono', 'SF Mono', Consolas, monospace;
+
+      --bg: #0c0e13;
+      --bg-grid: rgba(255,255,255,0.015);
+      --surface: #12151c;
+      --surface-2: #181c26;
+      --surface-3: #1e2330;
+      --border: rgba(255,255,255,0.06);
+      --border-bright: rgba(255,255,255,0.12);
+      --text: #e8ecf4;
+      --text-dim: #7a8194;
+      --text-muted: #4a5068;
+
+      --amber: #d4a73a;
+      --amber-dim: rgba(212,167,58,0.12);
+      --amber-bright: #f0c656;
+      --teal: #2dd4bf;
+      --teal-dim: rgba(45,212,191,0.10);
+      --blue: #3b82f6;
+      --blue-dim: rgba(59,130,246,0.10);
+      --red: #ef4444;
+      --red-dim: rgba(239,68,68,0.10);
+      --green: #22c55e;
+      --green-dim: rgba(34,197,94,0.10);
+      --orange: #f97316;
+      --orange-dim: rgba(249,115,22,0.10);
+      --slate: #475569;
+    }
+
+    @media (prefers-color-scheme: light) {
+      :root {
+        --bg: #f5f3ef;
+        --bg-grid: rgba(0,0,0,0.03);
+        --surface: #ffffff;
+        --surface-2: #faf8f5;
+        --surface-3: #f0ede8;
+        --border: rgba(0,0,0,0.08);
+        --border-bright: rgba(0,0,0,0.15);
+        --text: #1a1a2e;
+        --text-dim: #6b7280;
+        --text-muted: #9ca3af;
+        --amber: #b8860b;
+        --amber-dim: rgba(184,134,11,0.08);
+        --amber-bright: #d4a73a;
+        --teal: #0d9488;
+        --teal-dim: rgba(13,148,136,0.08);
+        --blue: #2563eb;
+        --blue-dim: rgba(37,99,235,0.08);
+        --red: #dc2626;
+        --red-dim: rgba(220,38,38,0.08);
+        --green: #16a34a;
+        --green-dim: rgba(22,163,74,0.08);
+        --orange: #ea580c;
+        --orange-dim: rgba(234,88,12,0.08);
+        --slate: #64748b;
+      }
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: var(--font-body);
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      background-image:
+        repeating-linear-gradient(90deg, var(--bg-grid) 0px, var(--bg-grid) 1px, transparent 1px, transparent 80px),
+        repeating-linear-gradient(0deg, var(--bg-grid) 0px, var(--bg-grid) 1px, transparent 1px, transparent 80px);
+    }
+
+    .wrap {
+      max-width: 1400px;
+      margin: 0 auto;
+      display: grid;
+      grid-template-columns: 220px 1fr;
+      gap: 0;
+    }
+
+    @media (max-width: 900px) {
+      .wrap { grid-template-columns: 1fr; }
+    }
+
+    /* --- TOC --- */
+    .toc {
+      position: sticky;
+      top: 0;
+      height: 100vh;
+      overflow-y: auto;
+      padding: 2rem 1.2rem;
+      border-right: 1px solid var(--border);
+      background: var(--surface);
+    }
+    .toc-title {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      color: var(--amber);
+      margin-bottom: 1.5rem;
+    }
+    .toc a {
+      display: block;
+      color: var(--text-dim);
+      text-decoration: none;
+      font-size: 0.8rem;
+      padding: 0.4rem 0.6rem;
+      border-radius: 4px;
+      margin-bottom: 2px;
+      transition: all 0.15s;
+      font-weight: 500;
+    }
+    .toc a:hover, .toc a.active {
+      color: var(--text);
+      background: var(--amber-dim);
+    }
+    .toc-sep {
+      height: 1px;
+      background: var(--border);
+      margin: 0.8rem 0;
+    }
+
+    @media (max-width: 900px) {
+      .toc {
+        position: sticky;
+        top: 0;
+        height: auto;
+        display: flex;
+        gap: 0.25rem;
+        overflow-x: auto;
+        padding: 0.8rem 1rem;
+        border-right: none;
+        border-bottom: 1px solid var(--border);
+        z-index: 100;
+      }
+      .toc-title { display: none; }
+      .toc-sep { display: none; }
+      .toc a {
+        white-space: nowrap;
+        font-size: 0.72rem;
+        padding: 0.3rem 0.6rem;
+      }
+    }
+
+    /* --- Main --- */
+    .main {
+      padding: 3rem 3.5rem 6rem;
+      min-width: 0;
+    }
+    @media (max-width: 900px) {
+      .main { padding: 2rem 1.2rem 4rem; }
+    }
+
+    /* --- Hero --- */
+    .hero {
+      margin-bottom: 4rem;
+      padding-bottom: 3rem;
+      border-bottom: 1px solid var(--border);
+    }
+    .hero-badge {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.2em;
+      color: var(--amber);
+      background: var(--amber-dim);
+      padding: 0.3rem 0.8rem;
+      border-radius: 3px;
+      display: inline-block;
+      margin-bottom: 1.2rem;
+    }
+    .hero h1 {
+      font-family: var(--font-serif);
+      font-size: 3rem;
+      font-weight: 400;
+      line-height: 1.15;
+      margin-bottom: 1rem;
+      color: var(--text);
+    }
+    .hero h1 em {
+      color: var(--amber);
+      font-style: italic;
+    }
+    .hero-sub {
+      font-size: 1.1rem;
+      color: var(--text-dim);
+      max-width: 680px;
+      line-height: 1.7;
+    }
+
+    /* --- KPI row --- */
+    .kpi-row {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 1rem;
+      margin: 2.5rem 0 4rem;
+    }
+    .kpi {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.2rem 1.4rem;
+      text-align: center;
+    }
+    .kpi-value {
+      font-family: var(--font-mono);
+      font-size: 1.8rem;
+      font-weight: 700;
+      color: var(--amber);
+      line-height: 1;
+      margin-bottom: 0.4rem;
+    }
+    .kpi-label {
+      font-size: 0.75rem;
+      color: var(--text-dim);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 600;
+    }
+
+    /* --- Section --- */
+    .sec-head {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      padding: 0.5rem 0;
+      margin: 3.5rem 0 1.5rem;
+      border-bottom: 2px solid var(--border-bright);
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+    .sec-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      display: inline-block;
+      flex-shrink: 0;
+    }
+
+    h2 {
+      font-family: var(--font-serif);
+      font-size: 1.8rem;
+      font-weight: 400;
+      margin-bottom: 0.6rem;
+    }
+    h3 {
+      font-family: var(--font-body);
+      font-size: 1rem;
+      font-weight: 600;
+      margin: 1.8rem 0 0.6rem;
+      color: var(--text);
+    }
+    .sec-desc {
+      color: var(--text-dim);
+      font-size: 0.95rem;
+      margin-bottom: 2rem;
+      max-width: 720px;
+    }
+
+    /* --- Cards --- */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1rem;
+      margin: 1.5rem 0;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.4rem 1.6rem;
+      transition: border-color 0.2s;
+    }
+    .card:hover {
+      border-color: var(--border-bright);
+    }
+    .card--hero {
+      background: var(--surface-2);
+      border-color: var(--border-bright);
+      grid-column: 1 / -1;
+    }
+    .card-tag {
+      font-family: var(--font-mono);
+      font-size: 0.6rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      padding: 0.15rem 0.5rem;
+      border-radius: 3px;
+      display: inline-block;
+      margin-bottom: 0.8rem;
+    }
+    .tag-p0 { color: var(--red); background: var(--red-dim); }
+    .tag-p1 { color: var(--orange); background: var(--orange-dim); }
+    .tag-p2 { color: var(--teal); background: var(--teal-dim); }
+    .tag-core { color: var(--amber); background: var(--amber-dim); }
+    .tag-data { color: var(--blue); background: var(--blue-dim); }
+    .tag-ai { color: var(--green); background: var(--green-dim); }
+    .tag-infra { color: var(--slate); background: rgba(71,85,105,0.12); }
+    .card h4 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+    }
+    .card p, .card li {
+      font-size: 0.85rem;
+      color: var(--text-dim);
+      line-height: 1.6;
+    }
+    .card ul {
+      list-style: none;
+      padding: 0;
+    }
+    .card li::before {
+      content: "→ ";
+      color: var(--text-muted);
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+    }
+    .card li { margin-bottom: 0.3rem; }
+
+    /* --- Timeline --- */
+    .timeline {
+      position: relative;
+      padding-left: 2.5rem;
+      margin: 2rem 0;
+    }
+    .timeline::before {
+      content: "";
+      position: absolute;
+      left: 8px;
+      top: 0;
+      bottom: 0;
+      width: 2px;
+      background: linear-gradient(to bottom, var(--amber), var(--teal), var(--blue));
+      border-radius: 1px;
+    }
+    .tl-item {
+      position: relative;
+      margin-bottom: 2.5rem;
+    }
+    .tl-dot {
+      position: absolute;
+      left: -2.5rem;
+      top: 0.35rem;
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: 2px solid var(--bg);
+    }
+    .tl-phase {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      margin-bottom: 0.3rem;
+    }
+    .tl-title {
+      font-family: var(--font-serif);
+      font-size: 1.3rem;
+      margin-bottom: 0.4rem;
+    }
+    .tl-desc {
+      font-size: 0.85rem;
+      color: var(--text-dim);
+      margin-bottom: 0.8rem;
+    }
+    .tl-tasks {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.4rem;
+    }
+    .tl-chip {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 3px;
+      border: 1px solid var(--border);
+      background: var(--surface);
+      color: var(--text-dim);
+    }
+
+    /* --- Table --- */
+    .table-wrap {
+      overflow-x: auto;
+      margin: 1.5rem 0;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+    }
+    th {
+      background: var(--surface-2);
+      font-family: var(--font-mono);
+      font-size: 0.68rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: var(--text-dim);
+      padding: 0.8rem 1rem;
+      text-align: left;
+      position: sticky;
+      top: 0;
+    }
+    td {
+      padding: 0.7rem 1rem;
+      border-top: 1px solid var(--border);
+      color: var(--text-dim);
+      vertical-align: top;
+    }
+    tr:hover td { background: var(--surface); }
+    .status {
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      font-weight: 600;
+      padding: 0.15rem 0.5rem;
+      border-radius: 3px;
+      white-space: nowrap;
+    }
+    .s-ready { color: var(--green); background: var(--green-dim); }
+    .s-build { color: var(--amber); background: var(--amber-dim); }
+    .s-plan { color: var(--blue); background: var(--blue-dim); }
+    .s-critical { color: var(--red); background: var(--red-dim); }
+
+    /* --- Flow diagram (CSS-based) --- */
+    .flow-diagram {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      margin: 2rem 0;
+      align-items: center;
+    }
+    .flow-layer {
+      width: 100%;
+      max-width: 800px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.2rem 1.6rem;
+    }
+    .flow-layer-num {
+      font-family: var(--font-mono);
+      font-size: 0.62rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.12em;
+      margin-bottom: 0.6rem;
+    }
+    .flow-layer-items {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 0.5rem;
+    }
+    .flow-item {
+      font-size: 0.78rem;
+      padding: 0.5rem 0.7rem;
+      border-radius: 5px;
+      text-align: center;
+      line-height: 1.3;
+    }
+    .flow-item small {
+      display: block;
+      font-size: 0.65rem;
+      color: var(--text-muted);
+      margin-top: 0.15rem;
+    }
+    .flow-arrow {
+      width: 2px;
+      height: 24px;
+      background: var(--text-muted);
+      position: relative;
+      margin: 0 auto;
+    }
+    .flow-arrow::after {
+      content: "";
+      position: absolute;
+      bottom: -1px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-left: 5px solid transparent;
+      border-right: 5px solid transparent;
+      border-top: 6px solid var(--text-muted);
+    }
+    .fl-ingest .flow-layer-num { color: var(--blue); }
+    .fl-ingest .flow-item { background: var(--blue-dim); color: var(--blue); }
+    .fl-ai .flow-layer-num { color: var(--teal); }
+    .fl-ai .flow-item { background: var(--teal-dim); color: var(--teal); }
+    .fl-decision .flow-layer-num { color: var(--amber); }
+    .fl-decision .flow-item { background: var(--amber-dim); color: var(--amber); }
+    .fl-broadcast .flow-layer-num { color: var(--green); }
+    .fl-broadcast .flow-item { background: var(--green-dim); color: var(--green); }
+
+    /* --- RAG pipeline (CSS-based) --- */
+    .rag-pipeline {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 0;
+      margin: 2rem 0;
+    }
+    .rag-step {
+      width: 100%;
+      max-width: 500px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.8rem 1.2rem;
+      display: flex;
+      align-items: center;
+      gap: 0.8rem;
+    }
+    .rag-num {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      font-weight: 700;
+      width: 24px;
+      height: 24px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+    .rag-text {
+      font-size: 0.82rem;
+      font-weight: 500;
+    }
+    .rag-text small {
+      display: block;
+      font-size: 0.7rem;
+      color: var(--text-dim);
+      font-weight: 400;
+    }
+    .rag-arrow-sm {
+      width: 2px;
+      height: 16px;
+      background: var(--teal);
+      position: relative;
+      margin: 0 auto;
+    }
+    .rag-arrow-sm::after {
+      content: "";
+      position: absolute;
+      bottom: -1px;
+      left: 50%;
+      transform: translateX(-50%);
+      border-left: 4px solid transparent;
+      border-right: 4px solid transparent;
+      border-top: 5px solid var(--teal);
+    }
+    .rag-branch {
+      display: flex;
+      gap: 1rem;
+      width: 100%;
+      max-width: 500px;
+    }
+    .rag-branch .rag-step { flex: 1; }
+    @media (max-width: 600px) {
+      .rag-branch { flex-direction: column; }
+    }
+
+    /* --- Callout --- */
+    .callout {
+      border-left: 3px solid var(--amber);
+      background: var(--amber-dim);
+      padding: 1rem 1.4rem;
+      border-radius: 0 6px 6px 0;
+      margin: 2rem 0;
+    }
+    .callout-title {
+      font-family: var(--font-mono);
+      font-size: 0.7rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--amber);
+      margin-bottom: 0.4rem;
+    }
+    .callout p {
+      font-size: 0.85rem;
+      color: var(--text-dim);
+    }
+
+    /* --- Disruption block --- */
+    .disrupt-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 0;
+      margin: 1.5rem 0;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      overflow: hidden;
+    }
+    @media (max-width: 700px) {
+      .disrupt-grid { grid-template-columns: 1fr; }
+    }
+    .disrupt-col {
+      padding: 1.4rem 1.6rem;
+    }
+    .disrupt-col:first-child {
+      border-right: 1px solid var(--border);
+      background: var(--red-dim);
+    }
+    .disrupt-col:last-child {
+      background: var(--green-dim);
+    }
+    .disrupt-label {
+      font-family: var(--font-mono);
+      font-size: 0.62rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.15em;
+      margin-bottom: 0.8rem;
+    }
+    .disrupt-col:first-child .disrupt-label { color: var(--red); }
+    .disrupt-col:last-child .disrupt-label { color: var(--green); }
+    .disrupt-col li {
+      font-size: 0.82rem;
+      color: var(--text-dim);
+      margin-bottom: 0.4rem;
+      list-style: none;
+    }
+
+    /* --- Animations --- */
+    @keyframes fadeUp {
+      from { opacity: 0; transform: translateY(16px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+    .main > * {
+      animation: fadeUp 0.4s ease-out both;
+    }
+    .main > *:nth-child(1) { animation-delay: 0.05s; }
+    .main > *:nth-child(2) { animation-delay: 0.1s; }
+    .main > *:nth-child(3) { animation-delay: 0.15s; }
+    .main > *:nth-child(4) { animation-delay: 0.2s; }
+    .main > *:nth-child(5) { animation-delay: 0.25s; }
+    @media (prefers-reduced-motion: reduce) {
+      .main > * { animation: none; }
+    }
+
+    /* --- Pull quote --- */
+    .pull-quote {
+      font-family: var(--font-serif);
+      font-size: 1.3rem;
+      font-style: italic;
+      color: var(--text);
+      border-left: 3px solid var(--amber);
+      padding: 0.8rem 0 0.8rem 1.6rem;
+      margin: 2.5rem 0;
+      max-width: 640px;
+    }
+    .pull-quote cite {
+      display: block;
+      font-family: var(--font-mono);
+      font-size: 0.65rem;
+      font-style: normal;
+      color: var(--text-muted);
+      margin-top: 0.6rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+    }
+
+    code {
+      font-family: var(--font-mono);
+      font-size: 0.8em;
+      background: var(--surface-2);
+      padding: 0.1em 0.4em;
+      border-radius: 3px;
+    }
+  </style>
+</head>
+<body>
+
+<div class="wrap">
+
+  <nav class="toc" id="toc">
+    <div class="toc-title">Paganini Terminal</div>
+    <a href="#s0">Visão Geral</a>
+    <a href="#s1">Disrupção</a>
+    <a href="#s2">Arquitetura</a>
+    <a href="#s3">Módulos Core</a>
+    <div class="toc-sep"></div>
+    <a href="#s4">Data Pipeline</a>
+    <a href="#s5">AI Layer</a>
+    <a href="#s6">Broadcast Engine</a>
+    <a href="#s7">Roadmap</a>
+    <div class="toc-sep"></div>
+    <a href="#s8">Stack Técnico</a>
+    <a href="#s9">Métricas de Sucesso</a>
+    <a href="#s10">Riscos</a>
+  </nav>
+
+  <div class="main">
+
+    <!-- HERO -->
+    <div class="hero" id="s0">
+      <div class="hero-badge">Roadmap Estratégico Q2–Q4 2026</div>
+      <h1>Paganini <em>Terminal</em></h1>
+      <p class="hero-sub">
+        O Bloomberg Terminal da empresa. Um sistema de inteligência financeira enterprise que combina dados em tempo real, AI agentic, e broadcast multi-canal — construído sobre o kernel Paganini AIOS.
+      </p>
+    </div>
+
+    <!-- KPIs -->
+    <div class="kpi-row">
+      <div class="kpi">
+        <div class="kpi-value">8</div>
+        <div class="kpi-label">Módulos Core</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-value">23</div>
+        <div class="kpi-label">Skills Ativas</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-value">4</div>
+        <div class="kpi-label">Fases Deploy</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-value">12</div>
+        <div class="kpi-label">Semanas MVP</div>
+      </div>
+      <div class="kpi">
+        <div class="kpi-value">6</div>
+        <div class="kpi-label">Canais Broadcast</div>
+      </div>
+    </div>
+
+    <!-- SECTION 1: DISRUPTION -->
+    <div id="s1" class="sec-head">
+      <span class="sec-dot" style="background:var(--red)"></span>
+      1 — Mapa de Disrupção
+    </div>
+    <h2>O que estamos substituindo</h2>
+    <p class="sec-desc">O Bloomberg Terminal custa $24.000/ano por usuário. As alternativas (Refinitiv, FactSet) cobram $15.000-20.000. Nenhum deles entende português, FIDC, ou regulação brasileira. Nenhum deles usa AI agentic.</p>
+
+    <div class="disrupt-grid">
+      <div class="disrupt-col">
+        <div class="disrupt-label">Modelo Incumbente (Bloomberg)</div>
+        <ul>
+          <li>$24K/ano por terminal</li>
+          <li>Hardware proprietário (teclado Bloomberg)</li>
+          <li>Dados estruturados, queries manuais</li>
+          <li>Zero AI nativa — chat bolt-on</li>
+          <li>Regulação brasileira como cidadão de segunda classe</li>
+          <li>Interface de 1990 — curva de aprendizado de meses</li>
+          <li>Lock-in total: dados não exportam, API cara</li>
+        </ul>
+      </div>
+      <div class="disrupt-col">
+        <div class="disrupt-label">Paganini Terminal</div>
+        <ul>
+          <li>R$2.990/mês — 85% mais barato</li>
+          <li>Web-native, qualquer dispositivo</li>
+          <li>AI agentic: pergunta em linguagem natural</li>
+          <li>9 agentes FIDC especializados + AlphaEar</li>
+          <li>Regulação brasileira nativa (CVM, ANBIMA, BACEN)</li>
+          <li>Interface conversacional — zero curva de aprendizado</li>
+          <li>Open data: RAG + knowledge graph + API aberta</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="pull-quote">
+      "O terminal não é um dashboard que você olha. É um sistema que olha pra você — e te avisa antes que você precise perguntar."
+      <cite>Princípio fundador do Paganini Terminal</cite>
+    </div>
+
+    <!-- SECTION 2: ARCHITECTURE -->
+    <div id="s2" class="sec-head">
+      <span class="sec-dot" style="background:var(--amber)"></span>
+      2 — Arquitetura do Sistema
+    </div>
+    <h2>De ponta a ponta</h2>
+    <p class="sec-desc">Quatro camadas que transformam dados brutos em ação: ingestão → inteligência → decisão → broadcast.</p>
+
+    <div class="flow-diagram">
+      <div class="flow-layer fl-ingest">
+        <div class="flow-layer-num">① Ingestão de dados</div>
+        <div class="flow-layer-items">
+          <div class="flow-item">Dados de Mercado<small>B3 · CVM · ANBIMA</small></div>
+          <div class="flow-item">News Feeds<small>10+ fontes</small></div>
+          <div class="flow-item">Documentos<small>Regulamentos · Atas</small></div>
+          <div class="flow-item">Dados Privados<small>Carteiras · NAV · PDD</small></div>
+        </div>
+      </div>
+      <div class="flow-arrow"></div>
+      <div class="flow-layer fl-ai">
+        <div class="flow-layer-num">② Camada de inteligência</div>
+        <div class="flow-layer-items">
+          <div class="flow-item">Hybrid RAG<small>6 técnicas</small></div>
+          <div class="flow-item">9 Agentes FIDC<small>+ AlphaEar</small></div>
+          <div class="flow-item">Cognitive Router<small>simple → 7B · complex → 27B</small></div>
+          <div class="flow-item">Knowledge Graph<small>Entidades · Relações</small></div>
+        </div>
+      </div>
+      <div class="flow-arrow"></div>
+      <div class="flow-layer fl-decision">
+        <div class="flow-layer-num">③ Motor de decisão</div>
+        <div class="flow-layer-items">
+          <div class="flow-item">6 Guardrail Gates<small>Eligib · Conc · Cov · PLD · Compl · Risk</small></div>
+          <div class="flow-item">Signal Tracker<small>Strengthen · Weaken · Falsify</small></div>
+          <div class="flow-item">Predictor<small>Kronos · News-aware</small></div>
+          <div class="flow-item">Sentiment<small>FinBERT · LLM</small></div>
+        </div>
+      </div>
+      <div class="flow-arrow"></div>
+      <div class="flow-layer fl-broadcast">
+        <div class="flow-layer-num">④ Broadcast engine</div>
+        <div class="flow-layer-items">
+          <div class="flow-item">Dashboard<small>Terminal Web</small></div>
+          <div class="flow-item">Slack<small>Alertas · Reports</small></div>
+          <div class="flow-item">Telegram<small>Conversacional</small></div>
+          <div class="flow-item">REST API<small>Integrações</small></div>
+          <div class="flow-item">Email<small>Digest diário</small></div>
+          <div class="flow-item">Webhooks<small>Eventos real-time</small></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECTION 3: CORE MODULES -->
+    <div id="s3" class="sec-head">
+      <span class="sec-dot" style="background:var(--teal)"></span>
+      3 — Módulos Core
+    </div>
+    <h2>8 pilares do Terminal</h2>
+    <p class="sec-desc">Cada módulo é independente, testável, e plugável via pack architecture. O FIDC é o primeiro pack — a arquitetura suporta qualquer vertical financeiro.</p>
+
+    <div class="card-grid">
+      <div class="card card--hero">
+        <span class="card-tag tag-core">Core Engine</span>
+        <h4>Moltis Kernel + Cognitive Router</h4>
+        <p>O cérebro. Recebe input em linguagem natural, classifica complexidade (simple/moderate/complex), roteia pro modelo certo (7B ou 27B), orquestra agentes, e monta a resposta. Compactação automática de contexto quando histórico passa de 24K tokens.</p>
+        <ul>
+          <li>CognitiveRouter com 3 tiers de complexidade</li>
+          <li>Moltis runtime gerencia estado e memória</li>
+          <li>MetaClaw proxy para tool calling</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <span class="card-tag tag-data">Data Pipeline</span>
+        <h4>Market Data Ingestion</h4>
+        <p>Feeds em tempo real de B3, CVM, ANBIMA, CETIP. Normalização, dedup, e indexação automática no RAG pipeline.</p>
+        <ul>
+          <li>alphaear-stock para cotações</li>
+          <li>alphaear-news para 10+ fontes</li>
+          <li>Polling configurable (1min–1hr)</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <span class="card-tag tag-ai">AI / RAG</span>
+        <h4>Hybrid RAG Pipeline</h4>
+        <p>6 técnicas avançadas: contextual headers, multi-query rewriting, metadata filtering, compression, reranking, GraphRAG multi-hop.</p>
+        <ul>
+          <li>27 famílias de sinônimos FIDC</li>
+          <li>Dense + sparse + RRF fusion</li>
+          <li>Pack-driven: domain-agnostic core</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <span class="card-tag tag-ai">AI / Agents</span>
+        <h4>Fleet de Agentes</h4>
+        <p>9 agentes FIDC especializados + 9 AlphaEar skills. Cada agente tem domínio, guardrails, e compliance built-in.</p>
+        <ul>
+          <li>Gestor, compliance, pricing, IR</li>
+          <li>Due diligence, custódia, reporting</li>
+          <li>FinBERT sentiment + Kronos prediction</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <span class="card-tag tag-core">Decision</span>
+        <h4>6 Guardrail Gates</h4>
+        <p>Pipeline de validação: Eligibilidade → Concentração → Covenant → PLD/AML → Compliance → Risco. Nenhuma decisão passa sem cruzar os 6 gates.</p>
+        <ul>
+          <li>Score automático por cedente</li>
+          <li>Limites regulatórios embutidos</li>
+          <li>Audit trail completo</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <span class="card-tag tag-data">Intelligence</span>
+        <h4>Signal Tracker + Predictor</h4>
+        <p>Monitora sinais de investimento em tempo real. Kronos faz time-series forecast com ajuste por sentiment de notícias. Cada sinal evolui: strengthen / weaken / falsify.</p>
+        <ul>
+          <li>alphaear-signal-tracker ativo</li>
+          <li>alphaear-predictor (Kronos)</li>
+          <li>Logic chain visualization</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <span class="card-tag tag-p1">Broadcast</span>
+        <h4>Multi-Channel Delivery</h4>
+        <p>O terminal não é um único app. É broadcast. Mesmo dado, mesma inteligência, 6 superfícies: Dashboard web, Slack, Telegram, API REST, Email digest, Webhooks.</p>
+        <ul>
+          <li>Conversacional: Slack, Telegram</li>
+          <li>Visual: Dashboard terminal</li>
+          <li>Programático: API + Webhooks</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <span class="card-tag tag-infra">Infra</span>
+        <h4>Sentrux Quality Gate</h4>
+        <p>Sensor arquitetural em Rust monitorando 720 arquivos. 6 layers definidos com dependency inversion enforced. Quality score: 5690.</p>
+        <ul>
+          <li>17 violações mapeadas (tech debt)</li>
+          <li>MCP server ativo para subagentes</li>
+          <li>CI/CD gate via <code>sentrux check</code></li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- SECTION 4: DATA PIPELINE -->
+    <div id="s4" class="sec-head">
+      <span class="sec-dot" style="background:var(--blue)"></span>
+      4 — Data Pipeline
+    </div>
+    <h2>Fontes de dados e ingestão</h2>
+    <p class="sec-desc">O terminal é tão bom quanto seus dados. A ingestão precisa ser automatizada, incremental, e multi-fonte.</p>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Fonte</th>
+            <th>Tipo</th>
+            <th>Frequência</th>
+            <th>Formato</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>CVM</strong></td>
+            <td>Regulamentos, instruções, pareceres</td>
+            <td>Diário (incremental)</td>
+            <td>PDF → Markdown → RAG chunks</td>
+            <td><span class="status s-plan">A construir</span></td>
+          </tr>
+          <tr>
+            <td><strong>ANBIMA</strong></td>
+            <td>Diretrizes, classificações, benchmarks</td>
+            <td>Semanal</td>
+            <td>PDF/HTML → Markdown</td>
+            <td><span class="status s-plan">A construir</span></td>
+          </tr>
+          <tr>
+            <td><strong>B3/CETIP</strong></td>
+            <td>Cotações, volumes, títulos registrados</td>
+            <td>Tempo real (5min delay)</td>
+            <td>API → JSON → TimeSeries</td>
+            <td><span class="status s-plan">A construir</span></td>
+          </tr>
+          <tr>
+            <td><strong>News (AlphaEar)</strong></td>
+            <td>Notícias financeiras, Polymarket</td>
+            <td>Real-time (polling 5min)</td>
+            <td>API → Sentiment → RAG</td>
+            <td><span class="status s-ready">Skill pronta</span></td>
+          </tr>
+          <tr>
+            <td><strong>Dados do cliente</strong></td>
+            <td>Carteiras, NAV, PDD, cotas</td>
+            <td>Upload ou API do ERP</td>
+            <td>CSV/Excel/API → Schema validated</td>
+            <td><span class="status s-plan">A construir</span></td>
+          </tr>
+          <tr>
+            <td><strong>Regulamentos FIDC</strong></td>
+            <td>Documentos do fundo específico</td>
+            <td>On-demand (upload)</td>
+            <td>PDF → OCR → Chunks → RAG</td>
+            <td><span class="status s-build">RAG pronto, ingestão parcial</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout">
+      <div class="callout-title">Princípio de ingestão</div>
+      <p>Todo documento entra pelo RAG pipeline com contextual headers + metadata extraction automática. O knowledge graph atualiza entidades em tempo real. Nenhum dado fica "solto" — tudo indexado, linkado, e searchable.</p>
+    </div>
+
+    <!-- SECTION 5: AI LAYER -->
+    <div id="s5" class="sec-head">
+      <span class="sec-dot" style="background:var(--green)"></span>
+      5 — AI Layer
+    </div>
+    <h2>Inferência e inteligência</h2>
+    <p class="sec-desc">Três fases de evolução do motor de inferência, otimizando custo vs latência vs qualidade.</p>
+
+    <div class="card-grid">
+      <div class="card">
+        <span class="card-tag tag-core">Fase 1: Meses 1-4</span>
+        <h4>Together AI API</h4>
+        <ul>
+          <li>Zero cold start, zero infra</li>
+          <li>$0.0005/query (blended)</li>
+          <li>Ideal para 0-100 clientes</li>
+          <li>Qwen3.5-27B disponível via API</li>
+          <li>Focus total no produto, não na infra</li>
+        </ul>
+      </div>
+      <div class="card">
+        <span class="card-tag tag-data">Fase 2: Meses 4-7</span>
+        <h4>Híbrido (API + Modal)</h4>
+        <ul>
+          <li>Modal auto-scale para picos</li>
+          <li>API como fallback</li>
+          <li>Fine-tune com dados reais FIDC</li>
+          <li>7B GGUF pra queries simples</li>
+          <li>27B GGUF pra complexas</li>
+        </ul>
+      </div>
+      <div class="card">
+        <span class="card-tag tag-ai">Fase 3: Meses 7+</span>
+        <h4>GPU Dedicada</h4>
+        <ul>
+          <li>Vast.ai A10G ($252/mês)</li>
+          <li>Zero cold start permanente</li>
+          <li>Modelo fine-tuned em produção</li>
+          <li>API como failover</li>
+          <li>Escala horizontal com volume</li>
+        </ul>
+      </div>
+    </div>
+
+    <h3>Pipeline RAG avançado (já implementado)</h3>
+    <div class="rag-pipeline">
+      <div class="rag-step">
+        <div class="rag-num" style="background:var(--teal-dim);color:var(--teal)">1</div>
+        <div class="rag-text">Multi-Query Rewriting<small>3-5 variantes da pergunta</small></div>
+      </div>
+      <div class="rag-arrow-sm"></div>
+      <div class="rag-step">
+        <div class="rag-num" style="background:var(--blue-dim);color:var(--blue)">2</div>
+        <div class="rag-text">Metadata Filter<small>fundo · data · tipo · regulador</small></div>
+      </div>
+      <div class="rag-arrow-sm"></div>
+      <div class="rag-step">
+        <div class="rag-num" style="background:var(--amber-dim);color:var(--amber)">3</div>
+        <div class="rag-text">Hybrid Retrieval<small>Dense + Sparse + RRF Fusion</small></div>
+      </div>
+      <div class="rag-arrow-sm"></div>
+      <div class="rag-step">
+        <div class="rag-num" style="background:var(--orange-dim);color:var(--orange)">4</div>
+        <div class="rag-text">Reranker<small>Cross-encoder ou keyword fallback</small></div>
+      </div>
+      <div class="rag-arrow-sm"></div>
+      <div class="rag-step">
+        <div class="rag-num" style="background:var(--red-dim);color:var(--red)">5</div>
+        <div class="rag-text">Context Compressor<small>Extractivo · smart truncation</small></div>
+      </div>
+      <div class="rag-arrow-sm"></div>
+      <div class="rag-branch">
+        <div class="rag-step" style="border-color:var(--green)">
+          <div class="rag-num" style="background:var(--green-dim);color:var(--green)">6a</div>
+          <div class="rag-text">GraphRAG<small>Multi-hop: entity traversal 1-2 hops</small></div>
+        </div>
+        <div class="rag-step">
+          <div class="rag-num" style="background:var(--teal-dim);color:var(--teal)">6b</div>
+          <div class="rag-text">Direct<small>Single-hop: resposta direta</small></div>
+        </div>
+      </div>
+      <div class="rag-arrow-sm"></div>
+      <div class="rag-step" style="border-color:var(--amber);background:var(--surface-2)">
+        <div class="rag-num" style="background:var(--amber-dim);color:var(--amber)">7</div>
+        <div class="rag-text" style="font-weight:600">LLM Generation<small>Resposta com fontes citadas</small></div>
+      </div>
+    </div>
+
+    <!-- SECTION 6: BROADCAST -->
+    <div id="s6" class="sec-head">
+      <span class="sec-dot" style="background:var(--orange)"></span>
+      6 — Broadcast Engine
+    </div>
+    <h2>Delivery multi-canal</h2>
+    <p class="sec-desc">O Paganini não é um app. É um broadcast. Cada canal recebe o mesmo dado com formatação otimizada para a superfície.</p>
+
+    <div class="card-grid">
+      <div class="card">
+        <span class="card-tag tag-p0">Canal Principal</span>
+        <h4>Dashboard Terminal (Web)</h4>
+        <p>Interface estilo Bloomberg — painéis draggable, real-time ticker, gráficos interativos, chat AI integrado. O "monitor" da mesa de operações.</p>
+        <ul>
+          <li>Next.js + TailwindCSS</li>
+          <li>WebSocket para real-time</li>
+          <li>Painéis configuráveis por usuário</li>
+          <li>Dark mode nativo (mesa de trading)</li>
+        </ul>
+      </div>
+      <div class="card">
+        <span class="card-tag tag-p1">Conversacional</span>
+        <h4>Slack + Telegram + Teams</h4>
+        <p>Chat direto com os agentes. Pergunta em português, recebe análise com fontes. Alertas proativos de compliance, vencimento de cotas, limites de concentração.</p>
+        <ul>
+          <li>Slack bot (já conectado)</li>
+          <li>Telegram bot (canal atual)</li>
+          <li>Microsoft Teams (roadmap)</li>
+        </ul>
+      </div>
+      <div class="card">
+        <span class="card-tag tag-p2">Programático</span>
+        <h4>REST API + Webhooks</h4>
+        <p>Para integração com ERPs, sistemas de custódia, e plataformas de gestão. OpenAPI spec, rate limiting, autenticação por API key.</p>
+        <ul>
+          <li>Endpoint <code>/v1/query</code> (OpenAI-compat)</li>
+          <li>Webhooks para eventos (alerta, NAV, PDD)</li>
+          <li>SDK Python para automação</li>
+        </ul>
+      </div>
+      <div class="card">
+        <span class="card-tag tag-p2">Digest</span>
+        <h4>Email + Reports</h4>
+        <p>Digest diário automático: posição consolidada, alertas do dia, notícias relevantes, compliance status. Report mensal para cotistas gerado automaticamente.</p>
+        <ul>
+          <li>alphaear-reporter para geração</li>
+          <li>Templates HTML responsivos</li>
+          <li>Scheduling configurável</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- SECTION 7: ROADMAP -->
+    <div id="s7" class="sec-head">
+      <span class="sec-dot" style="background:var(--amber)"></span>
+      7 — Roadmap de Implementação
+    </div>
+    <h2>4 fases, 12 semanas até MVP</h2>
+    <p class="sec-desc">Cada fase entrega valor incremental. Nada é "infra sem produto". Desde a semana 1, existe algo demonstrável.</p>
+
+    <div class="timeline">
+
+      <div class="tl-item">
+        <div class="tl-dot" style="background:var(--red)"></div>
+        <div class="tl-phase" style="color:var(--red)">Fase 0 — Semanas 1-2 · Foundation</div>
+        <div class="tl-title">Wiring: kernel → inferência → canal</div>
+        <div class="tl-desc">Conectar as peças que já existem. O kernel precisa chamar um LLM real e devolver resposta via um canal funcional. Zero features novas — só wiring.</div>
+        <div class="tl-tasks">
+          <span class="tl-chip">Together AI provider</span>
+          <span class="tl-chip">engine.py → config.yaml → API</span>
+          <span class="tl-chip">HTTP endpoint /v1/query</span>
+          <span class="tl-chip">Think filter robusto</span>
+          <span class="tl-chip">Telegram bot funcional</span>
+          <span class="tl-chip">Streaming SSE</span>
+        </div>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-dot" style="background:var(--amber)"></div>
+        <div class="tl-phase" style="color:var(--amber)">Fase 1 — Semanas 3-5 · Data + RAG</div>
+        <div class="tl-title">Corpus regulatório + RAG em produção</div>
+        <div class="tl-desc">Ingerir os primeiros documentos reais: resoluções CVM, instruções ANBIMA, regulamentos de FIDC modelo. Validar RAG com perguntas reais de gestores.</div>
+        <div class="tl-tasks">
+          <span class="tl-chip">CVM scraper (PDFs)</span>
+          <span class="tl-chip">PDF → Markdown pipeline</span>
+          <span class="tl-chip">Ingestão incremental</span>
+          <span class="tl-chip">ChromaDB persistente</span>
+          <span class="tl-chip">Validação com 50 queries FIDC</span>
+          <span class="tl-chip">Knowledge graph bootstrap</span>
+          <span class="tl-chip">AlphaEar news integration</span>
+          <span class="tl-chip">Sentiment pipeline ativo</span>
+        </div>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-dot" style="background:var(--teal)"></div>
+        <div class="tl-phase" style="color:var(--teal)">Fase 2 — Semanas 6-9 · Terminal UI</div>
+        <div class="tl-title">Dashboard Terminal + Multi-canal</div>
+        <div class="tl-desc">Construir a interface "Bloomberg" web — painéis de mercado, chat AI, alertas real-time. Ativar Slack bot com alertas proativos de compliance.</div>
+        <div class="tl-tasks">
+          <span class="tl-chip">Next.js dashboard scaffold</span>
+          <span class="tl-chip">Painel de chat (conversacional)</span>
+          <span class="tl-chip">Ticker / cotações real-time</span>
+          <span class="tl-chip">Painel de compliance status</span>
+          <span class="tl-chip">Painel de alertas</span>
+          <span class="tl-chip">WebSocket real-time</span>
+          <span class="tl-chip">Slack bot alertas proativos</span>
+          <span class="tl-chip">Email digest diário</span>
+          <span class="tl-chip">Memória por cliente (R2)</span>
+        </div>
+      </div>
+
+      <div class="tl-item">
+        <div class="tl-dot" style="background:var(--blue)"></div>
+        <div class="tl-phase" style="color:var(--blue)">Fase 3 — Semanas 10-12 · Enterprise</div>
+        <div class="tl-title">Multi-tenant + Demo + First Client</div>
+        <div class="tl-desc">Isolamento por cliente (workspace R2), onboarding automatizado, API pública, e demo para primeiro cliente real.</div>
+        <div class="tl-tasks">
+          <span class="tl-chip">Multi-tenant isolation</span>
+          <span class="tl-chip">Client onboarding flow</span>
+          <span class="tl-chip">REST API pública + docs</span>
+          <span class="tl-chip">Guardrail gates em produção</span>
+          <span class="tl-chip">Report generator automatizado</span>
+          <span class="tl-chip">Signal tracker ativo</span>
+          <span class="tl-chip">Predictor (Kronos) calibrado</span>
+          <span class="tl-chip">Demo pack para prospect</span>
+          <span class="tl-chip">Security audit</span>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- SECTION 8: TECH STACK -->
+    <div id="s8" class="sec-head">
+      <span class="sec-dot" style="background:var(--slate)"></span>
+      8 — Stack Técnico
+    </div>
+    <h2>Componentes e dependências</h2>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Camada</th>
+            <th>Tecnologia</th>
+            <th>Papel</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Runtime</strong></td>
+            <td>Python 3.12 + FastAPI</td>
+            <td>Kernel, agentes, API server</td>
+            <td><span class="status s-ready">Pronto</span></td>
+          </tr>
+          <tr>
+            <td><strong>LLM (Phase 1)</strong></td>
+            <td>Together AI API</td>
+            <td>Qwen3.5-27B inference</td>
+            <td><span class="status s-build">A conectar</span></td>
+          </tr>
+          <tr>
+            <td><strong>LLM (Phase 2+)</strong></td>
+            <td>Modal + llama.cpp</td>
+            <td>Self-hosted GGUF Q4_K_M</td>
+            <td><span class="status s-ready">Benchmarkado</span></td>
+          </tr>
+          <tr>
+            <td><strong>Vector DB</strong></td>
+            <td>ChromaDB (embedded)</td>
+            <td>Dense retrieval, embeddings</td>
+            <td><span class="status s-ready">Pronto</span></td>
+          </tr>
+          <tr>
+            <td><strong>Sparse Search</strong></td>
+            <td>BM25 (custom)</td>
+            <td>Sparse retrieval, RRF fusion</td>
+            <td><span class="status s-ready">Pronto</span></td>
+          </tr>
+          <tr>
+            <td><strong>Knowledge Graph</strong></td>
+            <td>JSON graph (in-memory)</td>
+            <td>Entity extraction, multi-hop</td>
+            <td><span class="status s-ready">Pronto</span></td>
+          </tr>
+          <tr>
+            <td><strong>Frontend</strong></td>
+            <td>Next.js 15 + Tailwind</td>
+            <td>Terminal Dashboard</td>
+            <td><span class="status s-plan">A construir</span></td>
+          </tr>
+          <tr>
+            <td><strong>Real-time</strong></td>
+            <td>WebSocket + SSE</td>
+            <td>Streaming, live data</td>
+            <td><span class="status s-plan">A construir</span></td>
+          </tr>
+          <tr>
+            <td><strong>Storage</strong></td>
+            <td>Cloudflare R2</td>
+            <td>Client workspace (~100KB/client)</td>
+            <td><span class="status s-plan">A construir</span></td>
+          </tr>
+          <tr>
+            <td><strong>Embeddings</strong></td>
+            <td>Gemini embedding-2</td>
+            <td>Semantic search, 3072d vectors</td>
+            <td><span class="status s-ready">Pronto</span></td>
+          </tr>
+          <tr>
+            <td><strong>Sentiment</strong></td>
+            <td>FinBERT + LLM fallback</td>
+            <td>News/document sentiment scoring</td>
+            <td><span class="status s-ready">Skill pronta</span></td>
+          </tr>
+          <tr>
+            <td><strong>Prediction</strong></td>
+            <td>Kronos (AlphaEar)</td>
+            <td>Time-series forecast</td>
+            <td><span class="status s-ready">Skill pronta</span></td>
+          </tr>
+          <tr>
+            <td><strong>Quality Gate</strong></td>
+            <td>Sentrux (Rust)</td>
+            <td>Architectural sensor + MCP</td>
+            <td><span class="status s-ready">Ativo</span></td>
+          </tr>
+          <tr>
+            <td><strong>Deploy</strong></td>
+            <td>Docker + Cloudflare Workers</td>
+            <td>Serverless, auto-scale</td>
+            <td><span class="status s-plan">A construir</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- SECTION 9: METRICS -->
+    <div id="s9" class="sec-head">
+      <span class="sec-dot" style="background:var(--green)"></span>
+      9 — Métricas de Sucesso
+    </div>
+    <h2>O que medir</h2>
+
+    <div class="card-grid">
+      <div class="card">
+        <span class="card-tag tag-core">Produto</span>
+        <h4>Qualidade RAG</h4>
+        <ul>
+          <li>Accuracy em 50 queries de benchmark FIDC</li>
+          <li>Recall: % de fontes relevantes recuperadas</li>
+          <li>Precision: % de chunks usados que eram relevantes</li>
+          <li>Target: >85% accuracy, >70% recall</li>
+        </ul>
+      </div>
+      <div class="card">
+        <span class="card-tag tag-data">Performance</span>
+        <h4>Latência e Throughput</h4>
+        <ul>
+          <li>First token: <2s (API) / <5s (self-hosted)</li>
+          <li>Full response: <15s (complexa)</li>
+          <li>Concurrent users: 50+ por instância</li>
+          <li>Uptime: 99.5% (SLA enterprise)</li>
+        </ul>
+      </div>
+      <div class="card">
+        <span class="card-tag tag-ai">Negócio</span>
+        <h4>Revenue e Adoção</h4>
+        <ul>
+          <li>5 clientes na Fase 3 (R$14.950/mês)</li>
+          <li>Daily active users per client: >3</li>
+          <li>Queries/dia/cliente: >15</li>
+          <li>Margem: >98% (infra < 2% da receita)</li>
+        </ul>
+      </div>
+      <div class="card">
+        <span class="card-tag tag-infra">Arquitetura</span>
+        <h4>Saúde do Sistema</h4>
+        <ul>
+          <li>Sentrux quality score: >6500 (atual: 5690)</li>
+          <li>Violações Sentrux: 0 (atual: 17)</li>
+          <li>Test coverage: >70%</li>
+          <li>Zero god files (max 200 LOC/function)</li>
+        </ul>
+      </div>
+    </div>
+
+    <!-- SECTION 10: RISKS -->
+    <div id="s10" class="sec-head">
+      <span class="sec-dot" style="background:var(--red)"></span>
+      10 — Riscos e Mitigações
+    </div>
+    <h2>O que pode dar errado</h2>
+
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Risco</th>
+            <th>Impacto</th>
+            <th>Probabilidade</th>
+            <th>Mitigação</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Alucinação em dados regulatórios</strong></td>
+            <td><span class="status s-critical">Crítico</span></td>
+            <td><span class="status s-build">Alta</span></td>
+            <td>RAG com citação obrigatória de fontes + 6 guardrail gates + validação humana em decisões críticas</td>
+          </tr>
+          <tr>
+            <td><strong>Cold start inaceitável (83s)</strong></td>
+            <td><span class="status s-critical">Alto</span></td>
+            <td><span class="status s-build">Média</span></td>
+            <td>Phase 1 via API (zero cold start). Phase 2+: keep-alive ou GPU dedicada</td>
+          </tr>
+          <tr>
+            <td><strong>Dados CVM/ANBIMA difíceis de extrair</strong></td>
+            <td><span class="status s-build">Médio</span></td>
+            <td><span class="status s-build">Alta</span></td>
+            <td>PDF pipeline robusto com OCR fallback. Começar com documentos públicos mais estruturados</td>
+          </tr>
+          <tr>
+            <td><strong>Modelo mistura chinês em respostas</strong></td>
+            <td><span class="status s-build">Médio</span></td>
+            <td><span class="status s-build">Média</span></td>
+            <td>System prompt reforçado + <code>max_tokens ≥ 300</code> + fine-tune com dados PT-BR</td>
+          </tr>
+          <tr>
+            <td><strong>Compliance: uso de AI em decisões financeiras</strong></td>
+            <td><span class="status s-critical">Crítico</span></td>
+            <td><span class="status s-plan">Baixa</span></td>
+            <td>Disclaimer explícito: "assistente, não consultor". Audit trail. Guardrails impedem ações diretas</td>
+          </tr>
+          <tr>
+            <td><strong>Dependência do Together AI na Phase 1</strong></td>
+            <td><span class="status s-build">Médio</span></td>
+            <td><span class="status s-plan">Baixa</span></td>
+            <td>Interface OpenAI-compatible permite trocar provider em 1 config change. Modal como fallback testado</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="callout">
+      <div class="callout-title">Próximo passo imediato</div>
+      <p><strong>Fase 0, Item 1: Wiring kernel → Together AI → HTTP endpoint.</strong> Quando uma pergunta entra e uma resposta sai — o terminal existe. Todo o resto é feature em cima dessa fundação.</p>
+    </div>
+
+  </div><!-- /main -->
+
+</div><!-- /wrap -->
+
+<script>
+  // TOC active state
+  const toc = document.getElementById('toc');
+  const links = toc.querySelectorAll('a');
+  const sections = [];
+  links.forEach(a => {
+    const id = a.getAttribute('href')?.replace('#','');
+    if (id) sections.push({ id, el: document.getElementById(id), link: a });
+  });
+
+  function updateActive() {
+    let current = sections[0];
+    for (const s of sections) {
+      if (s.el && s.el.getBoundingClientRect().top <= 120) current = s;
+    }
+    links.forEach(l => l.classList.remove('active'));
+    if (current) current.link.classList.add('active');
+  }
+  window.addEventListener('scroll', updateActive, { passive: true });
+  updateActive();
+</script>
+
+</body>
+</html>

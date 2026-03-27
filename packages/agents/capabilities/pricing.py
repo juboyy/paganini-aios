@@ -421,22 +421,12 @@ class PricingAgent:
         """
         Generate a comprehensive portfolio pricing report.
 
-        For each receivable:
-        - Compute MTM value
-        - Compute annualised yield
-        - Compute PDD provision
-        - Compute discount (face vs. MTM)
-
-        Aggregate:
-        - Total face value, total MTM, total provision
-        - Weighted average yield
-        - Portfolio-level aging report
-        - Unrealised P&L (MTM − purchase_price)
+        For each receivable: Compute MTM, yield, PDD, MTM discount, unrealised P&L.
+        Aggregates totals and returns per-receivable details with aging report.
 
         Args:
-            portfolio: List of receivable dicts, each with:
-                       face_value, purchase_price, days_to_maturity,
-                       days_past_due, discount_rate (optional), spread (optional).
+            portfolio: List of receivable dicts with face_value, purchase_price,
+                       days_to_maturity, days_past_due, discount_rate (optional).
 
         Returns:
             Dict with per-receivable details and portfolio aggregates.
@@ -444,92 +434,21 @@ class PricingAgent:
         if not portfolio:
             return {"error": "Empty portfolio."}
 
-        # Build default curve from risk-free + sector spread
         default_curve = {
-            "30d": 0.105,
-            "60d": 0.108,
-            "90d": 0.111,
-            "120d": 0.114,
-            "180d": 0.118,
-            "252d": 0.122,
-            "360d": 0.126,
+            "30d": 0.105, "60d": 0.108, "90d": 0.111, "120d": 0.114,
+            "180d": 0.118, "252d": 0.122, "360d": 0.126,
         }
 
-        items: list[dict[str, Any]] = []
-        total_face_value = 0.0
-        total_mtm = 0.0
-        total_purchase_price = 0.0
-        total_provision = 0.0
-        weighted_yield_numerator = 0.0
-
-        for rec in portfolio:
-            fv = float(rec.get("face_value", 0.0))
-            pp = float(
-                rec.get("purchase_price", fv)
-            )  # Assume purchased at par if not provided
-            days = int(rec.get("days_to_maturity", 1))
-            dpd = int(rec.get("days_past_due", 0))
-
-            if fv <= 0:
-                continue
-
-            # MTM
-            curve = rec.get("curve", default_curve)
-            mtm = self.mark_to_market(rec, curve)
-
-            # Yield
-            try:
-                yld = self.calculate_yield(pp, fv, max(days, 1))
-            except ValueError:
-                yld = 0.0
-
-            # PDD for this receivable
-            bucket_rate = self._dpd_to_provision_rate(dpd)
-            provision = fv * bucket_rate
-
-            # MTM discount vs. face value
-            mtm_discount = fv - mtm
-            mtm_discount_pct = mtm_discount / fv * 100 if fv else 0.0
-
-            # Unrealised P&L
-            unrealised_pnl = mtm - pp
-
-            items.append(
-                {
-                    "id": rec.get("id", "?"),
-                    "face_value_brl": round(fv, 2),
-                    "purchase_price_brl": round(pp, 2),
-                    "mtm_value_brl": round(mtm, 2),
-                    "mtm_discount_brl": round(mtm_discount, 2),
-                    "mtm_discount_pct": round(mtm_discount_pct, 4),
-                    "unrealised_pnl_brl": round(unrealised_pnl, 2),
-                    "annualized_yield_pct": round(yld * 100, 4),
-                    "days_to_maturity": days,
-                    "days_past_due": dpd,
-                    "pdd_rate_pct": round(bucket_rate * 100, 2),
-                    "pdd_provision_brl": round(provision, 2),
-                    "cedente": rec.get("cedente", ""),
-                    "sacado": rec.get("sacado", ""),
-                    "sector": rec.get("sector", ""),
-                }
-            )
-
-            total_face_value += fv
-            total_mtm += mtm
-            total_purchase_price += pp
-            total_provision += provision
-            weighted_yield_numerator += yld * fv
+        items, totals = _price_receivables(self, portfolio, default_curve)
 
         if not items:
             return {"error": "No valid receivables in portfolio."}
 
-        weighted_avg_yield = (
-            weighted_yield_numerator / total_face_value if total_face_value > 0 else 0.0
-        )
+        total_face_value, total_mtm, total_purchase_price, total_provision, weighted_yield_num = totals
+        weighted_avg_yield = weighted_yield_num / total_face_value if total_face_value > 0 else 0.0
         total_unrealised_pnl = total_mtm - total_purchase_price
         net_asset_value = total_mtm - total_provision
 
-        # Aging report
         aging = self.calculate_pdd_aging(portfolio)
 
         return {
@@ -552,6 +471,65 @@ class PricingAgent:
             "aging_report": aging.to_dict(),
             "receivables": items,
         }
+
+
+
+def _price_receivables(
+    agent: "PricingAgent",
+    portfolio: list[dict[str, Any]],
+    default_curve: dict,
+) -> tuple:
+    """Price each receivable in portfolio; return (items, totals_tuple)."""
+    items: list[dict[str, Any]] = []
+    total_face_value = 0.0
+    total_mtm = 0.0
+    total_purchase_price = 0.0
+    total_provision = 0.0
+    weighted_yield_numerator = 0.0
+
+    for rec in portfolio:
+        fv = float(rec.get("face_value", 0.0))
+        if fv <= 0: continue
+        
+        pp = float(rec.get("purchase_price", fv))
+        days = int(rec.get("days_to_maturity", 1))
+        dpd = int(rec.get("days_past_due", 0))
+
+        # Core logic split into sub-function
+        item, metrics = _process_receivable_item(agent, rec, fv, pp, days, dpd, default_curve)
+        items.append(item)
+
+        total_face_value += fv
+        total_mtm += metrics['mtm']
+        total_purchase_price += pp
+        total_provision += metrics['provision']
+        weighted_yield_numerator += metrics['yld'] * fv
+
+    return items, (total_face_value, total_mtm, total_purchase_price, total_provision, weighted_yield_numerator)
+
+def _process_receivable_item(agent, rec, fv, pp, days, dpd, default_curve):
+    curve = rec.get("curve", default_curve)
+    mtm = agent.mark_to_market(rec, curve)
+    try:
+        yld = agent.calculate_yield(pp, fv, max(days, 1))
+    except ValueError:
+        yld = 0.0
+
+    bucket_rate = agent._dpd_to_provision_rate(dpd)
+    provision = fv * bucket_rate
+    mtm_disc = fv - mtm
+    unrealised_pnl = mtm - pp
+
+    item = {
+        "id": rec.get("id", "?"), "face_value_brl": round(fv, 2), "purchase_price_brl": round(pp, 2),
+        "mtm_value_brl": round(mtm, 2), "mtm_discount_brl": round(mtm_disc, 2),
+        "mtm_discount_pct": round(mtm_disc / fv * 100 if fv else 0, 4),
+        "unrealised_pnl_brl": round(unrealised_pnl, 2), "annualized_yield_pct": round(yld * 100, 4),
+        "days_to_maturity": days, "days_past_due": dpd, "pdd_rate_pct": round(bucket_rate * 100, 2),
+        "pdd_provision_brl": round(provision, 2), "cedente": rec.get("cedente", ""),
+        "sacado": rec.get("sacado", ""), "sector": rec.get("sector", ""),
+    }
+    return item, {'mtm': mtm, 'provision': provision, 'yld': yld}
 
     # ------------------------------------------------------------------
     # Private helpers
