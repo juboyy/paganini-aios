@@ -81,19 +81,13 @@ class Inference:
 
         t0 = time.time()
         try:
-            # Add /nothink suffix to suppress reasoning chain
-            patched_messages = list(messages)
-            if patched_messages:
-                last = patched_messages[-1].copy()
-                last["content"] = last["content"] + "\n/nothink"
-                patched_messages[-1] = last
-
             result = self.llm.create_chat_completion(
-                messages=patched_messages,
+                messages=messages,
                 max_tokens=max_tokens,
                 temperature=temperature,
                 top_p=request.get("top_p", 0.95),
                 stop=["<|im_end|>"],
+                chat_template_kwargs={"enable_thinking": False},
             )
             t1 = time.time()
             inf_s = t1 - t0
