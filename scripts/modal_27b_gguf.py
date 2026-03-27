@@ -52,7 +52,27 @@ class Inference:
         print(f"Model loaded in {self.load_time:.1f}s")
 
     @modal.fastapi_endpoint(method="POST", docs=True)
+    def v1_chat_completions(self, request: dict):
+        """OpenAI-compatible endpoint for Paganini kernel integration."""
+        return self._do_inference(request)
+
+    @modal.fastapi_endpoint(method="POST", docs=True)
     def generate(self, request: dict):
+        """Legacy endpoint — wraps OpenAI-compatible response."""
+        result = self._do_inference(request)
+        # Flatten for backward compat
+        if "choices" in result:
+            choice = result["choices"][0]
+            return {
+                "text": choice["message"]["content"],
+                "model": result.get("model", ""),
+                "usage": result.get("usage", {}),
+                "timing": result.get("timing", {}),
+                "cost": result.get("cost", {}),
+            }
+        return result
+
+    def _do_inference(self, request: dict):
         import time
 
         messages = request.get("messages", [])
@@ -61,8 +81,15 @@ class Inference:
 
         t0 = time.time()
         try:
+            # Add /nothink suffix to suppress reasoning chain
+            patched_messages = list(messages)
+            if patched_messages:
+                last = patched_messages[-1].copy()
+                last["content"] = last["content"] + "\n/nothink"
+                patched_messages[-1] = last
+
             result = self.llm.create_chat_completion(
-                messages=messages,
+                messages=patched_messages,
                 max_tokens=max_tokens,
                 temperature=temperature,
                 top_p=request.get("top_p", 0.95),
@@ -77,30 +104,54 @@ class Inference:
             in_tok = usage.get("prompt_tokens", 0)
             rate = 1.10  # A10G $/hr
 
-            # Filter out thinking/reasoning blocks
+            # Filter out thinking/reasoning — extract final answer
             import re
             text = text_raw
-            # Remove <think>...</think> blocks
+
+            # Remove <think>...</think>
             text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL).strip()
-            # Remove "Thinking Process:..." blocks (ends at final answer)
-            text = re.sub(
-                r"Thinking Process:.*?(?=\n(?:A subordinação|O FIDC|No contexto|Em um FIDC|Subordinação|[A-ZÁÉÍÓÚÂÊÔÃÕÇ][a-záéíóúâêôãõç]))",
-                "",
-                text,
-                flags=re.DOTALL,
-            ).strip()
-            # If still has thinking prefix, take everything after last numbered list
-            if text.startswith("Thinking") and "\n\n" in text:
-                parts = text.split("\n\n")
-                # Find the actual answer (Portuguese text, not English reasoning)
-                for i, p in enumerate(parts):
-                    if any(c in p for c in ["ção", "ões", "ância", "ência"]) and not p.startswith("*"):
-                        text = "\n\n".join(parts[i:])
-                        break
+
+            # If reasoning detected, extract Portuguese answer
+            if any(m in text for m in ["Thinking Process:", "Analyze the Request", "1.  **"]):
+                # Collect all Portuguese sentences (accented, >80 chars, starts with capital)
+                pt_sentences = []
+                for line in text.split("\n"):
+                    clean = line.strip().lstrip("*- ").strip()
+                    # Skip lines that are meta-commentary
+                    if any(clean.startswith(w) for w in [
+                        "Sentence", "Draft", "Check", "Critique", "Refin",
+                        "Review", "Select", "Let", "Also", "Good", "Very",
+                        "Language", "Topic", "Constraint", "Mode", "In the",
+                        "What", "How", "Why", "It ", "They", "The ", "Yes",
+                        "No", "Note", "Hint", "Think", "#", "**"
+                    ]):
+                        continue
+                    # Must be substantial Portuguese prose (not English with accents)
+                    pt_words = ["em", "de", "do", "da", "dos", "das", "que", "para",
+                                "entre", "como", "uma", "são", "pelo", "pela", "aos",
+                                "nas", "nos", "com", "por", "sua", "seu", "este",
+                                "essa", "esse", "mais", "também", "sobre"]
+                    words_in_line = clean.lower().split()
+                    pt_word_count = sum(1 for w in words_in_line if w in pt_words)
+                    if (len(clean) > 80
+                        and pt_word_count >= 3
+                        and clean[0] in "ABCDEFGHIJKLMNOPQRSTUVWXYZÁÉÍÓÚÂÊÔÃÕÇ"):
+                        pt_sentences.append(clean)
+
+                if pt_sentences:
+                    # Take the last 3 (final refined version)
+                    text = " ".join(pt_sentences[-3:])
 
             return {
-                "text": text,
-                "model": "Qwen3.5-27B-Q4_K_M (GGUF/llama.cpp)",
+                "id": f"chatcmpl-paganini-{int(time.time())}",
+                "object": "chat.completion",
+                "created": int(time.time()),
+                "model": "qwen3.5-27b-q4km",
+                "choices": [{
+                    "index": 0,
+                    "message": {"role": "assistant", "content": text},
+                    "finish_reason": "stop",
+                }],
                 "usage": {
                     "prompt_tokens": in_tok,
                     "completion_tokens": out_tok,

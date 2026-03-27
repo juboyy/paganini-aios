@@ -1,45 +1,42 @@
-# PAGANINI AIOS Configuration
-version: "0.1.0"
+## PAGANINI AIOS — Production Config
+## Connects kernel to self-hosted Qwen3.5-27B on Modal
 
-# Runtime engine
-runtime:
-  engine: python
-  moltis_config: moltis.yaml
-  gateway_url: http://127.0.0.1:30000
+version: "0.2.0"
 
-# LLM Provider (BYOK — you keep your keys)
 provider:
-  type: google
-  model: gemini/gemini-2.5-flash
-  api_key: ""
-  base_url: ""
+  type: openai   # OpenAI-compatible API
+  model: qwen3.5-27b-q4km
+  api_key: "not-needed"  # Modal endpoint is public (auth via URL)
+  base_url: https://juboyy--paganini-27b-gguf-inference-v1-chat-completions.modal.run
 
-# RAG Pipeline (tunable by AutoResearch)
+# Routing: queries simples → 7B, complexas → 27B
+routing:
+  enabled: true
+  models:
+    simple:
+      model: qwen2.5-7b
+      base_url: https://juboyy--paganini-vllm-inference-generate.modal.run
+    complex:
+      model: qwen3.5-27b-q4km
+      base_url: https://juboyy--paganini-27b-gguf-inference-v1-chat-completions.modal.run
+  # CognitiveRouter thresholds
+  complexity_threshold: moderate  # moderate+ goes to 27B
+
+metaclaw:
+  enabled: false
+  proxy_url: ""
+
 rag:
   chunk_size: 384
   chunk_overlap: 64
   respect_headers: true
-  top_k: 5
-  max_context_tokens: 8000
+  top_k: 8
+  max_context_tokens: 16000
 
-# MetaClaw (skill evolution proxy)
-metaclaw:
-  enabled: false
-  skills_dir: skills/
-  auto_evolve: true
-  max_skills: 500
-  proxy_url: ""
+runtime:
+  engine: python    # python | docker | moltis
+  moltis_config: moltis.yaml
+  gateway_url: http://127.0.0.1:30000
 
-# Guardrails (6-gate hard-stop pipeline)
-guardrails:
-  eligibility: true
-  concentration: true
-  covenant: true
-  pld_aml: true
-  compliance: true
-  risk_assessment: true
-
-# Data paths
 data_dir: runtime/data
-corpus_dir: data/corpus/fidc/
-pack: fidc
+corpus_dir: runtime/corpus
