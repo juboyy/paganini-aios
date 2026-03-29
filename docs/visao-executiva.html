@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vivaldi AIOS — Visão Executiva</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1a1714;
+    --cream: #f5f0e8;
+    --warm: #e8dfd3;
+    --gold: #b8953a;
+    --gold-soft: #d4b96a;
+    --terra: #8b5e3c;
+    --sage: #6b7c5e;
+    --slate: #5a5550;
+    --blush: #c4816e;
+    --paper: #faf7f2;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--cream);
+    color: var(--ink);
+    overflow-x: hidden;
+    line-height: 1.6;
+  }
+
+  /* ─── HERO ─── */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    padding: clamp(2rem, 8vw, 6rem);
+    position: relative;
+    background: var(--paper);
+  }
+
+  .hero::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background:
+      radial-gradient(ellipse at 20% 50%, rgba(184, 149, 58, 0.08) 0%, transparent 60%),
+      radial-gradient(ellipse at 80% 30%, rgba(107, 124, 94, 0.06) 0%, transparent 50%);
+  }
+
+  .hero-content { position: relative; z-index: 1; max-width: 900px; }
+
+  .hero-label {
+    font-size: 0.75rem;
+    letter-spacing: 0.25em;
+    text-transform: uppercase;
+    color: var(--gold);
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    opacity: 0;
+    animation: fadeUp 0.8s 0.2s forwards;
+  }
+
+  .hero h1 {
+    font-family: 'Instrument Serif', serif;
+    font-size: clamp(3rem, 8vw, 7rem);
+    line-height: 0.95;
+    font-weight: 400;
+    letter-spacing: -0.02em;
+    margin-bottom: 2rem;
+    opacity: 0;
+    animation: fadeUp 0.8s 0.4s forwards;
+  }
+
+  .hero h1 em {
+    font-style: italic;
+    color: var(--gold);
+  }
+
+  .hero-desc {
+    font-size: clamp(1.1rem, 2vw, 1.35rem);
+    color: var(--slate);
+    max-width: 600px;
+    line-height: 1.7;
+    opacity: 0;
+    animation: fadeUp 0.8s 0.6s forwards;
+  }
+
+  .scroll-hint {
+    position: absolute;
+    bottom: 3rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--slate);
+    opacity: 0;
+    animation: fadeUp 0.8s 1s forwards;
+  }
+
+  .scroll-line {
+    width: 1px;
+    height: 40px;
+    background: var(--gold);
+    animation: scrollPulse 2s infinite;
+  }
+
+  /* ─── NAVIGATION TABS ─── */
+  .nav-sticky {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: rgba(245, 240, 232, 0.92);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(26, 23, 20, 0.08);
+    padding: 0 clamp(1rem, 4vw, 4rem);
+  }
+
+  .nav-inner {
+    display: flex;
+    gap: 0;
+    overflow-x: auto;
+    scrollbar-width: none;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+
+  .nav-inner::-webkit-scrollbar { display: none; }
+
+  .nav-tab {
+    padding: 1.1rem 1.5rem;
+    font-size: 0.78rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--slate);
+    text-decoration: none;
+    white-space: nowrap;
+    border-bottom: 2px solid transparent;
+    transition: all 0.3s;
+    font-weight: 500;
+  }
+
+  .nav-tab:hover, .nav-tab.active {
+    color: var(--gold);
+    border-bottom-color: var(--gold);
+  }
+
+  /* ─── SECTIONS ─── */
+  section {
+    padding: clamp(4rem, 10vw, 8rem) clamp(1.5rem, 6vw, 6rem);
+  }
+
+  .section-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+
+  .section-label {
+    font-size: 0.7rem;
+    letter-spacing: 0.3em;
+    text-transform: uppercase;
+    color: var(--gold);
+    font-weight: 600;
+    margin-bottom: 1rem;
+  }
+
+  .section-title {
+    font-family: 'Instrument Serif', serif;
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    font-weight: 400;
+    line-height: 1.1;
+    margin-bottom: 2rem;
+  }
+
+  .section-title em { font-style: italic; color: var(--gold); }
+
+  /* ─── ALTERNATING BACKGROUNDS ─── */
+  .bg-paper { background: var(--paper); }
+  .bg-cream { background: var(--cream); }
+  .bg-warm { background: var(--warm); }
+  .bg-dark {
+    background: var(--ink);
+    color: var(--cream);
+  }
+  .bg-dark .section-label { color: var(--gold-soft); }
+  .bg-dark .section-title em { color: var(--gold-soft); }
+
+  /* ─── ORACLI EXPLAINER ─── */
+  .explain-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 3rem;
+    margin-top: 3rem;
+  }
+
+  @media (max-width: 768px) {
+    .explain-grid { grid-template-columns: 1fr; }
+  }
+
+  .explain-item {
+    padding: 2rem 0;
+    border-top: 1px solid rgba(26, 23, 20, 0.1);
+  }
+
+  .bg-dark .explain-item { border-top-color: rgba(245, 240, 232, 0.15); }
+
+  .explain-num {
+    font-family: 'Instrument Serif', serif;
+    font-size: 2.5rem;
+    color: var(--gold);
+    line-height: 1;
+    margin-bottom: 0.5rem;
+  }
+
+  .bg-dark .explain-num { color: var(--gold-soft); }
+
+  .explain-item h3 {
+    font-size: 1.15rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+  }
+
+  .explain-item p {
+    font-size: 0.95rem;
+    color: var(--slate);
+    line-height: 1.7;
+  }
+
+  .bg-dark .explain-item p { color: rgba(245, 240, 232, 0.7); }
+
+  /* ─── ARCHITECTURE FLOW ─── */
+  .flow {
+    display: flex;
+    align-items: center;
+    gap: 0;
+    margin: 3rem 0;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+
+  .flow-node {
+    padding: 1.2rem 2rem;
+    background: var(--paper);
+    border: 1px solid rgba(26, 23, 20, 0.12);
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-align: center;
+    min-width: 140px;
+    position: relative;
+  }
+
+  .flow-node small {
+    display: block;
+    font-weight: 400;
+    color: var(--slate);
+    font-size: 0.75rem;
+    margin-top: 0.3rem;
+  }
+
+  .flow-arrow {
+    font-size: 1.5rem;
+    color: var(--gold);
+    padding: 0 0.5rem;
+  }
+
+  /* ─── COST TABLE ─── */
+  .cost-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2rem;
+    margin-top: 3rem;
+  }
+
+  .cost-card {
+    background: var(--paper);
+    padding: 2.5rem 2rem;
+    border: 1px solid rgba(26, 23, 20, 0.08);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .cost-card.featured {
+    border-color: var(--gold);
+    border-width: 2px;
+  }
+
+  .cost-card.featured::before {
+    content: 'RECOMENDADO';
+    position: absolute;
+    top: 0; right: 0;
+    background: var(--gold);
+    color: var(--paper);
+    font-size: 0.6rem;
+    letter-spacing: 0.15em;
+    padding: 0.4rem 1rem;
+    font-weight: 600;
+  }
+
+  .cost-phase {
+    font-size: 0.7rem;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    color: var(--gold);
+    font-weight: 600;
+  }
+
+  .cost-name {
+    font-family: 'Instrument Serif', serif;
+    font-size: 1.6rem;
+    margin: 0.5rem 0;
+  }
+
+  .cost-price {
+    font-family: 'Instrument Serif', serif;
+    font-size: 2.8rem;
+    color: var(--gold);
+    line-height: 1;
+    margin: 1rem 0;
+  }
+
+  .cost-price small {
+    font-size: 0.9rem;
+    color: var(--slate);
+    font-family: 'DM Sans', sans-serif;
+  }
+
+  .cost-details {
+    list-style: none;
+    margin-top: 1.5rem;
+  }
+
+  .cost-details li {
+    padding: 0.5rem 0;
+    font-size: 0.88rem;
+    color: var(--slate);
+    border-bottom: 1px solid rgba(26, 23, 20, 0.05);
+    display: flex;
+    justify-content: space-between;
+  }
+
+  .cost-details li span { font-weight: 600; color: var(--ink); }
+
+  /* ─── POSSIBILITIES ─── */
+  .poss-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 0;
+    margin-top: 3rem;
+    border: 1px solid rgba(26, 23, 20, 0.1);
+  }
+
+  .poss-item {
+    padding: 2.5rem 2rem;
+    border-right: 1px solid rgba(26, 23, 20, 0.1);
+    border-bottom: 1px solid rgba(26, 23, 20, 0.1);
+    transition: background 0.3s;
+    cursor: default;
+  }
+
+  .poss-item:hover { background: rgba(184, 149, 58, 0.04); }
+
+  .poss-icon {
+    font-size: 2rem;
+    margin-bottom: 1rem;
+    display: block;
+  }
+
+  .poss-item h3 {
+    font-size: 1.05rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+  }
+
+  .poss-item p {
+    font-size: 0.88rem;
+    color: var(--slate);
+    line-height: 1.6;
+  }
+
+  /* ─── TIMELINE ─── */
+  .timeline {
+    margin-top: 3rem;
+    position: relative;
+    padding-left: 3rem;
+  }
+
+  .timeline::before {
+    content: '';
+    position: absolute;
+    left: 0.5rem;
+    top: 0;
+    bottom: 0;
+    width: 1px;
+    background: var(--gold);
+  }
+
+  .tl-item {
+    margin-bottom: 3rem;
+    position: relative;
+  }
+
+  .tl-item::before {
+    content: '';
+    position: absolute;
+    left: -2.65rem;
+    top: 0.5rem;
+    width: 8px;
+    height: 8px;
+    background: var(--gold);
+    border-radius: 50%;
+  }
+
+  .tl-item.done::before { background: var(--sage); }
+  .tl-item.active::before {
+    background: var(--gold);
+    box-shadow: 0 0 0 4px rgba(184, 149, 58, 0.2);
+  }
+
+  .tl-date {
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--gold);
+    font-weight: 600;
+  }
+
+  .tl-title {
+    font-family: 'Instrument Serif', serif;
+    font-size: 1.4rem;
+    margin: 0.3rem 0 0.5rem;
+  }
+
+  .tl-desc {
+    font-size: 0.9rem;
+    color: var(--slate);
+    line-height: 1.6;
+  }
+
+  .tl-tag {
+    display: inline-block;
+    font-size: 0.65rem;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    padding: 0.25rem 0.6rem;
+    border: 1px solid;
+    margin-top: 0.75rem;
+    font-weight: 600;
+  }
+
+  .tl-tag.done { color: var(--sage); border-color: var(--sage); }
+  .tl-tag.progress { color: var(--gold); border-color: var(--gold); }
+  .tl-tag.next { color: var(--blush); border-color: var(--blush); }
+
+  /* ─── STATS ROW ─── */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0;
+    margin: 3rem 0;
+    border-top: 1px solid rgba(245, 240, 232, 0.15);
+    border-bottom: 1px solid rgba(245, 240, 232, 0.15);
+  }
+
+  .stat {
+    padding: 2.5rem 2rem;
+    border-right: 1px solid rgba(245, 240, 232, 0.1);
+    text-align: left;
+  }
+
+  .stat-num {
+    font-family: 'Instrument Serif', serif;
+    font-size: clamp(2.5rem, 5vw, 3.5rem);
+    color: var(--gold-soft);
+    line-height: 1;
+  }
+
+  .stat-label {
+    font-size: 0.78rem;
+    color: rgba(245, 240, 232, 0.6);
+    margin-top: 0.5rem;
+    letter-spacing: 0.05em;
+  }
+
+  /* ─── FOOTER ─── */
+  .footer {
+    padding: 3rem clamp(1.5rem, 6vw, 6rem);
+    background: var(--ink);
+    color: rgba(245, 240, 232, 0.4);
+    font-size: 0.8rem;
+    text-align: center;
+    letter-spacing: 0.05em;
+  }
+
+  /* ─── ANIMATIONS ─── */
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @keyframes scrollPulse {
+    0%, 100% { opacity: 0.4; }
+    50% { opacity: 1; }
+  }
+
+  .reveal {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+                transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .reveal.visible {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  /* ─── INTERACTIVE ACCORDION ─── */
+  .accordion {
+    margin-top: 2rem;
+  }
+
+  .acc-item {
+    border-bottom: 1px solid rgba(26, 23, 20, 0.1);
+  }
+
+  .acc-trigger {
+    width: 100%;
+    background: none;
+    border: none;
+    padding: 1.5rem 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--ink);
+    text-align: left;
+  }
+
+  .acc-trigger:hover { color: var(--gold); }
+
+  .acc-icon {
+    font-size: 1.5rem;
+    color: var(--gold);
+    transition: transform 0.3s;
+    font-weight: 300;
+  }
+
+  .acc-item.open .acc-icon { transform: rotate(45deg); }
+
+  .acc-body {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  .acc-item.open .acc-body { max-height: 600px; }
+
+  .acc-content {
+    padding: 0 0 2rem;
+    font-size: 0.92rem;
+    color: var(--slate);
+    line-height: 1.7;
+  }
+
+  /* ─── IMPLEMENTATION MODES ─── */
+  .impl-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 2rem;
+    margin-top: 3rem;
+  }
+
+  .impl-card {
+    padding: 2.5rem 2rem;
+    background: rgba(245, 240, 232, 0.06);
+    border: 1px solid rgba(245, 240, 232, 0.1);
+    transition: border-color 0.3s;
+  }
+
+  .impl-card:hover { border-color: var(--gold-soft); }
+
+  .impl-card h3 {
+    font-family: 'Instrument Serif', serif;
+    font-size: 1.4rem;
+    margin-bottom: 0.75rem;
+    color: var(--cream);
+  }
+
+  .impl-card p {
+    font-size: 0.88rem;
+    color: rgba(245, 240, 232, 0.6);
+    line-height: 1.6;
+    margin-bottom: 1rem;
+  }
+
+  .impl-tag {
+    font-size: 0.65rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--gold-soft);
+    font-weight: 600;
+  }
+
+  /* ─── COMPARISON ─── */
+  .compare-row {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr 1fr;
+    border-bottom: 1px solid rgba(26, 23, 20, 0.08);
+    font-size: 0.88rem;
+  }
+
+  .compare-row.header {
+    font-weight: 600;
+    font-size: 0.7rem;
+    letter-spacing: 0.15em;
+    text-transform: uppercase;
+    color: var(--gold);
+    border-bottom: 2px solid var(--gold);
+  }
+
+  .compare-row > div { padding: 1rem 1.5rem; }
+  .compare-row > div:nth-child(2) { text-align: center; }
+  .compare-row > div:nth-child(3) { text-align: center; }
+
+  @media (max-width: 600px) {
+    .compare-row { grid-template-columns: 1fr 1fr 1fr; font-size: 0.78rem; }
+    .compare-row > div { padding: 0.75rem 0.5rem; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════ HERO ═══════ -->
+<div class="hero">
+  <div class="hero-content">
+    <div class="hero-label">Vivaldi · Inteligência Artificial Operacional</div>
+    <h1>OraCLI &<br><em>Paganini</em> AIOS</h1>
+    <p class="hero-desc">
+      Um sistema de inteligência artificial autônomo que opera 24/7, orquestra agentes especializados e transforma operações financeiras empresariais.
+    </p>
+  </div>
+  <div class="scroll-hint">
+    <span>Explorar</span>
+    <div class="scroll-line"></div>
+  </div>
+</div>
+
+<!-- ═══════ NAV ═══════ -->
+<nav class="nav-sticky">
+  <div class="nav-inner">
+    <a href="#oracli" class="nav-tab">OraCLI</a>
+    <a href="#paganini" class="nav-tab">Paganini</a>
+    <a href="#construido" class="nav-tab">O Que Existe</a>
+    <a href="#possibilidades" class="nav-tab">Possibilidades</a>
+    <a href="#custos" class="nav-tab">Custos</a>
+    <a href="#implementacao" class="nav-tab">Implementação</a>
+  </div>
+</nav>
+
+<!-- ═══════ ORACLI ═══════ -->
+<section id="oracli" class="bg-paper">
+  <div class="section-inner reveal">
+    <div class="section-label">O Cérebro</div>
+    <h2 class="section-title">O que é o <em>OraCLI</em>?</h2>
+    <p style="font-size: 1.1rem; color: var(--slate); max-width: 700px; margin-bottom: 1rem;">
+      OraCLI é uma inteligência artificial que funciona como um <strong>CTO digital</strong>. Ele não é um chatbot — é um sistema autônomo que pensa, planeja, delega e executa.
+    </p>
+    <p style="font-size: 1rem; color: var(--slate); max-width: 700px;">
+      Imagine ter um funcionário que nunca dorme, nunca esquece, e comanda uma equipe de 9 especialistas. Esse é o OraCLI.
+    </p>
+
+    <div class="explain-grid">
+      <div class="explain-item">
+        <div class="explain-num">01</div>
+        <h3>Memória Permanente</h3>
+        <p>Lembra de todas as decisões, conversas e contextos anteriores. Nunca precisa ser "re-briefado".</p>
+      </div>
+      <div class="explain-item">
+        <div class="explain-num">02</div>
+        <h3>9 Agentes Especializados</h3>
+        <p>Código, Documentação, Infraestrutura, Dados, QA, Segurança, Arquitetura, PM e um agente generalista. Cada um expert na sua área.</p>
+      </div>
+      <div class="explain-item">
+        <div class="explain-num">03</div>
+        <h3>Pipeline de 18 Etapas</h3>
+        <p>Cada tarefa passa por um pipeline completo: contexto → especificação → implementação → revisão → deploy → aprendizado. Zero improviso.</p>
+      </div>
+      <div class="explain-item">
+        <div class="explain-num">04</div>
+        <h3>Opera 24/7</h3>
+        <p>Heartbeats a cada hora, verificações automáticas, execução autônoma de tarefas pendentes. Trabalha enquanto você dorme.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ PAGANINI ═══════ -->
+<section id="paganini" class="bg-warm">
+  <div class="section-inner reveal">
+    <div class="section-label">O Produto</div>
+    <h2 class="section-title">O que é o <em>Paganini</em>?</h2>
+    <p style="font-size: 1.1rem; color: var(--slate); max-width: 700px; margin-bottom: 2rem;">
+      Paganini é um <strong>sistema de inteligência financeira</strong> para empresas. Ele é o produto que nasce do OraCLI — uma plataforma que entende dados financeiros, responde perguntas e toma decisões.
+    </p>
+
+    <div class="flow">
+      <div class="flow-node">
+        Pergunta<br>
+        <small>"Qual o risco do FIDC X?"</small>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node" style="border-color: var(--gold);">
+        Paganini<br>
+        <small>9 agentes analisam</small>
+      </div>
+      <div class="flow-arrow">→</div>
+      <div class="flow-node">
+        Resposta<br>
+        <small>Análise + recomendação</small>
+      </div>
+    </div>
+
+    <div class="accordion">
+      <div class="acc-item">
+        <button class="acc-trigger" onclick="toggleAcc(this)">
+          <span>Bloomberg da sua empresa</span>
+          <span class="acc-icon">+</span>
+        </button>
+        <div class="acc-body">
+          <div class="acc-content">
+            Paganini funciona como um "Bloomberg Terminal" personalizado. Em vez de pagar R$15.000/mês pela Bloomberg, sua empresa tem uma IA que entende seus dados específicos, fala português e se integra aos seus sistemas. Acesso via Slack, Telegram, Dashboard web ou API.
+          </div>
+        </div>
+      </div>
+      <div class="acc-item">
+        <button class="acc-trigger" onclick="toggleAcc(this)">
+          <span>9 Agentes FIDC especializados</span>
+          <span class="acc-icon">+</span>
+        </button>
+        <div class="acc-body">
+          <div class="acc-content">
+            Admin, Compliance, Custódia, Due Diligence, Gestor, Investor Relations, Pricing, Regulatory Watch e Reporting. Cada agente é treinado em sua área específica do fundo. Quando você pergunta algo, o agente certo responde — ou vários colaboram juntos.
+          </div>
+        </div>
+      </div>
+      <div class="acc-item">
+        <button class="acc-trigger" onclick="toggleAcc(this)">
+          <span>RAG com inteligência contextual</span>
+          <span class="acc-icon">+</span>
+        </button>
+        <div class="acc-body">
+          <div class="acc-content">
+            O sistema não "alucina". Ele busca em seus documentos reais usando 6 técnicas avançadas de recuperação de informação: multi-query, reranking, filtro por metadados, chunk headers, graph RAG e knowledge graph. A resposta vem com referências dos documentos originais.
+          </div>
+        </div>
+      </div>
+      <div class="acc-item">
+        <button class="acc-trigger" onclick="toggleAcc(this)">
+          <span>6 Guardrails de Segurança</span>
+          <span class="acc-icon">+</span>
+        </button>
+        <div class="acc-body">
+          <div class="acc-content">
+            Cada decisão passa por 6 portões: Elegibilidade → Concentração → Covenant → PLD/AML → Compliance → Risco. A IA não pode tomar decisões que violem essas regras. É um sistema de freios automáticos para operações financeiras.
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ O QUE JÁ EXISTE ═══════ -->
+<section id="construido" class="bg-dark">
+  <div class="section-inner reveal">
+    <div class="section-label">Status Atual</div>
+    <h2 class="section-title">O que já foi <em>construído</em></h2>
+
+    <div class="stats">
+      <div class="stat">
+        <div class="stat-num">7.200+</div>
+        <div class="stat-label">Linhas de código</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">40</div>
+        <div class="stat-label">Arquivos Python</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">55</div>
+        <div class="stat-label">Testes unitários</div>
+      </div>
+      <div class="stat">
+        <div class="stat-num">145</div>
+        <div class="stat-label">Commits em 2 dias</div>
+      </div>
+    </div>
+
+    <div class="timeline" style="margin-top: 4rem;">
+      <div class="tl-item done">
+        <div class="tl-date">Concluído</div>
+        <div class="tl-title">Kernel Paganini</div>
+        <div class="tl-desc">Motor de processamento com Moltis runtime, MetaClaw proxy e Cognitive Router inteligente que roteia perguntas simples para modelo 7B (rápido/barato) e complexas para 27B (profundo).</div>
+        <span class="tl-tag done">Pronto</span>
+      </div>
+      <div class="tl-item done">
+        <div class="tl-date">Concluído</div>
+        <div class="tl-title">Pipeline RAG Avançado</div>
+        <div class="tl-desc">3.840 linhas de código com 6 técnicas de recuperação de informação. Arquitetura pack-driven: novo vertical = novo arquivo YAML, zero código novo.</div>
+        <span class="tl-tag done">Pronto</span>
+      </div>
+      <div class="tl-item done">
+        <div class="tl-date">Concluído</div>
+        <div class="tl-title">Infraestrutura de IA</div>
+        <div class="tl-desc">5 scripts de deploy testados (7B e 27B). Endpoint OpenAI-compatible. Benchmark: 22.8 tokens/segundo, custo de R$0,01 por query.</div>
+        <span class="tl-tag done">Pronto</span>
+      </div>
+      <div class="tl-item done">
+        <div class="tl-date">Concluído</div>
+        <div class="tl-title">Quality Gate (Sentrux)</div>
+        <div class="tl-desc">Sensor de qualidade de código com 9 ferramentas. Score: 5.843 pontos, zero violações no core. CI pipeline integrado.</div>
+        <span class="tl-tag done">Pronto</span>
+      </div>
+      <div class="tl-item active">
+        <div class="tl-date">Em Progresso</div>
+        <div class="tl-title">Wiring: Kernel → API</div>
+        <div class="tl-desc">Conectar o kernel ao endpoint de IA via Together AI, criar o primeiro canal funcional (Telegram ou HTTP).</div>
+        <span class="tl-tag progress">Fase 0</span>
+      </div>
+      <div class="tl-item">
+        <div class="tl-date">Próximo</div>
+        <div class="tl-title">Paganini Terminal</div>
+        <div class="tl-desc">Dashboard completo estilo Bloomberg: 4 camadas de processamento, 8 módulos, 6 canais de entrega. MVP em 12 semanas.</div>
+        <span class="tl-tag next">Próximo</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ POSSIBILIDADES ═══════ -->
+<section id="possibilidades" class="bg-paper">
+  <div class="section-inner reveal">
+    <div class="section-label">Visão</div>
+    <h2 class="section-title">O que o Paganini <em>pode fazer</em></h2>
+
+    <div class="poss-grid">
+      <div class="poss-item">
+        <span class="poss-icon">📊</span>
+        <h3>Análise de FIDC</h3>
+        <p>Pergunte "Qual a concentração do cedente X?" e receba análise completa com dados do fundo, limites de covenant e recomendação.</p>
+      </div>
+      <div class="poss-item">
+        <span class="poss-icon">⚖️</span>
+        <h3>Compliance Automático</h3>
+        <p>Cada operação passa por 6 guardrails. PLD/AML, elegibilidade, concentração — tudo verificado em segundos, não em dias.</p>
+      </div>
+      <div class="poss-item">
+        <span class="poss-icon">📈</span>
+        <h3>Precificação de Ativos</h3>
+        <p>O agente Pricing analisa taxa, spread, curva e risco do ativo. Sugere preço justo com base em dados históricos e de mercado.</p>
+      </div>
+      <div class="poss-item">
+        <span class="poss-icon">🔍</span>
+        <h3>Due Diligence</h3>
+        <p>Análise automatizada de cedentes, sacados e operações. Cruza dados de múltiplas fontes e gera relatório de risco.</p>
+      </div>
+      <div class="poss-item">
+        <span class="poss-icon">📋</span>
+        <h3>Relatórios Automáticos</h3>
+        <p>Gera relatórios de gestão, regulatórios e para investidores automaticamente. Formatação profissional, dados atualizados.</p>
+      </div>
+      <div class="poss-item">
+        <span class="poss-icon">🌐</span>
+        <h3>Multi-Canal</h3>
+        <p>Acesse via Slack, Telegram, Dashboard web, API REST ou TUI de terminal. A inteligência vai aonde você precisa.</p>
+      </div>
+      <div class="poss-item">
+        <span class="poss-icon">🏗️</span>
+        <h3>Qualquer Vertical</h3>
+        <p>FIDC é o primeiro pack. Crédito, seguros, previdência, agronegócio — novo vertical = novo arquivo YAML de configuração.</p>
+      </div>
+      <div class="poss-item">
+        <span class="poss-icon">🔒</span>
+        <h3>Dados Privados</h3>
+        <p>Modelo de IA pode rodar em servidor próprio. Seus dados nunca saem da sua infraestrutura. Compliance regulatório total.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ CUSTOS ═══════ -->
+<section id="custos" class="bg-cream">
+  <div class="section-inner reveal">
+    <div class="section-label">Investimento</div>
+    <h2 class="section-title">Quanto custa <em>operar</em></h2>
+    <p style="font-size: 1rem; color: var(--slate); max-width: 700px; margin-bottom: 1rem;">
+      O custo de infraestrutura do Paganini é surpreendentemente baixo. A margem do negócio é superior a 98%.
+    </p>
+
+    <div class="cost-cards">
+      <div class="cost-card featured">
+        <div class="cost-phase">Fase 1 · 0-100 clientes</div>
+        <div class="cost-name">API Gerenciada</div>
+        <div class="cost-price">R$ 648 <small>/mês</small></div>
+        <ul class="cost-details">
+          <li>Infra de IA <span>Together AI</span></li>
+          <li>Custo por query <span>R$ 0,003</span></li>
+          <li>Cold start <span>Zero</span></li>
+          <li>Manutenção <span>Nenhuma</span></li>
+          <li>Escala <span>Automática</span></li>
+        </ul>
+      </div>
+      <div class="cost-card">
+        <div class="cost-phase">Fase 2 · 100-500 clientes</div>
+        <div class="cost-name">GPU Sob Demanda</div>
+        <div class="cost-price">R$ 5.530 <small>/mês</small></div>
+        <ul class="cost-details">
+          <li>Infra de IA <span>Modal Auto-Scale</span></li>
+          <li>Custo por query <span>R$ 0,02</span></li>
+          <li>Cold start <span>40-80s</span></li>
+          <li>Manutenção <span>Baixa</span></li>
+          <li>Controle <span>Total</span></li>
+        </ul>
+      </div>
+      <div class="cost-card">
+        <div class="cost-phase">Fase 3 · 500+ clientes</div>
+        <div class="cost-name">GPU Dedicada</div>
+        <div class="cost-price">R$ 1.260 <small>/mês</small></div>
+        <ul class="cost-details">
+          <li>Infra de IA <span>Vast.ai / Própria</span></li>
+          <li>Custo por query <span>R$ 0,005</span></li>
+          <li>Cold start <span>Zero</span></li>
+          <li>Manutenção <span>Média</span></li>
+          <li>Margem <span>Máxima</span></li>
+        </ul>
+      </div>
+    </div>
+
+    <div style="margin-top: 3rem;">
+      <h3 style="font-family: 'Instrument Serif', serif; font-size: 1.6rem; margin-bottom: 1.5rem;">Margem de Negócio</h3>
+      <div class="compare-row header">
+        <div>Cenário</div>
+        <div>Receita</div>
+        <div>Margem</div>
+      </div>
+      <div class="compare-row">
+        <div>10 clientes × R$2.990</div>
+        <div>R$ 29.900</div>
+        <div><strong>97,8%</strong></div>
+      </div>
+      <div class="compare-row">
+        <div>50 clientes × R$2.990</div>
+        <div>R$ 149.500</div>
+        <div><strong>98,7%</strong></div>
+      </div>
+      <div class="compare-row">
+        <div>100 clientes × R$2.990</div>
+        <div>R$ 299.000</div>
+        <div><strong>98,8%</strong></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ IMPLEMENTAÇÃO ═══════ -->
+<section id="implementacao" class="bg-dark">
+  <div class="section-inner reveal">
+    <div class="section-label">Como Começar</div>
+    <h2 class="section-title">Formas de <em>implementar</em></h2>
+
+    <div class="impl-grid">
+      <div class="impl-card">
+        <div class="impl-tag">2-4 Semanas</div>
+        <h3>MVP Rápido</h3>
+        <p>Bot no Telegram ou Slack conectado ao Paganini via API. Sua equipe começa a fazer perguntas ao sistema imediatamente. Sem dashboard, sem complexidade.</p>
+      </div>
+      <div class="impl-card">
+        <div class="impl-tag">4-8 Semanas</div>
+        <h3>Plataforma Completa</h3>
+        <p>Dashboard web + Bot + API REST. Ingestão dos seus documentos, treinamento com dados reais, integração com seus sistemas existentes.</p>
+      </div>
+      <div class="impl-card">
+        <div class="impl-tag">8-12 Semanas</div>
+        <h3>Terminal Enterprise</h3>
+        <p>Bloomberg-like completo: 8 módulos, 6 canais de broadcast, alertas em tempo real, análise preditiva, integração com sistemas legados.</p>
+      </div>
+    </div>
+
+    <div style="margin-top: 4rem; padding: 3rem; border: 1px solid rgba(245, 240, 232, 0.1);">
+      <h3 style="font-family: 'Instrument Serif', serif; font-size: 1.8rem; margin-bottom: 1.5rem; color: var(--cream);">
+        OraCLI vs. Contratar uma Equipe
+      </h3>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 3rem; margin-top: 1.5rem;">
+        <div>
+          <div style="font-size: 0.7rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold-soft); margin-bottom: 1rem; font-weight: 600;">Equipe Humana Equivalente</div>
+          <div style="font-family: 'Instrument Serif', serif; font-size: 2.5rem; color: var(--blush); margin-bottom: 0.5rem;">R$ 120K+</div>
+          <p style="font-size: 0.88rem; color: rgba(245, 240, 232, 0.5); line-height: 1.6;">
+            1 CTO + 2 devs + 1 analista de dados + 1 QA. Mínimo. Sem contar benefícios, escritório, gestão.
+          </p>
+        </div>
+        <div>
+          <div style="font-size: 0.7rem; letter-spacing: 0.2em; text-transform: uppercase; color: var(--gold-soft); margin-bottom: 1rem; font-weight: 600;">OraCLI + Paganini</div>
+          <div style="font-family: 'Instrument Serif', serif; font-size: 2.5rem; color: var(--sage); margin-bottom: 0.5rem;">R$ 2.990</div>
+          <p style="font-size: 0.88rem; color: rgba(245, 240, 232, 0.5); line-height: 1.6;">
+            9 agentes especializados. 24/7. Memória permanente. Pipeline de 18 etapas. Escala infinita.
+          </p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════ FOOTER ═══════ -->
+<div class="footer">
+  Vivaldi · 2026 — Inteligência Artificial Operacional
+</div>
+
+<script>
+  // Accordion
+  function toggleAcc(btn) {
+    const item = btn.parentElement;
+    const wasOpen = item.classList.contains('open');
+    document.querySelectorAll('.acc-item').forEach(i => i.classList.remove('open'));
+    if (!wasOpen) item.classList.add('open');
+  }
+
+  // Scroll reveal
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+      }
+    });
+  }, { threshold: 0.1 });
+
+  document.querySelectorAll('.reveal').forEach(el => observer.observe(el));
+
+  // Active nav tab
+  const sections = document.querySelectorAll('section[id]');
+  const navTabs = document.querySelectorAll('.nav-tab');
+
+  window.addEventListener('scroll', () => {
+    let current = '';
+    sections.forEach(section => {
+      const top = section.offsetTop - 100;
+      if (scrollY >= top) current = section.id;
+    });
+    navTabs.forEach(tab => {
+      tab.classList.remove('active');
+      if (tab.getAttribute('href') === '#' + current) tab.classList.add('active');
+    });
+  });
+</script>
+
+</body>
+</html>
